@@ -1,0 +1,67 @@
+:root{
+    --bcolor:rgb(120, 120, 255);
+}
+
+
+body{
+    margin: 0;
+}
+
+.createEvent{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    background: url(FB_IMG_17042315741152218.jpg) no-repeat;
+    background-size: cover;
+    margin: 0;
+}
+
+.createEvent .form{
+    width: 400px;
+    background: transparent;
+    padding: 30px;
+    border: 2px solid #fff;
+    backdrop-filter:blur(10px);
+    border-radius: 20px;
+}
+
+.createEvent .form h2{
+    text-align: center;
+    font-size: 2rem;
+}
+
+.createEvent form{
+    display: flex;
+    flex-direction: column;
+}
+
+.createEvent form input,
+.createEvent form select{
+    padding: 10px;
+    border-radius: 30px;
+    margin: 6px 6px 6px 0;
+    outline: none;
+    background-color: transparent;
+    border: 2px solid #fff;
+}
+
+.createEvent form select option{
+    background-color: transparent;
+    border-radius: 10px;
+}
+
+.createEvent form input::placeholder,
+.createEvent form input::placeholder{
+    color: #fff;
+}
+
+.createEvent form button{
+    padding: 10px;
+    border-radius: 30px;
+    margin: 6px 0;
+    border: none;
+    background-color: rgb(120, 120, 255);
+    cursor: pointer;
+}
