@@ -94,6 +94,8 @@ const handleEdit = (event) => {
             Price: ₦{event.ticketPrice} | Left: {event.totalTickets}
           </p>
           <p>Live: {event.liveStream?.isLive ? "🟢 Live" : "⚪ Offline"}</p>
+          <LiveChat eventId={event._id} username="Dcrony" />
+
 
           <button onClick={() => toggleLive(event._id)}>
             {event.liveStream?.isLive ? "Stop Stream" : "Go Live"}

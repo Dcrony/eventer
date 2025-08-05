@@ -24,7 +24,7 @@ const EventDetail = ({ event, quantity }) => {
   };
 
   return (
-    <div>
+    <div className='home'>
       <h2>{event.title}</h2>
       <p>{event.description}</p>
       <p>Price: ₦{event.ticketPrice}</p>

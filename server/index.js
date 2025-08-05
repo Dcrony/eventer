@@ -1,5 +1,6 @@
 require("dotenv").config();
 const dotenv = require("dotenv");
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -28,6 +29,40 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 
+const http = require("http");
+const { Server } = require("socket.io");
 
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // frontend port
+    methods: ["GET", "POST"],
+    credentials: true,
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("⚡ New user connected");
+
+  socket.on("joinRoom", (eventId) => {
+    socket.join(eventId);
+    console.log(`User joined room: ${eventId}`);
+  });
+
+  socket.on("sendMessage", (msg) => {
+    console.log("📨 Message received:", msg);
+    io.to(msg.eventId).emit("receiveMessage", msg);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ User disconnected");
+  });
+});
+
+
+
+
+// port
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

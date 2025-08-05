@@ -21,14 +21,14 @@ export default function NavBar() {
   };
 
   return (
-    <nav >
+    <div className="nav" >
       <div>
         <Link to="/" className="logo">
           🟡 TickiSpot
         </Link>
       </div>
 
-      <div>
+      <div className="nav-welcome">
         {user ? (
           <>
             <span style={{ marginRight: "15px" }}>
@@ -42,26 +42,12 @@ export default function NavBar() {
               </Link>
             )}
 
-            <Link to="/" 
-            className="link">
-              🎛 Home
-            </Link>
-            <Link
-              to="/dashboard"
-              className="link"
-            >
-              🎛 Dashboard
-            </Link>
-            <Link
-              to="/admin/dashboard"
-              className="link"
-            >
-              📊 Stats
-            </Link>
-            <Link to="/tickets"
-            className="link">
-              🎫 My Tickets
-            </Link>
+            
+            <div className="active-user">
+              <img src="" alt="" />
+              <div className="active"></div>
+            </div>
+            
             <button
               onClick={handleLogout}
               className="logout"
@@ -82,6 +68,6 @@ export default function NavBar() {
           </>
         )}
       </div>
-    </nav>
+    </div>
   );
 }

@@ -11,11 +11,13 @@ import NavBar from "./components/NavBar";
 import PrivateRoute from "./components/PrivateRoute";
 import Success from "./pages/success";
 import StatsDashboard from "./pages/StatsDashboard";
+import Sidebar from "./components/SideBar";
 
 export default function App() {
   return (
     <BrowserRouter>
       <NavBar />
+      <Sidebar/>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -61,15 +63,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <PrivateRoute>
-              <StatsDashboard />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
+        </Routes>
     </BrowserRouter>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import './CSS/createEvent.css'
+import "./CSS/home.css"
 
 export default function CreateEvent() {
   const [form, setForm] = useState({
@@ -38,7 +39,7 @@ export default function CreateEvent() {
   };
 
   return (
-    <div className="createEvent">
+    <div className="home createEvent">
       <div className="form">
       <h2>Create New Event</h2>
       <form onSubmit={handleSubmit}>
@@ -71,7 +72,11 @@ export default function CreateEvent() {
           onChange={handleChange}
           required
         />
+        <label htmlFor="image">
+          <img src="" alt="" />
+        </label>
         <input
+        type="file"
           name="image"
           placeholder="Image URL"
           onChange={handleChange}
@@ -93,7 +98,7 @@ export default function CreateEvent() {
         />
         </div>
         <div>
-          <label htmlFor="">SreamType:
+          <label htmlFor="SreamType">SreamType:
         <select
           name="streamType"
           value={form.streamType}

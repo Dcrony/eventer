@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import LiveChat from "../components/LiveChats"; // Adjust path if needed
+import "./CSS/home.css";
 
 export default function Home() {
   const [events, setEvents] = useState([]);
@@ -17,8 +19,6 @@ export default function Home() {
   const handleQuantityChange = (e, eventId) => {
     setBuying((prev) => ({ ...prev, [eventId]: e.target.value }));
   };
-
-
 
   const handleBuy = async (eventId) => {
     const quantity = parseInt(buying[eventId]) || 1;
@@ -52,8 +52,16 @@ export default function Home() {
     }
   };
 
+  const [showChat, setShowChat] = useState(false);
+  const [activeEventId, setActiveEventId] = useState(null);
+
+  const handleJoinChat = (eventId) => {
+    setActiveEventId(eventId);
+    setShowChat(true);
+  };
+
   return (
-    <div>
+    <div className="home">
       <h1>TickiSpot</h1>
       {events.length === 0 && <p>No events yet.</p>}
       {events.map((event) => (
@@ -84,6 +92,18 @@ export default function Home() {
                 ></iframe>
               )}
 
+              <button onClick={() => handleJoinChat(event._id)}>
+                Join Live Chat
+              </button>
+
+              {/* ✅ Conditionally render chat */}
+              {showChat && activeEventId === event._id && (
+                <LiveChat
+                  eventId={event._id}
+                  username={user?.username || "Guest"}
+                />
+              )}
+
               {event.liveStream.streamType === "Facebook" && (
                 <div
                   className="fb-video"
@@ -104,7 +124,9 @@ export default function Home() {
                 value={buying[event._id] || ""}
                 onChange={(e) => handleQuantityChange(e, event._id)}
               />
-              <button onClick={() => handleBuy(event._id)} target="_blank" >Buy Ticket</button>
+              <button onClick={() => handleBuy(event._id)} target="_blank">
+                Buy Ticket
+              </button>
             </div>
           )}
         </div>

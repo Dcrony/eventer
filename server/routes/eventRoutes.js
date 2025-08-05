@@ -5,6 +5,7 @@ const {
   getAllEvents,
   purchaseTicket,
   toggleLiveStream,
+  getStats,
 } = require("../controllers/eventController");
 const { getMyTickets } = require("../controllers/ticketController");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -15,7 +16,6 @@ const {
   deleteEvent,
   getEventBuyers,
   getEventById,
-  getStats,
 } = require("../controllers/eventController");
 
 
@@ -31,7 +31,7 @@ router.get("/:id", getEventById);
 router.put("/update/:eventId", auth, updateEvent);
 router.delete("/delete/:eventId", auth, deleteEvent);
 router.get("/buyers/:eventId", authMiddleware, getEventBuyers);
-router.get("/stats", authMiddleware, getStats);
+router.get("/stats", getStats);
 
 
 

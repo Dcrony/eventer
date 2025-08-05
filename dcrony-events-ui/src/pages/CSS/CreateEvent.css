@@ -11,11 +11,11 @@ body{
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    overflow: hidden;
+    height: 100%;
     background: url(FB_IMG_17042315741152218.jpg) no-repeat;
     background-size: cover;
     margin: 0;
+    padding: 80px 0 0 0;
 }
 
 .createEvent .form{

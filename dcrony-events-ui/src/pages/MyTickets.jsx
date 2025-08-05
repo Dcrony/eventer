@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import API from '../api/axios';
+import "./CSS/home.css"
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
@@ -11,7 +12,7 @@ export default function MyTickets() {
   }, []);
 
   return (
-    <div>
+    <div className='home'>
       <h2>🎟️ My Tickets</h2>
       {tickets.length === 0 ? (
         <p>You haven't purchased any tickets yet.</p>

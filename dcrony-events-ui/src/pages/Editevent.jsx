@@ -40,7 +40,7 @@ export default function EditEvent() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="home" style={{ padding: "20px" }}>
       <h2>✏️ Edit Event</h2>
       <form onSubmit={handleSubmit}>
         <input

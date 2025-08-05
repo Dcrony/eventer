@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import "./CSS/home.css"
 
 export default function StatsDashboard() {
   const [stats, setStats] = useState(null);
@@ -15,7 +16,7 @@ export default function StatsDashboard() {
   if (!stats) return <p>Loading stats...</p>;
 
   return (
-    <div>
+    <div className="home">
       <h2>📊 Dcrony Event Stats</h2>
       <p>Total Events: {stats.totalEvents}</p>
       <p>Total Tickets Sold: {stats.totalTickets}</p>
