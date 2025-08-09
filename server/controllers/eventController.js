@@ -1,49 +1,6 @@
 const Ticket = require("../models/Ticket");
-const Event = require("../models/Event");
+const Event = require('../models/Event');
 
-exports.createEvent = async (req, res) => {
-  try {
-    const {
-      title,
-      description,
-      category,
-      date,
-      time,
-      location,
-      image,
-      ticketPrice,
-      totalTickets,
-      streamType,
-      streamURL,
-    } = req.body;
-
-    const newEvent = new Event({
-      title,
-      description,
-      category,
-      date,
-      time,
-      location,
-      image,
-      createdBy: req.user.id, // from auth middleware
-      ticketPrice,
-      totalTickets,
-      liveStream: {
-        isLive: false,
-        streamType,
-        streamURL,
-      },
-    });
-
-    await newEvent.save();
-    res
-      .status(201)
-      .json({ message: "Event created successfully", event: newEvent });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 exports.getEventById = async (req, res) => {
   try {

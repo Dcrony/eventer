@@ -1,0 +1,153 @@
+:root {
+  --bcolor: rgb(120, 120, 255);
+  --ash: rgb(234, 234, 236);
+  --red: rgb(241, 38, 38);
+  --larch: rgb(221, 218, 218);
+  --llarch: rgb(241, 239, 239);
+}
+
+* {
+  margin: 0;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #f2f3f7;
+  position: fixed;
+  width: 100vw;
+  right: 0;
+  margin: 0;
+  z-index: 1;
+  padding-right: 40px;
+}
+
+.nav .logo {
+  color: #000;
+  text-decoration: none;
+  font-size: 1.4rem;
+}
+
+.nav .nav-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav .nav-search {
+  position: relative;
+  border: none;
+  background-color: var(--larch);
+  outline: none;
+  border-radius: 20px;
+  padding: 10px;
+  height: 40px;
+  width: 300px;
+}
+
+.nav .nav-search-handle {
+  position: absolute;
+}
+
+.nav .link {
+  text-decoration: none;
+  color: #000;
+  margin: 0 10px;
+}
+
+.nav .notification {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--larch);
+  width: 40px;
+  height: 30px;
+  border-radius: 6px;
+  margin: 0 8px;
+}
+
+.nav .notice {
+  position: absolute;
+  width: fit-content;
+  height: fit-content;
+  font-size: 16px;
+  border-radius: 50%;
+  background-color: var(--red);
+  right: 10px;
+  bottom: 10px;
+}
+
+.nav .active-user {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.nav .active-user img {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.nav .active-user .active {
+  position: absolute;
+  bottom: 11px;
+  right: 43px;
+  width: 10px;
+  height: 10px;
+  background-color: chartreuse;
+  border-radius: 50%;
+}
+
+.nav .dropdown {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border: 1px solid black;
+  position: absolute;
+  top: 60px;
+  right: 10px;
+  box-shadow: 1px 10px 10px rgb(201, 193, 193);
+  border-radius: 0 0 20px 20px;
+  display: none;
+}
+
+.nav .active-user:hover .dropdown {
+  display: flex;
+}
+
+.nav .logout {
+  background-color: var(--red);
+  border: none;
+  cursor: pointer;
+  width: 100px;
+  height: 40px;
+  border-radius: 20px;
+  margin: 3px 10px;
+}
+
+.nav .logout:hover {
+  background-color: rgb(178, 178, 238);
+}
+
+.login-btn {
+  background-color: var(--bcolor);
+  text-decoration: none;
+  color: #fff;
+  padding: 6px;
+  border-radius: 10px;
+}
+
+.register-btn {
+  background-color: var(--ash);
+  text-decoration: none;
+  color: #000;
+  padding: 6px;
+  border-radius: 10px;
+  margin: 0 10px;
+}

@@ -9,7 +9,7 @@ const eventRoutes = require("./routes/eventRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
-
+const statRoutes = require("./routes/statRoutes");
 
 const app = express();
 
@@ -22,12 +22,18 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
+// Serve static files from the "uploads" folder
+app.use("/uploads", express.static("uploads"));
+
 // ROUTES
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
+app.use("/api/stats", statRoutes);
+
+
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -36,10 +42,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // frontend port
+    origin: "http://localhost:5173", // frontend port
     methods: ["GET", "POST"],
     credentials: true,
-  }
+  },
 });
 
 io.on("connection", (socket) => {
@@ -59,9 +65,6 @@ io.on("connection", (socket) => {
     console.log("❌ User disconnected");
   });
 });
-
-
-
 
 // port
 const PORT = process.env.PORT || 5000;

@@ -1,0 +1,196 @@
+ Core Features (Your Ideas)
+Create & Post Events
+
+Event title, date/time, location (physical or virtual), image/banner, description, category (e.g., music, tech, sports)
+
+Purchase Event Tickets
+
+Ticket types (regular, VIP), prices, availability, and secure checkout
+
+Live Streaming
+
+Embedded streams (YouTube Live, Vimeo, or custom RTMP)
+
+Live Chat During Event
+
+Real-time group chat using WebSocket (e.g., Socket.io)
+
+💡 Suggested Bonus Features
+User Authentication & Profiles
+
+Sign up/login via email or social accounts
+
+User dashboard (see their events, ticket history, etc.)
+
+Admin Panel
+
+Manage events, tickets, users, and reports
+
+Analytics dashboard (ticket sales, user engagement)
+
+Event Reminders & Notifications
+
+Email or in-app reminders (e.g., 24hrs before event)
+
+Real-time notifications for chat or event updates
+
+Event Rating & Reviews
+
+Users can leave feedback or rate events
+
+QR Code Ticket Scanning
+
+Generate QR codes on ticket purchase
+
+Check-in via QR scan at event entry (mobile ready)
+
+Invite System / Social Sharing
+
+Share event via social media or custom referral link
+
+Earn perks for bringing friends (referral reward system)
+
+Waitlist for Sold-Out Events
+
+Let users register interest even if tickets are sold out
+
+Event Categories & Filtering
+
+Search & filter by date, location, type, price, etc.
+
+Monetization Options for Organizers
+
+Commission per ticket sale
+
+Subscription or pay-to-post for event hosts
+
+Mobile-Responsive UI or Native App (Later)
+
+Consider building a React Native version if it scales
+
+🔐 Onboarding (Welcome, Sign Up, Log In)
+Dark/light toggle for theme preference
+
+Login options: Email, Google, Facebook
+
+Clear, friendly welcome messaging and illustrations
+
+Form with floating labels and real-time validation
+
+2. 🏠 Homepage / Event Discovery
+Top Navigation: Logo, Search Bar, Category Filter, Login/Profile dropdown
+
+Hero Section: Upcoming major event banner (carousel or video teaser)
+
+Event Feed Grid:
+
+Cards with event image, title, date/time, short location, price tag
+
+Hover state for "View Details" button
+
+Filter Sidebar: Location, Date, Price, Category
+
+Footer: About, Contact, Terms, Social Links
+
+3. 📅 Event Details Page
+Event Banner/Header
+
+Event Info: Title, Organizer, Date & Time, Location (with map preview)
+
+"Buy Ticket" Button (highlighted and sticky on scroll)
+
+Description section (scrollable)
+
+Reviews & Ratings
+
+Live Chat preview box (for upcoming events)
+
+Related Events carousel
+
+4. 🛒 Ticket Purchase Flow
+Modal or page-based checkout:
+
+Choose ticket type
+
+Quantity selector
+
+Price summary
+
+Payment method (Paystack, Stripe, etc.)
+
+Generate and download QR code ticket on confirmation
+
+5. 📡 Live Event Page
+Embedded Live Stream Video
+
+Live Chat Panel beside or under the video
+
+Reactions (like ❤️, 🔥, 👏), pinned messages
+
+Viewer count and host profile badge
+
+Optional: Polls or Q&A sidebar
+
+6. 💬 Live Chat UI
+Bubbles with timestamps and usernames
+
+Emoji reactions, sticker/GIF support
+
+Typing indicator, pinned messages
+
+Optional: Admin/Host controls (mute/report)
+
+7. 📋 Create Event Page
+Multi-step form (wizard style):
+
+Basic Info
+
+Event Image/Banner Upload
+
+Ticket Pricing & Quantity
+
+Live Stream Setup (URL or Upload)
+
+Preview & Publish
+
+Real-time preview sidebar
+
+"Save as Draft" option
+
+8. 👤 User Dashboard
+Tabs: My Events, My Tickets, Settings
+
+Profile card (avatar, username, social links)
+
+Stats: Tickets bought, events hosted, reviews
+
+Ability to cancel or transfer tickets
+
+9. 🛠️ Admin Panel (For Dcrony)
+Overview dashboard (users, events, sales, traffic)
+
+Event moderation tools (approve/decline, featured flag)
+
+Reports & analytics
+
+Manage users and payments
+
+🎨 Color Palette (Example)
+Primary: #4E73DF (blue)
+
+Accent: #F6C23E (gold)
+
+Background: #F8F9FC (light), #1E1E2F (dark)
+
+Success: #1CC88A
+
+Error: #E74A3B
+
+Clean, modern sans-serif font (e.g., Inter, Poppins)
+
+📱 Responsive Design
+Mobile-first
+
+Adaptive grid layout
+
+Fixed bottom nav for mobile (Home, Search, Events, Tickets, Profile)
