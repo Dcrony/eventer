@@ -15,7 +15,6 @@ Live Chat During Event
 
 Real-time group chat using WebSocket (e.g., Socket.io)
 
-💡 Suggested Bonus Features
 User Authentication & Profiles
 
 Sign up/login via email or social accounts
