@@ -1,25 +1,27 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const ticketSchema = new mongoose.Schema({
+  buyer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   event: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Event',
-    required: true
-  },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "Event",
+    required: true,
   },
   quantity: {
     type: Number,
-    required: true,
-    min: 1
+    default: 1,
   },
-  purchaseDate: {
+  qrCode: {
+    type: String,
+  }, // store QR code file name
+  purchasedAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('Ticket', ticketSchema);
+module.exports = mongoose.model("Ticket", ticketSchema);

@@ -22,6 +22,7 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
+
 // Serve static files from the "uploads" folder
 app.use("/uploads", express.static("uploads"));
 
@@ -32,8 +33,6 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use("/api/stats", statRoutes);
-
-
 
 const http = require("http");
 const { Server } = require("socket.io");

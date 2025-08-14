@@ -8,7 +8,6 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const token = localStorage.getItem("token");
 
-
   useEffect(() => {
     // Fetch organizer events
     API.get("/events/my-events")
@@ -17,13 +16,13 @@ export default function Dashboard() {
 
     // Fetch stats
     API.get("/events/stats", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => setStats(res.data))
-        .catch((err) => {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => setStats(res.data))
+      .catch((err) => {
         console.error("Stats Error:", err);
       });
-    }, []);
+  }, []);
 
   const toggleLive = async (id, currentStatus) => {
     try {
@@ -103,6 +102,16 @@ export default function Dashboard() {
             }}
           >
             <h3>{event.title}</h3>
+            <img
+              src={`http://localhost:5000/uploads/${event.image}`}
+              alt={`${event.title} poster`}
+              style={{
+                width: "100%",
+                maxHeight: "300px",
+                objectFit: "cover",
+                marginBottom: "10px",
+              }}
+            />
             <p>
               {event.date} @ {event.location}
             </p>

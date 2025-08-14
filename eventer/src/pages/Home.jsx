@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import LiveChat from "../components/LiveChats"; // Adjust path if needed
 import "./CSS/home.css";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const [events, setEvents] = useState([]);
@@ -69,20 +70,34 @@ export default function Home() {
           key={event._id}
           style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}
         >
-          <h2>{event.title}</h2>
-          {event.image && (
-  <img
-    src={event.image}
-    alt={`${event.title} poster`}
-    style={{ width: "100%", maxHeight: "300px", objectFit: "cover", marginBottom: "10px" }}
-  />
-)}
+          <Link to="/" className="link">
+            <div className="topp">
+              <img
+                src={`http://localhost:5000/uploads/${event.createdBy?.profilePic}`}
+                alt={event.createdBy?.username || "Creator"}
+              />
 
-          <p>
-            {event.location} • {event.date}
-          </p>
-          <p>Price: ₦{event.ticketPrice}</p>
-          <p>Tickets Left: {event.totalTickets}</p>
+              <h2>{event.title}</h2>
+            </div>
+            {event.image && (
+              <img
+                src={`http://localhost:5000/uploads/event_image/${event.image}`}
+                alt={`${event.title} poster`}
+                style={{
+                  width: "100%",
+                  maxHeight: "300px",
+                  objectFit: "cover",
+                  marginBottom: "10px",
+                }}
+              />
+            )}
+
+            <p>
+              {event.location} • {event.date}
+            </p>
+            <p>Price: ₦{event.ticketPrice}</p>
+            <p>Tickets Left: {event.totalTickets}</p>
+          </Link>
 
           {event.liveStream?.isLive && (
             <div style={{ marginTop: "10px" }}>

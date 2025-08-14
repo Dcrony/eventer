@@ -60,6 +60,7 @@ export default function LiveChat({ eventId, username }) {
       <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 10 }}>
         {messages.map((msg, i) => (
           <div key={i}>
+            <div ref={messagesEndRef} />
             {msg.system ? (
               <em style={{ color: "gray" }}>{msg.text}</em>
             ) : (
@@ -72,7 +73,7 @@ export default function LiveChat({ eventId, username }) {
             )}
           </div>
         ))}
-        <div ref={messagesEndRef} />
+        
       </div>
 
       <input

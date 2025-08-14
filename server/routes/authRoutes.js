@@ -10,7 +10,7 @@ const { login } = require('../controllers/authControllers');
 // Set up multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, "uploads/profile_pic");
   },
   filename: function (req, file, cb) {
     const uniqueName = Date.now() + path.extname(file.originalname);
@@ -18,13 +18,13 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 // POST /api/auth/register
 router.post("/register", upload.single("profilePic"), async (req, res) => {
   try {
     const { username, email, password, isOrganizer } = req.body;
-   const profilePic = req.file ? `uploads/${req.file.filename}` : null;
+   const profilePic = req.file ? req.file.filename : null;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'Email already in use' });

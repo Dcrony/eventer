@@ -2,3 +2,8 @@
 .home{
     padding: 70px 220px;
 }
+
+.link{
+    text-decoration: none;
+    color: black;
+}

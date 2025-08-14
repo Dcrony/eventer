@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import "./NavBar.css";
+import "./css/NavBar.css";
 
 export default function NavBar() {
   const [user, setUser] = useState(null);
@@ -44,18 +44,13 @@ export default function NavBar() {
 
             <div className="notification">
               <Link to="/" className="link">
-                🔔
+                🔔<div className="notice">0</div>
               </Link>
-              <div className="notice">0</div>
             </div>
 
             <div className="active-user">
               <img
-                src={
-                  user.profilePic
-                    ? `/uploads/${user.profilePic}`
-                    : "/default-avatar.png"
-                }
+                src={`http://localhost:5000/uploads/profile_pic/${user.profilePic}`}
                 alt="Profile"
               />
 
@@ -63,10 +58,13 @@ export default function NavBar() {
 
               <div className="dropdown">
                 <Link to="/dashboard" className="link">
-                  🎛 <span>Dashboard</span>
+                   <span>Profile</span>
+                </Link>
+                <Link to="/dashboard" className="link">
+                   <span>Dashboard</span>
                 </Link>
                 <Link to="/admin/dashboard" className="link">
-                  📊 <span>Stats</span>
+                   <span>Stats</span>
                 </Link>
                 <button onClick={handleLogout} className="logout">
                   🚪 Logout
