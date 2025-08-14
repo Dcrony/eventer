@@ -8,10 +8,7 @@ const eventSchema = new mongoose.Schema({
   time: String,
   location: String,
   image: String,
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
+  
   ticketPrice: Number,
   totalTickets: Number,
   ticketsSold: {
@@ -26,7 +23,11 @@ const eventSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-  }
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  },
 });
 
 module.exports = mongoose.model('Event', eventSchema);

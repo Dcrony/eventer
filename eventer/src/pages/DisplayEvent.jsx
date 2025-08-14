@@ -4,7 +4,7 @@ import LiveChat from "../components/LiveChats"; // Adjust path if needed
 import "./CSS/home.css";
 import { Link } from "react-router-dom";
 
-export default function Home() {
+export default function DisplayEvent() {
   const [events, setEvents] = useState([]);
   const [buying, setBuying] = useState({}); // track quantities
 
@@ -63,7 +63,7 @@ export default function Home() {
 
   return (
     <div className="home">
-      <h1>TickiSpot</h1>
+      <h1>Display Event</h1>
       {events.length === 0 && <p>No events yet.</p>}
       {events.map((event) => (
         <div

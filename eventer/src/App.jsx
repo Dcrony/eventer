@@ -13,6 +13,8 @@ import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";
 import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
+import DisplayEvent from "./pages/DisplayEvent";
+import { Profile } from "./pages/Profile";
 
 export default function App() {
   return (
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="/admin/my-events" element={<MyEvents />} />
         <Route path="/live/events" element={<LiveEvent />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/eventdetails" element={<DisplayEvent />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

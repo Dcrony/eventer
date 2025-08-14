@@ -36,7 +36,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Route to create event with image upload
-router.post('/create', upload.single('image'), async (req, res) => {
+router.post('/create', auth, upload.single('image'), async (req, res) => {
   try {
     const { title, description, category, date, time, location, ticketPrice, totalTickets, streamType, streamURL } = req.body;
     const imagePath = req.file ? req.file.filename : '';

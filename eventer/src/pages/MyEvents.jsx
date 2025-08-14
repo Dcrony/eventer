@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import "./CSS/home.css"
 
 export default function MyEvents() {
   const [events, setEvents] = useState([]);
@@ -79,7 +80,7 @@ const handleEdit = (event) => {
 
 
   return (
-    <div>
+    <div className="home">
       <h2>My Events</h2>
       {events.map((event) => (
         <div

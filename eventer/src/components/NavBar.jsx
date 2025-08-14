@@ -20,6 +20,7 @@ export default function NavBar() {
     navigate("/login");
   };
 
+
   return (
     <div className="nav">
       <div>

@@ -67,6 +67,59 @@ Mobile-Responsive UI or Native App (Later)
 
 Consider building a React Native version if it scales
 
+
+
+
+1. Ticket Management
+
+Download Ticket (QR code in PDF format for email or printing).
+
+Ticket Verification API for scanning at event entry (scan QR → verify in DB → mark as used).
+
+Ticket Transfer (optional) — allow users to send tickets to someone else.
+
+2. Email & Notification System
+
+Send email confirmation after purchase (with QR code attached).
+
+Send event reminders (e.g., 24 hours before event start).
+
+Send ticket transfer notifications.
+
+3. Organizer Dashboard Upgrade
+
+Show ticket sales analytics (tickets sold, revenue, attendee list).
+
+Download attendee list (CSV/Excel).
+
+Filter by date/event type.
+
+4. Live Chat Enhancements
+
+Show who’s online in chat.
+
+Add message timestamps.
+
+Save chat history in DB so it’s not lost on refresh.
+
+5. Event Search & Filters
+
+Filter events by category, date, price, or location.
+
+Add search bar in the frontend.
+
+6. Security & Production Prep
+
+Switch image paths from localhost to a dynamic process.env.BASE_URL.
+
+Set up file cleanup for old/unused uploads.
+
+Add role-based access control (admin, organizer, attendee).
+
+
+
+
+
 🔐 Onboarding (Welcome, Sign Up, Log In)
 Dark/light toggle for theme preference
 

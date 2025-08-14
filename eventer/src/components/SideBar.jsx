@@ -1,9 +1,11 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./css/Sidebar.css";
 import { useEffect, useState } from "react";
 
 export default function Sidebar() {
   const [user, setUser] = useState(null);
+    const navigate = useNavigate();
+  
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -16,7 +18,7 @@ export default function Sidebar() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
-    Navigate("/login");
+    navigate("/login");
   };
 
   return (
@@ -52,7 +54,7 @@ export default function Sidebar() {
           </div>
 
           <div className="logout-sec">
-            <Link to="" className="link">
+            <Link to={`/profile`} className="link">
               <img src={user.profilePic} alt="" />
               <span>Profile</span>
             </Link>

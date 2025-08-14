@@ -113,8 +113,8 @@
 .nav .dropdown {
   display: flex;
   flex-direction: column;
+  width: 200px;
   padding: 10px;
-  border: 1px solid black;
   position: absolute;
   top: 60px;
   right: 10px;
@@ -122,6 +122,19 @@
   border-radius: 2px;
   display: none;
   transition: 4s;
+}
+
+.nav .dropdown .link{
+  text-decoration: none;
+  background-color: var(--larch);
+  margin: 3px;
+  padding: 10px;
+  border-radius: 10px;
+  
+}
+
+.nav .dropdown .link:hover{
+  background-color: var(--llarch);
 }
 
 .nav .active-user:hover .dropdown {
@@ -133,10 +146,10 @@
   background-color: var(--red);
   border: none;
   cursor: pointer;
-  width: 100px;
-  height: 40px;
-  border-radius: 20px;
-  margin: 3px 10px;
+  text-decoration: none;
+  margin: 3px;
+  padding: 10px;
+  border-radius: 10px;
 }
 
 .nav .logout:hover {

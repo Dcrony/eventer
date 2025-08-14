@@ -1,5 +1,7 @@
 :root{
     --bcolor:rgb(120, 120, 255);
+    --white: white;
+    --black: black;
 }
 
 
@@ -12,8 +14,6 @@ body{
     justify-content: center;
     align-items: center;
     height: 100%;
-    background: url(FB_IMG_17042315741152218.jpg) no-repeat;
-    background-size: cover;
     margin: 0;
     padding: 80px 0 0 0;
 }
@@ -22,7 +22,7 @@ body{
     width: 400px;
     background: transparent;
     padding: 30px;
-    border: 2px solid #fff;
+    border: 2px solid var(--black);
     backdrop-filter:blur(10px);
     border-radius: 20px;
 }
@@ -32,10 +32,6 @@ body{
     font-size: 2rem;
 }
 
-.createEvent form{
-    display: flex;
-    flex-direction: column;
-}
 
 .createEvent form input,
 .createEvent form select{
@@ -44,7 +40,7 @@ body{
     margin: 6px 6px 6px 0;
     outline: none;
     background-color: transparent;
-    border: 2px solid #fff;
+    border: 2px solid var(--black);
 }
 
 .createEvent form select option{
@@ -53,8 +49,8 @@ body{
 }
 
 .createEvent form input::placeholder,
-.createEvent form input::placeholder{
-    color: #fff;
+.createEvent form textarea::placeholder{
+    color: var(--black);
 }
 
 .createEvent form button{

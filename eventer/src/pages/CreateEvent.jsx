@@ -1,8 +1,8 @@
 import { useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import './CSS/createEvent.css'
-import "./CSS/home.css"
+import "./CSS/createEvent.css";
+import "./CSS/home.css";
 
 export default function CreateEvent() {
   const [form, setForm] = useState({
@@ -52,7 +52,6 @@ export default function CreateEvent() {
         },
       });
 
-
       alert("Event created!");
       navigate("/");
     } catch (err) {
@@ -60,7 +59,6 @@ export default function CreateEvent() {
       alert("Failed to create event");
     }
   };
-  
 
   return (
     <div className="home createEvent">
@@ -74,12 +72,13 @@ export default function CreateEvent() {
               onChange={handleChange}
               required
             />
-            <input
+            <textarea
+              id=""
               name="description"
               placeholder="Description"
               onChange={handleChange}
               required
-            />
+            ></textarea>
             <input
               name="category"
               placeholder="Category"
@@ -103,10 +102,21 @@ export default function CreateEvent() {
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  style={{ width: "100px", height: "100px", objectFit: "cover", cursor: "pointer" }}
+                  style={{
+                    width: "100px",
+                    height: "100px",
+                    objectFit: "cover",
+                    cursor: "pointer",
+                  }}
                 />
               ) : (
-                <div style={{ padding: "10px", border: "1px dashed #ccc", cursor: "pointer" }}>
+                <div
+                  style={{
+                    padding: "10px",
+                    border: "1px dashed #ccc",
+                    cursor: "pointer",
+                  }}
+                >
                   Upload Image
                 </div>
               )}
@@ -136,7 +146,8 @@ export default function CreateEvent() {
           </div>
 
           <div>
-            <label htmlFor="streamType">Stream Type:
+            <label htmlFor="streamType">
+              Stream Type:
               <select
                 name="streamType"
                 value={form.streamType}
