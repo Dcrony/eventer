@@ -1,65 +1,16 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
-import LiveChat from "../components/LiveChats"; // Adjust path if needed
 import "./CSS/home.css";
 import { Link } from "react-router-dom";
 
 export default function Home() {
   const [events, setEvents] = useState([]);
-  const [buying, setBuying] = useState({}); // track quantities
-
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isLoggedIn = !!localStorage.getItem("token");
-
+ 
   useEffect(() => {
     API.get("/events")
       .then((res) => setEvents(res.data))
       .catch((err) => console.error(err));
   }, []);
-
-  const handleQuantityChange = (e, eventId) => {
-    setBuying((prev) => ({ ...prev, [eventId]: e.target.value }));
-  };
-
-  const handleBuy = async (eventId) => {
-    const quantity = parseInt(buying[eventId]) || 1;
-
-    if (!user || !user.email) {
-      alert("Login required.");
-      return;
-    }
-
-    const selectedEvent = events.find((e) => e._id === eventId);
-    if (!selectedEvent) {
-      alert("Event not found.");
-      return;
-    }
-
-    try {
-      const res = await API.post("/payment/initiate", {
-        email: user.email,
-        amount: selectedEvent.ticketPrice * quantity,
-        metadata: {
-          eventId: selectedEvent._id,
-          quantity,
-        },
-      });
-
-      // Redirect to Paystack
-      window.location.href = res.data.url;
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed to start");
-    }
-  };
-
-  const [showChat, setShowChat] = useState(false);
-  const [activeEventId, setActiveEventId] = useState(null);
-
-  const handleJoinChat = (eventId) => {
-    setActiveEventId(eventId);
-    setShowChat(true);
-  };
 
   return (
     <div className="home">
@@ -70,10 +21,10 @@ export default function Home() {
           key={event._id}
           style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}
         >
-          <Link to="/eventdetails" className="link">
+          <Link to={`/eventdetails/${events._id}`} className="link">
             <div className="topp">
               <img
-                src={`http://localhost:5000/uploads/${event.createdBy?.profilePic}`}
+                src={`http://localhost:5000/uploads/profile_pic/${event.createdBy?.profilePic}`}
                 alt={event.createdBy?.username}
               />
 
@@ -115,17 +66,7 @@ export default function Home() {
                 ></iframe>
               )}
 
-              <button onClick={() => handleJoinChat(event._id)}>
-                Join Live Chat
-              </button>
-
-              {/* ✅ Conditionally render chat */}
-              {showChat && activeEventId === event._id && (
-                <LiveChat
-                  eventId={event._id}
-                  username={user?.username || "Guest"}
-                />
-              )}
+          
 
               {event.liveStream.streamType === "Facebook" && (
                 <div
@@ -135,21 +76,6 @@ export default function Home() {
                   data-allowfullscreen="true"
                 ></div>
               )}
-            </div>
-          )}
-
-          {isLoggedIn && (
-            <div style={{ marginTop: "10px" }}>
-              <input
-                type="number"
-                min="1"
-                placeholder="Qty"
-                value={buying[event._id] || ""}
-                onChange={(e) => handleQuantityChange(e, event._id)}
-              />
-              <button onClick={() => handleBuy(event._id)} target="_blank">
-                Buy Ticket
-              </button>
             </div>
           )}
         </div>

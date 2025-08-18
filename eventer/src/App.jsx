@@ -15,6 +15,7 @@ import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
 import DisplayEvent from "./pages/DisplayEvent";
 import { Profile } from "./pages/Profile";
+import EventDetail from "./pages/EventDetails";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/tickets" element={<MyTickets />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<StatsDashboard />} />
+        <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
         <Route path="/edit/:eventId" element={<EditEvent />} />
         <Route path="/success" element={<Success />} />
         <Route path="/admin/my-events" element={<MyEvents />} />

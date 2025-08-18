@@ -82,12 +82,13 @@ exports.verifyPayment = async (req, res) => {
         event: eventId,
         buyer: userId,
         quantity,
+        amount,
         reference: data.reference,
       });
 
       const qrData = `TICKET:${ticket._id}:${ticket.buyer}`;
       const qrFileName = `${ticket._id}.png`; // unique per ticket
-      const qrFilePath = path.join(__dirname, "../uploads/qrcodes", qrFileName);
+      const qrFilePath = path.join(__dirname, "../uploads/qrcodes/", qrFileName);
 
       if (!fs.existsSync(qrFilePath)) {
         fs.mkdirSync(qrFilePath, { recursive: true });

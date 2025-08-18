@@ -1,6 +1,6 @@
 import React from 'react';
 import API from '../api/axios'; // adjust if yours is in a different path
-import { useSelector } from 'react-redux'; // or however you get the logged-in user
+import "./CSS/home.css"
 
 const EventDetail = ({ event, quantity }) => {
   const user = useSelector((state) => state.auth.user); // make sure user is available
@@ -25,6 +25,7 @@ const EventDetail = ({ event, quantity }) => {
 
   return (
     <div className='home'>
+      <h1>dkcmkdncm</h1>
       <h2>{event.title}</h2>
       <p>{event.description}</p>
       <p>Price: ₦{event.ticketPrice}</p>

@@ -101,9 +101,19 @@ export default function Dashboard() {
               padding: "10px",
             }}
           >
+            <img
+              src={`http://localhost:5000/uploads/profile_pic/${event.createdBy?.profilePic}`}
+              alt={event.createdBy?.username}
+              style={{
+                width: "100%",
+                maxHeight: "300px",
+                objectFit: "cover",
+                marginBottom: "10px",
+              }}
+            />
             <h3>{event.title}</h3>
             <img
-              src={`http://localhost:5000/uploads/${event.image}`}
+              src={`http://localhost:5000/uploads/event_image/${event.image}`}
               alt={`${event.title} poster`}
               style={{
                 width: "100%",
