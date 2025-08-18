@@ -6,15 +6,29 @@ import { Link } from "react-router-dom";
 
 export default function Home() {
   const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [buying, setBuying] = useState({}); // track quantities
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
   const isLoggedIn = !!localStorage.getItem("token");
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     API.get("/events")
-      .then((res) => setEvents(res.data))
-      .catch((err) => console.error(err));
+      .then((res) => {
+        setEvents(res.data);
+        setFilteredEvents(res.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to load events. Please try again.");
+        setLoading(false);
+      });
   }, []);
 
   const handleQuantityChange = (e, eventId) => {
@@ -64,8 +78,56 @@ export default function Home() {
   return (
     <div className="home">
       <h1>TickiSpot</h1>
-      {events.length === 0 && <p>No events yet.</p>}
-      {events.map((event) => (
+      
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <div style={{ fontSize: '24px' }}>⏳</div>
+          <p>Loading events...</p>
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ textAlign: 'center', padding: '20px', color: 'red' }}>
+          <p>❌ {error}</p>
+          <button onClick={() => window.location.reload()}>Try Again</button>
+        </div>
+      )}
+      
+      {!loading && !error && (
+        <>
+          <div style={{ marginBottom: '20px' }}>
+            <input
+              type="text"
+              placeholder="Search events by title or location..."
+              value={searchTerm}
+              onChange={(e) => {
+                const term = e.target.value;
+                setSearchTerm(term);
+                const filtered = events.filter(event =>
+                  event.title.toLowerCase().includes(term.toLowerCase()) ||
+                  event.location.toLowerCase().includes(term.toLowerCase())
+                );
+                setFilteredEvents(filtered);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '5px',
+                border: '1px solid #ccc',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+          
+          {filteredEvents.length === 0 && searchTerm && (
+            <p>No events found matching "{searchTerm}"</p>
+          )}
+          
+          {filteredEvents.length === 0 && !searchTerm && (
+            <p>No events yet.</p>
+          )}
+          
+          {filteredEvents.map((event) => (
         <div
           key={event._id}
           style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}
@@ -73,15 +135,22 @@ export default function Home() {
           <Link to="/" className="link">
             <div className="topp">
               <img
-                src={`http://localhost:5000/uploads/${event.createdBy?.profilePic}`}
+                src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${event.createdBy?.profilePic}`}
                 alt={event.createdBy?.username || "Creator"}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'block';
+                }}
               />
+              <div style={{ display: 'none', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', alignItems: 'center', justifyContent: 'center' }}>
+                {event.createdBy?.username?.charAt(0) || 'U'}
+              </div>
 
               <h2>{event.title}</h2>
             </div>
             {event.image && (
               <img
-                src={`http://localhost:5000/uploads/event_image/${event.image}`}
+                src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/event_image/${event.image}`}
                 alt={`${event.title} poster`}
                 style={{
                   width: "100%",
@@ -89,11 +158,19 @@ export default function Home() {
                   objectFit: "cover",
                   marginBottom: "10px",
                 }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
             )}
 
             <p>
-              {event.location} • {event.date}
+              {event.location} • {new Date(event.date).toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })}
             </p>
             <p>Price: ₦{event.ticketPrice}</p>
             <p>Tickets Left: {event.totalTickets}</p>
@@ -154,6 +231,8 @@ export default function Home() {
           )}
         </div>
       ))}
+        </>
+      )}
     </div>
   );
 }

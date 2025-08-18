@@ -1,23 +1,41 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { logout, getCurrentUser } from "../utils/auth";
 import "./css/NavBar.css";
 
 export default function NavBar() {
   const [user, setUser] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
+
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = () => {
+      const updatedUser = getCurrentUser();
+      setUser(updatedUser);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom logout event
+    window.addEventListener('userLogout', handleStorageChange);
+    window.addEventListener('userLogin', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLogout', handleStorageChange);
+      window.removeEventListener('userLogin', handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    navigate("/login");
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (confirmed) {
+      logout();
+    }
   };
 
   return (
@@ -41,6 +59,10 @@ export default function NavBar() {
                 search
               </span>
             </div>
+
+            <Link to="/events" className="events-link">
+              🎫 Events
+            </Link>
 
             <div className="notification">
               <Link to="/" className="link">

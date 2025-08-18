@@ -1,22 +1,41 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./css/Sidebar.css";
 import { useEffect, useState } from "react";
+import { logout, getCurrentUser } from "../utils/auth";
 
 export default function Sidebar() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
+
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = () => {
+      const updatedUser = getCurrentUser();
+      setUser(updatedUser);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom logout event
+    window.addEventListener('userLogout', handleStorageChange);
+    window.addEventListener('userLogin', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLogout', handleStorageChange);
+      window.removeEventListener('userLogin', handleStorageChange);
+    };
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setUser(null);
-    Navigate("/login");
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (confirmed) {
+      logout();
+    }
   };
 
   return (
@@ -24,8 +43,12 @@ export default function Sidebar() {
       {user && (
         <div className="Sidebar">
           <div className="Sidebar-contents">
-            <Link to="/" className="link">
-              🎛 <span>Home</span>
+            <Link to="/dashboard" className="link">
+              🎛 <span>Dashboard</span>
+            </Link>
+
+            <Link to="/events" className="link">
+              🎫 <span>Events</span>
             </Link>
 
             <Link to="/admin/dashboard" className="link">
