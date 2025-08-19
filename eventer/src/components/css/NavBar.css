@@ -121,7 +121,6 @@
   box-shadow: 1px 10px 10px rgb(201, 193, 193);
   border-radius: 2px;
   display: none;
-  transition: 4s;
 }
 
 .nav .dropdown .link{
@@ -135,11 +134,13 @@
 
 .nav .dropdown .link:hover{
   background-color: var(--llarch);
+  
 }
 
 .nav .active-user:hover .dropdown {
   display: flex;
-  transition: 1s;
+  transition: 10s;
+  
 }
 
 .nav .logout {

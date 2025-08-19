@@ -13,13 +13,13 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    
+
     // Fetch organizer events
     Promise.all([
       API.get("/events/my-events"),
       API.get("/stats/stats", {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      }),
     ])
       .then(([eventsRes, statsRes]) => {
         setEvents(eventsRes.data);
@@ -58,13 +58,13 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const handleDelete = async (id) => {
-    const eventToDelete = events.find(e => e._id === id);
+    const eventToDelete = events.find((e) => e._id === id);
     const confirmed = window.confirm(
       `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`
     );
-    
+
     if (!confirmed) return;
-    
+
     try {
       await API.delete(`/events/delete/${id}`);
       setEvents(events.filter((e) => e._id !== id));
@@ -79,30 +79,44 @@ export default function Dashboard() {
     navigate(`/edit/${id}`);
   };
 
+
+  function StatCard({ title, value }) {
+  return (
+    <div style={{ border: "1px solid #ddd", padding: 16, borderRadius: 8 }}>
+      <h3>{title}</h3>
+      <p style={{ fontSize: 24, fontWeight: "bold" }}>{value}</p>
+    </div>
+  );
+}
+
   return (
     <div className="home">
       <h2>🎛 Organizer Dashboard</h2>
-      
+
       {loading && (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <div style={{ fontSize: '24px' }}>⏳</div>
+        <div style={{ textAlign: "center", padding: "20px" }}>
+          <div style={{ fontSize: "24px" }}>⏳</div>
           <p>Loading dashboard...</p>
         </div>
       )}
-      
+
       {error && (
-        <div style={{ textAlign: 'center', padding: '20px', color: 'red' }}>
+        <div style={{ textAlign: "center", padding: "20px", color: "red" }}>
           <p>❌ {error}</p>
           <button onClick={() => window.location.reload()}>Try Again</button>
         </div>
       )}
-      
+
       {!loading && !error && stats && (
         <div className="card p-3 mb-4">
           <h4 className="mb-3">📊 Stats Overview</h4>
-          <p>Total Events: {stats.totalEvents}</p>
-          <p>Total Tickets Sold: {stats.totalTickets}</p>
-          <p>Total Revenue: ₦{stats.totalRevenue}</p>
+          <div style={{ display: "grid", gap: "1rem" }}>
+            <StatCard title="Total Events" value={stats.totalEvents} />
+            <StatCard title="Tickets Sold" value={stats.totalTicketsSold} />
+            <StatCard title="Revenue (₦)" value={stats.totalRevenue} />
+            <StatCard title="Live Events" value={stats.currentlyLive} />
+          </div>
+          
 
           <h3>🏆 Top Events</h3>
           {stats.topEvents?.length > 0 ? (
@@ -143,7 +157,10 @@ export default function Dashboard() {
             />
             <h3>{event.title}</h3>
             <img
-              src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${event.image}`}
+              src={`${
+                import.meta.env.VITE_API_URL?.replace("/api", "") ||
+                "http://localhost:5000"
+              }/uploads/${event.image}`}
               alt={`${event.title} poster`}
               style={{
                 width: "100%",
@@ -152,7 +169,7 @@ export default function Dashboard() {
                 marginBottom: "10px",
               }}
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.target.style.display = "none";
               }}
             />
             <p>

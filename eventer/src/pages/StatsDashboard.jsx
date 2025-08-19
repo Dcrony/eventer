@@ -7,7 +7,7 @@ export default function Dashboard() {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    API.get("/events/stats", {
+    API.get("/stats/stats", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => setStats(res.data))

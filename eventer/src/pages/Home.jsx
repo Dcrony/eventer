@@ -5,19 +5,13 @@ import { Link } from "react-router-dom";
 
 export default function Home() {
   const [events, setEvents] = useState([]);
-<<<<<<< HEAD
- 
-=======
   const [filteredEvents, setFilteredEvents] = useState([]);
-  const [buying, setBuying] = useState({}); // track quantities
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isLoggedIn = !!localStorage.getItem("token");
 
->>>>>>> 6f8f32bcf2ee8a08f7d278f505e87984c325b50c
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -91,20 +85,16 @@ export default function Home() {
           key={event._id}
           style={{ border: "1px solid #ccc", margin: "10px", padding: "10px" }}
         >
-          <Link to={`/eventdetails/${events._id}`} className="link">
+          <Link to={`/eventdetail/${event._id}`} className="link">
             <div className="topp">
               <img
-<<<<<<< HEAD
-                src={`http://localhost:5000/uploads/profile_pic/${event.createdBy?.profilePic}`}
-                alt={event.createdBy?.username}
-=======
+
                 src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${event.createdBy?.profilePic}`}
                 alt={event.createdBy?.username || "Creator"}
                 onError={(e) => {
                   e.target.style.display = 'none';
                   e.target.nextSibling.style.display = 'block';
                 }}
->>>>>>> 6f8f32bcf2ee8a08f7d278f505e87984c325b50c
               />
               <div style={{ display: 'none', width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', alignItems: 'center', justifyContent: 'center' }}>
                 {event.createdBy?.username?.charAt(0) || 'U'}

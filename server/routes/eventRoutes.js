@@ -7,7 +7,7 @@ const {
   getAllEvents,
   purchaseTicket,
   toggleLiveStream,
-  // getStats,
+  //getStats,
 } = require("../controllers/eventController");
 const { getMyTickets } = require("../controllers/ticketController");
 const auth = require("../middleware/authMiddleware");
@@ -75,7 +75,7 @@ router.get("/:id", getEventById);
 router.put("/update/:eventId", auth, updateEvent);
 router.delete("/delete/:eventId", auth, deleteEvent);
 router.get("/buyers/:eventId", auth, getEventBuyers);
-// router.get("/stats", auth, getStats);
+//router.get("/stats", auth, getStats);
 // events route
 router.get("/events", async (req, res) => {
   try {

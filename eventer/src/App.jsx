@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
@@ -14,15 +14,19 @@ import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";
 import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
-import DisplayEvent from "./pages/DisplayEvent";
 import { Profile } from "./pages/Profile";
 import EventDetail from "./pages/EventDetails";
 
-export default function App() {
+function Layout() {
+  const location = useLocation();
+
+  // hide navbar & sidebar on landing page
+  const hideNavAndSidebar = location.pathname === "/";
+
   return (
-    <BrowserRouter>
-      <NavBar />
-      <Sidebar />
+    <>
+      {!hideNavAndSidebar && <NavBar />}
+      {!hideNavAndSidebar && <Sidebar />}
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/events" element={<Home />} />
@@ -38,9 +42,16 @@ export default function App() {
         <Route path="/admin/my-events" element={<MyEvents />} />
         <Route path="/live/events" element={<LiveEvent />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/eventdetails" element={<DisplayEvent />} />
         <Route path="/profile" element={<Profile />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Layout />
     </BrowserRouter>
   );
 }

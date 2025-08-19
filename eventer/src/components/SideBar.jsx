@@ -5,7 +5,6 @@ import { logout, getCurrentUser } from "../utils/auth";
 
 export default function Sidebar() {
   const [user, setUser] = useState(null);
-  
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -19,16 +18,16 @@ export default function Sidebar() {
       setUser(updatedUser);
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    
+    window.addEventListener("storage", handleStorageChange);
+
     // Also listen for custom logout event
-    window.addEventListener('userLogout', handleStorageChange);
-    window.addEventListener('userLogin', handleStorageChange);
+    window.addEventListener("userLogout", handleStorageChange);
+    window.addEventListener("userLogin", handleStorageChange);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userLogout', handleStorageChange);
-      window.removeEventListener('userLogin', handleStorageChange);
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("userLogout", handleStorageChange);
+      window.removeEventListener("userLogin", handleStorageChange);
     };
   }, []);
 
@@ -77,8 +76,14 @@ export default function Sidebar() {
 
           <div className="logout-sec">
             <Link to={`/profile`} className="link">
-              <img src={user.profilePic} alt="" />
-              <span>Profile</span>
+              <div className="active-user">
+                <img
+                  src={`http://localhost:5000/uploads/profile_pic/${user.profilePic}`}
+                  alt="Profile"
+                />
+
+                <span>Profile</span>
+              </div>
             </Link>
             <button onClick={handleLogout} className="logout">
               🚪 Logout
