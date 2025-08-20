@@ -59,15 +59,13 @@ exports.verifyPayment = async (req, res) => {
 
     const data = response.data.data;
 
-    // Destructure metadata
-    const { eventId, userId, quantity } = data.metadata;
+    // Safely destructure metadata
+    const { eventId, userId, quantity } = data.metadata || {};
 
     if (data.status === "success") {
       // Check if ticket already exists
-      const existingTicket = await Ticket.findOne({
-        reference: data.reference,
-      });
-      if (existingTicket) return res.redirect("http://localhost:5173/success"); // frontend success page
+      const existingTicket = await Ticket.findOne({ reference: data.reference });
+      if (existingTicket) return res.redirect("http://localhost:5173/success");
 
       // Get event
       const event = await Event.findById(eventId);
@@ -82,24 +80,25 @@ exports.verifyPayment = async (req, res) => {
         event: eventId,
         buyer: userId,
         quantity,
-        amount,
+        amount: data.amount / 100, // ✅ convert from kobo to Naira
         reference: data.reference,
       });
 
-      const qrData = `TICKET:${ticket._id}:${ticket.buyer}`;
-      const qrFileName = `${ticket._id}.png`; // unique per ticket
-      const qrFilePath = path.join(__dirname, "../uploads/qrcodes/", qrFileName);
-
-      if (!fs.existsSync(qrFilePath)) {
-        fs.mkdirSync(qrFilePath, { recursive: true });
+      // Ensure QR folder exists
+      const qrDir = path.join(__dirname, "../uploads/qrcodes");
+      if (!fs.existsSync(qrDir)) {
+        fs.mkdirSync(qrDir, { recursive: true });
       }
 
-      // Generate and save QR code to file
+      // Generate QR code
+      const qrData = `TICKET:${ticket._id}:${ticket.buyer}`;
+      const qrFileName = `${ticket._id}.png`;
+      const qrFilePath = path.join(qrDir, qrFileName);
+
       await QRCode.toFile(qrFilePath, qrData);
 
       // Save filename to DB
       ticket.qrCode = `qrcodes/${qrFileName}`;
-
       await ticket.save();
 
       // Reduce available tickets
@@ -111,7 +110,10 @@ exports.verifyPayment = async (req, res) => {
       return res.redirect("http://localhost:5173/failed");
     }
   } catch (error) {
-    console.error("Payment verification error:", error);
+    console.error(
+      "Payment verification error:",
+      error.response?.data || error.message
+    );
     return res.status(500).send("Verification failed");
   }
 };

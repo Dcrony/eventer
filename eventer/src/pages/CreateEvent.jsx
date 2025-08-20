@@ -53,7 +53,7 @@ export default function CreateEvent() {
       });
 
       alert("Event created!");
-      navigate("/");
+      navigate("/events");
     } catch (err) {
       console.error(err);
       alert("Failed to create event");

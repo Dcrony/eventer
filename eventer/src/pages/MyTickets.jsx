@@ -10,7 +10,7 @@ export default function MyTickets() {
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    API.get("/events/my-tickets")
+    API.get("/tickets/my-tickets")
       .then(res => setTickets(res.data))
       .catch(err => console.error(err));
   }, []);

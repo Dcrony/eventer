@@ -29,26 +29,20 @@ export default function EventDetail() {
     setBuying((prev) => ({ ...prev, [eventId]: e.target.value }));
   };
 
-  const handleBuy = async (eventId) => {
-    const quantity = parseInt(buying[eventId]) || 1;
+  const handleBuy = async () => {
+    const quantity = parseInt(buying[event._id]) || 1;
 
     if (!user || !user.email) {
       alert("Login required.");
       return;
     }
 
-    const selectedEvent = events.find((e) => e._id === eventId);
-    if (!selectedEvent) {
-      alert("Event not found.");
-      return;
-    }
-
     try {
       const res = await API.post("/payment/initiate", {
         email: user.email,
-        amount: selectedEvent.ticketPrice * quantity,
+        amount: event.ticketPrice * quantity,
         metadata: {
-          eventId: selectedEvent._id,
+          eventId: event._id,
           quantity,
         },
       });
@@ -110,7 +104,6 @@ export default function EventDetail() {
             ></iframe>
           )}
 
-
           {event.liveStream.streamType === "Facebook" && (
             <div
               className="fb-video"
@@ -119,9 +112,8 @@ export default function EventDetail() {
               data-allowfullscreen="true"
             ></div>
           )}
-        </div>
-      )}
-      <button onClick={() => handleJoinChat(event._id)}>
+
+          <button onClick={() => handleJoinChat(event._id)}>
             Join Live Chat
           </button>
 
@@ -132,6 +124,8 @@ export default function EventDetail() {
               username={user?.username || "Guest"}
             />
           )}
+        </div>
+      )}
 
       {isLoggedIn && (
         <div style={{ marginTop: "10px" }}>
@@ -141,12 +135,20 @@ export default function EventDetail() {
             pattern="[0-9]*"
             style={{ width: "60px", marginRight: "10px" }}
             placeholder="Qty"
-            value={buying[event._id] || ""}
+            value={buying[event._id] || "1"}
             onChange={(e) => handleQuantityChange(e, event._id)}
           />
-          <button onClick={() => handleBuy(event._id)} target="_blank">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleBuy();
+            }}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Buy Ticket
-          </button>
+          </a>
         </div>
       )}
     </div>

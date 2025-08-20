@@ -3,13 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path')
 
-const {
-  getAllEvents,
-  purchaseTicket,
-  toggleLiveStream,
-  //getStats,
-} = require("../controllers/eventController");
-const { getMyTickets } = require("../controllers/ticketController");
+// Import controllers and middleware
 const auth = require("../middleware/authMiddleware");
 const {
   getMyEvents,
@@ -17,6 +11,8 @@ const {
   deleteEvent,
   getEventBuyers,
   getEventById,
+  getAllEvents,
+  toggleLiveStream,
 } = require("../controllers/eventController");
 
 
@@ -67,15 +63,13 @@ router.post('/create', auth, upload.single('image'), async (req, res) => {
 });
 
 router.get("/", getAllEvents); // public route
-router.post("/buy", auth, purchaseTicket);
 router.patch("/toggle-live", auth, toggleLiveStream);
-router.get("/my-tickets", auth, getMyTickets);
 router.get("/my-events", auth, getMyEvents);
 router.get("/:id", getEventById);
 router.put("/update/:eventId", auth, updateEvent);
 router.delete("/delete/:eventId", auth, deleteEvent);
 router.get("/buyers/:eventId", auth, getEventBuyers);
-//router.get("/stats", auth, getStats);
+
 // events route
 router.get("/events", async (req, res) => {
   try {
