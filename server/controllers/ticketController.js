@@ -2,12 +2,14 @@ const Ticket = require("../models/Ticket");
 
 exports.getMyTickets = async (req, res) => {
   try {
+    console.log("Decoded user in getMyTickets:", req.user); // debug
+
     const tickets = await Ticket.find({ buyer: req.user.id })
       .populate({
         path: "event",
         populate: {
           path: "creator",
-          select: "username profilePic", // so frontend can show creator info
+          select: "username profilePic",
         },
       });
 
