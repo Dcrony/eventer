@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import "./css/LiveChat.css"
 
 export default function LiveChat({ eventId, username }) {
   const [message, setMessage] = useState("");
@@ -55,9 +56,9 @@ export default function LiveChat({ eventId, username }) {
   };
 
   return (
-    <div style={{ border: "1px solid #ccc", padding: 10, maxWidth: 400 }}>
+    <div className="livechat" style={{ border: "1px solid #ccc", padding: 10, maxWidth: 400 }}>
       <h4>💬 Live Chat</h4>
-      <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 10 }}>
+      <div  className="messagebox" style={{ maxHeight: 200, overflowY: "auto", marginBottom: 10 }}>
         {messages.map((msg, i) => (
           <div key={i}>
             <div ref={messagesEndRef} />
@@ -73,10 +74,8 @@ export default function LiveChat({ eventId, username }) {
             )}
           </div>
         ))}
-        
-      </div>
-
-      <input
+        <div className="chatinput">
+          <input
         type="text"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
@@ -89,6 +88,11 @@ export default function LiveChat({ eventId, username }) {
       <button onClick={sendMessage} style={{ marginTop: 5 }}>
         Send
       </button>
+        </div>
+        
+      </div>
+
+      
     </div>
   );
 }

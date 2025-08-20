@@ -3,6 +3,7 @@ import API from "../api/axios";
 import LiveChat from "../components/LiveChats"; // Adjust path if needed
 import "./CSS/home.css";
 import { useParams } from "react-router-dom";
+import "./CSS/eventdetails.css";
 
 export default function EventDetail() {
   const { eventId } = useParams();
@@ -67,56 +68,88 @@ export default function EventDetail() {
   if (!event) return <p>Event not found</p>;
 
   return (
-    <div className="home">
-      <h1>Event Details</h1>
-      <h1>{event.title}</h1>
-      <p>{event.description}</p>
-      <p>{event.location}</p>
-      <p>
-        Date: {new Date(event.date).toLocaleDateString()} at {event.time}
-      </p>
-      <p>Price: ₦{event.ticketPrice}</p>
-      <p>Tickets Left: {event.totalTickets - event.ticketsSold}</p>
-      {event.image && (
-        <img
-          src={`${
-            import.meta.env.VITE_API_URL?.replace("/api", "") ||
-            "http://localhost:5000"
-          }/uploads/event_image/${event.image}`}
-          alt={event.title}
-          style={{ width: "100%", maxHeight: "400px", objectFit: "cover" }}
-        />
-      )}
+    <div className="eventcontent">
+        <h1>Event Details</h1>
 
-      {event.liveStream?.isLive && (
-        <div style={{ marginTop: "10px" }}>
-          <strong style={{ color: "red" }}>🔴 LIVE NOW</strong>
+      <div className="eventdetail">
 
-          {event.liveStream.streamType === "YouTube" && (
-            <iframe
-              width="100%"
-              height="315"
-              src={event.liveStream.streamURL.replace("watch?v=", "embed/")}
-              title="YouTube Live Stream"
-              frameBorder="0"
-              allow="autoplay; encrypted-media"
-              allowFullScreen
-            ></iframe>
+        <div className="livecontents">
+          <h1>{event.title}</h1>
+          <p>{event.description}</p>
+          <p>{event.location}</p>
+          <p>
+            Date: {new Date(event.date).toLocaleDateString()} at {event.time}
+          </p>
+          <p>Price: ₦{event.ticketPrice}</p>
+          <p>Tickets Left: {event.totalTickets - event.ticketsSold}</p>
+          {event.image && (
+            <img
+              src={`${
+                import.meta.env.VITE_API_URL?.replace("/api", "") ||
+                "http://localhost:5000"
+              }/uploads/event_image/${event.image}`}
+              alt={event.title}
+              style={{ width: "100%", maxHeight: "400px", objectFit: "cover" }}
+            />
           )}
 
-          {event.liveStream.streamType === "Facebook" && (
-            <div
-              className="fb-video"
-              data-href={event.liveStream.streamURL}
-              data-width="500"
-              data-allowfullscreen="true"
-            ></div>
+          {event.liveStream?.isLive && (
+            <div style={{ marginTop: "10px" }}>
+              <strong style={{ color: "red" }}>🔴 LIVE NOW</strong>
+
+              {event.liveStream.streamType === "YouTube" && (
+                <iframe
+                  width="100%"
+                  height="315"
+                  src={event.liveStream.streamURL.replace("watch?v=", "embed/")}
+                  title="YouTube Live Stream"
+                  frameBorder="0"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                ></iframe>
+              )}
+
+              {event.liveStream.streamType === "Facebook" && (
+                <div
+                  className="fb-video"
+                  data-href={event.liveStream.streamURL}
+                  data-width="500"
+                  data-allowfullscreen="true"
+                ></div>
+              )}
+
+              <button onClick={() => handleJoinChat(event._id)}>
+                Join Live Chat
+              </button>
+            </div>
           )}
 
-          <button onClick={() => handleJoinChat(event._id)}>
-            Join Live Chat
-          </button>
-
+          {isLoggedIn && (
+            <div style={{ marginTop: "10px" }}>
+              <input
+                type="number"
+                min="1"
+                pattern="[0-9]*"
+                style={{ width: "60px", marginRight: "10px" }}
+                placeholder="Qty"
+                value={buying[event._id] || "1"}
+                onChange={(e) => handleQuantityChange(e, event._id)}
+              />
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleBuy();
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy Ticket
+              </a>
+            </div>
+          )}
+        </div>
+        <div className="livechat">
           {/* ✅ Conditionally render chat */}
           {showChat && activeEventId === event._id && (
             <LiveChat
@@ -125,32 +158,7 @@ export default function EventDetail() {
             />
           )}
         </div>
-      )}
-
-      {isLoggedIn && (
-        <div style={{ marginTop: "10px" }}>
-          <input
-            type="number"
-            min="1"
-            pattern="[0-9]*"
-            style={{ width: "60px", marginRight: "10px" }}
-            placeholder="Qty"
-            value={buying[event._id] || "1"}
-            onChange={(e) => handleQuantityChange(e, event._id)}
-          />
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              handleBuy();
-            }}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Buy Ticket
-          </a>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
