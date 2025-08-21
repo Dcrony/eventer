@@ -3,8 +3,8 @@ import Home from "./pages/Home";
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import MyTickets from "./pages/MyTickets";
 import CreateEvent from "./pages/CreateEvent";
+import MyTickets from "./pages/MyTickets";
 import Dashboard from "./pages/Dashboard";
 import EditEvent from "./pages/Editevent";
 import MyEvents from "./pages/MyEvents";
@@ -16,6 +16,7 @@ import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
 import { Profile } from "./pages/Profile";
 import EventDetail from "./pages/EventDetails";
+import Checkout from "./pages/CheckOut";
 
 function Layout() {
   const location = useLocation();
@@ -33,7 +34,7 @@ function Layout() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/create" element={<CreateEvent />} />
-        <Route path="/tickets" element={<MyTickets />} />
+        <Route path="/my-tickets" element={<MyTickets />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin/dashboard" element={<StatsDashboard />} />
         <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
@@ -43,6 +44,7 @@ function Layout() {
         <Route path="/live/events" element={<LiveEvent />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/checkout/:eventId" element={<Checkout />} />
       </Routes>
     </>
   );

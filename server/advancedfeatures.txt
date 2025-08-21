@@ -1,0 +1,49 @@
+🎟️ Ticket System (Next Big Feature)
+
+Generate unique QR codes for each ticket when purchased.
+
+Save QR code (we already planned: store filename in DB + actual file in uploads/).
+
+Implement ticket validation endpoint:
+
+Organizer scans QR code → backend checks if valid (exists + unused).
+
+Mark ticket as “used” once scanned.
+
+Ticket dashboard for organizers:
+
+See number of tickets sold.
+
+See buyer list.
+
+
+
+
+📊 Event Analytics (after ticketing)
+
+Show stats per event (tickets sold, revenue, attendees list).
+
+Graphs (line chart, bar chart, pie chart) in organizer dashboard.
+
+
+
+
+🔔 Notifications & Emails (optional next step)
+
+Send email confirmation after purchase with QR code attached.
+
+Push/email reminders to attendees before event starts.
+
+
+
+
+🔐 Access Control
+
+Add role-based permissions:
+
+Admin: Full access.
+
+Organizer: Manage only their events.
+
+User/Buyer: Buy tickets + view purchased tickets.
+

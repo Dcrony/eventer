@@ -25,6 +25,8 @@ mongoose
 
 // Serve static files from the "uploads" folder
 app.use("/uploads", express.static("uploads"));
+app.use("/uploads/qrcodes", express.static("uploads/qrcodes"));
+
 
 // ROUTES
 app.use("/api/auth", authRoutes);

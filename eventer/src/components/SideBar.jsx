@@ -55,7 +55,7 @@ export default function Sidebar() {
               📊 <span>Stats</span>
             </Link>
 
-            <Link to="/tickets" className="link">
+            <Link to="/my-tickets" className="link">
               🎫 <span>My Tickets</span>
             </Link>
 

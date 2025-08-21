@@ -8,7 +8,7 @@ exports.getMyTickets = async (req, res) => {
       .populate({
         path: "event",
         populate: {
-          path: "creator",
+          path: "createdBy",
           select: "username profilePic",
         },
       });

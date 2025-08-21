@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import LiveChat from "../components/LiveChats"; // Adjust path if needed
 import "./CSS/home.css";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import "./CSS/eventdetails.css";
 
 export default function EventDetail() {
@@ -30,7 +30,10 @@ export default function EventDetail() {
     setBuying((prev) => ({ ...prev, [eventId]: e.target.value }));
   };
 
-  const handleBuy = async () => {
+  // Handle buying ticket
+
+  const navigate = useNavigate();
+  const handleBuy = () => {
     const quantity = parseInt(buying[event._id]) || 1;
 
     if (!user || !user.email) {
@@ -38,22 +41,10 @@ export default function EventDetail() {
       return;
     }
 
-    try {
-      const res = await API.post("/payment/initiate", {
-        email: user.email,
-        amount: event.ticketPrice * quantity,
-        metadata: {
-          eventId: event._id,
-          quantity,
-        },
-      });
-
-      // Redirect to Paystack
-      window.location.href = res.data.url;
-    } catch (err) {
-      console.error(err);
-      alert("Payment failed to start");
-    }
+    // Redirect to checkout page with details
+    navigate(`/checkout/${event._id}`, {
+      state: { event, quantity, user },
+    });
   };
 
   const [showChat, setShowChat] = useState(false);
@@ -149,7 +140,7 @@ export default function EventDetail() {
             </div>
           )}
         </div>
-        <div className="livechat">
+        <div className="">
           {/* ✅ Conditionally render chat */}
           {showChat && activeEventId === event._id && (
             <LiveChat

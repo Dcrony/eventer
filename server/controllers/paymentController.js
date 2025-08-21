@@ -47,6 +47,10 @@ exports.initiatePayment = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   const { reference } = req.query;
 
+  if (!reference) {
+    return res.status(400).json({ message: "Missing payment reference" });
+  }
+
   try {
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
