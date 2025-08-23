@@ -58,13 +58,21 @@
 .message.sender {
     background-color: #504ed1; /* Sender: blue */
     color: white;
-    align-self: flex-end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
 }
 
 .message.receiver {
     background-color: #e0e0e0; /* Receiver: light gray */
     color: #333;
-    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    position: relative;
 }
 
 

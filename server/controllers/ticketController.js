@@ -1,4 +1,7 @@
 const Ticket = require("../models/Ticket");
+const mongoose = require("mongoose");
+
+
 
 exports.getMyTickets = async (req, res) => {
   try {
@@ -23,3 +26,6 @@ exports.getMyTickets = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// controllers/ticketController.js
+

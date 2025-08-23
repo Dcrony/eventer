@@ -7,6 +7,9 @@ const fs = require("fs");
 const path = require("path");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const successURL = `${process.env.FRONTEND_URL}/success`;
+const failedURL = `${process.env.FRONTEND_URL}/failed`;
 
 console.log("PAYSTACK KEY:", PAYSTACK_SECRET);
 
@@ -69,7 +72,7 @@ exports.verifyPayment = async (req, res) => {
     if (data.status === "success") {
       // Check if ticket already exists
       const existingTicket = await Ticket.findOne({ reference: data.reference });
-      if (existingTicket) return res.redirect("http://localhost:5173/success");
+      if (existingTicket) return res.redirect(successURL);
 
       // Get event
       const event = await Event.findById(eventId);
@@ -95,7 +98,7 @@ exports.verifyPayment = async (req, res) => {
       }
 
       // Generate QR code
-      const qrData = `TICKET:${ticket._id}:${ticket.buyer}`;
+      const qrData = `${FRONTEND_URL}/tickets/validate/${ticket._id}`;
       const qrFileName = `${ticket._id}.png`;
       const qrFilePath = path.join(qrDir, qrFileName);
 
@@ -109,9 +112,9 @@ exports.verifyPayment = async (req, res) => {
       event.totalTickets -= quantity;
       await event.save();
 
-      return res.redirect("http://localhost:5173/success");
+      return res.redirect(successURL);
     } else {
-      return res.redirect("http://localhost:5173/failed");
+      return res.redirect(failedURL);
     }
   } catch (error) {
     console.error(

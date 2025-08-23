@@ -47,3 +47,5 @@ Organizer: Manage only their events.
 
 User/Buyer: Buy tickets + view purchased tickets.
 
+
+

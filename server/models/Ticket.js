@@ -15,9 +15,14 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
+  
   qrCode: {
     type: String,
   }, // store QR code file name
+  
+  used: { type: Boolean, default: false },
+  usedAt: { type: Date },
+
   purchasedAt: {
     type: Date,
     default: Date.now,

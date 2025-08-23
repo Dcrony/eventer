@@ -5,7 +5,7 @@ export default function Success() {
     <div className="home" >
       <h1>🎉 Payment Successful!</h1>
       <p>Your ticket has been created.</p>
-      <a href="/tickets">View My Tickets</a>
+      <a href="/my-tickets">View My Tickets</a>
     </div>
   );
 }

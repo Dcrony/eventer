@@ -17,6 +17,8 @@ import Settings from "./components/Settings";
 import { Profile } from "./pages/Profile";
 import EventDetail from "./pages/EventDetails";
 import Checkout from "./pages/CheckOut";
+import TicketScanner from "./pages/TicketScanner";
+import TicketValidationPage from "./pages/ValidateTicket";
 
 function Layout() {
   const location = useLocation();
@@ -45,6 +47,8 @@ function Layout() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/checkout/:eventId" element={<Checkout />} />
+        <Route path="/scanner" element={<TicketScanner />} />
+        <Route path="/validate/:ticketId" element={<TicketValidationPage />} />
       </Routes>
     </>
   );

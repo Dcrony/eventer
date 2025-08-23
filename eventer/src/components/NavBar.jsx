@@ -73,7 +73,10 @@ export default function NavBar() {
 
             <div className="active-user">
               <img
-                src={`http://localhost:5000/uploads/profile_pic/${user.profilePic}`}
+                src={`${
+                    import.meta.env.VITE_API_URL?.replace("/api", "") ||
+                    "http://localhost:5000"
+                  }/uploads/profile_pic${user.profilePic}`}
                 alt="Profile"
               />
 

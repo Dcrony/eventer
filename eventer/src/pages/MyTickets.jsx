@@ -91,11 +91,29 @@ export default function MyTickets() {
                   src={`${
                     import.meta.env.VITE_API_URL?.replace("/api", "") ||
                     "http://localhost:5000"
-                  }/uploads/qrcodes/${ticket.qrCode}`}
+                  }/uploads/${ticket.qrCode}`}
                   alt="Ticket QR Code"
                   style={{ marginTop: "10px", width: "150px" }}
                 />
               )}
+              <a
+                href={`${
+                  import.meta.env.VITE_API_URL?.replace("/api", "") ||
+                  "http://localhost:5000"
+                }/uploads/${ticket.qrCode}`}
+                download={`ticket-${ticket._id}.png`}
+                style={{
+                  display: "inline-block",
+                  padding: "8px 12px",
+                  background: "#007bff",
+                  color: "white",
+                  borderRadius: "5px",
+                  textDecoration: "none",
+                  fontSize: "14px",
+                }}
+              >
+                ⬇️ Download QR
+              </a>
             </div>
           );
         })
