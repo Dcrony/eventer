@@ -15,8 +15,8 @@
   align-items: center;
   width: 300px;
   height: 70px;
-  background-color: var(--larch);
-  border-bottom: 3px solid var(--red);
+  background-color: rgb(247, 169, 169);
+  border: 1px solid var(--red);
   color: red;
   text-align: center;
   border-radius: 10px;
@@ -33,9 +33,9 @@
   align-items: center;
   width: 300px;
   height: 70px;
-  background-color: var(--larch);
-  border-bottom: 3px solid greenyellow;
-  color: greenyellow;
+  background-color: rgb(162, 247, 162);
+  border: 3px solid green;
+  color: green;
   text-align: center;
   border-radius: 10px;
   padding: 10px;

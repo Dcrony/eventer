@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import "./css/LiveChat.css";
 
 export default function LiveChat({ eventId, username }) {
   const [message, setMessage] = useState("");
@@ -9,14 +8,11 @@ export default function LiveChat({ eventId, username }) {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Initialize socket
     const socket = io("http://localhost:5000");
     socketRef.current = socket;
 
-    // Join event room
     socket.emit("joinRoom", eventId);
 
-    // Send join message to others
     const joinMessage = {
       eventId,
       username,
@@ -26,7 +22,6 @@ export default function LiveChat({ eventId, username }) {
     };
     socket.emit("sendMessage", joinMessage);
 
-    // Listen for new messages
     socket.on("receiveMessage", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });
@@ -36,7 +31,6 @@ export default function LiveChat({ eventId, username }) {
     };
   }, [eventId, username]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -56,47 +50,59 @@ export default function LiveChat({ eventId, username }) {
   };
 
   return (
-    <div
-      className="livechat"
-      style={{ border: "1px solid #ccc", padding: 10, maxWidth: 400 }}
-    >
-      <h4>💬 Live Chat</h4>
-      <div
-        className="messagebox"
-        style={{ maxHeight: 200, overflowY: "auto", marginBottom: 10 }}
-      >
+    <div className="w-full max-w-md border rounded-2xl shadow-md bg-white flex flex-col h-96">
+      {/* Header */}
+      <div className="p-3 border-b bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-t-2xl">
+        💬 Live Chat
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((msg, i) => (
           <div key={i}>
-            <div ref={messagesEndRef} />
             {msg.system ? (
-              <em style={{ color: "gray" }}>{msg.text}</em>
+              <p className="text-gray-400 italic text-center">{msg.text}</p>
             ) : (
               <div
-                className={`message ${
-                  msg.username === username ? "sender" : "receiver"
+                className={`flex ${
+                  msg.username === username ? "justify-end" : "justify-start"
                 }`}
               >
-                <strong>{msg.username}:</strong> {msg.text}{" "}
-                <span style={{ fontSize: "0.75em", color: "gray" }}>
-                  ({new Date(msg.timestamp).toLocaleTimeString()})
-                </span>
+                <div
+                  className={`max-w-xs px-3 py-2 rounded-lg text-sm shadow ${
+                    msg.username === username
+                      ? "bg-blue-500 text-white rounded-br-none"
+                      : "bg-gray-200 text-gray-800 rounded-bl-none"
+                  }`}
+                >
+                  <span className="font-semibold">{msg.username}: </span>
+                  {msg.text}
+                  <div className="text-xs mt-1 opacity-70">
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </div>
+                </div>
               </div>
             )}
           </div>
         ))}
+        {/* Only one scroll ref here */}
+        <div ref={messagesEndRef} />
       </div>
-      <div className="chatinput">
+
+      {/* Input */}
+      <div className="p-3 border-t flex gap-2">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") sendMessage();
-          }}
-          placeholder="Type a message"
-          style={{ width: "100%", padding: 5 }}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          placeholder="Type a message..."
+          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button onClick={sendMessage} style={{ marginTop: 5 }}>
+        <button
+          onClick={sendMessage}
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 rounded-lg shadow transition"
+        >
           Send
         </button>
       </div>

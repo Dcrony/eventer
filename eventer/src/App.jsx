@@ -14,11 +14,13 @@ import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";
 import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
-import { Profile } from "./pages/Profile";
+import Profile from "./pages/Profile";
 import EventDetail from "./pages/EventDetails";
 import Checkout from "./pages/CheckOut";
 import TicketScanner from "./pages/TicketScanner";
 import TicketValidationPage from "./pages/ValidateTicket";
+import UserManagement from "./pages/admin";
+
 
 function Layout() {
   const location = useLocation();
@@ -30,6 +32,7 @@ function Layout() {
     <>
       {!hideNavAndSidebar && <NavBar />}
       {!hideNavAndSidebar && <Sidebar />}
+      
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/events" element={<Home />} />
@@ -45,7 +48,8 @@ function Layout() {
         <Route path="/admin/my-events" element={<MyEvents />} />
         <Route path="/live/events" element={<LiveEvent />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/me" element={<Profile />} />
+        <Route path="/admin" element={<UserManagement />} />
         <Route path="/checkout/:eventId" element={<Checkout />} />
         <Route path="/scanner" element={<TicketScanner />} />
         <Route path="/validate/:ticketId" element={<TicketValidationPage />} />

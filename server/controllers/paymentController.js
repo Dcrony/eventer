@@ -5,6 +5,7 @@ const Ticket = require("../models/Ticket");
 const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
+const sendEmail = require("../utils/email");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -71,11 +72,14 @@ exports.verifyPayment = async (req, res) => {
 
     if (data.status === "success") {
       // Check if ticket already exists
-      const existingTicket = await Ticket.findOne({ reference: data.reference });
+      const existingTicket = await Ticket.findOne({
+        reference: data.reference,
+      });
       if (existingTicket) return res.redirect(successURL);
 
       // Get event
       const event = await Event.findById(eventId);
+      const user = await User.findById(userId); // ✅ fetch user
       if (!event || event.totalTickets < quantity) {
         return res
           .status(400)
@@ -89,6 +93,11 @@ exports.verifyPayment = async (req, res) => {
         quantity,
         amount: data.amount / 100, // ✅ convert from kobo to Naira
         reference: data.reference,
+      });
+
+      // Update ticketsSold in Event
+      await Event.findByIdAndUpdate(eventId, {
+        $inc: { ticketsSold: quantity }, // increment
       });
 
       // Ensure QR folder exists
@@ -111,6 +120,16 @@ exports.verifyPayment = async (req, res) => {
       // Reduce available tickets
       event.totalTickets -= quantity;
       await event.save();
+
+      // Send confirmation email with QR
+      await sendEmail(
+        user.email,
+        "🎟️ Your Ticket Confirmation",
+        `<h2>Thanks for your purchase, ${user.name}!</h2>
+   <p>Your ticket is confirmed for <b>${event.title}</b></p>
+   <p>Show this QR code at entrance:</p>
+   <img src="${FRONTEND_URL}/uploads/${ticket.qrCode}" alt="QR Code" />`
+      );
 
       return res.redirect(successURL);
     } else {

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { initiatePayment, verifyPayment } = require('../controllers/paymentController');
-const auth = require('../middleware/authMiddleware');
+const {authMiddleware} = require('../middleware/authMiddleware');
 
-router.post('/initiate', auth,  initiatePayment);
+router.post('/initiate', authMiddleware,  initiatePayment);
 router.get('/verify', verifyPayment);
 
 

@@ -9,6 +9,7 @@ export default function Register() {
     email: "",
     password: "",
     isOrganizer: false,
+    isAdmin: false, // 👈 added
   });
 
   const [imageFile, setImageFile] = useState(null);
@@ -37,11 +38,13 @@ export default function Register() {
     e.preventDefault();
     const formData = new FormData();
 
-    // Append form fields
     formData.append("username", form.username);
     formData.append("email", form.email);
     formData.append("password", form.password);
-    formData.append("isOrganizer", form.isOrganizer);
+
+    // Convert booleans to strings
+    formData.append("isOrganizer", form.isOrganizer ? "true" : "false");
+    formData.append("isAdmin", form.isAdmin ? "true" : "false");
 
     // Append image if selected
     if (imageFile) {
@@ -127,16 +130,31 @@ export default function Register() {
             onChange={handleChange}
             required
           />
+
+          {/* Organizer checkbox */}
+          <label>
+            <span><input
+              type="checkbox"
+              name="isOrganizer"
+              checked={form.isOrganizer}
+              onChange={handleChange}
+            /></span>
+            <span>I'm an Organizer</span>
+          </label>
+
+          {/* Admin checkbox */}
           <label>
             <span>
               <input
-                type="checkbox"
-                name="isOrganizer"
-                onChange={handleChange}
-              />
+              type="checkbox"
+              name="isAdmin"
+              checked={form.isAdmin}
+              onChange={handleChange}
+            />
             </span>
-            <span>I'm an Organizer</span>
+            <span>I'm an Admin</span>
           </label>
+
           <button type="submit">Register</button>
         </form>
       </div>

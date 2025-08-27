@@ -49,3 +49,61 @@ User/Buyer: Buy tickets + view purchased tickets.
 
 
 
+Push/Email Reminders
+
+We can use a cron job (with node-cron) to check upcoming events and automatically send reminders 24h or 1h before.
+
+
+
+Next Step: I’ll wire up the reminder system (push/email before event starts).
+But first: do you want me to attach the QR code as an image inside the email (like above) or as a PDF/PNG file attachment?
+
+
+Profile Feature
+
+User Model Update (MongoDB)
+Add fields like:
+
+name
+
+email
+
+phone
+
+profileImage
+
+bio
+
+role (attendee | organizer | admin)
+
+Profile Routes (Backend, Express)
+
+GET /api/profile/:id → fetch user profile
+
+PUT /api/profile/:id → update user profile
+
+POST /api/profile/upload → upload profile picture
+
+Frontend (React)
+
+Profile Page with sections:
+
+Basic info (name, email, phone, role)
+
+Profile photo upload
+
+Tickets purchased (for attendees)
+
+Events created (for organizers)
+
+Extra Features (Later)
+
+Password change
+
+Notifications center
+
+Social links (Twitter, LinkedIn, etc.)
+
+👉 Should we start by updating the User model in your backend to include bio, phone, and profileImage so we can build on that?
+
+

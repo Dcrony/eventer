@@ -4,7 +4,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 
 const Ticket = require("../models/Ticket");
-const authMiddleware = require("../middleware/authMiddleware");
+const {authMiddleware} = require("../middleware/authMiddleware");
 const { getMyTickets } = require("../controllers/ticketController");
 
 

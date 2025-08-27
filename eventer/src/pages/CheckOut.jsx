@@ -1,78 +1,81 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
-import "./CSS/home.css";
 
 export default function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();
-    if (!state || !state.event || !state.quantity || !state.user) {
-    console.error("Invalid checkout state:", state);
-    return <p>Error: Invalid checkout details.</p>;
-    }
 
+  if (!state || !state.event || !state.quantity || !state.user) {
+    console.error("Invalid checkout state:", state);
+    return <p className="text-red-500 text-center mt-10">❌ Error: Invalid checkout details.</p>;
+  }
 
   const { event, quantity, user } = state;
-    if (!event || !quantity || !user) {
-        return <p>Error: Missing event, quantity, or user information.</p>;
-    }
-
-    // Handle payment confirmation
 
   const handleConfirmPayment = async () => {
     try {
       const res = await API.post("/payment/initiate", {
         email: user.email,
         amount: event.ticketPrice * quantity,
-        metadata: {
-          eventId: event._id,
-          quantity,
-        },
+        metadata: { eventId: event._id, quantity },
       });
-
-      // Redirect to Paystack
-      window.location.href = res.data.url;
+      window.location.href = res.data.url; // Redirect to Paystack
     } catch (err) {
       console.error(err);
-      alert("Payment failed to start");
+      alert("⚠️ Payment failed to start");
     }
   };
-    if (!event) {
-        return <p>Error: Event not found.</p>;
-    }
-    if (!user || !user.username || !user.email) {
-        return <p>Error: User information is incomplete.</p>;
-    }
 
   return (
-    <div className="home checkout-container">
-      <h1>Checkout Confirmation</h1>
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+      <div className="bg-white shadow-xl rounded-2xl p-8 max-w-lg w-full">
+        {/* Header */}
+        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+          Checkout Confirmation
+        </h1>
 
-      <h2>{event.title}</h2>
-      <p>{event.description}</p>
-      <p>
-        Date: {new Date(event.date).toLocaleDateString()} at {event.time}
-      </p>
-      <p>Location: {event.location}</p>
+        {/* Event Details */}
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700">{event.title}</h2>
+          <p className="text-gray-600 mt-1">{event.description}</p>
+          <p className="text-gray-500 text-sm mt-2">
+            📅 {new Date(event.date).toLocaleDateString()} at {event.time}
+          </p>
+          <p className="text-gray-500 text-sm">📍 {event.location}</p>
+        </div>
 
-      <h3>Buyer Info</h3>
-      <p>Name: {user.username}</p>
-      <p>Email: {user.email}</p>
+        {/* Buyer Info */}
+        <div className="border-t border-gray-200 pt-4 mb-6">
+          <h3 className="text-lg font-semibold text-gray-700">Buyer Info</h3>
+          <p className="text-gray-600">👤 {user.username}</p>
+          <p className="text-gray-600">📧 {user.email}</p>
+        </div>
 
-      <h3>Order Summary</h3>
-      <p>Quantity: {quantity}</p>
-      <p>Total: ₦{event.ticketPrice * quantity}</p>
+        {/* Order Summary */}
+        <div className="border-t border-gray-200 pt-4 mb-6">
+          <h3 className="text-lg font-semibold text-gray-700">Order Summary</h3>
+          <p className="text-gray-600">🧾 Quantity: {quantity}</p>
+          <p className="text-gray-800 font-bold text-lg">
+            💰 Total: ₦{event.ticketPrice * quantity}
+          </p>
+        </div>
 
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          handleConfirmPayment();
-        }}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Confirm & Pay
-      </button>
-      <button onClick={() => navigate(-1)}>Go Back</button>
+        {/* Actions */}
+        <div className="flex justify-between gap-3">
+          <button
+            onClick={handleConfirmPayment}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200"
+          >
+            ✅ Confirm & Pay
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200"
+          >
+            🔙 Go Back
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

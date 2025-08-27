@@ -1,8 +1,6 @@
 import { useState } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
-import "./CSS/createEvent.css";
-import "./CSS/home.css";
 
 export default function CreateEvent() {
   const [form, setForm] = useState({
@@ -61,111 +59,139 @@ export default function CreateEvent() {
   };
 
   return (
-    <div className="home createEvent">
-      <div className="form">
-        <h2>Create New Event</h2>
-        <form onSubmit={handleSubmit}>
-          <div>
-            <input
-              name="title"
-              placeholder="Title"
-              onChange={handleChange}
-              required
-            />
-            <textarea
-              id=""
-              name="description"
-              placeholder="Description"
-              onChange={handleChange}
-              required
-            ></textarea>
+    <div className="ml-64 p-8"> {/* pushes content aside navbar/sidebar */}
+      <div className="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8">
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          Create New Event
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Title */}
+          <input
+            name="title"
+            placeholder="Event Title"
+            className="w-full px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
+            onChange={handleChange}
+            required
+          />
+
+          {/* Description */}
+          <textarea
+            name="description"
+            placeholder="Event Description"
+            rows="4"
+            className="w-full px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
+            onChange={handleChange}
+            required
+          ></textarea>
+
+          {/* Category, Date, Time */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <input
               name="category"
               placeholder="Category"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
               onChange={handleChange}
               required
             />
-            <input name="date" type="date" onChange={handleChange} required />
-            <input name="time" type="time" onChange={handleChange} required />
+            <input
+              name="date"
+              type="date"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
+              onChange={handleChange}
+              required
+            />
+            <input
+              name="time"
+              type="time"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
+              onChange={handleChange}
+              required
+            />
           </div>
 
-          <div>
+          {/* Location & Image Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               name="location"
               placeholder="Location"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
               onChange={handleChange}
               required
             />
 
-            <label htmlFor="imageUpload">
+            <label
+              htmlFor="imageUpload"
+              className="flex items-center justify-center border-2 border-dashed rounded-xl cursor-pointer p-4 hover:border-indigo-400"
+            >
               {imagePreview ? (
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  style={{
-                    width: "100px",
-                    height: "100px",
-                    objectFit: "cover",
-                    cursor: "pointer",
-                  }}
+                  className="w-24 h-24 object-cover rounded-lg"
                 />
               ) : (
-                <div
-                  style={{
-                    padding: "10px",
-                    border: "1px dashed #ccc",
-                    cursor: "pointer",
-                  }}
-                >
-                  Upload Image
-                </div>
+                <span className="text-gray-500">Upload Event Image</span>
               )}
             </label>
             <input
               id="imageUpload"
               type="file"
               accept="image/*"
-              style={{ display: "none" }}
+              className="hidden"
               onChange={handleImageChange}
             />
+          </div>
 
+          {/* Ticket Price & Total Tickets */}
+          <div className="grid grid-cols-2 gap-4">
             <input
               name="ticketPrice"
               type="number"
               placeholder="₦ Price"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
               onChange={handleChange}
               required
             />
             <input
               name="totalTickets"
               type="number"
-              placeholder="No. of Tickets"
+              placeholder="Total Tickets"
+              className="px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
               onChange={handleChange}
               required
             />
           </div>
 
+          {/* Stream Type */}
           <div>
-            <label htmlFor="streamType">
-              Stream Type:
-              <select
-                name="streamType"
-                value={form.streamType}
-                onChange={handleChange}
-              >
-                <option value="YouTube">YouTube</option>
-                <option value="Facebook">Facebook</option>
-              </select>
-            </label>
+            <label className="block mb-1 text-gray-600">Stream Type</label>
+            <select
+              name="streamType"
+              value={form.streamType}
+              className="w-full px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
+              onChange={handleChange}
+            >
+              <option value="YouTube">YouTube</option>
+              <option value="Facebook">Facebook</option>
+            </select>
           </div>
 
+          {/* Stream URL */}
           <input
             name="streamURL"
             placeholder="Stream URL"
+            className="w-full px-4 py-2 border rounded-xl focus:ring focus:ring-indigo-300"
             onChange={handleChange}
           />
 
-          <button type="submit">Create Event</button>
+          {/* Submit */}
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl hover:bg-indigo-700 transition"
+          >
+            Create Event
+          </button>
         </form>
       </div>
     </div>

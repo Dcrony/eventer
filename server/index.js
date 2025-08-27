@@ -10,6 +10,11 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const statRoutes = require("./routes/statRoutes");
+const userRoutes = require("./routes/userRoutes");
+
+
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
 
 const app = express();
 
@@ -35,6 +40,7 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use("/api/stats", statRoutes);
+app.use("/api/profile", userRoutes);
 
 const http = require("http");
 const { Server } = require("socket.io");
@@ -43,7 +49,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // frontend port
+    origin: `${FRONTEND_URL}`, // frontend port
     methods: ["GET", "POST"],
     credentials: true,
   },
