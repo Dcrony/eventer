@@ -48,7 +48,7 @@ function Layout() {
         <Route path="/admin/my-events" element={<MyEvents />} />
         <Route path="/live/events" element={<LiveEvent />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/me" element={<Profile />} />
+        <Route path="/profile/:id" element={<Profile />} />
         <Route path="/admin" element={<UserManagement />} />
         <Route path="/checkout/:eventId" element={<Checkout />} />
         <Route path="/scanner" element={<TicketScanner />} />

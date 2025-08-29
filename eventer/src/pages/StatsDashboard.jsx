@@ -66,10 +66,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        <p className="mt-4 text-gray-600">Loading dashboard...</p>
-      </div>
+      <div className="flex flex-col items-center justify-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-indigo-500 mb-4"></div>
+          <p className="text-gray-600">Loading Dashboard...</p>
+        </div>
     );
   }
 
@@ -90,7 +90,7 @@ export default function Dashboard() {
   if (!stats) return null;
 
   return (
-    <div className="p-6 space-y-8 min-h-screen bg-gray-50 pt-16 pl-64">
+    <div className="p-6 space-y-8 min-h-screen bg-gray-50 pt-16 pl-72">
       <h2 className="text-3xl font-bold text-gray-800">📊 Organizer Dashboard</h2>
 
       {/* Admin Stats */}

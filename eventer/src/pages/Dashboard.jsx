@@ -86,14 +86,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 pl-64 px-6">
+    <div className="min-h-screen bg-gray-50 pt-16 pl-72 px-6">
       <h2 className="text-2xl font-bold mb-6">🎛 Organizer Dashboard</h2>
 
-      {/* Loading */}
+       {/* Loading */}
       {loading && (
-        <div className="text-center py-10 text-gray-600">
-          <div className="text-3xl animate-spin">⏳</div>
-          <p>Loading dashboard...</p>
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-indigo-500 mb-4"></div>
+          <p className="text-gray-600">Loading events...</p>
         </div>
       )}
 

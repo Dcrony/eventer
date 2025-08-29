@@ -1,20 +1,53 @@
 const User = require("../models/User");
 const Event = require("../models/Event");
-
 const Ticket = require("../models/Ticket"); // assuming you have a Ticket model
 
-// @desc   Get user profile by ID
-// @route  GET /api/users/:id
-// @access Private (or Public if you want organizers visible)
+
+const formatDate = (date) => {
+  return new Date(date).toLocaleString("en-US", {
+    weekday: "short",   // Sat
+    day: "2-digit",     // 14
+    month: "short",     // Sept
+    year: "numeric",    // 2025
+    hour: "numeric",    // 2
+    minute: "2-digit",  // 00
+    hour12: true        // pm
+  });
+};
+
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
+
+    // Fetch tickets purchased by this user
+    const tickets = await Ticket.find({ buyer: req.params.id })
+      .populate("event") // Assuming your Ticket schema has event: { type: mongoose.Schema.Types.ObjectId, ref: "Event" }
+      .exec();
+
+    // Fetch events created by this user (if organizer/admin)
+    const createdEvents = await Event.find({ createdBy: req.params.id }).exec();
+
+res.json({
+      ...user.toObject(),
+      tickets: tickets.map(t => ({
+        ...t.toObject(),
+        event: {
+          ...t.event.toObject(),
+          date: formatDate(t.event.date)  // formatted date here
+        }
+      })),
+      createdEvents: createdEvents.map(e => ({
+        ...e.toObject(),
+        date: formatDate(e.date)          // formatted date here
+      }))
+    });
   } catch (error) {
+    console.error("Error fetching profile:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // @desc   Update logged-in user profile
 // @route  PUT /api/users/me

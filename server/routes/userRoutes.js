@@ -17,7 +17,7 @@ const upload = multer({ dest: "uploads/" }); // configure storage later
 
 // Profile routes
 router.put("/me", authMiddleware, updateMyProfile);
-router.get("/me", authMiddleware, getUserProfile); // NEW
+router.get("/:id", authMiddleware, getUserProfile); // NEW
 router.post("/me/upload", authMiddleware, upload.single("profilePic"), uploadProfilePic); // NEW
 router.get("/my-tickets", authMiddleware, getMyTickets); // NEW
 

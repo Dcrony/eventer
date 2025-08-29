@@ -26,7 +26,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
-     <div className="max-w-7xl mx-auto pt-16 pl-64 px-6">
+     <div className="max-w-7xl mx-auto pt-16 pl-64 ">
        {/* Title */}
       <h1 className="text-3xl md:text-4xl font-bold text-center text-indigo-600 mb-8">
         TickiSpot
