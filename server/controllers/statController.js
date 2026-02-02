@@ -19,12 +19,11 @@ exports.getStats = async (req, res) => {
       0
     );
 
-    const totalRevenue = tickets.reduce((acc, ticket) => {
-      const event = events.find(
-        (e) => e._id.toString() === ticket.event.toString()
-      );
-      return acc + (event?.ticketPrice || 0) * ticket.quantity;
-    }, 0);
+    const totalRevenue = tickets.reduce(
+  (acc, ticket) => acc + (ticket.amount || 0),
+  0
+);
+
 
     const currentlyLive = events.filter((e) => e.liveStream?.isLive).length;
 
@@ -37,7 +36,11 @@ exports.getStats = async (req, res) => {
         (acc, t) => acc + t.quantity,
         0
       );
-      const revenue = ticketsSold * (event.ticketPrice || 0);
+     const revenue = eventTickets.reduce(
+  (sum, t) => sum + (t.amount || 0),
+  0
+);
+
 
       return {
         id: event._id,

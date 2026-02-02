@@ -11,10 +11,9 @@ import {
   Share2,
   Heart,
   Ticket,
-  ChevronRight,
   ExternalLink,
   ShieldCheck,
-  Info
+  Info,
 } from "lucide-react";
 import "./CSS/eventdetail.css";
 
@@ -30,84 +29,113 @@ export default function EventDetail() {
 
   const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+  // ✅ Function declaration is hoisted, can be used anywhere
+  function formatPrice(price) {
+    if (!price || isNaN(price)) return "Free";
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      maximumFractionDigits: 0,
+    }).format(price);
+  }
+
+  // State for selected ticket type
+  const [selectedTicketType, setSelectedTicketType] = useState(null);
+
   useEffect(() => {
     API.get(`/events/${eventId}`)
       .then((res) => {
         setEvent(res.data);
+        // Initialize selected ticket type once data is fetched
+        if (res.data.pricing && res.data.pricing.length > 0) {
+          setSelectedTicketType(res.data.pricing[0]);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [eventId]);
 
   const handleBuy = () => {
-    const quantity = parseInt(buying[event._id]) || 1;
     if (!isLoggedIn) {
       alert("Please login to purchase tickets.");
       navigate("/login");
       return;
     }
+
+    if (!selectedTicketType) {
+      alert("Please select a ticket type.");
+      return;
+    }
+
+    const quantity = parseInt(buying[event._id]) || 1;
+
     navigate(`/checkout/${event._id}`, {
-      state: { event, quantity, user },
+      state: {
+        event,
+        quantity,
+        ticketType: selectedTicketType.type,
+        price: selectedTicketType.price,
+        user,
+      },
     });
   };
 
-  const formatPrice = (price) => {
-    if (!price || isNaN(price)) return "Free";
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+  if (loading)
+    return (
+      <div className="event-loader-container">
+        <div className="loader-spinner"></div>
+        <p>Fetching event details...</p>
+      </div>
+    );
 
-  if (loading) return (
-    <div className="event-loader-container">
-      <div className="loader-spinner"></div>
-      <p>Fetching event details...</p>
-    </div>
-  );
-
-  if (!event) return (
-    <div className="event-not-found">
-      <Info size={48} />
-      <h2>Event not found</h2>
-      <Link to="/events" className="dash-btn">Return to Browse</Link>
-    </div>
-  );
+  if (!event)
+    return (
+      <div className="event-not-found">
+        <Info size={48} />
+        <h2>Event not found</h2>
+        <Link to="/events" className="dash-btn">
+          Return to Browse
+        </Link>
+      </div>
+    );
 
   return (
     <div className={`event-hub ${darkMode ? "dark-mode" : ""}`}>
-      {/* 🧊 Glassy Background Blur */}
+      {/* Glassy Background Blur */}
       <div className="hub-bg-blur">
         {event.image && (
           <img
-            src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || PORT_URL}/uploads/event_image/${event.image}`}
-            alt=""
+            src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
+            alt={event.title}
           />
         )}
       </div>
 
       <div className="hub-container">
-        {/* 🧭 Top Navigation Bar */}
+        {/* Top Navigation Bar */}
         <header className="hub-header">
           <button onClick={() => navigate("/events")} className="hub-back-btn">
             <ArrowLeft size={18} />
             <span>Back to Browse</span>
           </button>
           <div className="hub-header-actions">
-            <button className="hub-circle-btn" title="Share"><Share2 size={18} /></button>
-            <button className="hub-circle-btn" title="Save"><Heart size={18} /></button>
+            <button className="hub-circle-btn" title="Share">
+              <Share2 size={18} />
+            </button>
+            <button className="hub-circle-btn" title="Save">
+              <Heart size={18} />
+            </button>
           </div>
         </header>
 
-        {/* 🎭 Main Hub Layout */}
+        {/* Main Hub Layout */}
         <div className="hub-main">
           {/* Left Column: Content */}
           <section className="hub-content">
             <div className="hub-image-wrapper">
               {event.image ? (
                 <img
-                  src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || PORT_URL}/uploads/event_image/${event.image}`}
+                  src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
                   alt={event.title}
                   className="hub-main-img"
                 />
@@ -115,12 +143,6 @@ export default function EventDetail() {
                 <div className="hub-img-placeholder">
                   <Calendar size={80} />
                 </div>
-              )}
-              {event.liveStream?.isLive && (
-                <Link to={`/live/${event._id}`} className="hub-live-overlay">
-                  <span className="live-pulse-dot"></span>
-                  JOIN LIVE STREAM
-                </Link>
               )}
             </div>
 
@@ -139,28 +161,43 @@ export default function EventDetail() {
 
             <div className="hub-details-grid">
               <div className="hub-detail-item">
-                <div className="hub-detail-icon"><Calendar /></div>
+                <div className="hub-detail-icon">
+                  <Calendar />
+                </div>
                 <div className="hub-detail-info">
                   <label>Date</label>
-                  <span>{new Date(event.startDate).toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                  <span>
+                    {new Date(event.startDate).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
               </div>
               <div className="hub-detail-item">
-                <div className="hub-detail-icon"><Clock /></div>
+                <div className="hub-detail-icon">
+                  <Clock />
+                </div>
                 <div className="hub-detail-info">
                   <label>Time</label>
                   <span>{event.startTime || "Check description"}</span>
                 </div>
               </div>
               <div className="hub-detail-item">
-                <div className="hub-detail-icon"><MapPin /></div>
+                <div className="hub-detail-icon">
+                  <MapPin />
+                </div>
                 <div className="hub-detail-info">
                   <label>Location</label>
                   <span>{event.location || "Online Event"}</span>
                 </div>
               </div>
               <div className="hub-detail-item">
-                <div className="hub-detail-icon"><Users /></div>
+                <div className="hub-detail-icon">
+                  <Users />
+                </div>
                 <div className="hub-detail-info">
                   <label>Attendees</label>
                   <span>{event.ticketsSold || 0} People attending</span>
@@ -174,7 +211,7 @@ export default function EventDetail() {
               <div className="hub-organizer-card">
                 {event.createdBy?.profilePic ? (
                   <img
-                    src={`${import.meta.env.VITE_API_URL?.replace("/api", "") || PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                    src={`${PORT_URL.replace("/api", "")}/uploads/profile_pic/${event.createdBy.profilePic}`}
                     alt={event.createdBy.username}
                     className="hub-org-avatar"
                   />
@@ -184,7 +221,9 @@ export default function EventDetail() {
                   </div>
                 )}
                 <div className="hub-org-text">
-                  <span className="hub-org-name">{event.createdBy?.username || "TickiSpot Organizer"}</span>
+                  <span className="hub-org-name">
+                    {event.createdBy?.username || "TickiSpot Organizer"}
+                  </span>
                   <span className="hub-org-meta">Verified Host • 5 ★ Rating</span>
                 </div>
                 <button className="hub-contact-btn">Message</button>
@@ -204,13 +243,25 @@ export default function EventDetail() {
                 </span>
               </div>
 
-              {event.pricing && event.pricing.length > 1 && (
-                <div className="hub-price-tiers">
-                  {event.pricing.map((p, idx) => (
-                    <div key={idx} className="hub-price-tier">
+              {event.pricing && event.pricing.length > 0 && (
+                <div className="hub-ticket-types">
+                  <label className="hub-label">Select Ticket Type</label>
+                  {event.pricing.map((p) => (
+                    <label
+                      key={p._id}
+                      className={`ticket-type-option ${
+                        selectedTicketType?.type === p.type ? "active" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="ticketType"
+                        value={p.type}
+                        onChange={() => setSelectedTicketType(p)}
+                      />
                       <span>{p.type}</span>
                       <b>{formatPrice(p.price)}</b>
-                    </div>
+                    </label>
                   ))}
                 </div>
               )}
@@ -219,10 +270,14 @@ export default function EventDetail() {
                 <div className="avail-bar">
                   <div
                     className="avail-fill"
-                    style={{ width: `${(event.ticketsSold / event.totalTickets) * 100}%` }}
+                    style={{
+                      width: `${(event.ticketsSold / event.totalTickets) * 100}%`,
+                    }}
                   ></div>
                 </div>
-                <span>Only {event.totalTickets - (event.ticketsSold || 0)} tickets left!</span>
+                <span>
+                  Only {event.totalTickets - (event.ticketsSold || 0)} tickets left!
+                </span>
               </div>
 
               <div className="hub-purchase-actions">
@@ -230,9 +285,15 @@ export default function EventDetail() {
                   <label>Quantity</label>
                   <select
                     value={buying[event._id] || "1"}
-                    onChange={(e) => setBuying({ ...buying, [event._id]: e.target.value })}
+                    onChange={(e) =>
+                      setBuying({ ...buying, [event._id]: e.target.value })
+                    }
                   >
-                    {[1, 2, 3, 4, 5].map(v => <option key={v} value={v}>{v}</option>)}
+                    {[1, 2, 3, 4, 5].map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <button onClick={handleBuy} className="hub-buy-btn">
@@ -253,7 +314,6 @@ export default function EventDetail() {
               </div>
             </div>
 
-            {/* Info Card */}
             <div className="hub-info-card">
               <Info size={18} />
               <p>Tickets are refundable up to 24 hours before the event start time.</p>

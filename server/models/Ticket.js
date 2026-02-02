@@ -15,6 +15,10 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
+   ticketType: {               
+    type: String,
+    required: true,           // e.g. "Regular", "VIP"
+  },
   price: { // Price per ticket
     type: Number,
     required: true,
