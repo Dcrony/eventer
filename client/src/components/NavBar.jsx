@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import NotificationBell from "./NotificationBell";
 import "./css/Navbar.css";
 
@@ -9,8 +8,6 @@ const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:5000";
 
 export default function NavBar() {
   const [user, setUser] = useState(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { darkMode } = useContext(ThemeContext);
 
   useEffect(() => {
     const currentUser = getCurrentUser();

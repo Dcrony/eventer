@@ -16,8 +16,6 @@ import {
   Radio,
   PlusCircle,
   Settings,
-  Sun,
-  Moon,
   ChevronLeft,
   ChevronRight,
   User,

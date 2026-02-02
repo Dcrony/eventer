@@ -201,7 +201,8 @@ export default function MyTickets() {
                       <div className="detail-item">
                         <span className="detail-label">Total Paid</span>
                         <div className="detail-value font-bold">
-                          ₦{(event.ticketPrice || 0) * (ticket.quantity || 1)}
+                          ₦{ticket.amount?.toLocaleString() || 0}
+
                         </div>
                       </div>
                     </div>

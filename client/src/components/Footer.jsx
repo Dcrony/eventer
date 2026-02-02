@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { TicketCheck } from "lucide-react";
+import icon from "../assets/icon.svg"
 import "./css/Footer.css";
 
 export default function Footer() {
@@ -9,7 +9,7 @@ export default function Footer() {
                 <div className="footer-content">
                     <div className="footer-section footer-brand">
                         <div className="footer-logo">
-                            <TicketCheck size={24} />
+                            <img src={icon} className="tickispot-icon" />
                             <h3>TickiSpot</h3>
                         </div>
                         <p>Your complete event management solution. Create, manage, and grow your events with confidence.</p>

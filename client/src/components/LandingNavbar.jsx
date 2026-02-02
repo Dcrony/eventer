@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect, useContext } from "react";
 import { ThemeContext } from "../contexts/ThemeContexts";
-import { TicketCheck, ToggleLeft, ToggleRight } from "lucide-react";
+import { ToggleLeft, ToggleRight } from "lucide-react";
+import icon from "../assets/icon.svg"
 import "./css/LandingNavbar.css";
 
 export default function LandingNavbar() {
@@ -17,7 +18,7 @@ export default function LandingNavbar() {
         <header className="landing-header ">
             <div className="header-content">
                 <Link to="/" className="logo">
-                    <TicketCheck size={24} className="logo-icon" />
+                    <img src={icon} className="tickispot-icon" />
                     <h1>TickiSpot</h1>
                 </Link>
                 <nav className="nav-menu">

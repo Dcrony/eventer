@@ -7,7 +7,7 @@ import "./CSS/home.css";
 
 const formatNumber = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "0";
-  return new Intl.NumberFormat('en-NG').format(num);
+  return new Intl.NumberFormat("en-NG").format(num);
 };
 
 const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -44,8 +44,8 @@ export default function Home() {
         (event) =>
           event.title.toLowerCase().includes(term.toLowerCase()) ||
           event.location?.toLowerCase().includes(term.toLowerCase()) ||
-          event.category?.toLowerCase().includes(term.toLowerCase())
-      )
+          event.category?.toLowerCase().includes(term.toLowerCase()),
+      ),
     );
   };
 
@@ -78,9 +78,7 @@ export default function Home() {
         {/* Loading */}
         {loading && (
           <div className="dash-card">
-            <div className="dash-card-body center muted">
-              Loading events…
-            </div>
+            <div className="dash-card-body center muted">Loading events…</div>
           </div>
         )}
 
@@ -122,22 +120,23 @@ export default function Home() {
                     <div className="event-image-container">
                       {event.image ? (
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ||
+                          src={`${
+                            import.meta.env.VITE_API_URL?.replace("/api", "") ||
                             PORT_URL
-                            }/uploads/event_image/${event.image}`}
+                          }/uploads/event_image/${event.image}`}
                           alt={event.title}
                           className="event-image"
                         />
                       ) : (
-                        <div className="event-image placeholder">
-                          No Image
-                        </div>
+                        <div className="event-image placeholder">No Image</div>
                       )}
 
                       {/* Floating Badges */}
                       <div className="event-floating-badges">
                         {event.category && (
-                          <span className="event-category-badge">{event.category}</span>
+                          <span className="event-category-badge">
+                            {event.category}
+                          </span>
                         )}
                         {event.liveStream?.isLive && (
                           <span className="live-pill-floating">
@@ -149,7 +148,9 @@ export default function Home() {
 
                       {/* Hover Overlay */}
                       <div className="event-hover-overlay">
-                        <span className="view-details-btn">View Details <ArrowRight size={16} /></span>
+                        <span className="view-details-btn">
+                          View Details <ArrowRight size={16} />
+                        </span>
                       </div>
                     </div>
 
@@ -160,7 +161,8 @@ export default function Home() {
                       </div>
 
                       <p className="event-desc">
-                        {event.description || "Join us for this amazing event and experience something unique."}
+                        {event.description ||
+                          "Join us for this amazing event and experience something unique."}
                       </p>
 
                       <div className="event-info-grid">
@@ -171,15 +173,21 @@ export default function Home() {
                         <div className="info-item">
                           <Calendar size={16} className="info-icon" />
                           <span>
-                            {new Date(event.startDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            {new Date(event.startDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </span>
                         </div>
                         <div className="info-item tickets-info">
                           <Users size={16} className="info-icon" />
-                          <span>{formatNumber(event.ticketsSold)}/{formatNumber(event.totalTickets)} Attendee</span>
+                          <span>
+                            {formatNumber(event.ticketsSold)}/
+                            {formatNumber(event.totalTickets)} Attendee
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -188,9 +196,7 @@ export default function Home() {
                     <div className="event-footer">
                       {event.createdBy?.profilePic ? (
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace("/api", "") ||
-                            PORT_URL
-                            }/uploads/profile_pic/${event.createdBy.profilePic}`}
+                          src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
                           alt="Organizer"
                         />
                       ) : (

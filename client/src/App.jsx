@@ -4,7 +4,6 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MyTickets from "./pages/MyTickets";
 import Dashboard from "./pages/Dashboard";
-import NavBar from "./components/NavBar";
 import Success from "./pages/Success";
 import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";

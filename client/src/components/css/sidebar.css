@@ -9,7 +9,7 @@
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   transition: background-color 0.3s, color 0.3s, width 0.3s ease;
-  overflow: visible !important;
+
 }
 
 .sidebar.expand {
