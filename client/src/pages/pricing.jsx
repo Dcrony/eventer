@@ -1,4 +1,3 @@
-import React from "react";
 import "./CSS/pricing.css";
 
 export default function Pricing() {

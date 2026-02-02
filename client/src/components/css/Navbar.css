@@ -1,7 +1,7 @@
 :root {
   --bg-page: #fdf2f8;
   --bg-card: #ffffff;
-  --text-color: #111827;
+  --text-color: #0000;
   --input-border: #e5e7eb;
   --accent-color: #ec4899;
   --accent-hover: #db2777;
@@ -40,7 +40,7 @@ body {
   align-items: center;
   padding: 0 2rem;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  z-index: 50;
+  z-index: 5;
   transition: background 0.3s ease, color 0.3s ease;
 }
 

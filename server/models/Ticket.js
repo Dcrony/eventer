@@ -15,14 +15,29 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
-  
+  price: { // Price per ticket
+    type: Number,
+    required: true,
+  },
+  amount: { // Total amount paid
+    type: Number,
+    required: true,
+  },
+  reference: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   qrCode: {
     type: String,
-  }, // store QR code file name
-  
-  used: { type: Boolean, default: false },
-  usedAt: { type: Date },
-
+  },
+  used: { 
+    type: Boolean, 
+    default: false 
+  },
+  usedAt: { 
+    type: Date 
+  },
   purchasedAt: {
     type: Date,
     default: Date.now,

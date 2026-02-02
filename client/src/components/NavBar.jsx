@@ -38,6 +38,7 @@ export default function NavBar() {
   return (
     <nav className="navbar">
       <div className="navbar-container">
+        
         <div className="navbar-right">
           <span className="welcome-text">
             Welcome, <strong>{user.username}</strong>
@@ -62,6 +63,7 @@ export default function NavBar() {
               </button>
             </div>
           </div>
+          
         </div>
       </div>
     </nav>
