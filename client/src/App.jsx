@@ -30,7 +30,7 @@ import TermsOfService from "./pages/TermsOfService";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LandingPage from "./pages/landingpage";
-import Pricing from "./pages/Pricing";
+import Pricing from "./pages/pricing";
 
 
 function Layout() {
