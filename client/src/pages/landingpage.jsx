@@ -22,14 +22,12 @@ import {
 } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 
-import LandingNavbar from "../components/LandingNavbar";
-import Footer from "../components/Footer";
-
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const { canInstall, install } = useInstallPrompt();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { darkMode, toggleTheme } = useContext(ThemeContext);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
