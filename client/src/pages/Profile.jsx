@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { ThemeContext } from "../contexts/ThemeContexts";
-import "./CSS/profile.css";
+import "./CSS/Profile.css";
 
 const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
