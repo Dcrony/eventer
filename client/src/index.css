@@ -27,7 +27,7 @@ body.dark-mode {
 }
 
 body.dark-mode {
-  --bg-color: #121212;
+  --bg-color: #00000000;
   --text-color: #f1f1f1;
   --card-bg: #1e1e1e;
 }

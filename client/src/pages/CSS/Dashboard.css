@@ -4,11 +4,11 @@
 
 .dashboard-page {
   min-height: 100vh;
+  margin-left: 10px;
   padding-top: 2rem;
   padding-left: var(--sidebar-width);
   padding-right: 2rem;
   padding-bottom: 4rem;
-  background-color: #f8fafc;
   color: #1e293b;
   transition: padding-left 0.3s ease, background-color 0.3s ease;
   position: relative;
@@ -448,7 +448,7 @@
 
 /* 🌙 Dark Mode Support */
 body.dark-mode .dashboard-page {
-  background-color: #0b0f19;
+  background-color: var(--bg-color);
   color: #e2e8f0;
 }
 
@@ -469,7 +469,7 @@ body.dark-mode .dashboard-subtitle {
 body.dark-mode .stat-tile,
 body.dark-mode .dash-card,
 body.dark-mode .event-card {
-  background-color: #161b2a;
+  background-color: var(--card-bg);
   border-color: rgba(255, 255, 255, 0.05);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }

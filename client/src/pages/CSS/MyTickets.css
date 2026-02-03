@@ -16,6 +16,8 @@
   min-height: 100vh;
   padding: 2rem 1rem;
   background: var(--bg-color);
+  padding-left: var(--sidebar-width);
+
 }
 
 .dashboard-container {

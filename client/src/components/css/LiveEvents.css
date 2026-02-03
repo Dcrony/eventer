@@ -10,6 +10,8 @@
 .live-events-page {
   padding: 2rem 1rem;
   min-height: 100vh;
+  padding-left: var(--sidebar-width);
+  margin-left: 10px;
 }
 
 .live-header-section {

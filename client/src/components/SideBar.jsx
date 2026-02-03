@@ -85,8 +85,8 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside
-        className={`sidebar fixed top-0 left-0 h-screen flex flex-col justify-between transition-all duration-300 pt-2 z-40 ${expand ? "expand" : ""
+      <div
+        className={`sidebar h-screen transition-all duration-300 ${expand ? "expand" : ""
           } ${darkMode ? "dark-mode" : ""}`}
       >
         <div className="sidebar-top">
@@ -161,7 +161,7 @@ export default function Sidebar() {
             {expand && <span className="sidebar-link-text">Logout</span>}
           </button>
         </div>
-      </aside>
+      </div>
 
       {/* ✅ Create Event Modal */}
       <CreateEvent
