@@ -12,10 +12,7 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const statRoutes = require("./routes/statRoutes");
 const userRoutes = require("./routes/userRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const settingsRoutes = require("./routes/settingsRoutes")
-
-
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const settingsRoutes = require("./routes/settingsRoutes");
 
 
 const app = express();
