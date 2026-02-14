@@ -12,48 +12,15 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const statRoutes = require("./routes/statRoutes");
 const userRoutes = require("./routes/userRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const settingsRoutes = require("./routes/settingsRoutes");
+const settingsRoutes = require("./routes/settingsRoutes")
+
+
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 
 const app = express();
 
-// At the top, update your FRONTEND_URL
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
-
-// Configure CORS properly
-const corsOptions = {
-  origin: function (origin, callback) {
-    // List of allowed origins
-    const allowedOrigins = [
-      FRONTEND_URL,
-      "https://tickispot.pxxl.click",  // Your production frontend
-      "http://localhost:3000",          // React default
-      "http://localhost:5173",          // Vite default
-      "http://127.0.0.1:3000",
-      "http://127.0.0.1:5173",
-      "https://tickispotbackend.pxxl.click" // Allow backend to backend if needed
-    ];
-    
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log("Blocked by CORS:", origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true, // If using cookies/sessions
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400 // 24 hours
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 
 // Connect to MongoDB
