@@ -1,0 +1,64 @@
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getCurrentUser, logout } from "../utils/auth";
+import "./css/More.css"
+import {
+  User,
+  Settings,
+  Bell,
+  Radio,
+  BarChart3,
+  LogOut,
+} from "lucide-react";
+
+export default function More() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const currentUser = getCurrentUser();
+    if (currentUser) setUser(currentUser);
+  }, []);
+
+  const isAdmin = user?.role === "admin" || user?.isAdmin;
+
+  const handleLogout = () => {
+    if (window.confirm("Are you sure you want to logout?")) {
+      logout();
+    }
+  };
+
+  return (
+    <div className="more-page">
+      <h2>More</h2>
+
+      {/* Account */}
+      <section>
+        <h4>Account</h4>
+        <Link to={`/profile/${user?._id}`}><User size={18}/> Profile</Link>
+        <Link to="/settings"><Settings size={18}/> Settings</Link>
+      </section>
+
+      {/* Activity */}
+      <section>
+        <h4>Activity</h4>
+        <Link to="/live/events"><Radio size={18}/> Live Events</Link>
+        <Link to="/notifications"><Bell size={18}/> Notifications</Link>
+      </section>
+
+      {/* Admin */}
+      {isAdmin && (
+        <section>
+          <h4>Admin</h4>
+          <Link to="/admin/dashboard"><BarChart3 size={18}/> Admin Dashboard</Link>
+        </section>
+      )}
+
+      {/* System */}
+      <section>
+        <button onClick={handleLogout} className="logout-btn">
+          <LogOut size={18}/> Logout
+        </button>
+      </section>
+    </div>
+  );
+}

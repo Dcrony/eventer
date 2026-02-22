@@ -32,6 +32,7 @@ import AdminRoute from "./components/AdminRoute";
 import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
 import { useEffect, useState } from "react";
+import More from "./components/More";
 
 function Layout() {
   const location = useLocation();
@@ -62,6 +63,14 @@ function Layout() {
         <Route path="/events" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route
+          path="/more"
+          element={
+            <ProtectedRoute>
+              <More />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/my-tickets"
           element={

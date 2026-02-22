@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Home, PlusCircle, Ticket, User } from "lucide-react";
+import { LayoutDashboard, Home, PlusCircle, Ticket, User, Menu } from "lucide-react";
 import "./css/mobileNav.css";
 
 import { getCurrentUser } from "../utils/auth";
@@ -15,12 +15,12 @@ useEffect(() => {
 }, []);
 
   const navItems = [
-    { to: "/dashboard", icon: <LayoutDashboard size={22} />, label: "Dashboard" },
-    { to: "/events", icon: <Home size={22} />, label: "Events" },
-    { to: "/create", icon: <PlusCircle size={26} />, label: "Create", primary: true },
-    { to: "/my-tickets", icon: <Ticket size={22} />, label: "Tickets" },
-    { to: `/profile/${user?.id ?? user?._id}`, icon: <User size={22} />, label: "Profile" },
-  ];
+  { to: "/dashboard", icon: <LayoutDashboard size={22} />, label: "Dashboard" },
+  { to: "/events", icon: <Home size={22} />, label: "Events" },
+  { to: "/create", icon: <PlusCircle size={26} />, label: "Create", primary: true },
+  { to: "/my-tickets", icon: <Ticket size={22} />, label: "Tickets" },
+  { to: "/more", icon: <Menu size={22} />, label: "More" },
+];
 
   return (
     <div className="mobile-nav">

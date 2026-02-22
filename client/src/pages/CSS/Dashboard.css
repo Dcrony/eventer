@@ -612,6 +612,8 @@ body.dark-mode .dash-btn-primary {
 
   .dashboard-actions {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(1px);
   }
 
   .dashboard-actions .dash-btn {
