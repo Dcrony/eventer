@@ -45,3 +45,5 @@ exports.handlePaystackWebhook = async (req, res) => {
 
   res.sendStatus(200);
 };
+
+

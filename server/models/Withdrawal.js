@@ -1,5 +1,3 @@
-const mongoose = require("mongoose");
-
 const withdrawalSchema = new mongoose.Schema(
   {
     organizer: {
@@ -7,25 +5,30 @@ const withdrawalSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
     amount: {
       type: Number,
       required: true,
     },
-
+    paymentMethod: {
+      type: String,
+      enum: ["bank", "paystack", "flutterwave"],
+      required: true,
+    },
+    bankDetails: {
+      bankName: String,
+      accountNumber: String,
+      accountName: String,
+    },
     status: {
       type: String,
-      enum: ["pending", "success", "failed"],
+      enum: ["pending", "approved", "rejected", "completed"],
       default: "pending",
     },
-
-    bankName: String,
-    accountNumber: String,
-    accountName: String,
-
-    reference: String,
+    processedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    processedAt: Date,
   },
   { timestamps: true }
 );
-
-module.exports = mongoose.model("Withdrawal", withdrawalSchema);

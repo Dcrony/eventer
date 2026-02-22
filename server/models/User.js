@@ -49,7 +49,16 @@ const UserSchema = new mongoose.Schema(
       default: "1754696275588.jpg",
     },
 
-    
+    availableBalance: {
+      type: Number,
+      default: 0,
+    },
+
+    pendingBalance: {
+      type: Number,
+      default: 0,
+    },
+
     // ✅ Settings sections
     privacy: {
       showProfile: { type: Boolean, default: true },
@@ -67,7 +76,7 @@ const UserSchema = new mongoose.Schema(
       nextBillingDate: { type: String, default: "N/A" },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // 🔑 Virtual boolean fields for quick checks
