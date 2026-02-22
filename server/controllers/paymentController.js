@@ -7,6 +7,7 @@ const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
 const sendEmail = require("../utils/email");
+const Transaction = require("../models/Transaction");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -54,7 +55,7 @@ exports.initiatePayment = async (req, res) => {
           Authorization: `Bearer ${PAYSTACK_SECRET}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     console.log("✅ Paystack initialization response:", response.data);
@@ -63,7 +64,7 @@ exports.initiatePayment = async (req, res) => {
   } catch (err) {
     console.error(
       "❌ Payment initialization failed:",
-      err.response?.data || err.message
+      err.response?.data || err.message,
     );
     return res.status(500).json({ message: "Payment initialization failed" });
   }
@@ -85,7 +86,7 @@ exports.verifyPayment = async (req, res) => {
       `https://api.paystack.co/transaction/verify/${reference}`,
       {
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
-      }
+      },
     );
 
     const data = response.data.data;
@@ -145,7 +146,9 @@ exports.verifyPayment = async (req, res) => {
       // Determine final ticket price
       let ticketPrice = price;
       if (!ticketPrice && event.pricing?.length > 0) {
-        const selectedPricing = event.pricing.find((p) => p.type === pricingType);
+        const selectedPricing = event.pricing.find(
+          (p) => p.type === pricingType,
+        );
         ticketPrice = selectedPricing?.price || event.pricing[0].price || 0;
       }
 
@@ -168,6 +171,20 @@ exports.verifyPayment = async (req, res) => {
       // Update event tickets
       event.ticketsSold += quantity;
       event.totalTickets -= quantity;
+
+      // After ticket save success
+      await Transaction.create({
+        organizer: event.organizer, // make sure event has organizer field
+        type: "ticket",
+        amount: data.amount / 100,
+        status: "success",
+        reference: data.reference,
+        metadata: {
+          eventId: event._id,
+          ticketId: ticket._id,
+        },
+      });
+
       await event.save();
 
       // Generate QR code
@@ -192,10 +209,12 @@ exports.verifyPayment = async (req, res) => {
          <p><strong>Total paid:</strong> ₦${(ticketPrice * quantity).toLocaleString()}</p>
          <p>Show this QR code at the entrance:</p>
          <img src="${FRONTEND_URL}/uploads/${ticket.qrCode}" alt="QR Code" />
-         <p><small>Reference: ${reference}</small></p>`
+         <p><small>Reference: ${reference}</small></p>`,
       );
 
-      console.log("✅ Ticket created successfully, redirecting to success page");
+      console.log(
+        "✅ Ticket created successfully, redirecting to success page",
+      );
       return res.redirect(successURL);
     }
 
@@ -203,7 +222,10 @@ exports.verifyPayment = async (req, res) => {
     return res.redirect(failedURL);
   } catch (error) {
     console.error("❌ Payment verification error:", error.message, error.stack);
-    if (error.response) console.error("📡 Paystack error:", error.response.data);
-    return res.status(500).json({ message: "Verification failed", error: error.message });
+    if (error.response)
+      console.error("📡 Paystack error:", error.response.data);
+    return res
+      .status(500)
+      .json({ message: "Verification failed", error: error.message });
   }
 };
