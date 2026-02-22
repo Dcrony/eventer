@@ -12,7 +12,7 @@ export const useSocket = (userId, onNotification) => {
       import.meta.env.VITE_SOCKET_URL ||
       (process.env.NODE_ENV === "production"
         ? "https://your-live-api-domain.com"
-        : "http://localhost:5000");
+        : "http://localhost:8080");
 
     // ✅ connect socket
     socketRef.current = io(SOCKET_URL, {

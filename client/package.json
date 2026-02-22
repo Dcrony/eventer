@@ -12,16 +12,22 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.10.0",
+    "buffer": "^6.0.3",
+    "events": "^3.3.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^3.0.1",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.545.0",
+    "process": "^0.11.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.6.3",
     "recharts": "^3.1.2",
     "simple-peer": "^9.11.1",
     "socket.io-client": "^4.8.1",
+    "stream-browserify": "^3.0.0",
+    "util": "^0.12.5",
+    "vite-plugin-node-polyfills": "^0.25.0",
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {

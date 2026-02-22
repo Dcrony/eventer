@@ -6,7 +6,7 @@ const API_URL =
   import.meta.env.VITE_API_URL ||
   (process.env.NODE_ENV === "production"
     ? "https://your-live-api-domain.com/api"
-    : "http://localhost:5000/api");
+    : "http://localhost:8080/api");
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);

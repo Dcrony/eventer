@@ -4,7 +4,7 @@ import { logout, getCurrentUser } from "../utils/auth";
 import NotificationBell from "./NotificationBell";
 import "./css/Navbar.css";
 
-const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:5000";
+const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8080";
 
 export default function NavBar() {
   const [user, setUser] = useState(null);

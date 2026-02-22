@@ -1,16 +1,11 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./CSS/landing.css";
-import { useContext } from "react";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import icon from "../assets/icon.svg";
-import useInstallPrompt from "../hooks/useInstallPrompt";
 
 
 import {
   TicketCheck,
-  ToggleLeft,
-  ToggleRight,
   Shield,
   BarChart3,
   Smartphone,
@@ -25,8 +20,6 @@ import ThemeToggle from "../components/ThemeToggle";
 
 
 export default function LandingPage() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const { canInstall, install } = useInstallPrompt();
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -174,14 +167,14 @@ export default function LandingPage() {
             <Link to="/contact" className="nav-link">
               Contact
             </Link>
-            {canInstall && (
+            {/* {canInstall && (
                     <button
                       onClick={install}
                       className="px-3 py-1 rounded-lg bg-indigo-600 text-white cursor-pointer hover:bg-indigo-700 transition"
                     >
                       Install App
                     </button>
-                  )}
+                  )} */}
             {isLoggedIn ? (
               <Link to="/dashboard" className="btn btn-primary">
                 Dashboard

@@ -1,14 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig({
-  define: {
-    global: "window",
-  },
-
   plugins: [
     react(),
+
+    nodePolyfills({
+      protocolImports: true,
+    }),
+
     VitePWA({
       registerType: "autoUpdate",
       devOptions: {
@@ -37,4 +39,8 @@ export default defineConfig({
       },
     }),
   ],
+
+  define: {
+    global: "globalThis",
+  },
 });

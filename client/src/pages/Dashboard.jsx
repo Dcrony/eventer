@@ -13,7 +13,8 @@ import {
   Radio,
   Calendar,
   MapPin,
-  Users
+  Users,
+  Wallet,
 } from "lucide-react";
 import CreateEvent from "./CreateEvent";
 
@@ -32,8 +33,11 @@ export default function Dashboard() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
 
-  const [showCreateEvent, setShowCreateEvent] = useState(false); // ✅ Modal state
-
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   // 🟢 Functions
   const handleEditClick = (id) => {
@@ -60,17 +64,15 @@ export default function Dashboard() {
       API.get("/stats/stats", {
         headers: { Authorization: `Bearer ${token}` },
       }),
-    ])
-      .then(([eventsRes, statsRes]) => {
-        setEvents(eventsRes.data);
-        setStats(statsRes.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Dashboard Error:", err);
-        setError("Failed to load dashboard data. Please try again.");
-        setLoading(false);
-      });
+      API.get("/organizer/transactions", {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    ]).then(([eventsRes, statsRes, transactionRes]) => {
+      setEvents(eventsRes.data);
+      setStats(statsRes.data);
+      setTransactions(transactionRes.data);
+      setLoading(false);
+    });
   }, [token]);
 
   // 🟢 Toggle Live Event
@@ -84,9 +86,9 @@ export default function Dashboard() {
         events.map((ev) =>
           ev._id === id
             ? {
-              ...ev,
-              liveStream: { ...ev.liveStream, isLive: !currentStatus },
-            }
+                ...ev,
+                liveStream: { ...ev.liveStream, isLive: !currentStatus },
+              }
             : ev,
         ),
       );
@@ -119,6 +121,44 @@ export default function Dashboard() {
     }
   };
 
+  const handleWithdraw = async () => {
+    if (!withdrawAmount || withdrawAmount <= 0) {
+      alert("Enter valid amount");
+      return;
+    }
+
+    try {
+      setWithdrawLoading(true);
+
+      await API.post(
+        "/organizer/withdraw",
+        {
+          amount: withdrawAmount,
+          bankName: "Demo Bank",
+          accountNumber: "0000000000",
+          accountName: user?.username,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      alert("Withdrawal request submitted");
+      setWithdrawAmount("");
+      setShowWithdrawModal(false);
+
+      // Refresh transactions
+      const res = await API.get("/organizer/transactions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTransactions(res.data);
+    } catch (err) {
+      alert("Withdrawal failed");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
   const StatCard = ({ title, value, icon: Icon, color }) => (
     <div className={`stat-tile ${color}`}>
       <div className="stat-tile-content">
@@ -133,7 +173,7 @@ export default function Dashboard() {
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || isNaN(num)) return "0";
-    return new Intl.NumberFormat('en-NG').format(num);
+    return new Intl.NumberFormat("en-NG").format(num);
   };
 
   return (
@@ -156,8 +196,13 @@ export default function Dashboard() {
               className="dash-btn dash-btn-primary"
               onClick={() => setShowCreateEvent(true)}
             >
-              Create event <PlusCircle size={18}
-              />
+              Create event <PlusCircle size={18} />
+            </button>
+            <button
+              className="dash-btn dash-btn-primary"
+              onClick={() => setShowWithdrawModal(true)}
+            >
+              Withdraw Funds
             </button>
           </div>
         </div>
@@ -221,6 +266,12 @@ export default function Dashboard() {
               icon={Radio}
               color="red"
             />
+            <StatCard
+              title="Available Balance"
+              value={`₦${formatNumber(stats.availableBalance || 0)}`}
+              icon={Wallet}
+              color="green"
+            />
           </div>
         )}
 
@@ -236,12 +287,19 @@ export default function Dashboard() {
                     <div className="top-event-rank">#{i + 1}</div>
                     <div className="top-event-info">
                       <div className="top-event-name">{event.title}</div>
-                      <div className="top-event-sales">{formatNumber(event.quantitySold || event.ticketsSold || 0)} tickets sold</div>
+                      <div className="top-event-sales">
+                        {formatNumber(
+                          event.quantitySold || event.ticketsSold || 0,
+                        )}{" "}
+                        tickets sold
+                      </div>
                     </div>
                     <div className="top-event-progress">
                       <div
                         className="top-event-progress-bar"
-                        style={{ width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%`,
+                        }}
                       ></div>
                     </div>
                   </div>
@@ -251,6 +309,35 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="dash-card" style={{ marginTop: "2rem" }}>
+          <div className="dash-card-header">
+            <div className="dash-card-title">Transaction History</div>
+          </div>
+
+          <div className="dash-card-body">
+            {transactions.length === 0 ? (
+              <p>No transactions yet.</p>
+            ) : (
+              <div className="transaction-table">
+                {transactions.map((tx) => (
+                  <div key={tx._id} className="transaction-row">
+                    <div>
+                      <strong>{tx.type.toUpperCase()}</strong>
+                      <div className="tx-date">
+                        {new Date(tx.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <div>₦{formatNumber(tx.amount)}</div>
+
+                    <div className={`tx-status ${tx.status}`}>{tx.status}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* 🎫 Events */}
         {!loading && !error && (
           <>
@@ -259,10 +346,14 @@ export default function Dashboard() {
               <div className="dash-card empty-state-card">
                 <div className="dash-card-body">
                   <p className="empty-state-p">
-                    You haven’t created any events yet. Ready to host your first one?
+                    You haven’t created any events yet. Ready to host your first
+                    one?
                   </p>
                   <div style={{ marginTop: "1rem" }}>
-                    <button onClick={() => setShowCreateEvent(true)} className="dash-btn dash-btn-primary">
+                    <button
+                      onClick={() => setShowCreateEvent(true)}
+                      className="dash-btn dash-btn-primary"
+                    >
                       Create Your First Event <PlusCircle size={18} />
                     </button>
                   </div>
@@ -295,11 +386,15 @@ export default function Dashboard() {
                         <div className="event-meta-item">
                           <Calendar size={14} className="meta-icon" />
                           <span>
-                            {new Date(event.startDate).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            })} • {event.startTime}
+                            {new Date(event.startDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}{" "}
+                            • {event.startTime}
                           </span>
                         </div>
                         <div className="event-meta-item">
@@ -308,7 +403,10 @@ export default function Dashboard() {
                         </div>
                         <div className="event-meta-item">
                           <Users size={14} className="meta-icon" />
-                          <span>{event.ticketsSold}/{event.totalTickets} tickets sold</span>
+                          <span>
+                            {event.ticketsSold}/{event.totalTickets} tickets
+                            sold
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -341,7 +439,6 @@ export default function Dashboard() {
             )}
           </>
         )}
-
       </div>
 
       {/* ✅ Place the EditEvent modal here once */}
@@ -357,6 +454,31 @@ export default function Dashboard() {
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
+
+      {showWithdrawModal && (
+        <div className="modal-overlay">
+          <div className="withdraw-modal">
+            <h3>Request Withdrawal</h3>
+
+            <input
+              type="number"
+              placeholder="Enter amount"
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
+            />
+
+            <div className="modal-actions">
+              <button onClick={() => setShowWithdrawModal(false)}>
+                Cancel
+              </button>
+
+              <button onClick={handleWithdraw} disabled={withdrawLoading}>
+                {withdrawLoading ? "Processing..." : "Withdraw"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
