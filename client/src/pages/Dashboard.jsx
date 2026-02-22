@@ -127,6 +127,17 @@ export default function Dashboard() {
       return;
     }
 
+    if (paymentMethod === "bank") {
+      if (
+        !bankDetails.bankName ||
+        !bankDetails.accountNumber ||
+        !bankDetails.accountName
+      ) {
+        alert("Fill all bank details");
+        return;
+      }
+    }
+
     try {
       setWithdrawLoading(true);
 
@@ -134,23 +145,23 @@ export default function Dashboard() {
         "/organizer/withdraw",
         {
           amount: withdrawAmount,
-          bankName: "Demo Bank",
-          accountNumber: "0000000000",
-          accountName: user?.username,
+          paymentMethod,
+          bankDetails: paymentMethod === "bank" ? bankDetails : null,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
 
-      alert("Withdrawal request submitted");
+      alert("Withdrawal request submitted for approval");
+
       setWithdrawAmount("");
       setShowWithdrawModal(false);
 
-      // Refresh transactions
       const res = await API.get("/organizer/transactions", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setTransactions(res.data);
     } catch (err) {
       alert("Withdrawal failed");
@@ -440,9 +451,7 @@ export default function Dashboard() {
           </>
         )}
       </div>
-
       {/* ✅ Place the EditEvent modal here once */}
-
       <EditEvent
         isOpen={editModalOpen}
         onClose={handleModalClose}
@@ -454,11 +463,14 @@ export default function Dashboard() {
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
-
       {showWithdrawModal && (
         <div className="modal-overlay">
           <div className="withdraw-modal">
             <h3>Request Withdrawal</h3>
+
+            <div className="withdraw-balance">
+              Available Balance: ₦{formatNumber(stats?.availableBalance || 0)}
+            </div>
 
             <input
               type="number"
@@ -467,18 +479,61 @@ export default function Dashboard() {
               onChange={(e) => setWithdrawAmount(e.target.value)}
             />
 
+            <label>Payment Method</label>
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+            >
+              <option value="bank">Bank Transfer</option>
+              <option value="paystack">Paystack</option>
+              <option value="flutterwave">Flutterwave</option>
+            </select>
+
+            {paymentMethod === "bank" && (
+              <div className="bank-fields">
+                <input
+                  placeholder="Bank Name"
+                  value={bankDetails.bankName}
+                  onChange={(e) =>
+                    setBankDetails({ ...bankDetails, bankName: e.target.value })
+                  }
+                />
+                <input
+                  placeholder="Account Number"
+                  value={bankDetails.accountNumber}
+                  onChange={(e) =>
+                    setBankDetails({
+                      ...bankDetails,
+                      accountNumber: e.target.value,
+                    })
+                  }
+                />
+                <input
+                  placeholder="Account Name"
+                  value={bankDetails.accountName}
+                  onChange={(e) =>
+                    setBankDetails({
+                      ...bankDetails,
+                      accountName: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            )}
+
             <div className="modal-actions">
               <button onClick={() => setShowWithdrawModal(false)}>
                 Cancel
               </button>
 
               <button onClick={handleWithdraw} disabled={withdrawLoading}>
-                {withdrawLoading ? "Processing..." : "Withdraw"}
+                {withdrawLoading ? "Processing..." : "Submit Request"}
               </button>
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 }
