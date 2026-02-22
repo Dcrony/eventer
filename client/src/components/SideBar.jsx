@@ -28,7 +28,8 @@ export default function Sidebar() {
   const [expand, setexpand] = useState(false);
   const { darkMode, toggleTheme } = useContext(ThemeContext);
   const location = useLocation();
-  const [showCreateEvent, setShowCreateEvent] = useState(false); // ✅ Modal state
+  const [showCreateEvent, setShowCreateEvent] = useState(false); 
+  
 
   useEffect(() => {
     const currentUser = getCurrentUser();

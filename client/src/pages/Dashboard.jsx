@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import CreateEvent from "./CreateEvent";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function Dashboard() {
   const [events, setEvents] = useState([]);

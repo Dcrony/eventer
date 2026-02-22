@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Success from "./pages/Success";
 import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";
+import MobileBottomNav from "./components/MobileBottomNav";
 import LiveEvent from "./components/LiveEvents";
 import Settings from "./components/Settings";
 import Profile from "./pages/Profile";
@@ -30,7 +31,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
-
+import { useEffect, useState } from "react";
 
 function Layout() {
   const location = useLocation();
@@ -41,9 +42,20 @@ function Layout() {
     location.pathname === "/login" ||
     location.pathname === "/register";
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <>
-      {!hideNavAndSidebar && <Sidebar />}
+      {!hideNavAndSidebar && (isMobile ? <MobileBottomNav /> : <Sidebar />)}
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
