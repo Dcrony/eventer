@@ -189,7 +189,7 @@ export default function LandingPage() {
                 </Link>
               </div>
             )}
-            <ThemeToggle />
+            
           </nav>
         </div>
       </header>
@@ -410,6 +410,7 @@ export default function LandingPage() {
               <Link to="/terms">Terms of Service</Link>
               <Link to="/donate">Donate</Link>
             </div>
+            <ThemeToggle />
           </div>
           <div className="footer-bottom">
             <p>© 2024 TickiSpot. All rights reserved.</p>

@@ -378,6 +378,8 @@ form .field-label {
   .create-event-container {
     grid-template-columns: 1fr;
   }
+  .event-type-selection{  display: grid;
+  grid-template-columns: 1fr 1fr;
 }
 
 
