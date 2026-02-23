@@ -33,6 +33,7 @@ import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
 import { useEffect, useState } from "react";
 import More from "./components/More";
+import AdminWithdrwal from "./pages/AdminWithdrawals";
 
 function Layout() {
   const location = useLocation();
@@ -85,6 +86,14 @@ function Layout() {
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminWithdrwal />
+            </AdminRoute>
           }
         />
         <Route

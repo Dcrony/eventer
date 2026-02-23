@@ -1,15 +1,21 @@
+const mongoose = require("mongoose");
+
 const transactionSchema = new mongoose.Schema(
   {
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     type: {
       type: String,
       enum: ["ticket_sale", "withdrawal"],
       required: true,
     },
-    amount: Number,
+    amount: {
+      type: Number,
+      required: true,
+    },
     status: {
       type: String,
       enum: ["pending", "completed", "failed"],
@@ -17,8 +23,9 @@ const transactionSchema = new mongoose.Schema(
     },
     referenceId: {
       type: mongoose.Schema.Types.ObjectId,
-      refPath: "type", 
     },
   },
   { timestamps: true }
 );
+
+module.exports = mongoose.model("Transaction", transactionSchema);

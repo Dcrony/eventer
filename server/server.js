@@ -22,6 +22,8 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const app = express();
 
 app.use(cors());
+
+app.use("/api/webhook", webhookRoutes);
 app.use(express.json());
 
 // Connect to MongoDB
@@ -42,7 +44,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
-app.use("/api/webhook", webhookRoutes);
 app.use("/api/stats", statRoutes);
 app.use("/api/profile", userRoutes);
 app.use("/api/notifications", notificationRoutes);

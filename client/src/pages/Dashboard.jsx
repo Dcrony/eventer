@@ -38,6 +38,13 @@ export default function Dashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("bank");
+
+const [bankDetails, setBankDetails] = useState({
+  bankName: "",
+  accountNumber: "",
+  accountName: "",
+});
 
   // 🟢 Functions
   const handleEditClick = (id) => {
