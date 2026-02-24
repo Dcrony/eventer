@@ -129,53 +129,57 @@ const [bankDetails, setBankDetails] = useState({
   };
 
   const handleWithdraw = async () => {
-    if (!withdrawAmount || withdrawAmount <= 0) {
-      alert("Enter valid amount");
+  if (!withdrawAmount || withdrawAmount <= 0) {
+    alert("Enter valid amount");
+    return;
+  }
+
+  if (paymentMethod === "bank") {
+    if (
+      !bankDetails.bankName ||
+      !bankDetails.accountNumber ||
+      !bankDetails.accountName
+    ) {
+      alert("Fill all bank details");
       return;
     }
+  }
 
-    if (paymentMethod === "bank") {
-      if (
-        !bankDetails.bankName ||
-        !bankDetails.accountNumber ||
-        !bankDetails.accountName
-      ) {
-        alert("Fill all bank details");
-        return;
-      }
-    }
+  try {
+    setWithdrawLoading(true);
 
-    try {
-      setWithdrawLoading(true);
-
-      await API.post(
-        "/organizer/withdraw",
-        {
-          amount: withdrawAmount,
-          paymentMethod,
-          bankDetails: paymentMethod === "bank" ? bankDetails : null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      alert("Withdrawal request submitted for approval");
-
-      setWithdrawAmount("");
-      setShowWithdrawModal(false);
-
-      const res = await API.get("/organizer/transactions", {
+    const response = await API.post(
+      "/organizer/withdraw",
+      {
+        amount: Number(withdrawAmount), // ✅ IMPORTANT
+        paymentMethod,
+        bankDetails: paymentMethod === "bank" ? bankDetails : null,
+      },
+      {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      }
+    );
 
-      setTransactions(res.data);
-    } catch (err) {
-      alert("Withdrawal failed");
-    } finally {
-      setWithdrawLoading(false);
-    }
-  };
+    console.log("SUCCESS:", response.data);
+
+    alert("Withdrawal request submitted for approval");
+
+    setWithdrawAmount("");
+    setShowWithdrawModal(false);
+
+    const res = await API.get("/organizer/transactions", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setTransactions(res.data);
+
+  } catch (err) {
+    console.log("ERROR:", err.response?.data); // ✅ NOW you’ll see real reason
+    alert(err.response?.data?.message || "Withdrawal failed");
+  } finally {
+    setWithdrawLoading(false);
+  }
+};
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
     <div className={`stat-tile ${color}`}>

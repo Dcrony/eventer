@@ -168,13 +168,21 @@ exports.verifyPayment = async (req, res) => {
 
       await ticket.save();
 
+
+      const organizer = await User.findById(event.createdBy);
+
+
+      organizer.availableBalance += data.amount / 100;
+
+      await organizer.save();
+
       // Update event tickets
       event.ticketsSold += quantity;
       event.totalTickets -= quantity;
 
       // After ticket save success
       await Transaction.create({
-        organizer: event.organizer, // make sure event has organizer field
+        organizer: event.organizer,
         type: "ticket",
         amount: data.amount / 100,
         status: "success",

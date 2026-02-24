@@ -27,9 +27,9 @@ const {
 */
 
 router.post(
-  "/organizer/withdraw",
+  "/withdraw",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("organizer", "admin"),
   requestWithdrawal
 );
 

@@ -7,22 +7,31 @@ const transactionSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
     type: {
       type: String,
-      enum: ["ticket_sale", "withdrawal"],
+      enum: ["ticket", "withdrawal"],   // ✅ allow ticket
       required: true,
     },
+
     amount: {
       type: Number,
       required: true,
     },
+
     status: {
       type: String,
-      enum: ["pending", "completed", "failed"],
+      enum: ["pending", "success", "failed"],  // ✅ allow success
       default: "pending",
     },
-    referenceId: {
-      type: mongoose.Schema.Types.ObjectId,
+
+    reference: {
+      type: String,
+    },
+
+    metadata: {
+      eventId: mongoose.Schema.Types.ObjectId,
+      ticketId: mongoose.Schema.Types.ObjectId,
     },
   },
   { timestamps: true }
