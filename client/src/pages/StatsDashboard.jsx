@@ -91,6 +91,13 @@ export default function Stats() {
               <Link to="/admin/users" className="dash-btn">
                 Manage Users
               </Link>
+
+              <Link to="/admin/withdrawals"
+              className="dash-btn dash-btn-primary"
+              
+            >
+              Withdraw Management
+            </Link>
             </div>
           )}
         </div>

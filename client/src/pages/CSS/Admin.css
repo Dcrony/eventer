@@ -1,54 +1,65 @@
-I'll create a professional style for your admin withdrawals page using Ticketspire's color themes with light and dark mode support. Here's the complete CSS:
-
-```css
-/* Tickispot Admin Withdrawals - Professional Theme */
 :root {
-  /* Light Mode Colors - Ticketspire Theme */
-  --ts-primary: #6366f1;
-  --ts-primary-light: #818cf8;
-  --ts-primary-dark: #4f46e5;
-  --ts-success: #10b981;
+  /* 🔥 Tickispot Official Brand */
+  --ts-primary: #ec4899;
+  --ts-primary-hover: #db2777;
+  --ts-primary-light: #f472b6;
+
+  --ts-success: #16a34a;
   --ts-warning: #f59e0b;
   --ts-danger: #ef4444;
-  --ts-info: #3b82f6;
-  
+
+  /* Light Mode */
   --ts-bg-primary: #ffffff;
-  --ts-bg-secondary: #f9fafb;
-  --ts-bg-tertiary: #f3f4f6;
-  
-  --ts-text-primary: #111827;
-  --ts-text-secondary: #4b5563;
-  --ts-text-tertiary: #9ca3af;
-  --ts-text-light: #6b7280;
-  
-  --ts-border-light: #e5e7eb;
-  --ts-border-focus: #6366f1;
-  
-  --ts-card-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
-  --ts-card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
-  
-  --ts-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --ts-bg-secondary: #f8f9fc;
+  --ts-bg-tertiary: #f1f1f1;
+
+  --ts-text-primary: #111111;
+  --ts-text-secondary: #555555;
+  --ts-text-muted: #888888;
+
+  --ts-border: #e5e7eb;
+
+  --ts-shadow: 0 6px 20px rgba(236, 72, 153, 0.08);
+  --ts-shadow-hover: 0 10px 30px rgba(236, 72, 153, 0.15);
+
+  --ts-radius: 12px;
+  --ts-transition: all 0.25s ease;
 }
 
-/* Dark Mode Colors */
-[data-theme="dark"] {
-  --ts-bg-primary: #1f2937;
-  --ts-bg-secondary: #111827;
-  --ts-bg-tertiary: #374151;
-  
-  --ts-text-primary: #f9fafb;
-  --ts-text-secondary: #e5e7eb;
-  --ts-text-tertiary: #9ca3af;
-  --ts-text-light: #d1d5db;
-  
-  --ts-border-light: #374151;
-  --ts-card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.3);
-  --ts-card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.4);
+:root {
+  /* 🔥 Tickispot Official Brand */
+  --ts-primary: #ec4899;
+  --ts-primary-hover: #db2777;
+  --ts-primary-light: #f472b6;
+
+  --ts-success: #16a34a;
+  --ts-warning: #f59e0b;
+  --ts-danger: #ef4444;
+
+  /* Light Mode */
+  --ts-bg-primary: #ffffff;
+  --ts-bg-secondary: #f8f9fc;
+  --ts-bg-tertiary: #f1f1f1;
+
+  --ts-text-primary: #111111;
+  --ts-text-secondary: #555555;
+  --ts-text-muted: #888888;
+
+  --ts-border: #e5e7eb;
+
+  --ts-shadow: 0 6px 20px rgba(236, 72, 153, 0.08);
+  --ts-shadow-hover: 0 10px 30px rgba(236, 72, 153, 0.15);
+
+  --ts-radius: 12px;
+  --ts-transition: all 0.25s ease;
 }
 
 /* Main Container */
 .admin-page {
-  padding: 2rem;
+  padding-top: 2rem;
+  padding-left: var(--sidebar-width);
+  padding-right: 2rem;
+  padding-bottom: 4rem;
   background-color: var(--ts-bg-secondary);
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -469,57 +480,3 @@ I'll create a professional style for your admin withdrawals page using Ticketspi
 * {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
-```
-
-To implement dark mode, you'll need to add a theme toggle in your app. Here's a simple component to add:
-
-```jsx
-// ThemeToggle.jsx
-import { useEffect, useState } from 'react';
-
-export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      setIsDark(true);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    }
-    setIsDark(!isDark);
-  };
-
-  return (
-    <button onClick={toggleTheme} className="theme-toggle">
-      {isDark ? '☀️' : '🌙'}
-    </button>
-  );
-}
-```
-
-Add this toggle to your layout/header and import Inter font in your HTML:
-
-```html
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-```
-
-The design features:
-
-1. Professional Ticketspire Theme - Clean indigo primary color
-2. Full Dark Mode Support - Automatic color scheme switching
-3. Modern Card Design - Elevated cards with subtle shadows
-4. Status Badges with Icons - Visual indicators with dots
-5. Responsive Layout - Works on all screen sizes
-6. Smooth Transitions - Professional hover effects
-7. Consistent Spacing - Proper typography hierarchy
-8. Accessible Colors - Good contrast in both modes

@@ -44,8 +44,10 @@ router.patch(
   authorizeRoles("admin"),
   async (req, res) => {
     try {
+      const { status } = req.body;
+
       const withdrawal = await Withdrawal.findById(req.params.id).populate(
-        "organizer",
+        "organizer"
       );
 
       if (!withdrawal) {
@@ -56,33 +58,49 @@ router.patch(
         return res.status(400).json({ message: "Already processed" });
       }
 
-      const organizer = withdrawal.organizer;
+      // ✅ HANDLE REJECTION
+      if (status === "rejected") {
+        withdrawal.status = "rejected";
+        withdrawal.processedBy = req.user.id;
+        withdrawal.processedAt = new Date();
+        await withdrawal.save();
 
-      if (organizer.availableBalance < withdrawal.amount) {
-        return res.status(400).json({
-          message: "Insufficient balance",
+        return res.json({ message: "Withdrawal rejected" });
+      }
+
+      // ✅ HANDLE APPROVAL (INITIATE TRANSFER)
+      if (status === "approved") {
+        const organizer = withdrawal.organizer;
+
+        if (organizer.availableBalance < withdrawal.amount) {
+          return res.status(400).json({
+            message: "Insufficient balance",
+          });
+        }
+
+        const recipientCode = await createRecipient(
+          withdrawal.bankDetails
+        );
+
+        const transfer = await initiateTransfer(
+          withdrawal.netAmount * 100,
+          recipientCode,
+          `withdraw_${withdrawal._id}`
+        );
+
+        withdrawal.status = "processing";
+        withdrawal.paystackReference = transfer.reference;
+        withdrawal.processedBy = req.user.id;
+        withdrawal.processedAt = new Date();
+
+        await withdrawal.save();
+
+        return res.json({
+          message: "Transfer initiated successfully",
         });
       }
 
-      // 1️⃣ Create Paystack Recipient
-      const recipientCode = await createRecipient(withdrawal.bankDetails);
-
-      // 2️⃣ Initiate Transfer
-      const transfer = await initiateTransfer(
-        withdrawal.netAmount, // send net amount
-        recipientCode,
-        `withdraw_${withdrawal._id}`,
-      );
-
-      // 3️⃣ Update withdrawal
-      withdrawal.status = "processing";
-      withdrawal.paystackReference = transfer.reference;
-      withdrawal.processedBy = req.user.id;
-      withdrawal.processedAt = new Date();
-
-      await withdrawal.save();
-
-      res.json({ message: "Transfer initiated successfully" });
+      res.status(400).json({ message: "Invalid status update" });
     } catch (error) {
       console.error(error.response?.data || error.message);
 
@@ -93,7 +111,7 @@ router.patch(
 
       res.status(500).json({ message: "Transfer failed" });
     }
-  },
+  }
 );
 
 /*
@@ -131,6 +149,46 @@ router.get(
       res.status(500).json({ message: "Failed to fetch withdrawals" });
     }
   },
+);
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN MONTHLY TREND
+|--------------------------------------------------------------------------
+*/
+
+router.get(
+  "/admin/withdrawals/monthly",
+  authMiddleware,
+  authorizeRoles("admin"),
+  async (req, res) => {
+    try {
+      const monthly = await Withdrawal.aggregate([
+        {
+          $match: { status: "completed" },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            total: { $sum: "$amount" },
+          },
+        },
+        { $sort: { "_id.year": 1, "_id.month": 1 } },
+      ]);
+
+      const formatted = monthly.map((m) => ({
+        month: `${m._id.month}/${m._id.year}`,
+        total: m.total,
+      }));
+
+      res.json(formatted);
+    } catch (error) {
+      res.status(500).json({ message: "Monthly analytics failed" });
+    }
+  }
 );
 
 /*

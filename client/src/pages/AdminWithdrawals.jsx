@@ -19,7 +19,7 @@ export default function AdminWithdrawals() {
     try {
       const res = await API.get(
         `/admin/withdrawals?status=${statusFilter}&search=${searchTerm}&startDate=${startDate}&endDate=${endDate}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setWithdrawals(res.data);
     } catch (err) {
@@ -53,7 +53,7 @@ export default function AdminWithdrawals() {
     await API.patch(
       `/admin/withdrawals/${id}`,
       { status },
-      { headers: { Authorization: `Bearer ${token}` } }
+      { headers: { Authorization: `Bearer ${token}` } },
     );
     fetchWithdrawals();
     fetchAnalytics();
@@ -116,10 +116,11 @@ export default function AdminWithdrawals() {
           {monthlyData.map((item, index) => (
             <rect
               key={index}
-              x={index * 40}
-              y={200 - item.total / 1000}
-              width="30"
-              height={item.total / 1000}
+              x={index * 50}
+              y={200 - item.total / 1500}
+              width="35"
+              height={item.total / 1500}
+              rx="6"
             />
           ))}
         </svg>
@@ -128,7 +129,7 @@ export default function AdminWithdrawals() {
       {/* Filters */}
       <div className="filters">
         <div className="tabs">
-          {["all", "pending", "completed", "failed"].map((tab) => (
+          {["all", "pending", "processing", "completed", "rejected", "failed"].map((tab) => (
             <button
               key={tab}
               className={statusFilter === tab ? "active" : ""}
@@ -172,8 +173,7 @@ export default function AdminWithdrawals() {
                 <strong>{w.organizer.username}</strong>
                 <div>{w.organizer.email}</div>
                 <div className="bank-inline">
-                  {w.bankDetails?.bankName} -{" "}
-                  {w.bankDetails?.accountNumber}
+                  {w.bankDetails?.bankName} - {w.bankDetails?.accountNumber}
                 </div>
                 <div className="reference">
                   Ref: {w.paystackReference || "N/A"}
@@ -204,4 +204,3 @@ export default function AdminWithdrawals() {
     </div>
   );
 }
-
