@@ -1,87 +1,525 @@
-.admin-page {
-  padding: 2rem;
+I'll create a professional style for your admin withdrawals page using Ticketspire's color themes with light and dark mode support. Here's the complete CSS:
+
+```css
+/* Tickispot Admin Withdrawals - Professional Theme */
+:root {
+  /* Light Mode Colors - Ticketspire Theme */
+  --ts-primary: #6366f1;
+  --ts-primary-light: #818cf8;
+  --ts-primary-dark: #4f46e5;
+  --ts-success: #10b981;
+  --ts-warning: #f59e0b;
+  --ts-danger: #ef4444;
+  --ts-info: #3b82f6;
+  
+  --ts-bg-primary: #ffffff;
+  --ts-bg-secondary: #f9fafb;
+  --ts-bg-tertiary: #f3f4f6;
+  
+  --ts-text-primary: #111827;
+  --ts-text-secondary: #4b5563;
+  --ts-text-tertiary: #9ca3af;
+  --ts-text-light: #6b7280;
+  
+  --ts-border-light: #e5e7eb;
+  --ts-border-focus: #6366f1;
+  
+  --ts-card-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+  --ts-card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+  
+  --ts-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Dark Mode Colors */
+[data-theme="dark"] {
+  --ts-bg-primary: #1f2937;
+  --ts-bg-secondary: #111827;
+  --ts-bg-tertiary: #374151;
+  
+  --ts-text-primary: #f9fafb;
+  --ts-text-secondary: #e5e7eb;
+  --ts-text-tertiary: #9ca3af;
+  --ts-text-light: #d1d5db;
+  
+  --ts-border-light: #374151;
+  --ts-card-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.3);
+  --ts-card-shadow-hover: 0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -4px rgba(0,0,0,0.4);
+}
+
+/* Main Container */
+.admin-page {
+  padding: 2rem;
+  background-color: var(--ts-bg-secondary);
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ts-text-primary);
+  transition: var(--ts-transition);
+}
+
+.admin-page h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--ts-text-primary);
+  letter-spacing: -0.025em;
+}
+
+/* Analytics Cards */
+.analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.analytics-cards .card {
+  background: var(--ts-bg-primary);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: var(--ts-card-shadow);
+  transition: var(--ts-transition);
+  border: 1px solid var(--ts-border-light);
+}
+
+.analytics-cards .card:hover {
+  box-shadow: var(--ts-card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.analytics-cards .card h4 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ts-text-tertiary);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.analytics-cards .card p {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ts-primary);
+  line-height: 1.2;
+}
+
+/* Chart Section */
+.chart {
+  background: var(--ts-bg-primary);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--ts-border-light);
+  box-shadow: var(--ts-card-shadow);
+}
+
+.chart h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ts-text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.chart svg rect {
+  fill: var(--ts-primary);
+  transition: var(--ts-transition);
+}
+
+.chart svg rect:hover {
+  fill: var(--ts-primary-dark);
+  opacity: 0.9;
+}
+
+/* Filters Section */
+.filters {
+  background: var(--ts-bg-primary);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--ts-border-light);
+  box-shadow: var(--ts-card-shadow);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ts-border-light);
+  background: var(--ts-bg-tertiary);
+  color: var(--ts-text-secondary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--ts-transition);
+  text-transform: capitalize;
+}
+
+.tabs button:hover {
+  background: var(--ts-primary-light);
+  color: white;
+  border-color: var(--ts-primary);
+}
+
+.tabs button.active {
+  background: var(--ts-primary);
+  color: white;
+  border-color: var(--ts-primary);
+}
+
+.filters input {
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--ts-border-light);
+  background: var(--ts-bg-tertiary);
+  color: var(--ts-text-primary);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  min-width: 200px;
+  transition: var(--ts-transition);
+}
+
+.filters input:focus {
+  outline: none;
+  border-color: var(--ts-border-focus);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.filters input::placeholder {
+  color: var(--ts-text-tertiary);
+}
+
+.filters button {
+  padding: 0.625rem 1.5rem;
+  background: var(--ts-primary);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--ts-transition);
+  margin-left: auto;
+}
+
+.filters button:hover {
+  background: var(--ts-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--ts-card-shadow);
+}
+
+/* Withdrawal Table */
 .withdrawal-table {
-  margin-top: 1.5rem;
+  background: var(--ts-bg-primary);
+  border-radius: 1rem;
+  border: 1px solid var(--ts-border-light);
+  overflow: hidden;
+  box-shadow: var(--ts-card-shadow);
 }
 
 .withdrawal-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--ts-border-light);
+  transition: var(--ts-transition);
   align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
 }
 
-.status {
-  padding: 6px 12px;
-  border-radius: 20px;
+.withdrawal-row:last-child {
+  border-bottom: none;
+}
+
+.withdrawal-row:hover {
+  background: var(--ts-bg-tertiary);
+}
+
+.withdrawal-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.withdrawal-row strong {
+  font-size: 1rem;
   font-weight: 600;
-  font-size: 12px;
+  color: var(--ts-text-primary);
+}
+
+.withdrawal-row .bank-inline {
+  font-size: 0.875rem;
+  color: var(--ts-text-secondary);
+  background: var(--ts-bg-tertiary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  display: inline-block;
+  width: fit-content;
+}
+
+.withdrawal-row .reference {
+  font-size: 0.75rem;
+  color: var(--ts-text-tertiary);
+  font-family: monospace;
+}
+
+.withdrawal-row > div:nth-child(2) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ts-text-primary);
+}
+
+.withdrawal-row .fee {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ts-text-tertiary);
+  margin-top: 0.25rem;
+}
+
+/* Status Badges - Updated for dark mode compatibility */
+.status {
+  padding: 0.375rem 0.75rem;
+  border-radius: 2rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.status::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  margin-right: 0.25rem;
 }
 
 .status.pending {
-  background: rgba(234,179,8,0.15);
-  color: #facc15;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--ts-warning);
 }
 
-.status.approved {
-  background: rgba(34,197,94,0.15);
-  color: #22c55e;
+.status.pending::before {
+  background: var(--ts-warning);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
 }
 
+.status.approved,
 .status.completed {
-  background: rgba(59,130,246,0.15);
-  color: #3b82f6;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--ts-success);
+}
+
+.status.approved::before,
+.status.completed::before {
+  background: var(--ts-success);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .status.failed,
 .status.rejected {
-  background: rgba(239,68,68,0.15);
-  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--ts-danger);
 }
 
-.admin-page {
-  padding: 2rem;
+.status.failed::before,
+.status.rejected::before {
+  background: var(--ts-danger);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
-.withdrawal-table {
-  margin-top: 1.5rem;
-}
-
-.withdrawal-row {
+/* Action Buttons */
+.actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid rgba(0,0,0,0.08);
+  gap: 0.5rem;
 }
 
-.status {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 12px;
+.actions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--ts-transition);
+  flex: 1;
 }
 
-.status.pending {
-  background: rgba(234,179,8,0.15);
-  color: #facc15;
+.actions button:first-child {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--ts-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.status.approved {
-  background: rgba(34,197,94,0.15);
-  color: #22c55e;
+.actions button:first-child:hover {
+  background: var(--ts-success);
+  color: white;
+  border-color: var(--ts-success);
+  transform: translateY(-1px);
 }
 
-.status.completed {
-  background: rgba(59,130,246,0.15);
-  color: #3b82f6;
+.actions button:last-child {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--ts-danger);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-.status.failed,
-.status.rejected {
-  background: rgba(239,68,68,0.15);
-  color: #ef4444;
+.actions button:last-child:hover {
+  background: var(--ts-danger);
+  color: white;
+  border-color: var(--ts-danger);
+  transform: translateY(-1px);
 }
+
+/* Loading State */
+.admin-page > p {
+  text-align: center;
+  padding: 3rem;
+  color: var(--ts-text-tertiary);
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .admin-page {
+    padding: 1.5rem;
+  }
+  
+  .withdrawal-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filters button {
+    margin-left: 0;
+  }
+  
+  .tabs {
+    justify-content: center;
+  }
+  
+  .actions {
+    flex-direction: row;
+    justify-content: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-page {
+    padding: 1rem;
+  }
+  
+  .admin-page h2 {
+    font-size: 1.5rem;
+  }
+  
+  .analytics-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .analytics-cards .card p {
+    font-size: 1.5rem;
+  }
+  
+  .filters input {
+    width: 100%;
+  }
+}
+
+/* Dark mode specific adjustments */
+[data-theme="dark"] .status.pending {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+[data-theme="dark"] .status.approved,
+[data-theme="dark"] .status.completed {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .status.failed,
+[data-theme="dark"] .status.rejected {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .tabs button {
+  background: var(--ts-bg-primary);
+}
+
+[data-theme="dark"] .filters input {
+  background: var(--ts-bg-primary);
+}
+
+/* Smooth theme transition */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+```
+
+To implement dark mode, you'll need to add a theme toggle in your app. Here's a simple component to add:
+
+```jsx
+// ThemeToggle.jsx
+import { useEffect, useState } from 'react';
+
+export default function ThemeToggle() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      setIsDark(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+    setIsDark(!isDark);
+  };
+
+  return (
+    <button onClick={toggleTheme} className="theme-toggle">
+      {isDark ? '☀️' : '🌙'}
+    </button>
+  );
+}
+```
+
+Add this toggle to your layout/header and import Inter font in your HTML:
+
+```html
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+```
+
+The design features:
+
+1. Professional Ticketspire Theme - Clean indigo primary color
+2. Full Dark Mode Support - Automatic color scheme switching
+3. Modern Card Design - Elevated cards with subtle shadows
+4. Status Badges with Icons - Visual indicators with dots
+5. Responsive Layout - Works on all screen sizes
+6. Smooth Transitions - Professional hover effects
+7. Consistent Spacing - Proper typography hierarchy
+8. Accessible Colors - Good contrast in both modes
