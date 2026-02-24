@@ -105,7 +105,7 @@ export default function AdminWithdrawals() {
         </div>
         <div className="card">
           <h4>Total Fees Collected</h4>
-          <p>₦{analytics.totalFees?.toLocaleString()}</p>
+          <p>₦{analytics.totalPlatformFees?.toLocaleString()}</p>
         </div>
       </div>
 

@@ -47,10 +47,16 @@ export default function More() {
 
       {/* Admin */}
       {isAdmin && (
-        <section>
+        <div>
+          <section>
           <h4>Admin</h4>
           <Link to="/admin/dashboard"><BarChart3 size={18}/> Admin Dashboard</Link>
         </section>
+        <section>
+          <h4>Withdrawal Management</h4>
+          <Link to="/admin/withdrawals"><BarChart3 size={18}/> View Withdrawals</Link>
+        </section>
+        </div>
       )}
 
       {/* System */}

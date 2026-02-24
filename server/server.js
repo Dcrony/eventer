@@ -48,7 +48,7 @@ app.use("/api/stats", statRoutes);
 app.use("/api/profile", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRoutes);
-app.use("/api/organizer", withdrawalRoutes);
+app.use("/api", withdrawalRoutes);
 
 const http = require("http");
 const { Server } = require("socket.io");

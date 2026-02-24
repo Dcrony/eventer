@@ -24,13 +24,13 @@ const { createRecipient, initiateTransfer } = require("../utils/paystack");
 */
 
 router.post(
-  "/withdraw",
+  "/organizer/withdraw",
   authMiddleware,
   authorizeRoles("organizer", "admin"),
   requestWithdrawal,
 );
 
-router.get("/transactions", authMiddleware, getOrganizerTransactions);
+router.get("/organizer/transactions", authMiddleware, getOrganizerTransactions);
 
 /*
 |--------------------------------------------------------------------------

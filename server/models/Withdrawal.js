@@ -36,18 +36,17 @@ const withdrawalSchema = new mongoose.Schema(
     },
 
     status: {
-      type: String,
-      enum: [
-        "pending",
-        "approved",
-        "processing",
-        "completed",
-        "failed",
-        "rejected",
-        "manual_review",
-      ],
-      default: "pending",
-    },
+  type: String,
+  enum: [
+    "pending",
+    "approved",
+    "processing",
+    "completed",
+    "rejected",
+    "failed"
+  ],
+  default: "pending",
+},
 
     paystackReference: String,
 

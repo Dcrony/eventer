@@ -89,7 +89,7 @@ function Layout() {
           }
         />
         <Route
-          path="/admin"
+          path="/admin/withdrawals"
           element={
             <AdminRoute>
               <AdminWithdrwal />
