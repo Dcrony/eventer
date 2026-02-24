@@ -15,10 +15,7 @@ const {
   authorizeRoles,
 } = require("../middleware/authMiddleware");
 
-const {
-  createRecipient,
-  initiateTransfer,
-} = require("../utils/paystack");
+const { createRecipient, initiateTransfer } = require("../utils/paystack");
 
 /*
 |--------------------------------------------------------------------------
@@ -30,15 +27,10 @@ router.post(
   "/withdraw",
   authMiddleware,
   authorizeRoles("organizer", "admin"),
-  requestWithdrawal
+  requestWithdrawal,
 );
 
-router.get(
-  "/transactions",
-  authMiddleware,
-  getOrganizerTransactions
-);
-
+router.get("/transactions", authMiddleware, getOrganizerTransactions);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,8 +44,9 @@ router.patch(
   authorizeRoles("admin"),
   async (req, res) => {
     try {
-      const withdrawal = await Withdrawal.findById(req.params.id)
-        .populate("organizer");
+      const withdrawal = await Withdrawal.findById(req.params.id).populate(
+        "organizer",
+      );
 
       if (!withdrawal) {
         return res.status(404).json({ message: "Withdrawal not found" });
@@ -72,15 +65,13 @@ router.patch(
       }
 
       // 1️⃣ Create Paystack Recipient
-      const recipientCode = await createRecipient(
-        withdrawal.bankDetails
-      );
+      const recipientCode = await createRecipient(withdrawal.bankDetails);
 
       // 2️⃣ Initiate Transfer
       const transfer = await initiateTransfer(
         withdrawal.netAmount, // send net amount
         recipientCode,
-        `withdraw_${withdrawal._id}`
+        `withdraw_${withdrawal._id}`,
       );
 
       // 3️⃣ Update withdrawal
@@ -92,7 +83,6 @@ router.patch(
       await withdrawal.save();
 
       res.json({ message: "Transfer initiated successfully" });
-
     } catch (error) {
       console.error(error.response?.data || error.message);
 
@@ -103,9 +93,8 @@ router.patch(
 
       res.status(500).json({ message: "Transfer failed" });
     }
-  }
+  },
 );
-
 
 /*
 |--------------------------------------------------------------------------
@@ -133,20 +122,16 @@ router.get(
 
       if (search) {
         withdrawals = withdrawals.filter((w) =>
-          w.organizer?.username
-            ?.toLowerCase()
-            .includes(search.toLowerCase())
+          w.organizer?.username?.toLowerCase().includes(search.toLowerCase()),
         );
       }
 
       res.json(withdrawals);
-
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch withdrawals" });
     }
-  }
+  },
 );
-
 
 /*
 |--------------------------------------------------------------------------
@@ -180,11 +165,10 @@ router.get(
         totalPending: totalPending[0]?.total || 0,
         totalPlatformFees: totalFees[0]?.total || 0,
       });
-
     } catch (error) {
       res.status(500).json({ message: "Analytics failed" });
     }
-  }
+  },
 );
 
 module.exports = router;

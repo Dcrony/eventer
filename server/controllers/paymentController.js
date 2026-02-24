@@ -168,9 +168,22 @@ exports.verifyPayment = async (req, res) => {
 
       await ticket.save();
 
+      if (!event) {
+        console.error("❌ Event not found");
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      if (!event.createdBy) {
+        console.error("❌ Event has no organizer");
+        return res.status(400).json({ message: "Event has no organizer" });
+      }
 
       const organizer = await User.findById(event.createdBy);
 
+      if (!organizer) {
+        console.error("❌ Organizer not found in database");
+        return res.status(404).json({ message: "Organizer not found" });
+      }
 
       organizer.availableBalance += data.amount / 100;
 
@@ -182,7 +195,7 @@ exports.verifyPayment = async (req, res) => {
 
       // After ticket save success
       await Transaction.create({
-        organizer: event.organizer,
+        organizer: event.createdBy,
         type: "ticket",
         amount: data.amount / 100,
         status: "success",

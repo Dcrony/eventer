@@ -7,6 +7,9 @@ exports.getStats = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
+    // ✅ Get user (IMPORTANT)
+    const user = await User.findById(userId);
+
     // Organizer’s events
     const events = await Event.find({ createdBy: userId });
     const eventIds = events.map((e) => e._id);
@@ -20,27 +23,26 @@ exports.getStats = async (req, res) => {
     );
 
     const totalRevenue = tickets.reduce(
-  (acc, ticket) => acc + (ticket.amount || 0),
-  0
-);
-
+      (acc, ticket) => acc + (ticket.amount || 0),
+      0
+    );
 
     const currentlyLive = events.filter((e) => e.liveStream?.isLive).length;
 
-    // Event-specific stats
     const perEventStats = events.map((event) => {
       const eventTickets = tickets.filter(
         (t) => t.event.toString() === event._id.toString()
       );
+
       const ticketsSold = eventTickets.reduce(
         (acc, t) => acc + t.quantity,
         0
       );
-     const revenue = eventTickets.reduce(
-  (sum, t) => sum + (t.amount || 0),
-  0
-);
 
+      const revenue = eventTickets.reduce(
+        (sum, t) => sum + (t.amount || 0),
+        0
+      );
 
       return {
         id: event._id,
@@ -54,12 +56,10 @@ exports.getStats = async (req, res) => {
       };
     });
 
-    // Top events
     const topEvents = [...perEventStats]
       .sort((a, b) => b.ticketsSold - a.ticketsSold)
       .slice(0, 5);
 
-    // Base response (organizer stats)
     const response = {
       totalEvents: events.length,
       totalTicketsSold,
@@ -67,14 +67,15 @@ exports.getStats = async (req, res) => {
       currentlyLive,
       topEvents,
       perEventStats,
+
+      // ✅ ADD THIS
+      availableBalance: user?.availableBalance || 0,
     };
 
-    // 🔑 If user is ADMIN, add user stats
     if (userRole === "admin") {
       const totalUsers = await User.countDocuments();
       const organizers = await User.countDocuments({ role: "organizer" });
 
-      // Example: "active users" = updated within last 30 days
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

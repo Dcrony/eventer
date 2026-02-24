@@ -10,7 +10,7 @@ const transactionSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["ticket", "withdrawal"],   // ✅ allow ticket
+      enum: ["ticket", "withdrawal"],  
       required: true,
     },
 

@@ -71,19 +71,23 @@ exports.requestWithdrawal = async (req, res) => {
 | ORGANIZER VIEW TRANSACTIONS
 |--------------------------------------------------------------------------
 */
+// controllers/transactionController.js
+
 exports.getOrganizerTransactions = async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     const organizerId = req.user.id;
 
-    const transactions = await Transaction.find({
-      organizer: organizerId,
-    })
-      .populate("referenceId")
-      .sort({ createdAt: -1 });
+    const transactions = await Transaction.find({ organizer: organizerId })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.status(200).json(transactions);
-
+    return res.json(transactions);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch transactions" });
+    console.error("Transaction fetch error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
