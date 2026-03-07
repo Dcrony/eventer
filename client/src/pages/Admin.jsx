@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./CSS/UserManagement.css"; // import your CSS file
 
-const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:5000";
+const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
