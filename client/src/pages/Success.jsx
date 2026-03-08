@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle, Ticket, ArrowRight, Home } from "lucide-react";
-import "./CSS/success.css";
+import "./CSS/Success.css";
 
 export default function Success() {
   const navigate = useNavigate();
