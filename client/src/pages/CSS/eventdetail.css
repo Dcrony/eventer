@@ -27,6 +27,7 @@
   background-color: var(--hub-bg);
   color: var(--hub-text);
   padding-left: var(--sidebar-width);
+  
   transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -540,7 +541,7 @@
 @media (max-width: 768px) {
   .event-hub {
     padding-left: 0;
-    padding-bottom: 1rem;
+    padding-bottom: 4rem;
   }
 
   .hub-container {
@@ -550,6 +551,7 @@
   .hub-details-grid {
     grid-template-columns: 1fr;
   }
+
 }
 
 .event-loader-container {
@@ -577,5 +579,274 @@
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* ==========================================
+   TICKET TYPE SELECTOR STYLES
+   ========================================== */
+
+.hub-ticket-types {
+  margin-bottom: 2rem;
+}
+
+.hub-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--hub-text-muted);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ticket-type-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem;
+  margin-bottom: 0.75rem;
+  background: var(--hub-bg);
+  border: 2px solid var(--hub-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ticket-type-card:hover {
+  border-color: var(--hub-primary);
+  transform: translateX(5px);
+  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.15);
+}
+
+.ticket-type-card.active {
+  border-color: var(--hub-primary);
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.05), transparent);
+}
+
+.ticket-type-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ticket-type-radio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--hub-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hub-primary);
+}
+
+.ticket-type-card.active .ticket-type-radio {
+  border-color: var(--hub-primary);
+  background: var(--hub-primary);
+  color: white;
+}
+
+.ticket-type-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ticket-type-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--hub-text);
+}
+
+.ticket-type-benefits {
+  font-size: 0.8rem;
+  color: var(--hub-text-muted);
+}
+
+.ticket-type-price {
+  text-align: right;
+}
+
+.ticket-type-price .price {
+  display: block;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--hub-primary);
+}
+
+.ticket-type-price .price-per {
+  font-size: 0.7rem;
+  color: var(--hub-text-muted);
+}
+
+/* Availability Section Updates */
+.avail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.avail-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--hub-text-muted);
+}
+
+.avail-count {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--hub-text);
+}
+
+.avail-bar {
+  height: 8px;
+  background: var(--hub-border);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.avail-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ec4899, #f472b6);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.avail-total {
+  font-size: 0.75rem;
+  color: var(--hub-text-muted);
+  margin-left: 0.5rem;
+}
+
+.avail-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f59e0b;
+  margin-top: 0.5rem;
+}
+
+/* Live Badge */
+.live-badge {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Requirements Card */
+.requirements-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--hub-card);
+  border-radius: 20px;
+  border: 1px solid var(--hub-border);
+  margin-top: 1rem;
+}
+
+.requirements-card svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.requirements-card p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--hub-text-muted);
+  margin: 0;
+}
+
+/* Loading State Enhancement */
+.event-not-found {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding-left: var(--sidebar-width);
+}
+
+.event-not-found svg {
+  color: var(--hub-primary);
+}
+
+.event-not-found h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--hub-text);
+}
+
+.dash-btn {
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  color: white;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.dash-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+}
+
+/* Dark Mode Specific Adjustments */
+.dark-mode .ticket-type-card {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark-mode .ticket-type-card.active {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), transparent);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .ticket-type-card {
+    padding: 1rem;
+  }
+
+  .ticket-type-price .price {
+    font-size: 1.1rem;
+  }
+
+  .ticket-type-left {
+    gap: 0.75rem;
+  }
+
+  .event-not-found {
+    padding-left: 0;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .event-not-found h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticket-type-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .ticket-type-price {
+    align-self: flex-end;
+  }
+
+  .requirements-card {
+    flex-direction: column;
+    text-align: center;
   }
 }

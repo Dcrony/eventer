@@ -14,6 +14,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Info,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import "./CSS/eventdetail.css";
 
@@ -29,7 +31,7 @@ export default function EventDetail() {
 
   const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-  // ✅ Function declaration is hoisted, can be used anywhere
+  // Format price function
   function formatPrice(price) {
     if (!price || isNaN(price)) return "Free";
     return new Intl.NumberFormat("en-NG", {
@@ -78,6 +80,28 @@ export default function EventDetail() {
         user,
       },
     });
+  };
+
+  // Format date range
+  const formatDateRange = () => {
+    if (!event.startDate) return "Date TBD";
+    
+    const start = new Date(event.startDate);
+    const end = event.endDate ? new Date(event.endDate) : null;
+    
+    const options = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
+    
+    if (end && start.toDateString() !== end.toDateString()) {
+      return `${start.toLocaleDateString("en-US", options)} - ${end.toLocaleDateString("en-US", options)}`;
+    }
+    return start.toLocaleDateString("en-US", options);
+  };
+
+  // Format time range
+  const formatTimeRange = () => {
+    if (!event.startTime) return "Time TBD";
+    if (!event.endTime) return event.startTime;
+    return `${event.startTime} - ${event.endTime}`;
   };
 
   if (loading)
@@ -150,6 +174,11 @@ export default function EventDetail() {
               <div className="hub-category-row">
                 {event.category && <span className="hub-badge">{event.category}</span>}
                 <span className="hub-badge outline">{event.eventType || "In-Person"}</span>
+                {event.streamType && event.streamType !== "Camera" && (
+                  <span className="hub-badge live-badge">
+                    <MonitorPlay size={12} /> Live Stream
+                  </span>
+                )}
               </div>
               <h1 className="hub-title">{event.title}</h1>
             </div>
@@ -166,14 +195,7 @@ export default function EventDetail() {
                 </div>
                 <div className="hub-detail-info">
                   <label>Date</label>
-                  <span>
-                    {new Date(event.startDate).toLocaleDateString("en-US", {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
+                  <span>{formatDateRange()}</span>
                 </div>
               </div>
               <div className="hub-detail-item">
@@ -182,7 +204,7 @@ export default function EventDetail() {
                 </div>
                 <div className="hub-detail-info">
                   <label>Time</label>
-                  <span>{event.startTime || "Check description"}</span>
+                  <span>{formatTimeRange()}</span>
                 </div>
               </div>
               <div className="hub-detail-item">
@@ -200,7 +222,7 @@ export default function EventDetail() {
                 </div>
                 <div className="hub-detail-info">
                   <label>Attendees</label>
-                  <span>{event.ticketsSold || 0} People attending</span>
+                  <span>{event.ticketsSold || 0} people attending</span>
                 </div>
               </div>
             </div>
@@ -217,7 +239,7 @@ export default function EventDetail() {
                   />
                 ) : (
                   <div className="hub-org-avatar-fallback">
-                    {event.createdBy?.username?.charAt(0)}
+                    {event.createdBy?.username?.charAt(0) || "O"}
                   </div>
                 )}
                 <div className="hub-org-text">
@@ -229,6 +251,17 @@ export default function EventDetail() {
                 <button className="hub-contact-btn">Message</button>
               </div>
             </div>
+
+            {/* Event Requirements/Info */}
+            {event.requirements && (
+              <div className="hub-requirements">
+                <h3 className="hub-section-label">Requirements</h3>
+                <div className="requirements-card">
+                  <AlertCircle size={18} />
+                  <p>{event.requirements}</p>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Right Column: Checkout Card */}
@@ -238,7 +271,7 @@ export default function EventDetail() {
                 <label>Tickets starting from</label>
                 <span className="hub-main-price">
                   {event.pricing && event.pricing.length > 0
-                    ? formatPrice(event.pricing[0].price)
+                    ? formatPrice(Math.min(...event.pricing.map(p => p.price || 0)))
                     : "Free"}
                 </span>
               </div>
@@ -247,37 +280,60 @@ export default function EventDetail() {
                 <div className="hub-ticket-types">
                   <label className="hub-label">Select Ticket Type</label>
                   {event.pricing.map((p) => (
-                    <label
+                    <div
                       key={p._id}
-                      className={`ticket-type-option ${
+                      className={`ticket-type-card ${
                         selectedTicketType?.type === p.type ? "active" : ""
                       }`}
+                      onClick={() => setSelectedTicketType(p)}
                     >
-                      <input
-                        type="radio"
-                        name="ticketType"
-                        value={p.type}
-                        onChange={() => setSelectedTicketType(p)}
-                      />
-                      <span>{p.type}</span>
-                      <b>{formatPrice(p.price)}</b>
-                    </label>
+                      <div className="ticket-type-left">
+                        <div className="ticket-type-radio">
+                          {selectedTicketType?.type === p.type && (
+                            <CheckCircle size={16} />
+                          )}
+                        </div>
+                        <div className="ticket-type-info">
+                          <span className="ticket-type-name">{p.type}</span>
+                          {p.benefits && (
+                            <span className="ticket-type-benefits">{p.benefits}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="ticket-type-price">
+                        <span className="price">{formatPrice(p.price)}</span>
+                        <span className="price-per">/ ticket</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
 
               <div className="hub-availability">
+                <div className="avail-header">
+                  <span className="avail-label">Availability</span>
+                  <span className="avail-count">
+                    {event.totalTickets - (event.ticketsSold || 0)} left
+                  </span>
+                  <label className="avail-total">
+                    total {event.totalTickets} 
+                  </label>
+                </div>
                 <div className="avail-bar">
                   <div
                     className="avail-fill"
                     style={{
-                      width: `${(event.ticketsSold / event.totalTickets) * 100}%`,
+                      width: `${((event.ticketsSold || 0) / event.totalTickets) * 100}%`,
                     }}
                   ></div>
+                  
                 </div>
-                <span>
-                  Only {event.totalTickets - (event.ticketsSold || 0)} tickets left!
-                </span>
+                {event.totalTickets - (event.ticketsSold || 0) < 20 && (
+                  <span className="avail-warning">
+                    <AlertCircle size={12} />
+                    Only a few tickets left!
+                  </span>
+                )}
               </div>
 
               <div className="hub-purchase-actions">
