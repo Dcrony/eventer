@@ -35,7 +35,7 @@ import { useEffect, useState } from "react";
 import More from "./components/More";
 import AdminWithdrwal from "./pages/AdminWithdrawals";
 import Transactions from "./pages/Transactions";
-import Notifications from "./components/NotificationBell";
+import Notifications from "./components/NotificationsPage";
 
 function Layout() {
   const location = useLocation();
