@@ -34,6 +34,7 @@ import Pricing from "./pages/pricing";
 import { useEffect, useState } from "react";
 import More from "./components/More";
 import AdminWithdrwal from "./pages/AdminWithdrawals";
+import Transactions from "./pages/Transactions";
 
 function Layout() {
   const location = useLocation();
@@ -178,6 +179,7 @@ function Layout() {
           }
         />
         <Route path="/validate/:ticketId" element={<TicketValidationPage />} />
+        <Route path="/transactions" element={<Transactions />} />
 
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<Contact />} />

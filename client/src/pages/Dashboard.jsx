@@ -40,11 +40,11 @@ export default function Dashboard() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("bank");
 
-const [bankDetails, setBankDetails] = useState({
-  bankName: "",
-  accountNumber: "",
-  accountName: "",
-});
+  const [bankDetails, setBankDetails] = useState({
+    bankName: "",
+    accountNumber: "",
+    accountName: "",
+  });
 
   // 🟢 Functions
   const handleEditClick = (id) => {
@@ -129,57 +129,56 @@ const [bankDetails, setBankDetails] = useState({
   };
 
   const handleWithdraw = async () => {
-  if (!withdrawAmount || withdrawAmount <= 0) {
-    alert("Enter valid amount");
-    return;
-  }
-
-  if (paymentMethod === "bank") {
-    if (
-      !bankDetails.bankName ||
-      !bankDetails.accountNumber ||
-      !bankDetails.accountName
-    ) {
-      alert("Fill all bank details");
+    if (!withdrawAmount || withdrawAmount <= 0) {
+      alert("Enter valid amount");
       return;
     }
-  }
 
-  try {
-    setWithdrawLoading(true);
-
-    const response = await API.post(
-      "/organizer/withdraw",
-      {
-        amount: Number(withdrawAmount), // ✅ IMPORTANT
-        paymentMethod,
-        bankDetails: paymentMethod === "bank" ? bankDetails : null,
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
+    if (paymentMethod === "bank") {
+      if (
+        !bankDetails.bankName ||
+        !bankDetails.accountNumber ||
+        !bankDetails.accountName
+      ) {
+        alert("Fill all bank details");
+        return;
       }
-    );
+    }
 
-    console.log("SUCCESS:", response.data);
+    try {
+      setWithdrawLoading(true);
 
-    alert("Withdrawal request submitted for approval");
+      const response = await API.post(
+        "/organizer/withdraw",
+        {
+          amount: Number(withdrawAmount), // ✅ IMPORTANT
+          paymentMethod,
+          bankDetails: paymentMethod === "bank" ? bankDetails : null,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
-    setWithdrawAmount("");
-    setShowWithdrawModal(false);
+      console.log("SUCCESS:", response.data);
 
-    const res = await API.get("/organizer/transactions", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      alert("Withdrawal request submitted for approval");
 
-    setTransactions(res.data);
+      setWithdrawAmount("");
+      setShowWithdrawModal(false);
 
-  } catch (err) {
-    console.log("ERROR:", err.response?.data); // ✅ NOW you’ll see real reason
-    alert(err.response?.data?.message || "Withdrawal failed");
-  } finally {
-    setWithdrawLoading(false);
-  }
-};
+      const res = await API.get("/organizer/transactions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTransactions(res.data);
+    } catch (err) {
+      console.log("ERROR:", err.response?.data); // ✅ NOW you’ll see real reason
+      alert(err.response?.data?.message || "Withdrawal failed");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
 
   const StatCard = ({ title, value, icon: Icon, color }) => (
     <div className={`stat-tile ${color}`}>
@@ -197,6 +196,8 @@ const [bankDetails, setBankDetails] = useState({
     if (num === null || num === undefined || isNaN(num)) return "0";
     return new Intl.NumberFormat("en-NG").format(num);
   };
+
+  const latestTransactions = transactions.slice(0, 3);
 
   return (
     <div className="dashboard-page">
@@ -341,7 +342,7 @@ const [bankDetails, setBankDetails] = useState({
               <p>No transactions yet.</p>
             ) : (
               <div className="transaction-table">
-                {transactions.map((tx) => (
+                {latestTransactions.map((tx) => (
                   <div key={tx._id} className="transaction-row">
                     <div>
                       <strong>{tx.type.toUpperCase()}</strong>
@@ -355,6 +356,9 @@ const [bankDetails, setBankDetails] = useState({
                     <div className={`tx-status ${tx.status}`}>{tx.status}</div>
                   </div>
                 ))}
+                <Link to="/transactions" className="view-all-transactions">
+                  View All Transactions <ArrowRight size={16} />
+                </Link>
               </div>
             )}
           </div>
@@ -544,7 +548,6 @@ const [bankDetails, setBankDetails] = useState({
           </div>
         </div>
       )}
-
     </div>
   );
 }
