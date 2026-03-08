@@ -11,7 +11,7 @@ export const useSocket = (userId, onNotification) => {
     const SOCKET_URL =
       import.meta.env.VITE_SOCKET_URL ||
       (process.env.NODE_ENV === "production"
-        ? "https://your-live-api-domain.com"
+        ? "https://https://tickispotbackend.onrender.com"
         : "http://localhost:8080");
 
     // ✅ connect socket
