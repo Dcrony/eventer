@@ -91,7 +91,7 @@ exports.login = async (req, res) => {
         isOrganizer: user.role === "organizer",
       },
       JWT_SECRET,
-      { expiresIn: "4d" }
+      { expiresIn: "7d" }
     );
 
     // ✅ Return success

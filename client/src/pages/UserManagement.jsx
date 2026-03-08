@@ -37,7 +37,7 @@ const UserManagement = () => {
       const res = await axios.put(
         `${PORT_URL}/api/profile/${id}/role`,
         { role },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       setUsers(users.map((u) => (u._id === id ? { ...u, ...res.data } : u)));
       showToast("User role updated successfully");
@@ -63,20 +63,37 @@ const UserManagement = () => {
   };
 
   // 🔍 Filtered & searched users
- const filteredUsers = users.filter((u) => {
-  const name = u.username ? u.username.toLowerCase() : "";
-  const email = u.email ? u.email.toLowerCase() : "";
-  const matchSearch =
-    name.includes(search.toLowerCase()) ||
-    email.includes(search.toLowerCase());
-  const matchRole = filterRole === "all" || u.role === filterRole;
-  return matchSearch && matchRole;
-});
-
+  const filteredUsers = users.filter((u) => {
+    const name = u.username ? u.username.toLowerCase() : "";
+    const email = u.email ? u.email.toLowerCase() : "";
+    const matchSearch =
+      name.includes(search.toLowerCase()) ||
+      email.includes(search.toLowerCase());
+    const matchRole = filterRole === "all" || u.role === filterRole;
+    return matchSearch && matchRole;
+  });
 
   return (
     <div className="user-management pt-20 px-20 min-h-screen">
       <h2 className="text-2xl font-bold mb-4">User Management</h2>
+
+      {/* Analytics Cards */}
+      <div className="user-stats">
+        <div className="stat-card">
+          <h4>Total Users</h4>
+          <p>{users.length}</p>
+        </div>
+
+        <div className="stat-card">
+          <h4>Organizers</h4>
+          <p>{users.filter((u) => u.role === "organizer").length}</p>
+        </div>
+
+        <div className="stat-card">
+          <h4>Admins</h4>
+          <p>{users.filter((u) => u.role === "admin").length}</p>
+        </div>
+      </div>
 
       {/* Search and Filter Section */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
@@ -112,14 +129,25 @@ const UserManagement = () => {
         <tbody>
           {filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
-              <tr key={user._id} className="hover:bg-gray-100 dark:hover:bg-gray-800">
-                <td className="p-3 border">{user.username}</td>
+              <tr
+                key={user._id}
+                className="hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <td className="user-info">
+                  <div className="avatar">
+                    {user.username?.charAt(0).toUpperCase()}
+                  </div>
+                  <span>{user.username}</span>
+                </td>
                 <td className="p-3 border">{user.email}</td>
-                <td className="p-3 border">
+                <td>
+                  <div className={`role-badge role-${user.role}`}>
+                    {user.role}
+                  </div>
+
                   <select
                     value={user.role}
                     onChange={(e) => updateRole(user._id, e.target.value)}
-                    className="border p-2 rounded"
                   >
                     <option value="user">User</option>
                     <option value="organizer">Organizer</option>
@@ -146,16 +174,15 @@ const UserManagement = () => {
         </tbody>
       </table>
 
+      <div className="pagination">
+        <button>Previous</button>
+        <button>1</button>
+        <button>2</button>
+        <button>Next</button>
+      </div>
+
       {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 right-6 px-4 py-2 rounded shadow-md text-white ${
-            toast.type === "error" ? "bg-red-500" : "bg-green-500"
-          }`}
-        >
-          {toast.message}
-        </div>
-      )}
+      {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
     </div>
   );
 };

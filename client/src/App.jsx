@@ -16,7 +16,7 @@ import EventDetail from "./pages/EventDetails";
 import Checkout from "./pages/CheckOut";
 import TicketScanner from "./pages/TicketScanner";
 import TicketValidationPage from "./pages/ValidateTicket";
-import UserManagement from "./pages/Admin";
+import UserManagement from "./pages/UserManagement";
 import LiveStream from "./pages/LiveStream";
 
 import AboutUs from "./pages/AboutUs";

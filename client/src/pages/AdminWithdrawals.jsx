@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
-import "./CSS/Admin.css";
+import "./CSS/AdminWithdrawals.css";
 
 export default function AdminWithdrawals() {
   const token = localStorage.getItem("token");
@@ -90,7 +90,7 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="admin-page">
+    <div className="admin-page pt-20 px-20 min-h-screen">
       <h2>Withdrawal Management</h2>
 
       {/* Analytics */}
