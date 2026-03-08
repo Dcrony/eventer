@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "./CSS/UserManagement.css"; // import your CSS file
+import "./CSS/UserManagement.css";
 
-const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8080";
+// Use VITE_API_URL for Vite projects (not REACT_APP_API_URL)
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -14,12 +15,15 @@ const UserManagement = () => {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`${PORT_URL}/api/profile`, {
+        console.log("Fetching users from:", `${API_URL}/profile`); // Debug log
+        
+        const res = await axios.get(`${API_URL}/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUsers(res.data);
       } catch (err) {
         console.error("Error fetching users:", err);
+        console.error("API URL used:", API_URL); // Debug log
         showToast("Failed to load users", "error");
       }
     };
@@ -35,9 +39,9 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.put(
-        `${PORT_URL}/api/profile/${id}/role`,
+        `${API_URL}/profile/${id}/role`,
         { role },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setUsers(users.map((u) => (u._id === id ? { ...u, ...res.data } : u)));
       showToast("User role updated successfully");
@@ -51,7 +55,7 @@ const UserManagement = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${PORT_URL}/api/profile/${id}`, {
+      await axios.delete(`${API_URL}/profile/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(users.filter((u) => u._id !== id));
@@ -62,7 +66,6 @@ const UserManagement = () => {
     }
   };
 
-  // 🔍 Filtered & searched users
   const filteredUsers = users.filter((u) => {
     const name = u.username ? u.username.toLowerCase() : "";
     const email = u.email ? u.email.toLowerCase() : "";
@@ -83,23 +86,21 @@ const UserManagement = () => {
           <h4>Total Users</h4>
           <p>{users.length}</p>
         </div>
-
         <div className="stat-card">
           <h4>Organizers</h4>
           <p>{users.filter((u) => u.role === "organizer").length}</p>
         </div>
-
         <div className="stat-card">
           <h4>Admins</h4>
           <p>{users.filter((u) => u.role === "admin").length}</p>
         </div>
       </div>
 
-      {/* Search and Filter Section */}
+      {/* Search and Filter */}
       <div className="flex flex-wrap items-center gap-4 mb-6">
         <input
           type="text"
-          placeholder="Search by name..."
+          placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border px-3 py-2 rounded focus:outline-none focus:ring"
@@ -120,7 +121,7 @@ const UserManagement = () => {
       <table className="user-table w-full border rounded overflow-hidden">
         <thead>
           <tr>
-            <th className="p-3 border">Name</th>
+            <th className="p-3 border">User</th>
             <th className="p-3 border">Email</th>
             <th className="p-3 border">Role</th>
             <th className="p-3 border">Actions</th>
@@ -129,10 +130,7 @@ const UserManagement = () => {
         <tbody>
           {filteredUsers.length > 0 ? (
             filteredUsers.map((user) => (
-              <tr
-                key={user._id}
-                className="hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
+              <tr key={user._id}>
                 <td className="user-info">
                   <div className="avatar">
                     {user.username?.charAt(0).toUpperCase()}
@@ -140,14 +138,14 @@ const UserManagement = () => {
                   <span>{user.username}</span>
                 </td>
                 <td className="p-3 border">{user.email}</td>
-                <td>
+                <td className="p-3 border">
                   <div className={`role-badge role-${user.role}`}>
                     {user.role}
                   </div>
-
                   <select
                     value={user.role}
                     onChange={(e) => updateRole(user._id, e.target.value)}
+                    className="mt-2 p-1 border rounded"
                   >
                     <option value="user">User</option>
                     <option value="organizer">Organizer</option>
@@ -173,13 +171,6 @@ const UserManagement = () => {
           )}
         </tbody>
       </table>
-
-      <div className="pagination">
-        <button>Previous</button>
-        <button>1</button>
-        <button>2</button>
-        <button>Next</button>
-      </div>
 
       {/* Toast Notification */}
       {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
