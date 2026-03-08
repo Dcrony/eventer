@@ -27,9 +27,12 @@
 .user-management {
   background: var(--ts-bg-secondary);
   color: var(--ts-text-primary);
-  padding-left: var(--sidebar-width);
-
   min-height: 100vh;
+  margin-left: 10px;
+  padding-top: 2rem;
+  padding-left: var(--sidebar-width);
+  padding-right: 2rem;
+  padding-bottom: 4rem;
   transition: background 0.3s ease;
 }
 

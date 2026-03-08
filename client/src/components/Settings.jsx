@@ -6,12 +6,35 @@ import "./css/Settings.css";
 import SettingsModal from "./EditProfileModal";
 import ThemeToggle from "./ThemeToggle";
 import ToggleSwitch from "./ToggleSwitch";
+import {
+  User,
+  Lock,
+  Bell,
+  CreditCard,
+  Link as LinkIcon,
+  AlertTriangle,
+  ChevronRight,
+  Save,
+  Moon,
+  Sun,
+  Mail,
+  Smartphone,
+  Globe,
+  Eye,
+  Search,
+  DollarSign,
+  Calendar,
+  Shield,
+  LogOut,
+  Trash2,
+} from "lucide-react";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("profile");
   const { darkMode, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Privacy
   const [privacy, setPrivacy] = useState({
@@ -32,6 +55,7 @@ export default function Settings() {
   const [billing, setBilling] = useState({
     plan: "Free",
     nextBillingDate: "N/A",
+    paymentMethod: "Not added",
   });
 
   const [saving, setSaving] = useState(false);
@@ -54,7 +78,7 @@ export default function Settings() {
       }
     };
     fetchUser();
-  }, []);
+  }, [id]);
 
   // 🔒 Handle Privacy
   const handlePrivacyChange = (field) => {
@@ -73,10 +97,10 @@ export default function Settings() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert("✅ Privacy settings saved successfully!");
+      showNotification("Privacy settings saved successfully!", "success");
     } catch (error) {
       console.error("Error saving privacy settings:", error);
-      alert("❌ Failed to save privacy settings.");
+      showNotification("Failed to save privacy settings.", "error");
     } finally {
       setSaving(false);
     }
@@ -99,25 +123,29 @@ export default function Settings() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert("✅ Notification settings saved!");
+      showNotification("Notification settings saved!", "success");
     } catch (error) {
       console.error("Error saving notifications:", error);
-      alert("❌ Failed to save notifications.");
+      showNotification("Failed to save notifications.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  // 💳 Handle Billing (Placeholder)
+  // 💳 Handle Billing
   const handleUpgradePlan = () => {
-    alert("🔄 Redirecting to billing portal...");
+    showNotification("Redirecting to billing portal...", "info");
+  };
+
+  const handleAddPaymentMethod = () => {
+    showNotification("Payment method setup coming soon!", "info");
   };
 
   // ⚠️ Handle Account Deletion
   const deleteAccount = async () => {
     if (
       !window.confirm(
-        "Are you sure you want to delete your account? This cannot be undone!"
+        "Are you sure you want to delete your account? This cannot be undone!",
       )
     )
       return;
@@ -126,92 +154,149 @@ export default function Settings() {
       await API.delete(`/profile/${user._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert("🗑️ Account deleted successfully.");
+      showNotification("Account deleted successfully.", "success");
       localStorage.removeItem("token");
       window.location.href = "/";
     } catch (error) {
       console.error("Error deleting account:", error);
-      alert("❌ Failed to delete account.");
+      showNotification("Failed to delete account.", "error");
     }
   };
 
+  // Show notification helper
+  const showNotification = (message, type) => {
+    alert(message);
+  };
+
   const tabs = [
-    { id: "profile", label: "Profile" },
-    { id: "privacy", label: "Privacy" },
-    { id: "notifications", label: "Notifications" },
-    { id: "billing", label: "Billing" },
-    { id: "apps", label: "Connected Apps" },
-    { id: "danger", label: "Danger Zone" },
+    { id: "profile", label: "Profile", icon: <User size={18} /> },
+    { id: "privacy", label: "Privacy", icon: <Lock size={18} /> },
+    { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
+    { id: "billing", label: "Billing", icon: <CreditCard size={18} /> },
+    { id: "apps", label: "Connected Apps", icon: <LinkIcon size={18} /> },
+    { id: "danger", label: "Danger Zone", icon: <AlertTriangle size={18} /> },
   ];
 
   return (
-    <div
-      className={`min-h-screen flex pl-14 pt-16 settings-container ${darkMode ? "dark-mode" : ""
-        }`}
-      style={{
-        backgroundColor: "var(--bg-color)",
-        color: "var(--text-color)",
-        transition: "all 0.3s ease",
-      }}
-    >
-      {/* Sidebar */}
-      <aside
-        className="w-64 border-r hidden md:block "
-        style={{
-          backgroundColor: "var(--card-bg)",
-          borderColor: "var(--border-color)",
-        }}
-      >
-        <h2
-          className="text-xl font-semibold px-6 py-4 border-b"
-          style={{ borderColor: "var(--border-color)" }}
+    <div className={`settings-page ${darkMode ? "dark-mode" : ""}`}>
+      {/* Mobile Header */}
+      <div className="settings-page-mobile-header">
+        <h1 className="settings-page-mobile-header-title">Settings</h1>
+        <button
+          className="settings-page-mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
-          ⚙️ Settings
-        </h2>
-        <nav className="mt-4">
+          <ChevronRight
+            size={24}
+            className={`settings-page-toggle-icon ${mobileMenuOpen ? "open" : ""}`}
+          />
+        </button>
+      </div>
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`settings-page-mobile-sidebar ${mobileMenuOpen ? "open" : ""}`}
+      >
+        <nav className="settings-page-mobile-nav">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setMobileMenuOpen(false);
+              }}
+              className={`settings-page-mobile-nav-item ${activeTab === tab.id ? "active" : ""}`}
+            >
+              <span className="settings-page-mobile-nav-icon">{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="settings-page-sidebar">
+        <div className="settings-page-sidebar-header">
+          <h2 className="settings-page-sidebar-title">Settings</h2>
+          <p className="settings-page-sidebar-subtitle">Manage your account</p>
+        </div>
+        <nav className="settings-page-sidebar-nav">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="w-full text-left px-6 py-3 text-sm font-medium transition"
-              style={{
-                backgroundColor:
-                  activeTab === tab.id ? "var(--active-bg)" : "transparent",
-                color: "var(--text-color)",
-                borderRight:
-                  activeTab === tab.id
-                    ? "4px solid var(--accent-color)"
-                    : "4px solid transparent",
-              }}
+              className={`settings-page-sidebar-nav-item ${activeTab === tab.id ? "active" : ""}`}
             >
-              {tab.label}
+              <span className="settings-page-nav-icon">{tab.icon}</span>
+              <span>{tab.label}</span>
+              {activeTab === tab.id && (
+                <span className="settings-page-active-indicator" />
+              )}
             </button>
           ))}
         </nav>
+
+        <div className="settings-page-sidebar-footer">
+          <div className="settings-page-theme-toggle-wrapper">
+            <span className="settings-page-theme-label">Theme</span>
+            <button
+              onClick={toggleTheme}
+              className="settings-page-theme-toggle-button"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              <span>{darkMode ? "Light" : "Dark"} Mode</span>
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 content-area">
-        {/* 👤 PROFILE TAB */}
+      <main className="settings-page-content">
+        {/* Profile Tab */}
         {activeTab === "profile" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">👤 Profile Settings</h3>
-            <div className="settings-card">
-              <div className="settings-info">
-                <p>
-                  <strong>Name:</strong> {user?.name || "Loading..."}
-                </p>
-                <p>
-                  <strong>Username:</strong> {user?.username || "Loading..."}
-                </p>
-                <p>
-                  <strong>Email:</strong> {user?.email || "Loading..."}
-                </p>
-                <p>
-                  <strong>Bio:</strong> {user?.bio || "No bio added yet"}
-                </p>
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <User size={20} className="settings-page-title-icon" />
+                Profile Settings
+              </h3>
+              <p className="settings-page-card-description">
+                Manage your personal information
+              </p>
+            </div>
+
+            <div className="settings-page-profile-section">
+              <div className="settings-page-profile-avatar">
+                <div className="settings-page-avatar-placeholder">
+                  {user?.name?.charAt(0) || user?.username?.charAt(0) || "U"}
+                </div>
               </div>
-              <button className="edit-btn" onClick={() => setIsModalOpen(true)}>
+
+              <div className="settings-page-profile-info-grid">
+                <div className="settings-page-info-item">
+                  <label>Full Name</label>
+                  <p>{user?.name || "Not set"}</p>
+                </div>
+                <div className="settings-page-info-item">
+                  <label>Username</label>
+                  <p>@{user?.username || "username"}</p>
+                </div>
+                <div className="settings-page-info-item">
+                  <label>Email</label>
+                  <p>{user?.email || "email@example.com"}</p>
+                </div>
+                <div className="settings-page-info-item full-width">
+                  <label>Bio</label>
+                  <p className="settings-page-bio-text">
+                    {user?.bio || "No bio added yet"}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                className="settings-page-edit-profile-btn"
+                onClick={() => setIsModalOpen(true)}
+              >
                 Edit Profile
               </button>
             </div>
@@ -224,105 +309,272 @@ export default function Settings() {
                 onProfileUpdated={setUser}
               />
             )}
-
-            <div style={{ marginTop: "1.5rem" }}>
-              <h4 className="font-medium mb-2">Theme</h4>
-              <ThemeToggle />
-            </div>
           </div>
         )}
 
-        {/* 🔒 PRIVACY TAB */}
+        {/* Privacy Tab */}
         {activeTab === "privacy" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">🔒 Privacy Settings</h3>
-            <div className="privacy-options">
-              {Object.keys(privacy).map((key) => (
-                <ToggleSwitch
-                  key={key}
-                  checked={privacy[key]}
-                  onChange={() => handlePrivacyChange(key)}
-                  label={
-                    key === "showProfile"
-                      ? "Show my profile publicly"
-                      : key === "showActivity"
-                        ? "Allow others to see my activity"
-                        : "Allow my account to be found in search"
-                  }
-                />
-              ))}
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <Lock size={20} className="settings-page-title-icon" />
+                Privacy Settings
+              </h3>
+              <p className="settings-page-card-description">
+                Control who can see your information
+              </p>
             </div>
-            <button className="save-btn" onClick={savePrivacySettings}>
-              {saving ? "Saving..." : "💾 Save Privacy Settings"}
-            </button>
+
+            <div className="settings-page-section">
+              <div className="settings-page-toggle-group">
+                <ToggleSwitch
+                  checked={privacy.showProfile}
+                  onChange={() => handlePrivacyChange("showProfile")}
+                  label="Show my profile publicly"
+                  description="Your profile will be visible to everyone"
+                  icon={<Eye size={16} />}
+                />
+                <ToggleSwitch
+                  checked={privacy.showActivity}
+                  onChange={() => handlePrivacyChange("showActivity")}
+                  label="Show my activity"
+                  description="Allow others to see your event activity"
+                  icon={<Globe size={16} />}
+                />
+                <ToggleSwitch
+                  checked={privacy.searchable}
+                  onChange={() => handlePrivacyChange("searchable")}
+                  label="Searchable"
+                  description="Allow your account to be found in search"
+                  icon={<Search size={16} />}
+                />
+              </div>
+
+              <button
+                className="settings-page-save-btn"
+                onClick={savePrivacySettings}
+                disabled={saving}
+              >
+                <Save size={18} />
+                {saving ? "Saving..." : "Save Privacy Settings"}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* 🔔 NOTIFICATION TAB */}
+        {/* Notifications Tab */}
         {activeTab === "notifications" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">
-              🔔 Notification Settings
-            </h3>
-            <div className="privacy-options">
-              {Object.keys(notifications).map((key) => (
-                <ToggleSwitch
-                  key={key}
-                  checked={notifications[key]}
-                  onChange={() => handleNotificationChange(key)}
-                  label={
-                    key === "emailAlerts"
-                      ? "Email alerts"
-                      : key === "smsAlerts"
-                        ? "SMS notifications"
-                        : key === "appPush"
-                          ? "In-app push notifications"
-                          : "Subscribe to newsletter"
-                  }
-                />
-              ))}
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <Bell size={20} className="settings-page-title-icon" />
+                Notification Settings
+              </h3>
+              <p className="settings-page-card-description">
+                Choose how you want to be notified
+              </p>
             </div>
-            <button className="save-btn" onClick={saveNotificationSettings}>
-              {saving ? "Saving..." : "💾 Save Notification Settings"}
-            </button>
+
+            <div className="settings-page-section">
+              <div className="settings-page-toggle-group">
+                <ToggleSwitch
+                  checked={notifications.emailAlerts}
+                  onChange={() => handleNotificationChange("emailAlerts")}
+                  label="Email Alerts"
+                  description="Receive notifications via email"
+                  icon={<Mail size={16} />}
+                />
+                <ToggleSwitch
+                  checked={notifications.smsAlerts}
+                  onChange={() => handleNotificationChange("smsAlerts")}
+                  label="SMS Notifications"
+                  description="Get text message alerts"
+                  icon={<Smartphone size={16} />}
+                />
+                <ToggleSwitch
+                  checked={notifications.appPush}
+                  onChange={() => handleNotificationChange("appPush")}
+                  label="Push Notifications"
+                  description="In-app notifications"
+                  icon={<Bell size={16} />}
+                />
+                <ToggleSwitch
+                  checked={notifications.newsletter}
+                  onChange={() => handleNotificationChange("newsletter")}
+                  label="Newsletter"
+                  description="Receive our monthly newsletter"
+                  icon={<Mail size={16} />}
+                />
+              </div>
+
+              <button
+                className="settings-page-save-btn"
+                onClick={saveNotificationSettings}
+                disabled={saving}
+              >
+                <Save size={18} />
+                {saving ? "Saving..." : "Save Notification Settings"}
+              </button>
+            </div>
           </div>
         )}
 
-        {/* 💳 BILLING TAB */}
+        {/* Billing Tab */}
         {activeTab === "billing" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">💳 Billing</h3>
-            <p>
-              Current Plan: <strong>{billing.plan}</strong>
-            </p>
-            <p>Next Billing Date: {billing.nextBillingDate}</p>
-            <button className="save-btn" onClick={handleUpgradePlan}>
-              Upgrade Plan
-            </button>
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <CreditCard size={20} className="settings-page-title-icon" />
+                Billing
+              </h3>
+              <p className="settings-page-card-description">
+                Manage your subscription and payment methods
+              </p>
+            </div>
+
+            <div className="settings-page-billing-section">
+              <div className="settings-page-plan-card">
+                <div className="settings-page-plan-info">
+                  <span className="settings-page-plan-badge">Current Plan</span>
+                  <h4 className="settings-page-plan-name">{billing.plan}</h4>
+                  <div className="settings-page-plan-details">
+                    <div className="settings-page-plan-detail-item">
+                      <DollarSign size={16} />
+                      <span>Free forever</span>
+                    </div>
+                    <div className="settings-page-plan-detail-item">
+                      <Calendar size={16} />
+                      <span>Next billing: {billing.nextBillingDate}</span>
+                    </div>
+                  </div>
+                </div>
+                <button className="settings-page-upgrade-btn" onClick={handleUpgradePlan}>
+                  Upgrade Plan
+                </button>
+              </div>
+
+              <div className="settings-page-payment-methods">
+                <h4 className="settings-page-section-subtitle">Payment Methods</h4>
+                <div className="settings-page-payment-method-item">
+                  <div className="settings-page-method-info">
+                    <span className="settings-page-method-icon">💳</span>
+                    <div>
+                      <p className="settings-page-method-name">{billing.paymentMethod}</p>
+                      <p className="settings-page-method-status">No payment method added</p>
+                    </div>
+                  </div>
+                  <button
+                    className="settings-page-add-payment-btn"
+                    onClick={handleAddPaymentMethod}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 🔗 CONNECTED APPS TAB */}
+        {/* Connected Apps Tab */}
         {activeTab === "apps" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4">🔗 Connected Apps</h3>
-            <p>
-              Manage integrations with third-party apps (Google, Facebook, etc).
-            </p>
-            <button className="save-btn">Connect New App</button>
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <LinkIcon size={20} className="settings-page-title-icon" />
+                Connected Apps
+              </h3>
+              <p className="settings-page-card-description">
+                Manage third-party app integrations
+              </p>
+            </div>
+
+            <div className="settings-page-apps-section">
+              <div className="settings-page-app-item">
+                <div className="settings-page-app-info">
+                  <div className="settings-page-app-icon">G</div>
+                  <div>
+                    <h4 className="settings-page-app-name">Google</h4>
+                    <p className="settings-page-app-status">Not connected</p>
+                  </div>
+                </div>
+                <button className="settings-page-connect-btn">Connect</button>
+              </div>
+
+              <div className="settings-page-app-item">
+                <div className="settings-page-app-info">
+                  <div className="settings-page-app-icon">f</div>
+                  <div>
+                    <h4 className="settings-page-app-name">Facebook</h4>
+                    <p className="settings-page-app-status">Not connected</p>
+                  </div>
+                </div>
+                <button className="settings-page-connect-btn">Connect</button>
+              </div>
+
+              <div className="settings-page-app-item">
+                <div className="settings-page-app-info">
+                  <div className="settings-page-app-icon">🔄</div>
+                  <div>
+                    <h4 className="settings-page-app-name">Apple</h4>
+                    <p className="settings-page-app-status">Not connected</p>
+                  </div>
+                </div>
+                <button className="settings-page-connect-btn">Connect</button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* ⚠️ DANGER ZONE TAB */}
+        {/* Danger Zone Tab */}
         {activeTab === "danger" && (
-          <div className="card">
-            <h3 className="text-lg font-semibold mb-4 text-red-600">
-              ⚠️ Danger Zone
-            </h3>
-            <p>This action cannot be undone. Proceed with caution!</p>
-            <button className="delete-btn" onClick={deleteAccount}>
-              Delete Account
-            </button>
+          <div className="settings-page-card settings-page-danger-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title settings-page-danger-title">
+                <AlertTriangle size={20} className="settings-page-title-icon" />
+                Danger Zone
+              </h3>
+              <p className="settings-page-card-description">
+                Irreversible actions - proceed with caution
+              </p>
+            </div>
+
+            <div className="settings-page-danger-section">
+              <div className="settings-page-danger-item">
+                <div className="settings-page-danger-info">
+                  <h4 className="settings-page-danger-item-title">Delete Account</h4>
+                  <p className="settings-page-danger-item-description">
+                    Permanently delete your account and all associated data
+                  </p>
+                </div>
+                <button className="settings-page-delete-account-btn" onClick={deleteAccount}>
+                  <Trash2 size={18} />
+                  Delete Account
+                </button>
+              </div>
+
+              <div className="settings-page-danger-item">
+                <div className="settings-page-danger-info">
+                  <h4 className="settings-page-danger-item-title">Export Data</h4>
+                  <p className="settings-page-danger-item-description">
+                    Download a copy of all your data
+                  </p>
+                </div>
+                <button className="settings-page-export-data-btn">Export</button>
+              </div>
+
+              <div className="settings-page-danger-item">
+                <div className="settings-page-danger-info">
+                  <h4 className="settings-page-danger-item-title">Logout from all devices</h4>
+                  <p className="settings-page-danger-item-description">
+                    Sign out of your account on all devices
+                  </p>
+                </div>
+                <button className="settings-page-logout-all-btn">
+                  <LogOut size={18} />
+                  Logout All
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>
