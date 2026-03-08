@@ -14,8 +14,8 @@
 }
 
 .dark-mode {
-  --hub-bg: #020617;
-  --hub-card: #0f172a;
+  --hub-bg: #0000;
+  --hub-card: #1a1a1a;
   --hub-text: #f8fafc;
   --hub-text-muted: #94a3b8;
   --hub-border: #1e293b;
@@ -30,6 +30,19 @@
   transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+.event-hub::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
 }
 
 /* 🧊 Dynamic Background Blur */
@@ -527,6 +540,7 @@
 @media (max-width: 768px) {
   .event-hub {
     padding-left: 0;
+    padding-bottom: 1rem;
   }
 
   .hub-container {

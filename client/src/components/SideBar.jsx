@@ -146,9 +146,9 @@ export default function Sidebar() {
             {expand && <span className="sidebar-link-text ml-3">Notifications</span>}
           </div>
 
-          <div className="sidebar-bottom-item" data-tooltip={darkMode ? "Light mode" : "Dark mode"}>
+          {/* <div className="sidebar-bottom-item" data-tooltip={darkMode ? "Light mode" : "Dark mode"}>
             <ThemeToggle showText={expand} className="sidebar-theme-toggle" />
-          </div>
+          </div> */}
 
           <button
             onClick={handleLogout}

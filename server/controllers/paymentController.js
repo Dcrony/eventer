@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const sendEmail = require("../utils/email");
 const Transaction = require("../models/Transaction");
+const Notification = require("../models/Notification");
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -212,30 +213,178 @@ exports.verifyPayment = async (req, res) => {
       const qrDir = path.join(__dirname, "../uploads/qrcodes");
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
 
-      const qrData = `${FRONTEND_URL}/tickets/validate/${ticket._id}`;
+      const qrData = `${FRONTEND_URL}/validate/${ticket._id}`;
       const qrFileName = `${ticket._id}.png`;
       await QRCode.toFile(path.join(qrDir, qrFileName), qrData);
       ticket.qrCode = `qrcodes/${qrFileName}`;
       await ticket.save();
 
-      // Send confirmation email
-      await sendEmail(
-        user.email,
-        "🎟️ Ticket Confirmation",
-        `<h2>Hi ${user.name || user.username},</h2>
-         <p>Your ticket for <b>${event.title}</b> has been confirmed!</p>
-         <p><strong>Ticket Type:</strong> ${pricingType || "Standard"}</p>
-         <p><strong>Quantity:</strong> ${quantity}</p>
-         <p><strong>Price per ticket:</strong> ₦${ticketPrice.toLocaleString()}</p>
-         <p><strong>Total paid:</strong> ₦${(ticketPrice * quantity).toLocaleString()}</p>
-         <p>Show this QR code at the entrance:</p>
-         <img src="${FRONTEND_URL}/uploads/${ticket.qrCode}" alt="QR Code" />
-         <p><small>Reference: ${reference}</small></p>`,
-      );
+      // ===== FIXED: SEND EMAIL TO BUYER =====
+      try {
+        // Generate QR code as base64 for email
+        const qrBuffer = await QRCode.toBuffer(qrData);
+        const qrBase64 = qrBuffer.toString('base64');
 
-      console.log(
-        "✅ Ticket created successfully, redirecting to success page",
-      );
+        await sendEmail(
+          user.email,
+          "🎟️ Ticket Confirmation - TickiSpot",
+          `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: 'Inter', sans-serif; background: #f9fafb; margin: 0; padding: 0; }
+              .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+              .header { background: linear-gradient(135deg, #ec4899, #f43f5e); padding: 30px; text-align: center; }
+              .header h1 { color: white; margin: 0; font-size: 28px; }
+              .content { padding: 40px 30px; }
+              .event-details { background: #f8fafc; border-radius: 16px; padding: 20px; margin: 20px 0; }
+              .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+              .detail-row:last-child { border-bottom: none; }
+              .label { color: #64748b; font-weight: 500; }
+              .value { color: #0f172a; font-weight: 600; }
+              .qr-section { text-align: center; margin: 30px 0; padding: 20px; background: white; border-radius: 16px; border: 2px dashed #ec4899; }
+              .qr-code { width: 200px; height: 200px; margin: 0 auto; }
+              .footer { text-align: center; padding: 30px; background: #f1f5f9; color: #64748b; }
+              .button { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #ec4899, #f43f5e); color: white; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🎉 Payment Successful!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${user.name || user.username || 'there'}!</h2>
+                <p>Your ticket for <strong>${event.title}</strong> has been confirmed. We can't wait to see you there!</p>
+                
+                <div class="event-details">
+                  <div class="detail-row">
+                    <span class="label">Event:</span>
+                    <span class="value">${event.title}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Date:</span>
+                    <span class="value">${new Date(event.date).toLocaleDateString()}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Ticket Type:</span>
+                    <span class="value">${pricingType || "Standard"}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Quantity:</span>
+                    <span class="value">${quantity}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Price per ticket:</span>
+                    <span class="value">₦${ticketPrice.toLocaleString()}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Total paid:</span>
+                    <span class="value">₦${(ticketPrice * quantity).toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div class="qr-section">
+                  <h3 style="color: #ec4899; margin-bottom: 15px;">Your QR Code</h3>
+                  <p style="color: #64748b; margin-bottom: 20px;">Show this QR code at the entrance for quick check-in</p>
+                  <img src="cid:qr-code" alt="QR Code" class="qr-code" />
+                </div>
+
+                <div style="text-align: center;">
+                  <a href="${FRONTEND_URL}/my-tickets" class="button">View My Tickets</a>
+                </div>
+              </div>
+              <div class="footer">
+                <p>Reference: ${reference}</p>
+                <p>© ${new Date().getFullYear()} TickiSpot. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+          `,
+          [{
+            filename: 'qr-code.png',
+            content: qrBuffer,
+            cid: 'qr-code' // Content ID for embedding
+          }]
+        );
+        console.log("✅ Email sent to buyer:", user.email);
+      } catch (emailError) {
+        console.error("❌ Failed to send email to buyer:", emailError);
+      }
+
+      // ===== FIXED: CREATE NOTIFICATION FOR ORGANIZER =====
+      try {
+        const notification = new Notification({
+          user: event.createdBy,
+          type: "ticket",
+          message: `🎟️ New ticket sale for "${event.title}" - ${quantity} ticket(s) sold for ₦${(ticketPrice * quantity).toLocaleString()}`,
+        });
+        await notification.save();
+
+        // Emit real-time notification if socket.io is available
+        const io = req.app.get("io");
+        if (io) {
+          io.to(`user_${event.createdBy}`).emit("new_notification", notification);
+        }
+
+        console.log("✅ Notification created for organizer:", event.createdBy);
+      } catch (notifError) {
+        console.error("❌ Failed to create organizer notification:", notifError);
+      }
+
+      // ===== FIXED: SEND EMAIL TO ORGANIZER =====
+      try {
+        await sendEmail(
+          organizer.email,
+          "🎟️ New Ticket Sale - TickiSpot",
+          `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: 'Inter', sans-serif; background: #f9fafb; }
+              .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 24px; overflow: hidden; }
+              .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; }
+              .header h1 { color: white; margin: 0; font-size: 28px; }
+              .content { padding: 40px 30px; }
+              .sale-details { background: #f8fafc; border-radius: 16px; padding: 20px; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🎟️ New Ticket Sale!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${organizer.name || organizer.username || 'there'}!</h2>
+                <p>Great news! Someone just purchased tickets for your event.</p>
+                
+                <div class="sale-details">
+                  <h3 style="color: #10b981;">Sale Summary</h3>
+                  <p><strong>Event:</strong> ${event.title}</p>
+                  <p><strong>Buyer:</strong> ${user.name || user.username || user.email}</p>
+                  <p><strong>Quantity:</strong> ${quantity}</p>
+                  <p><strong>Total Amount:</strong> ₦${(ticketPrice * quantity).toLocaleString()}</p>
+                  <p><strong>Ticket Type:</strong> ${pricingType || "Standard"}</p>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                  <a href="${FRONTEND_URL}/organizer/events/${event._id}" style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; border-radius: 30px; font-weight: 600;">View Event Dashboard</a>
+                </div>
+              </div>
+            </div>
+          </body>
+          </html>
+          `
+        );
+        console.log("✅ Email sent to organizer:", organizer.email);
+      } catch (organizerEmailError) {
+        console.error("❌ Failed to send email to organizer:", organizerEmailError);
+      }
+
+      console.log("✅ Ticket created successfully, redirecting to success page");
       return res.redirect(successURL);
     }
 

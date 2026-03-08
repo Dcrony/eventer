@@ -5,7 +5,7 @@ import API from "../api/axios";
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://your-live-api-domain.com/api"
+    ? "https://tickispot.vercel.app/api"
     : "http://localhost:8080/api");
 
 export const useNotifications = () => {
