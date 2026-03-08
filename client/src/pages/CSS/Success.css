@@ -259,6 +259,7 @@
 @media (max-width: 640px) {
   .success-page {
     padding: 1rem;
+    padding-bottom: 4rem;
   }
 
   .success-container {
