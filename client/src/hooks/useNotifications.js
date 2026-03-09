@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 
-// ✅ Automatically detect environment and set base URL
+// ✅ Fix: Use BACKEND URL, not frontend URL
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://tickispot.vercel.app/api"
+    ? "https://tickispotbackend.onrender.com/api"  // Your BACKEND URL
     : "http://localhost:8080/api");
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Automatically attach token
+  // ✅ Create axios instance with correct baseURL
   const axiosInstance = API.create({
     baseURL: API_URL,
     headers: {
@@ -24,10 +24,12 @@ export const useNotifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
+        console.log("Fetching from:", API_URL); // Debug log
         const res = await axiosInstance.get("/notifications/my");
         setNotifications(res.data);
       } catch (err) {
         console.error("Error fetching notifications:", err);
+        console.error("API URL used:", API_URL); // Debug log
       } finally {
         setLoading(false);
       }
