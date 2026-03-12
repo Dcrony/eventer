@@ -5,7 +5,7 @@ import { ThemeContext } from "../contexts/ThemeContexts";
 import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
 import "./CSS/Profile.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function Profile() {
   const { id } = useParams();

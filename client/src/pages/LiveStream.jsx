@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
     Users,
@@ -30,8 +30,10 @@ import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/LiveStream.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL || API_URL.replace(/\/api\/?$/, "");
+const PORT_URL = SERVER_URL;
+const SOCKET_URL = SERVER_URL;
 
 export default function LiveStream() {
     const { eventId } = useParams();
@@ -66,7 +68,34 @@ export default function LiveStream() {
     const myVideo = useRef();
     const remoteVideo = useRef();
     const videoContainerRef = useRef();
+    const streamRef = useRef(null);
     const peersRef = useRef([]); // For broadcaster: [{peerId, peer}]
+
+    const requestCameraAndMic = useCallback(() => {
+        setMediaError(null);
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then((currentStream) => {
+                // Stop any previous local stream before replacing.
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach((track) => track.stop());
+                }
+                streamRef.current = currentStream;
+                setStream(currentStream);
+                if (myVideo.current) myVideo.current.srcObject = currentStream;
+                const socket = socketRef.current;
+                if (socket) {
+                    socket.off("userJoined");
+                    socket.on("userJoined", (userId) => {
+                        const peer = createPeer(userId, socket.id, currentStream);
+                        peersRef.current.push({ peerId: userId, peer });
+                    });
+                }
+            })
+            .catch((err) => {
+                console.error("Media error:", err);
+                setMediaError(err?.message || "Camera or microphone access denied.");
+            });
+    }, []);
 
     useEffect(() => {
         if (!eventId) return;
@@ -99,7 +128,7 @@ export default function LiveStream() {
                     // VIEWER LOGIC
                     if (eventData.liveStream?.streamType === "Camera") {
                         socketRef.current.on("signal", (data) => {
-                            const peer = addPeer(data.signal, data.from);
+                            addPeer(data.signal, data.from);
                         });
                     }
                 }
@@ -121,11 +150,12 @@ export default function LiveStream() {
 
         return () => {
             if (socketRef.current) socketRef.current.disconnect();
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+                streamRef.current = null;
             }
         };
-    }, [eventId]);
+    }, [currentUserId, eventId, requestCameraAndMic]);
 
     // Keep local camera stream attached to host preview.
     // This prevents a blank self-view when getUserMedia resolves before the video ref is ready.
@@ -171,27 +201,6 @@ export default function LiveStream() {
         peer.signal(incomingSignal);
         return peer;
     }
-
-    const requestCameraAndMic = () => {
-        setMediaError(null);
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then((currentStream) => {
-                setStream(currentStream);
-                if (myVideo.current) myVideo.current.srcObject = currentStream;
-                const socket = socketRef.current;
-                if (socket) {
-                    socket.off("userJoined");
-                    socket.on("userJoined", (userId) => {
-                        const peer = createPeer(userId, socket.id, currentStream);
-                        peersRef.current.push({ peerId: userId, peer });
-                    });
-                }
-            })
-            .catch((err) => {
-                console.error("Media error:", err);
-                setMediaError(err?.message || "Camera or microphone access denied.");
-            });
-    };
 
     const sendMessage = (e) => {
         if (e.key === "Enter" || e.type === "click") {
@@ -375,9 +384,6 @@ export default function LiveStream() {
                         {renderVideoContent()}
 
                         <div className="stream-session-status">
-                            <span className={`stream-role-pill ${isBroadcaster ? "host" : "viewer"}`}>
-                                {isBroadcaster ? "Host mode" : "Viewer mode"}
-                            </span>
                             {isBroadcaster && event.liveStream?.streamType === "Camera" && (
                                 <div className="stream-device-status">
                                     <span className={`device-chip ${stream && !isVideoOff ? "ok" : "off"}`}>

@@ -29,7 +29,7 @@ export default function EventDetail() {
   const isLoggedIn = !!localStorage.getItem("token");
   const navigate = useNavigate();
 
-  const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
   // Format price function
   function formatPrice(price) {

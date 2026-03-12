@@ -18,7 +18,8 @@ import GoLiveModal from "./GoLiveModal";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/LiveEvents.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const PORT_URL = API_URL.replace(/\/api\/?$/, "");
 
 const SORT_OPTIONS = [
   { value: "recent", label: "Recently live" },
