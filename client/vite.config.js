@@ -15,6 +15,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       devOptions: {
         enabled: true,
+        suppressWarnings: true,
       },
       manifest: {
         name: "TickiSpot",

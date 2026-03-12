@@ -4,9 +4,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import { ArrowRight } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
+import {
+  sanitizeUsername,
+  sanitizeEmail,
+  sanitizePassword,
+  validateRegisterForm,
+} from "../utils/formValidation";
 import "./CSS/forms.css";
 import { isAuthenticated } from "../utils/auth";
-import icon from "../assets/icon.svg"
+import icon from "../assets/icon.svg";
 
 
 export default function Register() {
@@ -16,6 +22,7 @@ export default function Register() {
     password: "",
     isOrganizer: false,
   });
+  const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,23 +38,36 @@ export default function Register() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    if (type === "checkbox") {
+      setForm((prev) => ({ ...prev, [name]: checked }));
+      return;
+    }
+    const sanitized =
+      name === "username"
+        ? sanitizeUsername(value)
+        : name === "email"
+          ? sanitizeEmail(value)
+          : name === "password"
+            ? sanitizePassword(value)
+            : value;
+    setForm((prev) => ({ ...prev, [name]: sanitized }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    const { valid, errors: validationErrors } = validateRegisterForm(form);
+    setErrors(validationErrors);
+    if (!valid) return;
     setSuccess("");
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("username", form.username.trim());
-      formData.append("email", form.email.trim());
-      formData.append("password", form.password);
+      formData.append("username", sanitizeUsername(form.username));
+      formData.append("email", sanitizeEmail(form.email));
+      formData.append("password", sanitizePassword(form.password));
       formData.append("isOrganizer", form.isOrganizer ? "true" : "false");
 
       await API.post("/auth/register", formData, {
@@ -57,6 +77,7 @@ export default function Register() {
       setSuccess("Registered successfully ✅ Redirecting to login...");
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
+      setErrors({});
       setError(
         err.response?.data?.message || "Registration failed. Try again."
       );
@@ -78,9 +99,9 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {error && (
+          {(error || errors.general) && (
             <div className="form-alert form-alert-error">
-              {error}
+              {error || errors.general}
             </div>
           )}
           {success && (
@@ -100,6 +121,9 @@ export default function Register() {
               className="form-input"
               required
             />
+            {errors.username && (
+              <span className="form-error">{errors.username}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -113,6 +137,9 @@ export default function Register() {
               className="form-input"
               required
             />
+            {errors.email && (
+              <span className="form-error">{errors.email}</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -124,6 +151,9 @@ export default function Register() {
               onChange={handleChange}
               required
             />
+            {errors.password && (
+              <span className="form-error">{errors.password}</span>
+            )}
           </div>
 
           <div className="form-checkbox-wrapper">

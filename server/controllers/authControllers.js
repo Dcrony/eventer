@@ -1,23 +1,34 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // 🟢 REGISTER CONTROLLER
 exports.register = async (req, res) => {
   try {
-    const { username, email, password, isAdmin, isOrganizer } = req.body;
+    const validation = validateRegisterBody(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({ message: validation.message });
+    }
+    const { username, email, password, isOrganizer, isAdmin } = validation;
 
     // Check if email exists
     const existingUser = await User.findOne({ email });
-    if (existingUser)
+    if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
+    }
+
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ message: "Username already in use" });
+    }
 
     // Determine user role
     let role = "user";
-    if (isAdmin === "true") role = "admin";
-    else if (isOrganizer === "true") role = "organizer";
+    if (isAdmin) role = "admin";
+    else if (isOrganizer) role = "organizer";
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -66,12 +77,15 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN CONTROLLER (already working)
+// LOGIN CONTROLLER
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const validation = validateLoginBody(req.body);
+  if (!validation.ok) {
+    return res.status(400).json({ message: validation.message });
+  }
+  const { email, password } = validation;
 
   try {
-    
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 

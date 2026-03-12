@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/Settings.css";
-import SettingsModal from "./EditProfileModal";
 import ThemeToggle from "./ThemeToggle";
 import ToggleSwitch from "./ToggleSwitch";
 import {
@@ -30,10 +29,9 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("privacy");
   const { darkMode, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Privacy
@@ -169,7 +167,6 @@ export default function Settings() {
   };
 
   const tabs = [
-    { id: "profile", label: "Profile", icon: <User size={18} /> },
     { id: "privacy", label: "Privacy", icon: <Lock size={18} /> },
     { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
     { id: "billing", label: "Billing", icon: <CreditCard size={18} /> },
@@ -252,66 +249,6 @@ export default function Settings() {
 
       {/* Main Content */}
       <main className="settings-page-content">
-        {/* Profile Tab */}
-        {activeTab === "profile" && (
-          <div className="settings-page-card">
-            <div className="settings-page-card-header">
-              <h3 className="settings-page-card-title">
-                <User size={20} className="settings-page-title-icon" />
-                Profile Settings
-              </h3>
-              <p className="settings-page-card-description">
-                Manage your personal information
-              </p>
-            </div>
-
-            <div className="settings-page-profile-section">
-              <div className="settings-page-profile-avatar">
-                <div className="settings-page-avatar-placeholder">
-                  {user?.name?.charAt(0) || user?.username?.charAt(0) || "U"}
-                </div>
-              </div>
-
-              <div className="settings-page-profile-info-grid">
-                <div className="settings-page-info-item">
-                  <label>Full Name</label>
-                  <p>{user?.name || "Not set"}</p>
-                </div>
-                <div className="settings-page-info-item">
-                  <label>Username</label>
-                  <p>@{user?.username || "username"}</p>
-                </div>
-                <div className="settings-page-info-item">
-                  <label>Email</label>
-                  <p>{user?.email || "email@example.com"}</p>
-                </div>
-                <div className="settings-page-info-item full-width">
-                  <label>Bio</label>
-                  <p className="settings-page-bio-text">
-                    {user?.bio || "No bio added yet"}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                className="settings-page-edit-profile-btn"
-                onClick={() => setIsModalOpen(true)}
-              >
-                Edit Profile
-              </button>
-            </div>
-
-            {isModalOpen && (
-              <SettingsModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                currentUser={user}
-                onProfileUpdated={setUser}
-              />
-            )}
-          </div>
-        )}
-
         {/* Privacy Tab */}
         {activeTab === "privacy" && (
           <div className="settings-page-card">

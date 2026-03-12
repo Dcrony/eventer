@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Auth form input readability - override Tailwind preflight for Login/Register */
+.form-page input.form-input,
+.form-page .password-input-wrapper input {
+  color: #111111 !important;
+  background-color: #f8f8f8 !important;
+}
+.form-page input.form-input::placeholder,
+.form-page .password-input-wrapper input::placeholder {
+  color: #404040 !important;
+}
+.dark-mode.form-page input.form-input,
+.dark-mode.form-page .password-input-wrapper input {
+  color: #f5f5f5 !important;
+  background-color: #2d2d2d !important;
+}
+.dark-mode.form-page input.form-input::placeholder,
+.dark-mode.form-page .password-input-wrapper input::placeholder {
+  color: #a8a8a8 !important;
+}
+
 :root {
   --bg-color: #f5f5f5;
   --text-color: #111;

@@ -53,11 +53,13 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// ✅ Get all events (Public)
+// ✅ Get all events (Public). Query: ?liveOnly=true for live streams only.
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find()
-      .populate("createdBy", "username email")
+    const { liveOnly } = req.query;
+    const filter = liveOnly === "true" ? { "liveStream.isLive": true } : {};
+    const events = await Event.find(filter)
+      .populate("createdBy", "username email profilePic")
       .sort({ createdAt: -1 });
     res.status(200).json(events);
   } catch (err) {
@@ -92,12 +94,17 @@ exports.getMyEvents = async (req, res) => {
   }
 };
 
-// ✅ Get buyers for a specific event
+// ✅ Get buyers for a specific event (event owner or admin only)
 exports.getEventBuyers = async (req, res) => {
   try {
     const { eventId } = req.params;
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+    if (event.createdBy.toString() !== req.user.id)
+      return res.status(403).json({ message: "Unauthorized" });
+
     const tickets = await Ticket.find({ event: eventId })
-      .populate("user", "username email")
+      .populate("buyer", "username email profilePic")
       .sort({ createdAt: -1 });
 
     res.status(200).json(tickets);

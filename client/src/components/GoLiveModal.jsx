@@ -1,37 +1,75 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import {
     X,
     Video,
     Activity,
-    Settings,
     ChevronRight,
     AlertCircle,
     Play
 } from "lucide-react";
 import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
+import "./css/GoLiveModal.css";
 
-export default function GoLiveModal({ isOpen, onClose, onStreamStarted }) {
+const FOCUSABLE = "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])";
+
+export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusReturnRef }) {
     const [myEvents, setMyEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [selectedEventId, setSelectedEventId] = useState("");
     const [isToggling, setIsToggling] = useState(false);
+    const modalRef = useRef(null);
     const { darkMode } = useContext(ThemeContext);
 
     useEffect(() => {
         if (isOpen) {
             setLoading(true);
+            setError(null);
             API.get("/events/my-events")
                 .then((res) => {
-                    setMyEvents(res.data);
+                    setMyEvents(res.data || []);
                     setLoading(false);
                 })
                 .catch((err) => {
                     console.error(err);
+                    setError("Failed to load your events. Please try again.");
                     setLoading(false);
                 });
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (!isOpen || !modalRef.current) return;
+        const el = modalRef.current;
+        const focusables = el.querySelectorAll(FOCUSABLE);
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (first) first.focus();
+
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                onClose();
+                focusReturnRef?.current?.focus();
+                return;
+            }
+            if (e.key !== "Tab") return;
+            if (e.shiftKey) {
+                if (document.activeElement === first) {
+                    e.preventDefault();
+                    last?.focus();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    e.preventDefault();
+                    first?.focus();
+                }
+            }
+        };
+        el.addEventListener("keydown", handleKeyDown);
+        return () => el.removeEventListener("keydown", handleKeyDown);
+    }, [isOpen, onClose, focusReturnRef]);
 
     const handleToggleLive = async () => {
         if (!selectedEventId) return;
@@ -54,72 +92,102 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted }) {
 
     if (!isOpen) return null;
 
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
     return (
-        <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm ${darkMode ? 'dark' : ''}`}>
-            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-pink-100 dark:bg-pink-900/30 p-2 rounded-lg text-pink-600 dark:text-pink-400">
+        <div
+            className={`golive-overlay ${darkMode ? "dark" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="go-live-modal-title"
+        >
+            <div ref={modalRef} className="golive-modal">
+                <div className="golive-header">
+                    <div className="golive-header-left">
+                        <div className="golive-header-icon">
                             <Video size={24} />
                         </div>
-                        <h2 className="text-xl font-bold dark:text-white">Start Your Stream</h2>
+                        <h2 id="go-live-modal-title" className="golive-title">Start Your Stream</h2>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        className="golive-close-btn"
+                        aria-label="Close"
                     >
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="p-6">
-                    <p className="text-slate-500 dark:text-slate-400 mb-6">
+                <div className="golive-body">
+                    <p className="golive-instruction">
                         Select one of your existing events to start broadcasting live to your audience.
                     </p>
 
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-10 gap-3">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-pink-500"></div>
-                            <span className="text-slate-400 text-sm">Loading your events...</span>
+                    {error ? (
+                        <div className="golive-error-wrap">
+                            <p className="golive-error-text">{error}</p>
+                            <button
+                                type="button"
+                                className="golive-retry-btn"
+                                onClick={() => {
+                                    setError(null);
+                                    setLoading(true);
+                                    API.get("/events/my-events")
+                                        .then((res) => { setMyEvents(res.data || []); setLoading(false); })
+                                        .catch((err) => { console.error(err); setError("Failed to load your events."); setLoading(false); });
+                                }}
+                            >
+                                Retry
+                            </button>
+                        </div>
+                    ) : loading ? (
+                        <div className="golive-loading">
+                            <div className="golive-spinner" />
+                            <span className="golive-loading-text">Loading your events...</span>
                         </div>
                     ) : myEvents.length === 0 ? (
-                        <div className="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
-                            <AlertCircle className="mx-auto text-slate-300 mb-3" size={40} />
-                            <p className="dark:text-slate-300 font-medium">No events found</p>
-                            <p className="text-sm text-slate-500 mt-1">You need to create an event before you can go live.</p>
+                        <div className="golive-empty">
+                            <AlertCircle className="golive-empty-icon" size={40} />
+                            <p className="golive-empty-title">No events found</p>
+                            <p className="golive-empty-sub">You need to create an event before you can go live.</p>
                         </div>
                     ) : (
-                        <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="golive-list">
                             {myEvents.map((event) => (
                                 <div
                                     key={event._id}
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={() => setSelectedEventId(event._id)}
-                                    className={`group relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedEventId === event._id
-                                            ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/10'
-                                            : 'border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 bg-slate-50 dark:bg-slate-800/50'
-                                        }`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setSelectedEventId(event._id);
+                                        }
+                                    }}
+                                    className={`golive-event-item ${selectedEventId === event._id ? "selected" : ""}`}
                                 >
-                                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-700 flex-shrink-0">
+                                    <div className="golive-event-thumb">
                                         {event.image ? (
                                             <img
-                                                src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/uploads/event_image/${event.image}`}
+                                                src={`${apiBase}/uploads/event_image/${event.image}`}
                                                 alt=""
-                                                className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                            <div className="golive-event-thumb-placeholder">
                                                 <Play size={16} />
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-slate-900 dark:text-white truncate">{event.title}</h4>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                    <div className="golive-event-info">
+                                        <h4 className="golive-event-name">{event.title}</h4>
+                                        <p className="golive-event-meta">
                                             {event.category || "General"} • {new Date(event.startDate).toLocaleDateString()}
                                         </p>
                                     </div>
                                     {selectedEventId === event._id && (
-                                        <div className="w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center text-white scale-in">
+                                        <div className="golive-event-check">
                                             <ChevronRight size={16} />
                                         </div>
                                     )}
@@ -129,29 +197,28 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted }) {
                     )}
                 </div>
 
-                <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-                        <Activity size={14} className="flex-shrink-0" />
+                <div className="golive-footer">
+                    <div className="golive-notice">
+                        <Activity size={14} />
                         <p>Going live will notify all ticket holders that the event has started.</p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="golive-actions">
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-3 rounded-xl font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="golive-btn-cancel"
                         >
                             Cancel
                         </button>
                         <button
+                            type="button"
                             disabled={!selectedEventId || isToggling}
                             onClick={handleToggleLive}
-                            className={`flex-[2] px-4 py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 flex items-center justify-center gap-2 ${!selectedEventId || isToggling
-                                    ? 'bg-slate-300 dark:bg-slate-700 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-pink-500 to-rose-500 shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 hover:-translate-y-0.5'
-                                }`}
+                            className="golive-btn-start"
                         >
                             {isToggling ? (
-                                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <div className="golive-btn-spinner" />
                             ) : (
                                 <>
                                     <Activity size={20} />

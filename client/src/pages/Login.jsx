@@ -5,7 +5,12 @@ import { isAuthenticated, login } from "../utils/auth";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import { ArrowRight } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
-import icon from "../assets/icon.svg"
+import {
+  sanitizeEmail,
+  sanitizePassword,
+  validateLoginForm,
+} from "../utils/formValidation";
+import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
 
 export default function Login() {
@@ -24,29 +29,29 @@ export default function Login() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const sanitized =
+      name === "email"
+        ? sanitizeEmail(value)
+        : name === "password"
+          ? sanitizePassword(value)
+          : value;
+    setForm((prev) => ({ ...prev, [name]: sanitized }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!form.email) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email))
-      newErrors.email = "Enter a valid email";
-    if (!form.password) newErrors.password = "Password is required";
-    else if (form.password.length < 6)
-      newErrors.password = "Minimum 6 characters";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const { valid, errors: validationErrors } = validateLoginForm(form);
+    setErrors(validationErrors);
+    if (!valid) return;
     setSuccess("");
     setLoading(true);
+    const payload = {
+      email: sanitizeEmail(form.email),
+      password: sanitizePassword(form.password),
+    };
     try {
-      const res = await API.post("/auth/login", form);
+      const res = await API.post("/auth/login", payload);
       login(res.data.user, res.data.token);
       setSuccess("Login successful ✅ Redirecting...");
       setTimeout(() => navigate("/dashboard"), 1500);

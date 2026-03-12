@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { ThemeContext } from "../contexts/ThemeContexts";
+import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
 import "./CSS/Profile.css";
 
 const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -22,97 +23,162 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="profile-loading center">
-        <div className="spinner" />
-        <p>Loading your TickiSpot profile…</p>
+      <div className={`profile-loading ${darkMode ? "dark-mode" : ""}`}>
+        <div className="profile-loading-spinner" />
+        <p className="profile-loading-text">Loading your profile…</p>
       </div>
     );
   }
 
+  const roleLabel =
+    profile.role === "admin"
+      ? "Admin"
+      : profile.role === "organizer"
+        ? "Organizer"
+        : "Member";
+
   return (
-    <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className={`dashboard-page profile-page ${darkMode ? "dark-mode" : ""}`}>
       <div className="dashboard-container">
-        {/* Cover */}
-        <div className="profile-cover">
-          <img
-            src={
-              profile.coverPic
-                ? `${PORT_URL}/uploads/cover_pic/${profile.coverPic}`
-                : "/cover.jpg"
-            }
-            alt="cover"
-          />
-          <div className="profile-avatar-wrapper">
+        {/* Cover + Avatar */}
+        <div className="profile-hero">
+          <div className="profile-cover">
             <img
               src={
-                profile.profilePic
-                  ? `${PORT_URL}/uploads/profile_pic/${profile.profilePic}`
-                  : "/default-avatar.png"
+                profile.coverPic
+                  ? `${PORT_URL}/uploads/cover_pic/${profile.coverPic}`
+                  : "/cover.jpg"
               }
-              alt="profile"
+              alt=""
             />
+            <div className="profile-cover-overlay" />
+          </div>
+          <div className="profile-avatar-wrap">
+            <div className="profile-avatar-ring">
+              <img
+                src={
+                  profile.profilePic
+                    ? `${PORT_URL}/uploads/profile_pic/${profile.profilePic}`
+                    : "/default-avatar.png"
+                }
+                alt={profile.name}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Info */}
-        <div className="profile-content">
-          <div className="profile-header">
-            <div>
-              <h1>{profile.name}</h1>
-              <p className="username">@{profile.username}</p>
-              {profile.bio && <p className="bio">{profile.bio}</p>}
+        {/* Content card */}
+        <div className="profile-card">
+          <header className="profile-header">
+            <div className="profile-info">
+              <div className="profile-name-row">
+                <h1 className="profile-name">{profile.name}</h1>
+                <span className={`profile-role-badge role-${profile.role}`}>
+                  {roleLabel}
+                </span>
+              </div>
+              <p className="profile-username">@{profile.username}</p>
+              {profile.bio && <p className="profile-bio">{profile.bio}</p>}
             </div>
             <div className="profile-actions">
-              <button className="btn-primary" onClick={() => navigate("/dashboard")}>
+              <button
+                type="button"
+                className="profile-btn profile-btn-primary"
+                onClick={() => navigate("/dashboard")}
+              >
+                <LayoutDashboard size={18} />
                 Dashboard
               </button>
-              <button className="btn-outline" onClick={() => navigate("/edit-profile")}>
+              <button
+                type="button"
+                className="profile-btn profile-btn-secondary"
+                onClick={() => navigate("/edit-profile")}
+              >
+                <Edit3 size={18} />
                 Edit Profile
               </button>
             </div>
-          </div>
-
-          <hr className="divider" />
+          </header>
 
           {/* Tabs */}
-          <div className="tab-container">
+          <nav className="profile-tabs" role="tablist">
             {["upcoming", "past"].map((tab) => (
               <button
                 key={tab}
-                className={`tab-btn ${activeTab === tab ? "active" : ""}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                className={`profile-tab ${activeTab === tab ? "is-active" : ""}`}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab}
+                {tab === "upcoming" ? "Upcoming" : "Past"}
               </button>
             ))}
-
             {(profile.role === "organizer" || profile.role === "admin") && (
               <button
-                className={`tab-btn ${activeTab === "created" ? "active" : ""}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "created"}
+                className={`profile-tab ${activeTab === "created" ? "is-active" : ""}`}
                 onClick={() => setActiveTab("created")}
               >
                 Created
               </button>
             )}
-          </div>
+          </nav>
 
-          {/* Events Grid */}
-          <div className="event-grid">
+          {/* Events */}
+          <div className="profile-events">
             {activeTab === "upcoming" &&
               (profile.tickets?.length ? (
-                profile.tickets.map((event) => <EventCard key={event._id} event={event} />)
+                <div className="profile-event-grid">
+                  {profile.tickets.map((event) => (
+                    <EventCard
+                      key={event._id}
+                      event={event}
+                      onView={() => navigate(`/Eventdetail/${event._id}`)}
+                    />
+                  ))}
+                </div>
               ) : (
-                <EmptyState text="No upcoming events" />
+                <EmptyState
+                  title="No upcoming events"
+                  subtitle="Events you’ve registered for will appear here."
+                  actionLabel="Discover events"
+                  onAction={() => navigate("/events")}
+                />
               ))}
 
             {activeTab === "created" &&
               (profile.createdEvents?.length ? (
-                profile.createdEvents.map((event) => <EventCard key={event._id} event={event} manage />)
+                <div className="profile-event-grid">
+                  {profile.createdEvents.map((event) => (
+                    <EventCard
+                      key={event._id}
+                      event={event}
+                      manage
+                      onView={() => navigate(`/Eventdetail/${event._id}`)}
+                      onManage={() => navigate("/dashboard")}
+                    />
+                  ))}
+                </div>
               ) : (
-                <EmptyState text="No created events" />
+                <EmptyState
+                  title="No created events"
+                  subtitle="Events you create will show up here."
+                  actionLabel="Create event"
+                  onAction={() => navigate("/dashboard")}
+                />
               ))}
 
-            {activeTab === "past" && <EmptyState text="No past events" />}
+            {activeTab === "past" && (
+              <EmptyState
+                title="No past events"
+                subtitle="Your past events will appear here."
+                actionLabel="Browse events"
+                onAction={() => navigate("/events")}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -120,22 +186,64 @@ export default function Profile() {
   );
 }
 
-/* Helpers */
-const EventCard = ({ event, manage }) => (
-  <div className="event-card">
-    {event.image && (
-      <img src={`${PORT_URL}/uploads/event_image/${event.image}`} alt={event.title} />
-    )}
-    <div className="event-body">
-      <h3>{event.title}</h3>
-      <p>{event.description}</p>
-      <div className="meta">📍 {event.location}</div>
-      <div className="meta">🎟 ₦{event.ticketPrice || "0"}</div>
-      <button className={manage ? "btn-outline" : "btn-primary"}>
-        {manage ? "Manage Event" : "View Details"}
-      </button>
-    </div>
-  </div>
-);
+function EventCard({ event, manage, onView, onManage }) {
+  const handlePrimary = () => (manage ? onManage?.() : onView?.());
+  return (
+    <article className="profile-event-card">
+      <div className="profile-event-card-image">
+        {event.image ? (
+          <img
+            src={`${PORT_URL}/uploads/event_image/${event.image}`}
+            alt=""
+            loading="lazy"
+          />
+        ) : (
+          <div className="profile-event-card-placeholder" />
+        )}
+      </div>
+      <div className="profile-event-card-body">
+        <h3 className="profile-event-card-title">{event.title}</h3>
+        {event.description && (
+          <p className="profile-event-card-desc">{event.description}</p>
+        )}
+        <div className="profile-event-card-meta">
+          {event.location && (
+            <span>
+              <MapPin size={14} />
+              {event.location}
+            </span>
+          )}
+          <span>
+            <Ticket size={14} />
+            ₦{event.ticketPrice ?? "0"}
+          </span>
+        </div>
+        <button
+          type="button"
+          className={`profile-event-card-btn ${manage ? "is-outline" : ""}`}
+          onClick={handlePrimary}
+        >
+          {manage ? "Manage Event" : "View Details"}
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </article>
+  );
+}
 
-const EmptyState = ({ text }) => <div className="empty-state">{text}</div>;
+function EmptyState({ title, subtitle, actionLabel, onAction }) {
+  return (
+    <div className="profile-empty">
+      <div className="profile-empty-icon">
+        <Calendar size={40} strokeWidth={1.5} />
+      </div>
+      <h3 className="profile-empty-title">{title}</h3>
+      <p className="profile-empty-subtitle">{subtitle}</p>
+      {actionLabel && onAction && (
+        <button type="button" className="profile-empty-btn" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  );
+}
