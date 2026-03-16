@@ -10,7 +10,7 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat("en-NG").format(num);
 };
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function Home() {
   const [events, setEvents] = useState([]);

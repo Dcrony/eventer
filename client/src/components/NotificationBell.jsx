@@ -3,24 +3,39 @@ import { useNotifications } from "../hooks/useNotifications";
 import { useSocket } from "../hooks/useSocket";
 import { Bell } from "lucide-react";
 import { ThemeContext } from "../contexts/ThemeContexts";
+import "./css/NotificationBell.css";
+
+function formatNotificationTime(date) {
+  const d = new Date(date);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
+}
 
 const NotificationBell = ({ userId }) => {
-  const { notifications, setNotifications, loading, markAsRead } = useNotifications();
+  const { notifications, setNotifications, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const { darkMode } = useContext(ThemeContext);
   const dropdownRef = useRef(null);
 
-  // ✅ Listen for new notifications in real time
   useSocket(userId, (data) => {
     setNotifications((prev) => [
-      { ...data, _id: Date.now(), read: false },
+      { ...data, _id: data._id || Date.now(), read: false, createdAt: data.createdAt || new Date().toISOString() },
       ...prev,
     ]);
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -32,74 +47,75 @@ const NotificationBell = ({ userId }) => {
   }, []);
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      {/* ===== Notification Button ===== */}
+    <div className={`notification-bell-wrap ${darkMode ? "dark-mode" : ""}`} ref={dropdownRef}>
       <button
-        className={`relative flex items-center p-2 rounded-full transition-colors ${darkMode
-          ? "hover:bg-gray-700 text-gray-200"
-          : "hover:bg-gray-100 text-gray-700"
-          }`}
+        type="button"
+        className="notification-bell-trigger"
         onClick={() => setOpen((prev) => !prev)}
+        aria-label="Notifications"
+        aria-expanded={open}
+        aria-haspopup="true"
       >
-        <Bell className="w-6 h-6" />
+        <Bell size={22} strokeWidth={2} />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+          <span className="notification-bell-badge" aria-hidden="true">
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
         )}
       </button>
 
-      {/* ===== Dropdown Panel ===== */}
       {open && (
-        <div
-          className={`absolute left-0 bottom-full mb-2 w-72 shadow-lg rounded-xl border transition-colors z-[10000] ${darkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-100"
-            }`}
-        >
-          <div
-            className={`p-3 border-b text-sm font-semibold ${darkMode ? "border-gray-700 text-gray-200" : "border-gray-100 text-gray-700"
-              }`}
-          >
-            Notifications
-          </div>
+        <div className="notification-bell-dropdown" role="dialog" aria-label="Notifications">
+          <header className="notification-bell-header">
+            <div className="notification-bell-title-wrap">
+              <h2 className="notification-bell-title">Notifications</h2>
+              {unreadCount > 0 && (
+                <span className="notification-bell-count">{unreadCount}</span>
+              )}
+            </div>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                className="notification-bell-mark-all"
+                onClick={() => markAllAsRead()}
+              >
+                Mark all read
+              </button>
+            )}
+          </header>
 
-          {/* Notifications List */}
-          <div className="max-h-60 overflow-y-auto">
+          <div className="notification-bell-list">
             {loading ? (
-              <p
-                className={`text-sm p-3 ${darkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-              >
-                Loading...
-              </p>
+              <div className="notification-bell-loading">
+                <div className="notification-bell-loading-spinner" />
+                <span className="notification-bell-loading-text">Loading…</span>
+              </div>
             ) : notifications.length === 0 ? (
-              <p
-                className={`text-sm p-3 ${darkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-              >
-                No notifications yet.
-              </p>
+              <div className="notification-bell-empty">
+                <div className="notification-bell-empty-icon">
+                  <Bell size={28} strokeWidth={1.5} />
+                </div>
+                <p className="notification-bell-empty-title">No notifications yet</p>
+                <p className="notification-bell-empty-subtitle">
+                  We’ll notify you when something arrives.
+                </p>
+              </div>
             ) : (
               notifications.map((n) => (
-                <div
+                <button
                   key={n._id}
+                  type="button"
+                  className={`notification-bell-item ${n.read ? "is-read" : "is-unread"}`}
                   onClick={() => markAsRead(n._id)}
-                  className={`px-3 py-2 text-sm cursor-pointer transition-colors ${n.read
-                    ? darkMode
-                      ? "text-gray-400 hover:bg-gray-700"
-                      : "text-gray-500 hover:bg-gray-100"
-                    : darkMode
-                      ? "bg-gray-700 text-gray-100 hover:bg-gray-600"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                    }`}
                 >
-                  <p>{n.message}</p>
-                  <span
-                    className={`block text-xs mt-1 ${darkMode ? "text-gray-400" : "text-gray-500"
-                      }`}
-                  >
-                    {new Date(n.createdAt).toLocaleString()}
-                  </span>
-                </div>
+                  <span className="notification-bell-item-dot" aria-hidden="true" />
+                  <div className="notification-bell-item-body">
+                    <p className="notification-bell-item-message">{n.message}</p>
+                    <span className="notification-bell-item-time">
+                      {formatNotificationTime(n.createdAt)}
+                    </span>
+                  </div>
+                </button>
               ))
             )}
           </div>

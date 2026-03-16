@@ -1,138 +1,137 @@
-# 🚀 TickiSpot
-
-**TickiSpot** is a modern **event management and ticketing platform** built with the MERN stack.  
-It enables organizers to **create, manage, and promote events**, while users can **purchase tickets, join livestreams, and engage in real-time chat** — all in one seamless experience.
-
----
-
-## 🧱 Tech Stack
-
-**Frontend:** React.js, Context API, TailwindCSS  
-**Backend:** Node.js, Express.js  
-**Database:** MongoDB (Mongoose)  
-**Others:** JWT Authentication, Cloudinary, EmailJS, Socket.io  
-
----
-
-## ⚙️ Getting Started
-
-### 🧩 1. Clone the Repository
-```bash
-git clone https://github.com/Dcrony/Eventer.git
-cd eventer
-📦 2. Install Dependencies
-Frontend:
-
-bash
+🎟️ TickiSpot
+TickiSpot is a modern event management and ticketing platform that allows users to discover events, purchase digital tickets, and attend live experiences. Organizers can create events, sell tickets, manage attendees, and track earnings — all from a powerful dashboard.
+The platform also includes QR ticket validation, live streaming, withdrawal management, and admin analytics.
+🚀 Features
+🎫 Ticketing System
+Digital ticket generation
+QR code ticket validation
+Secure ticket purchase
+Ticket download & management
+🎤 Event Management
+Create and edit events
+Upload event images
+Event categories and locations
+Live event streaming support
+👤 User Dashboard
+Manage purchased tickets
+Transaction history
+Event access and chat
+Profile management
+🧑‍💼 Organizer Tools
+Event analytics
+Revenue tracking
+Withdrawal requests
+Ticket scanner for entry validation
+🛠️ Admin Dashboard
+User management
+Withdrawal approvals
+Platform analytics
+Payout tracking
+💳 Payment & Finance
+Organizer withdrawals
+Transaction records
+Platform fee tracking
+🌙 Modern UI
+Responsive design
+Dark mode support
+Mobile-friendly interface
+🧰 Tech Stack
+Frontend
+React
+Vite
+React Router
+Lucide Icons
+CSS Modules / Custom CSS
+Backend
+Node.js
+Express.js
+MongoDB
+Mongoose
+Other Tools
+JWT Authentication
+QR Code Generation
+Axios API Client
+📂 Project Structure
 Copy code
-cd client
-npm install
-Backend:
-
-bash
-Copy code
-cd server
-npm install
-
-🔐 Environment Variables
-Create .env files in both client and server directories:
-
-🖥️ Server .env
-env
-Copy code
-PORT=5000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
-PAYSTACK_SECRET=paystack_api_secret
-PAYSTACK_CALLBACK=paystack_callback
-
-
-🌐 Client .env
-env
-Copy code
-REACT_APP_EMAILJS_SERVICE_ID=your_emailjs_service_id
-REACT_APP_EMAILJS_TEMPLATE_ID=your_emailjs_template_id
-REACT_APP_EMAILJS_USER_ID=your_emailjs_user_id
-VITE_API_URL=http://localhost:5000/api
-
-
-✅ Important:
-Add these to .gitignore to protect your environment variables:
-
-bash
-Copy code
-.env
-.env.local
-.env.production
-If you’ve already committed .env, remove it from Git tracking:
-
-bash
-Copy code
-git rm --cached .env
-git commit -m "Removed .env from tracking"
-git push
-
-🧠 Running the App
-Start Backend:
-bash
-Copy code
-cd server
-npm start
-
-Start Frontend:
-bash
-Copy code
-cd client
-npm run dev
-App runs locally at:
-
-Frontend → http://localhost:3000
-
-Backend API → http://localhost:5000
-
-🪜 Branch Naming Convention
-Branch	Purpose
-main	Production-ready code
-dev	Testing and staging
-feature/*	New feature development
-fix/*	Bug fixes
-docs/*	Documentation updates
-
-👥 Contributors
-Name	Role	GitHub
-Ibrahim Abdulmajeed (Dcrony)	Lead Fullstack Developer / Founder	@realdcrony
-Mani	Fullstack Developer	—
-Tojah	Fullstack Developer / Graphic Designer	—
-Tee Shine (Nexa Tech)	Fullstack Developer	—
-
-💡 Interested in contributing? Open an issue or pull request to get involved.
-
-📁 Project Structure
-bash
-Copy code
-
 
 tickispot/
 │
 ├── client/                # React frontend
 │   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── pages/         # Page views (Home, Events, etc.)
-│   │   ├── contexts/      # Theme, Auth, and global context
-│   │   ├── api/           # Axios configuration
-│   │   ├── assets/        # Images, icons, etc.
-│   │   └── App.js
-│   └── package.json
+│   │   ├── pages/
+│   │   ├── components/
+│   │   ├── contexts/
+│   │   ├── api/
+│   │   └── utils/
 │
 ├── server/                # Express backend
-│   ├── controllers/       # Logic for each route
-│   ├── models/            # MongoDB models
-│   ├── routes/            # API routes
-│   ├── middleware/        # Authentication, validation, etc.
-│   ├── config/            # DB connection and environment setup
-│   └── server.js
+│   ├── routes/
+│   ├── controllers/
+│   ├── models/
+│   └── middleware/
 │
 └── README.md
-🧾 License
-Licensed under the MIT License — free to use, modify, and distribute with credit.
+⚙️ Installation
+1️⃣ Clone the Repository
+Bash
+Copy code
+git clone https://github.com/yourusername/tickispot.git
+cd tickispot
+2️⃣ Install Dependencies
+Frontend:
+Bash
+Copy code
+cd client
+npm install
+Backend:
+Bash
+Copy code
+cd server
+npm install
+3️⃣ Setup Environment Variables
+Create a .env file inside the server folder:
+Copy code
 
+PORT=5000
+MONGO_URI=your_mongodb_connection
+JWT_SECRET=your_secret_key
+Frontend .env:
+Copy code
+
+VITE_API_URL=http://localhost:5000
+4️⃣ Run the App
+Start backend:
+Bash
+Copy code
+cd server
+npm run dev
+Start frontend:
+Bash
+Copy code
+cd client
+npm run dev
+🔐 Authentication
+TickiSpot uses JWT-based authentication for secure access to:
+User dashboards
+Organizer tools
+Admin routes
+Protected routes require a valid token in request headers.
+
+🌍 Future Improvements
+Mobile app version
+Advanced event analytics
+Email ticket delivery
+Stripe/Paystack integration
+Multi-organizer team support
+Real-time attendee analytics
+🤝 Contributing
+Contributions are welcome!
+Fork the repository
+Create a feature branch
+Commit your changes
+Submit a Pull Request
+📜 License
+This project is licensed under the MIT License.
+👨‍💻 Author
+TickiSpot Team
+Building the future of event ticketing.

@@ -1,12 +1,14 @@
-import { useState, useEffect, useContext, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
     Users,
     Heart,
     Share2,
     MessageCircle,
     Play,
+    Pause,
     Volume2,
+    VolumeX,
     Settings as SettingsIcon,
     Maximize,
     Flag,
@@ -15,7 +17,12 @@ import {
     MicOff,
     Video as VideoIcon,
     VideoOff,
-    Activity
+    Activity,
+    UserCheck,
+    Calendar,
+    Ticket,
+    Radio,
+    Loader2
 } from "lucide-react";
 import io from "socket.io-client";
 import Peer from "simple-peer";
@@ -23,8 +30,10 @@ import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/LiveStream.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const SERVER_URL = import.meta.env.VITE_SOCKET_URL || API_URL.replace(/\/api\/?$/, "");
+const PORT_URL = SERVER_URL;
+const SOCKET_URL = SERVER_URL;
 
 export default function LiveStream() {
     const { eventId } = useParams();
@@ -33,18 +42,60 @@ export default function LiveStream() {
     const [viewerCount, setViewerCount] = useState(0);
     const [chatMessage, setChatMessage] = useState("");
     const [messages, setMessages] = useState([]);
+    const [hasRemoteStream, setHasRemoteStream] = useState(false);
     const { darkMode } = useContext(ThemeContext);
+    const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem("user"));
+    const currentUserId = user?.id || user?._id;
+
+    // Host panel state
+    const [hostPanelTab, setHostPanelTab] = useState("attendees");
+    const [attendees, setAttendees] = useState([]);
+    const [attendeesLoading, setAttendeesLoading] = useState(false);
+    const [attendeesError, setAttendeesError] = useState(null);
+    const [endStreamConfirm, setEndStreamConfirm] = useState(false);
+    const [endingStream, setEndingStream] = useState(false);
 
     // WebRTC & Socket States
     const [stream, setStream] = useState(null);
     const [isBroadcaster, setIsBroadcaster] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const [mediaError, setMediaError] = useState(null); // getUserMedia failed
+    const [viewerMuted, setViewerMuted] = useState(false);
+    const [viewerPaused, setViewerPaused] = useState(false);
     const socketRef = useRef();
     const myVideo = useRef();
     const remoteVideo = useRef();
+    const videoContainerRef = useRef();
+    const streamRef = useRef(null);
     const peersRef = useRef([]); // For broadcaster: [{peerId, peer}]
+
+    const requestCameraAndMic = useCallback(() => {
+        setMediaError(null);
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then((currentStream) => {
+                // Stop any previous local stream before replacing.
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach((track) => track.stop());
+                }
+                streamRef.current = currentStream;
+                setStream(currentStream);
+                if (myVideo.current) myVideo.current.srcObject = currentStream;
+                const socket = socketRef.current;
+                if (socket) {
+                    socket.off("userJoined");
+                    socket.on("userJoined", (userId) => {
+                        const peer = createPeer(userId, socket.id, currentStream);
+                        peersRef.current.push({ peerId: userId, peer });
+                    });
+                }
+            })
+            .catch((err) => {
+                console.error("Media error:", err);
+                setMediaError(err?.message || "Camera or microphone access denied.");
+            });
+    }, []);
 
     useEffect(() => {
         if (!eventId) return;
@@ -57,7 +108,11 @@ export default function LiveStream() {
                 setLoading(false);
 
                 // Check if the current user is the owner/organizer
-                const isOwner = eventData.createdBy?._id === user?.id || eventData.createdBy === user?.id;
+                const createdById =
+                    typeof eventData.createdBy === "string"
+                        ? eventData.createdBy
+                        : eventData.createdBy?._id || eventData.createdBy?.id;
+                const isOwner = !!currentUserId && createdById === currentUserId;
                 setIsBroadcaster(isOwner);
 
                 // 2. Initialize Socket Connection
@@ -67,29 +122,13 @@ export default function LiveStream() {
                 if (isOwner) {
                     // BROADCASTER LOGIC
                     if (eventData.liveStream?.streamType === "Camera") {
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                            .then((currentStream) => {
-                                setStream(currentStream);
-                                if (myVideo.current) {
-                                    myVideo.current.srcObject = currentStream;
-                                }
-
-                                socketRef.current.on("userJoined", (userId) => {
-                                    console.log("New viewer joined:", userId);
-                                    const peer = createPeer(userId, socketRef.current.id, currentStream);
-                                    peersRef.current.push({
-                                        peerId: userId,
-                                        peer,
-                                    });
-                                });
-                            })
-                            .catch(err => console.error("Media error:", err));
+                        requestCameraAndMic();
                     }
                 } else {
                     // VIEWER LOGIC
                     if (eventData.liveStream?.streamType === "Camera") {
                         socketRef.current.on("signal", (data) => {
-                            const peer = addPeer(data.signal, data.from);
+                            addPeer(data.signal, data.from);
                         });
                     }
                 }
@@ -111,11 +150,20 @@ export default function LiveStream() {
 
         return () => {
             if (socketRef.current) socketRef.current.disconnect();
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => track.stop());
+                streamRef.current = null;
             }
         };
-    }, [eventId]);
+    }, [currentUserId, eventId, requestCameraAndMic]);
+
+    // Keep local camera stream attached to host preview.
+    // This prevents a blank self-view when getUserMedia resolves before the video ref is ready.
+    useEffect(() => {
+        if (isBroadcaster && myVideo.current && stream) {
+            myVideo.current.srcObject = stream;
+        }
+    }, [isBroadcaster, stream]);
 
     // Broadcaster Helper: Create a new peer for a viewer
     function createPeer(userToSignal, callerID, stream) {
@@ -143,10 +191,11 @@ export default function LiveStream() {
             socketRef.current.emit("signal", { to: callerID, from: socketRef.current.id, signal });
         });
 
-        peer.on("stream", (stream) => {
+        peer.on("stream", (incomingStream) => {
             if (remoteVideo.current) {
-                remoteVideo.current.srcObject = stream;
+                remoteVideo.current.srcObject = incomingStream;
             }
+            setHasRemoteStream(true);
         });
 
         peer.signal(incomingSignal);
@@ -170,213 +219,590 @@ export default function LiveStream() {
 
     const toggleAudio = () => {
         if (stream) {
-            stream.getAudioTracks()[0].enabled = !stream.getAudioTracks()[0].enabled;
-            setIsMuted(!stream.getAudioTracks()[0].enabled);
+            const audioTrack = stream.getAudioTracks()[0];
+            if (!audioTrack) return;
+            audioTrack.enabled = !audioTrack.enabled;
+            setIsMuted(!audioTrack.enabled);
         }
     };
 
     const toggleVideo = () => {
         if (stream) {
-            stream.getVideoTracks()[0].enabled = !stream.getVideoTracks()[0].enabled;
-            setIsVideoOff(!stream.getVideoTracks()[0].enabled);
+            const videoTrack = stream.getVideoTracks()[0];
+            if (!videoTrack) return;
+            videoTrack.enabled = !videoTrack.enabled;
+            setIsVideoOff(!videoTrack.enabled);
         }
+    };
+
+    const toggleFullscreen = () => {
+        const el = videoContainerRef.current;
+        if (!el) return;
+        if (!document.fullscreenElement) {
+            el.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    };
+
+    const toggleViewerPlayPause = () => {
+        const video = remoteVideo.current;
+        if (!video) return;
+        if (video.paused) {
+            video.play();
+            setViewerPaused(false);
+        } else {
+            video.pause();
+            setViewerPaused(true);
+        }
+    };
+
+    const toggleViewerMute = () => {
+        const video = remoteVideo.current;
+        if (!video) return;
+        video.muted = !video.muted;
+        setViewerMuted(video.muted);
+    };
+
+    // Fetch attendees (ticket holders) when host
+    useEffect(() => {
+        if (!isBroadcaster || !eventId) return;
+        setAttendeesLoading(true);
+        setAttendeesError(null);
+        API.get(`/events/buyers/${eventId}`)
+            .then((res) => {
+                setAttendees(res.data || []);
+                setAttendeesLoading(false);
+            })
+            .catch(() => {
+                setAttendeesError("Could not load attendees.");
+                setAttendeesLoading(false);
+            });
+    }, [isBroadcaster, eventId]);
+
+    const handleEndStream = () => {
+        if (!eventId || !endStreamConfirm) return;
+        setEndingStream(true);
+        API.patch("/events/toggle-live", { eventId, isLive: false })
+            .then(() => {
+                navigate("/dashboard");
+            })
+            .catch(() => {
+                setEndingStream(false);
+                alert("Failed to end stream. Please try again.");
+            });
     };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-900 text-white">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-pink-500"></div>
+            <div className="live-stream-loading">
+                <div className="live-stream-loading-spinner" />
+                <p className="live-stream-loading-text">Loading stream…</p>
             </div>
         );
     }
 
     if (!event) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen bg-slate-900 text-white p-4">
-                <h2 className="text-2xl font-bold mb-4">Stream Not Found</h2>
-                <Link to="/events" className="text-pink-500 hover:underline">Return to Events</Link>
+            <div className="live-stream-notfound">
+                <h2>Stream not found</h2>
+                <Link to="/live/events">Return to Live</Link>
             </div>
         );
     }
 
+    const renderVideoContent = () => {
+        if (event.liveStream?.streamType === "Camera") {
+            if (isBroadcaster) {
+                return <video ref={myVideo} autoPlay muted playsInline />;
+            }
+            return (
+                <>
+                    <video
+                        ref={remoteVideo}
+                        autoPlay
+                        playsInline
+                        poster={event.image ? `${PORT_URL}/uploads/event_image/${event.image}` : undefined}
+                        onPlay={() => setViewerPaused(false)}
+                        onPause={() => setViewerPaused(true)}
+                    />
+                    {!hasRemoteStream && (
+                        <div className="stream-waiting-overlay">
+                            <div className="stream-waiting-spinner" />
+                            <p className="stream-waiting-text">Waiting for broadcaster…</p>
+                        </div>
+                    )}
+                </>
+            );
+        }
+        if (event.liveStream?.streamURL) {
+            return (
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={event.liveStream.streamURL.replace("watch?v=", "embed/")}
+                    title="Live Stream"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                />
+            );
+        }
+        return (
+            <div className={`stream-empty-state ${isBroadcaster ? "has-url" : ""}`}>
+                <div className="stream-empty-icon-wrap">
+                    <VideoIcon size={40} strokeWidth={1.5} />
+                </div>
+                <h3 className="stream-empty-title">
+                    {isBroadcaster ? "No stream URL set" : "Stream not available"}
+                </h3>
+                <p className="stream-empty-desc">
+                    {isBroadcaster
+                        ? "Add a YouTube or custom stream URL in your event settings to go live here."
+                        : `This ${event.liveStream?.streamType || "stream"} hasn't been configured yet.`}
+                </p>
+                {isBroadcaster && (
+                    <Link to="/dashboard" className="stream-empty-cta">
+                        <SettingsIcon size={18} />
+                        Go to Dashboard to set stream URL
+                    </Link>
+                )}
+            </div>
+        );
+    };
+
+    const showControls =
+        (event.liveStream?.streamType === "Camera" && (isBroadcaster || hasRemoteStream)) ||
+        (event.liveStream?.streamType !== "Camera" && event.liveStream?.streamURL);
+
     return (
-        <div className={`live-stream-container ${darkMode ? 'dark' : ''}`}>
+        <div className={`live-stream-container ${isBroadcaster ? "host" : "viewer"} ${darkMode ? "dark" : ""}`}>
             {/* Main Stream Area */}
             <section className="main-stream-area">
-                <div className="video-container">
-                    <div className="video-placeholder !bg-black">
-                        {event.liveStream?.streamType === "Camera" ? (
-                            isBroadcaster ? (
-                                <video
-                                    ref={myVideo}
-                                    autoPlay
-                                    muted
-                                    playsInline
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <>
-                                    <video
-                                        ref={remoteVideo}
-                                        autoPlay
-                                        playsInline
-                                        className="w-full h-full object-cover"
-                                        poster={event.image ? `${PORT_URL}/uploads/event_image/${event.image}` : undefined}
-                                    />
-                                    {!remoteVideo.current?.srcObject && (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                                            <Activity className="animate-spin mb-4" />
-                                            <p>Waiting for broadcaster...</p>
-                                        </div>
+                <div className="video-container" ref={videoContainerRef}>
+                    <div className="video-placeholder">
+                        {renderVideoContent()}
+
+                        <div className="stream-session-status">
+                            {isBroadcaster && event.liveStream?.streamType === "Camera" && (
+                                <div className="stream-device-status">
+                                    <span className={`device-chip ${stream && !isVideoOff ? "ok" : "off"}`}>
+                                        <VideoIcon size={14} />
+                                        {stream && !isVideoOff ? "Camera on" : "Camera off"}
+                                    </span>
+                                    <span className={`device-chip ${stream && !isMuted ? "ok" : "off"}`}>
+                                        <Mic size={14} />
+                                        {stream && !isMuted ? "Mic on" : "Mic muted"}
+                                    </span>
+                                    {!stream && (
+                                        <button
+                                            type="button"
+                                            className="device-retry-btn"
+                                            onClick={requestCameraAndMic}
+                                        >
+                                            Enable devices
+                                        </button>
                                     )}
-                                </>
-                            )
-                        ) : (
-                            <div className="w-full h-full">
-                                {event.liveStream?.streamURL ? (
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        src={event.liveStream.streamURL.replace("watch?v=", "embed/")}
-                                        title="Live Stream"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    ></iframe>
-                                ) : (
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                                        <VideoIcon size={48} className="mb-4" />
-                                        <p>No stream URL provided for {event.liveStream?.streamType}</p>
-                                    </div>
-                                )}
+                                </div>
+                            )}
+                        </div>
+
+                        {isBroadcaster && event.liveStream?.streamType === "Camera" && !stream && (
+                            <div className="stream-start-camera-overlay">
+                                <div className="stream-start-camera-box">
+                                    <VideoIcon size={48} className="stream-start-camera-icon" />
+                                    <h3 className="stream-start-camera-title">Camera & microphone</h3>
+                                    <p className="stream-start-camera-desc">
+                                        Enable camera and voice so viewers can see and hear you.
+                                    </p>
+                                    {mediaError && (
+                                        <p className="stream-start-camera-error" role="alert">{mediaError}</p>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="stream-start-camera-btn"
+                                        onClick={requestCameraAndMic}
+                                    >
+                                        Enable camera & microphone
+                                    </button>
+                                </div>
                             </div>
                         )}
 
-                        <div className="stream-overlay">
-                            <div className="live-indicator">
-                                <div className="w-2 h-2 rounded-full bg-white animate-ping"></div>
-                                LIVE
-                            </div>
-                            <div className="viewer-count">
-                                <Users size={14} />
-                                {viewerCount.toLocaleString()}
-                            </div>
-                        </div>
+                        {event.liveStream?.isLive && (
+                            <>
+                                <div className="stream-overlay">
+                                    <span className="live-indicator">
+                                        <span className="live-indicator-dot" aria-hidden />
+                                        LIVE
+                                    </span>
+                                    <span className="viewer-count">
+                                        <Users size={14} />
+                                        {viewerCount.toLocaleString()}
+                                    </span>
+                                </div>
+                            </>
+                        )}
 
-                        {/* Video Controls */}
-                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-6">
-                                    {isBroadcaster ? (
-                                        <>
-                                            <button onClick={toggleAudio} className={`p-2 rounded-full ${isMuted ? 'bg-red-500' : 'bg-white/20'}`}>
-                                                {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
-                                            </button>
-                                            <button onClick={toggleVideo} className={`p-2 rounded-full ${isVideoOff ? 'bg-red-500' : 'bg-white/20'}`}>
-                                                {isVideoOff ? <VideoOff size={20} /> : <VideoIcon size={20} />}
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Play size={20} className="cursor-pointer hover:text-pink-500" />
-                                            <Volume2 size={20} className="cursor-pointer hover:text-pink-500" />
-                                        </>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-6">
-                                    <SettingsIcon size={20} className="cursor-pointer hover:text-pink-500" />
-                                    <Maximize size={20} className="cursor-pointer hover:text-pink-500" />
+                        {showControls ? (
+                            <div className={`stream-controls-bar ${isBroadcaster ? "stream-controls-bar--always" : ""}`}>
+                                <div className="stream-controls-inner">
+                                    <div className="stream-controls-left">
+                                        {isBroadcaster ? (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleAudio}
+                                                    disabled={!stream}
+                                                    className={`stream-control-btn ${isMuted ? "muted" : ""}`}
+                                                    aria-label={isMuted ? "Unmute" : "Mute"}
+                                                    title={isMuted ? "Unmute" : "Mute microphone"}
+                                                >
+                                                    {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                                                    <span className="stream-control-label">{isMuted ? "Unmute" : "Mic"}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={toggleVideo}
+                                                    disabled={!stream}
+                                                    className={`stream-control-btn ${isVideoOff ? "off" : ""}`}
+                                                    aria-label={isVideoOff ? "Turn video on" : "Turn video off"}
+                                                    title={isVideoOff ? "Turn camera on" : "Turn camera off"}
+                                                >
+                                                    {isVideoOff ? <VideoOff size={20} /> : <VideoIcon size={20} />}
+                                                    <span className="stream-control-label">{isVideoOff ? "Start camera" : "Camera"}</span>
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="stream-control-btn"
+                                                    aria-label={viewerPaused ? "Play" : "Pause"}
+                                                    onClick={toggleViewerPlayPause}
+                                                    title={viewerPaused ? "Play" : "Pause"}
+                                                >
+                                                    {viewerPaused ? <Play size={20} /> : <Pause size={20} />}
+                                                    <span className="stream-control-label">{viewerPaused ? "Play" : "Pause"}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`stream-control-btn ${viewerMuted ? "muted" : ""}`}
+                                                    aria-label={viewerMuted ? "Unmute" : "Mute"}
+                                                    onClick={toggleViewerMute}
+                                                    title={viewerMuted ? "Unmute" : "Mute"}
+                                                >
+                                                    {viewerMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                                                    <span className="stream-control-label">{viewerMuted ? "Unmute" : "Volume"}</span>
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="stream-controls-right">
+                                        <button type="button" className="stream-control-btn" aria-label="Fullscreen" onClick={toggleFullscreen} title="Fullscreen">
+                                            <Maximize size={20} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        ) : null}
                     </div>
                 </div>
 
                 {/* Stream Info Area */}
                 <div className="stream-info-bar">
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
+                    <div className="stream-info-header">
+                        <div className="stream-info-title-block">
                             <h1 className="stream-title">{event.title}</h1>
-                            <div className="flex items-center gap-3 text-slate-400 text-sm">
-                                <span className="flex items-center gap-1"><Info size={14} /> {event.category || "Event"}</span>
-                                <span>•</span>
-                                <span>{isBroadcaster ? "You are broadcasting" : `Started at ${new Date(event.startDate).toLocaleTimeString()}`}</span>
+                            <div className="stream-meta-line">
+                                <span><Info size={14} /> {event.category || "Event"}</span>
+                                <span>·</span>
+                                <span>{isBroadcaster ? "You are broadcasting" : `Started ${new Date(event.startDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}</span>
                             </div>
                         </div>
                         <div className="stream-actions">
-                            <button className="btn-stream btn-share">
-                                <Share2 size={18} /> Share
-                            </button>
-                            <button className="btn-stream btn-secondary bg-slate-700 px-3">
-                                <Flag size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="creator-strip">
-                        <div className="creator-info-left">
-                            {event.createdBy?.profilePic ? (
-                                <img
-                                    src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
-                                    alt={event.createdBy.username}
-                                    className="creator-avatar-large"
-                                />
-                            ) : (
-                                <div className="creator-avatar-large bg-pink-500 flex items-center justify-center font-bold">
-                                    {event.createdBy?.username?.charAt(0) || "U"}
-                                </div>
+                            {!isBroadcaster && (
+                                <>
+                                    <button type="button" className="btn-stream btn-share">
+                                        <Share2 size={18} /> Share
+                                    </button>
+                                    <button type="button" className="btn-stream btn-flag" aria-label="Report">
+                                        <Flag size={18} />
+                                    </button>
+                                </>
                             )}
-                            <div className="creator-details">
-                                <h4>{event.createdBy?.username || "Organizer"}</h4>
-                                <p className="follower-count">1.2K followers</p>
-                            </div>
-                            <button className="btn-stream btn-follow ml-4">
-                                <Heart size={18} /> Follow
-                            </button>
                         </div>
                     </div>
 
-                    <div className="mt-6 text-slate-300 text-sm border-t border-slate-700 pt-4">
+                    {!isBroadcaster && (
+                        <div className="creator-strip">
+                            <div className="creator-info-left">
+                                {event.createdBy?.profilePic ? (
+                                    <img
+                                        src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                                        alt=""
+                                        className="creator-avatar-large"
+                                    />
+                                ) : (
+                                    <div className="creator-avatar-large placeholder">
+                                        {event.createdBy?.username?.charAt(0) || "U"}
+                                    </div>
+                                )}
+                                <div className="creator-details">
+                                    <h4>{event.createdBy?.username || "Organizer"}</h4>
+                                    <p className="follower-count">1.2K followers</p>
+                                </div>
+                                <button type="button" className="btn-stream btn-follow">
+                                    <Heart size={18} /> Follow
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="stream-description-block">
                         <p>{event.description || "Join us for this amazing live event! Don't forget to interact in the chat."}</p>
                     </div>
                 </div>
             </section>
 
-            {/* Chat Sidebar */}
-            <aside className="stream-chat-sidebar">
-                <div className="chat-header">
-                    Live Chat
-                </div>
-                <div className="chat-messages-container scrollbar-hide">
-                    {messages.length === 0 && (
-                        <div className="text-center text-slate-500 mt-10 text-sm">
-                            Welcome to the chat! Say hello 👋
+            {/* Host panel (host only) or Chat sidebar (viewer / ticket purchasers) */}
+            {isBroadcaster ? (
+                <aside className="stream-host-panel">
+                    <div className="host-panel-tabs">
+                        <button
+                            type="button"
+                            className={`host-panel-tab ${hostPanelTab === "attendees" ? "active" : ""}`}
+                            onClick={() => setHostPanelTab("attendees")}
+                        >
+                            <UserCheck size={16} />
+                            Attendees
+                            {attendees.length > 0 && (
+                                <span className="host-panel-tab-badge">{attendees.length}</span>
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            className={`host-panel-tab ${hostPanelTab === "event" ? "active" : ""}`}
+                            onClick={() => setHostPanelTab("event")}
+                        >
+                            <Calendar size={16} />
+                            Event
+                        </button>
+                        <button
+                            type="button"
+                            className={`host-panel-tab ${hostPanelTab === "chat" ? "active" : ""}`}
+                            onClick={() => setHostPanelTab("chat")}
+                        >
+                            <MessageCircle size={16} />
+                            Chat
+                        </button>
+                    </div>
+
+                    <div className="host-panel-content">
+                        {hostPanelTab === "attendees" && (
+                            <div className="host-attendees">
+                                <h3 className="host-section-title">
+                                    Ticket holders ({attendees.length})
+                                </h3>
+                                {attendeesLoading && (
+                                    <div className="host-attendees-loading">
+                                        <Loader2 size={24} className="host-spinner" />
+                                        <span>Loading attendees…</span>
+                                    </div>
+                                )}
+                                {attendeesError && (
+                                    <div className="host-attendees-error">
+                                        <p>{attendeesError}</p>
+                                        <button
+                                            type="button"
+                                            className="host-retry-btn"
+                                            onClick={() => {
+                                                setAttendeesError(null);
+                                                setAttendeesLoading(true);
+                                                API.get(`/events/buyers/${eventId}`)
+                                                    .then((res) => { setAttendees(res.data || []); setAttendeesLoading(false); })
+                                                    .catch(() => { setAttendeesError("Could not load attendees."); setAttendeesLoading(false); });
+                                            }}
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
+                                )}
+                                {!attendeesLoading && !attendeesError && attendees.length === 0 && (
+                                    <div className="host-attendees-empty">No attendees yet</div>
+                                )}
+                                {!attendeesLoading && !attendeesError && attendees.length > 0 && (
+                                    <ul className="host-attendees-list">
+                                        {attendees.map((t) => (
+                                            <li key={t._id} className="host-attendee-item">
+                                                {t.buyer?.profilePic ? (
+                                                    <img
+                                                        src={`${PORT_URL}/uploads/profile_pic/${t.buyer.profilePic}`}
+                                                        alt=""
+                                                        className="host-attendee-avatar"
+                                                    />
+                                                ) : (
+                                                    <div className="host-attendee-avatar host-attendee-avatar-fallback">
+                                                        {t.buyer?.username?.charAt(0) || "?"}
+                                                    </div>
+                                                )}
+                                                <div className="host-attendee-info">
+                                                    <span className="host-attendee-name">
+                                                        {t.buyer?.username || "Guest"}
+                                                    </span>
+                                                    <span className="host-attendee-meta">
+                                                        {t.ticketType} · {t.quantity} ticket{t.quantity > 1 ? "s" : ""}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+
+                        {hostPanelTab === "event" && (
+                            <div className="host-event-summary">
+                                <h3 className="host-section-title">Event summary</h3>
+                                <div className="host-event-card">
+                                    <p className="host-event-name">{event.title}</p>
+                                    <p className="host-event-meta">
+                                        <Calendar size={14} />
+                                        {new Date(event.startDate).toLocaleDateString(undefined, {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                        })}
+                                    </p>
+                                    <p className="host-event-tickets">
+                                        <Ticket size={14} />
+                                        Tickets sold: {event.ticketsSold ?? 0} / {event.totalTickets ?? 0}
+                                    </p>
+                                </div>
+                                <div className="host-end-stream-section">
+                                    <button
+                                        type="button"
+                                        className="host-end-stream-btn"
+                                        onClick={() => setEndStreamConfirm(true)}
+                                        disabled={endingStream}
+                                    >
+                                        {endingStream ? (
+                                            <Loader2 size={18} className="host-spinner" />
+                                        ) : (
+                                            <Radio size={18} />
+                                        )}
+                                        End stream
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {hostPanelTab === "chat" && (
+                            <>
+                                <div className="host-chat-messages scrollbar-hide">
+                                    {messages.length === 0 && (
+                                        <div className="chat-welcome">
+                                            <span className="chat-welcome-icon">👋</span>
+                                            Welcome to the chat! Say hello.
+                                        </div>
+                                    )}
+                                    {messages.map((msg) => (
+                                        <div key={msg.id} className="mock-message">
+                                            <span className={`mock-user ${msg.isAdmin ? "broadcaster" : ""}`}>
+                                                {msg.user}:
+                                            </span>
+                                            <span className="mock-text">{msg.text}</span>
+                                        </div>
+                                    ))}
+                                    <div className="chat-community-note">
+                                        <MessageCircle size={14} />
+                                        <span>Keep the community safe and friendly!</span>
+                                    </div>
+                                </div>
+                                <div className="chat-input-wrapper">
+                                    <input
+                                        type="text"
+                                        placeholder="Send a message..."
+                                        className="chat-input-field"
+                                        value={chatMessage}
+                                        onChange={(e) => setChatMessage(e.target.value)}
+                                        onKeyDown={sendMessage}
+                                        aria-label="Chat message"
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </div>
+
+                    {endStreamConfirm && (
+                        <div className="host-end-stream-modal">
+                            <div className="host-end-stream-modal-inner">
+                                <h3>End stream?</h3>
+                                <p>This will end the stream for everyone. You can go live again later from your dashboard.</p>
+                                <div className="host-end-stream-modal-actions">
+                                    <button
+                                        type="button"
+                                        className="host-btn-cancel"
+                                        onClick={() => setEndStreamConfirm(false)}
+                                        disabled={endingStream}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="host-btn-end"
+                                        onClick={handleEndStream}
+                                        disabled={endingStream}
+                                    >
+                                        {endingStream ? <Loader2 size={18} className="host-spinner" /> : null}
+                                        End stream for everyone
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
-                    {messages.map(msg => (
-                        <div key={msg.id} className="mock-message animate-in slide-in-from-bottom-2 duration-300">
-                            <span className={`mock-user ${msg.isAdmin ? 'text-pink-400' : 'text-slate-300'}`}>
-                                {msg.user}:
-                            </span>
-                            <span className="mock-text">{msg.text}</span>
-                        </div>
-                    ))}
-                    <div className="mt-auto p-2 bg-pink-500/10 border border-pink-500/20 rounded-lg text-xs text-pink-300 flex items-center gap-2">
-                        <MessageCircle size={14} />
-                        Keep the community safe and friendly!
+                </aside>
+            ) : (
+                <aside className="stream-chat-sidebar">
+                    <div className="chat-header">
+                        <MessageCircle size={16} />
+                        Live Chat
                     </div>
-                </div>
-                <div className="chat-input-wrapper">
-                    <input
-                        type="text"
-                        placeholder="Send a message..."
-                        className="chat-input-field"
-                        value={chatMessage}
-                        onChange={(e) => setChatMessage(e.target.value)}
-                        onKeyDown={sendMessage}
-                    />
-                </div>
-            </aside>
+                    <div className="chat-messages-container scrollbar-hide">
+                        {messages.length === 0 && (
+                            <div className="chat-welcome">
+                                <span className="chat-welcome-icon">👋</span>
+                                Welcome to the chat! Say hello.
+                            </div>
+                        )}
+                        {messages.map((msg) => (
+                            <div key={msg.id} className="mock-message">
+                                <span className={`mock-user ${msg.isAdmin ? "broadcaster" : ""}`}>
+                                    {msg.user}:
+                                </span>
+                                <span className="mock-text">{msg.text}</span>
+                            </div>
+                        ))}
+                        <div className="chat-community-note">
+                            <MessageCircle size={14} />
+                            <span>Keep the community safe and friendly!</span>
+                        </div>
+                    </div>
+                    <div className="chat-input-wrapper">
+                        <input
+                            type="text"
+                            placeholder="Send a message..."
+                            className="chat-input-field"
+                            value={chatMessage}
+                            onChange={(e) => setChatMessage(e.target.value)}
+                            onKeyDown={sendMessage}
+                            aria-label="Chat message"
+                        />
+                    </div>
+                </aside>
+            )}
         </div>
     );
 }

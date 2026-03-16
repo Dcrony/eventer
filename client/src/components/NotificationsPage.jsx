@@ -6,10 +6,25 @@ import { ThemeContext } from "../contexts/ThemeContexts";
 import { Bell, ArrowLeft, CheckCheck, Trash2 } from "lucide-react";
 import "./css/notificationsPage.css";
 
+// Add pull-to-refresh for mobile
+import { useCallback } from "react";
+
+
 export default function NotificationsPage() {
   const { notifications, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
   const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
+
+
+
+const [refreshing, setRefreshing] = useState(false);
+
+const handleRefresh = useCallback(async () => {
+  setRefreshing(true);
+  await fetchNotifications();
+  setRefreshing(false);
+}, []);
+
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

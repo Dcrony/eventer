@@ -18,7 +18,7 @@ import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/MyTickets.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);

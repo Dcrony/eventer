@@ -1,144 +1,439 @@
-import { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Users, Play, Calendar, MapPin, Search, Video } from "lucide-react";
+import { useEffect, useState, useMemo, useContext, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Users,
+  Play,
+  MapPin,
+  Search,
+  Video,
+  Radio,
+  Sparkles,
+  X,
+  ChevronDown,
+  RotateCw,
+  Settings,
+} from "lucide-react";
 import API from "../api/axios";
 import GoLiveModal from "./GoLiveModal";
+import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/LiveEvents.css";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const PORT_URL = API_URL.replace(/\/api\/?$/, "");
+
+const SORT_OPTIONS = [
+  { value: "recent", label: "Recently live" },
+  { value: "viewers", label: "Most viewers" },
+  { value: "title", label: "Title A–Z" },
+];
+
+function getViewerCount(event) {
+  return typeof event.liveStream?.viewerCount === "number"
+    ? event.liveStream.viewerCount
+    : 0;
+}
 
 export default function LiveEvent() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [isGoLiveOpen, setIsGoLiveOpen] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const goLiveBtnRef = useRef(null);
+  const sortWrapRef = useRef(null);
   const navigate = useNavigate();
+  const { darkMode } = useContext(ThemeContext);
 
   useEffect(() => {
-    API.get("/events")
+    const handleClickOutside = (e) => {
+      if (sortWrapRef.current && !sortWrapRef.current.contains(e.target)) {
+        setSortDropdownOpen(false);
+      }
+    };
+    if (sortDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [sortDropdownOpen]);
+
+  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("user");
+  const user = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  }, []);
+  const currentUserId = user?.id || user?._id;
+
+  const fetchEvents = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    const url = "/events?liveOnly=true";
+    API.get(url)
       .then((res) => {
-        setEvents(res.data);
+        setEvents(res.data || []);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
+      .catch(() => {
+        setError("Failed to load live streams. Please try again.");
         setLoading(false);
       });
   }, []);
 
-  const liveEvents = useMemo(() => {
-    return events.filter(e =>
-      e.liveStream?.isLive &&
-      (e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.createdBy?.username?.toLowerCase().includes(searchQuery.toLowerCase()))
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        API.get("/events?liveOnly=true")
+          .then((res) => setEvents(res.data || []))
+          .catch(() => {});
+      }
+    }, 50000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const myLiveEvent = useMemo(() => {
+    if (!currentUserId || !events?.length) return null;
+    return events.find(
+      (e) => {
+        const ownerId =
+          typeof e.createdBy === "string"
+            ? e.createdBy
+            : e.createdBy?._id || e.createdBy?.id;
+        return e.liveStream?.isLive && ownerId === currentUserId;
+      }
+    ) || null;
+  }, [currentUserId, events]);
+
+  const liveEventsBase = useMemo(() => {
+    return (events || []).filter(
+      (e) =>
+        e.liveStream?.isLive &&
+        (e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          e.createdBy?.username?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [events, searchQuery]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-pink-500"></div>
-      </div>
-    );
-  }
+  const categories = useMemo(() => {
+    const set = new Set();
+    liveEventsBase.forEach((e) => e.category && set.add(e.category));
+    return Array.from(set).sort();
+  }, [liveEventsBase]);
+
+  const locations = useMemo(() => {
+    const set = new Set();
+    liveEventsBase.forEach((e) => e.location && set.add(e.location));
+    return Array.from(set).sort();
+  }, [liveEventsBase]);
+
+  const liveEvents = useMemo(() => {
+    let list = liveEventsBase.filter((e) => {
+      if (categoryFilter && e.category !== categoryFilter) return false;
+      if (locationFilter && e.location !== locationFilter) return false;
+      return true;
+    });
+    if (sortBy === "viewers") {
+      list = [...list].sort((a, b) => getViewerCount(b) - getViewerCount(a));
+    } else if (sortBy === "title") {
+      list = [...list].sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+    } else {
+      list = [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+    return list;
+  }, [liveEventsBase, categoryFilter, locationFilter, sortBy]);
+
+  const isSearchEmpty = searchQuery.trim() !== "" && liveEvents.length === 0 && !loading && !error;
+  const isGenericEmpty = !loading && !error && liveEvents.length === 0 && searchQuery.trim() === "" && !categoryFilter && !locationFilter;
 
   return (
-    <div className="live-events-page">
-      <div className="live-header-section">
-        <h1 className="live-page-title">
-          <div className="live-dot"></div>
-          Live Now
-        </h1>
-
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search live streams..."
-              className="pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full focus:ring-2 focus:ring-pink-500 outline-none w-64 transition-all focus:w-80"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+    <div className={`live-page ${darkMode ? "dark-mode" : ""}`}>
+      <div className="live-page-bg" aria-hidden="true" />
+      <div className="live-container">
+        <header className="live-header">
+          <div className="live-header-text">
+            <h1 className="live-title">
+              <span className="live-title-dot" aria-hidden="true" />
+              Live Now
+            </h1>
+            <p className="live-subtitle">
+              <span className="live-count" aria-live="polite">
+                {!loading && !error && liveEvents.length > 0
+                  ? `${liveEvents.length} stream${liveEvents.length === 1 ? "" : "s"} live now`
+                  : "Watch streams in real time and connect with organizers"}
+              </span>
+            </p>
           </div>
-
-          <button
-            onClick={() => setIsGoLiveOpen(true)}
-            className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-5 py-2.5 rounded-full font-bold shadow-lg shadow-pink-500/20 hover:shadow-pink-500/40 transition-all active:scale-95 whitespace-nowrap"
-          >
-            <Video size={18} />
-            Go Live
-          </button>
-        </div>
-      </div>
-
-      <div className="live-events-grid">
-        {liveEvents.length === 0 ? (
-          <div className="live-no-events">
-            <h3 className="text-xl font-bold mb-2">No live events found</h3>
-            <p className="text-slate-500">Check back later or try a different search.</p>
+          <div className="live-header-actions">
+            <div className="live-search-wrap">
+              <Search className="live-search-icon" size={18} aria-hidden="true" />
+              <input
+                type="search"
+                placeholder="Search live streams..."
+                className="live-search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search live streams"
+              />
+            </div>
+            <div className="live-sort-wrap" ref={sortWrapRef}>
+              <button
+                type="button"
+                className="live-sort-btn"
+                onClick={() => setSortDropdownOpen((o) => !o)}
+                aria-expanded={sortDropdownOpen}
+                aria-haspopup="listbox"
+                aria-label="Sort by"
+              >
+                {SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Sort"}
+                <ChevronDown size={16} />
+              </button>
+              {sortDropdownOpen && (
+                <ul
+                  className="live-sort-dropdown"
+                  role="listbox"
+                  aria-label="Sort options"
+                >
+                  {SORT_OPTIONS.map((opt) => (
+                    <li
+                      key={opt.value}
+                      role="option"
+                      aria-selected={sortBy === opt.value}
+                      className="live-sort-option"
+                      onClick={() => {
+                        setSortBy(opt.value);
+                        setSortDropdownOpen(false);
+                      }}
+                    >
+                      {opt.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {isLoggedIn && (
+              <button
+                ref={goLiveBtnRef}
+                type="button"
+                className="live-go-live-btn"
+                onClick={() => setIsGoLiveOpen(true)}
+              >
+                <Video size={18} />
+                Go Live
+              </button>
+            )}
           </div>
-        ) : (
-          liveEvents.map((event) => (
-            <div
-              key={event._id}
-              className="stream-card"
-              onClick={() => navigate(`/live/${event._id}`)}
-            >
-              <div className="stream-thumbnail-wrapper">
-                {event.image ? (
-                  <img
-                    src={`${PORT_URL}/uploads/event_image/${event.image}`}
-                    alt={event.title}
-                    className="stream-thumbnail"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                    <Play size={40} className="text-pink-500 opacity-30" />
-                  </div>
-                )}
+        </header>
 
-                <div className="card-live-badge">LIVE</div>
-                <div className="card-viewer-count">
-                  <Users size={12} />
-                  {Math.floor(Math.random() * 200) + 10}
-                </div>
-              </div>
+        {(categories.length > 0 || locations.length > 0) && !loading && !error && (
+          <div className="live-filters">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                className={`live-filter-chip ${categoryFilter === cat ? "active" : ""}`}
+                onClick={() => setCategoryFilter((c) => (c === cat ? "" : cat))}
+              >
+                {cat}
+              </button>
+            ))}
+            {locations.map((loc) => (
+              <button
+                key={loc}
+                type="button"
+                className={`live-filter-chip ${locationFilter === loc ? "active" : ""}`}
+                onClick={() => setLocationFilter((l) => (l === loc ? "" : loc))}
+              >
+                <MapPin size={12} />
+                {loc}
+              </button>
+            ))}
+          </div>
+        )}
 
-              <div className="stream-card-content">
-                {event.createdBy?.profilePic ? (
-                  <img
-                    src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
-                    alt={event.createdBy.username}
-                    className="stream-channel-avatar"
-                  />
-                ) : (
-                  <div className="stream-channel-avatar bg-pink-500 flex items-center justify-center font-bold text-white">
-                    {event.createdBy?.username?.charAt(0) || "U"}
-                  </div>
-                )}
+        {myLiveEvent && (
+          <div className="live-organizer-entry">
+            <div className="live-organizer-entry-inner">
+              <span className="live-organizer-entry-badge">
+                <Radio size={16} />
+                You&apos;re live
+              </span>
+              <h2 className="live-organizer-entry-title">{myLiveEvent.title}</h2>
+              <button
+                type="button"
+                className="live-organizer-entry-btn"
+                onClick={() => navigate(`/live/${myLiveEvent._id}`)}
+              >
+                <Settings size={18} />
+                Manage stream
+              </button>
+            </div>
+          </div>
+        )}
 
-                <div className="stream-details">
-                  <h3 className="stream-card-title">{event.title}</h3>
-                  <p className="stream-card-creator">{event.createdBy?.username || "Organizer"}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="stream-card-category">{event.category || "Event"}</span>
-                    <span className="text-[10px] text-slate-400">•</span>
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                      <MapPin size={10} /> {event.location}
+        <section className="live-content" aria-busy={loading} aria-live="polite">
+          {error && (
+            <div className="live-error">
+              <p className="live-error-text">{error}</p>
+              <button type="button" className="live-retry-btn" onClick={fetchEvents}>
+                <RotateCw size={18} />
+                Retry
+              </button>
+            </div>
+          )}
+
+          {loading && !error && (
+            <div className="live-loading live-loading-skeletons">
+              <div className="live-grid live-skeleton-grid">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="live-card-skeleton" aria-hidden="true">
+                    <div className="live-skeleton-thumb" />
+                    <div className="live-skeleton-body">
+                      <div className="live-skeleton-avatar" />
+                      <div className="live-skeleton-lines">
+                        <div className="live-skeleton-line wide" />
+                        <div className="live-skeleton-line" />
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
-          ))
-        )}
+          )}
+
+          {!loading && !error && isSearchEmpty && (
+            <div className="live-empty live-empty-search">
+              <div className="live-empty-icon">
+                <Search size={40} strokeWidth={1.5} />
+              </div>
+              <h2 className="live-empty-title">No streams match &ldquo;{searchQuery}&rdquo;</h2>
+              <p className="live-empty-subtitle">Try a different search or clear filters.</p>
+              <button
+                type="button"
+                className="live-empty-cta live-empty-cta-secondary"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategoryFilter("");
+                  setLocationFilter("");
+                }}
+              >
+                <X size={18} />
+                Clear search
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && isGenericEmpty && (
+            <div className="live-empty">
+              <div className="live-empty-icon">
+                <Radio size={40} strokeWidth={1.5} />
+              </div>
+              <h2 className="live-empty-title">No live streams right now</h2>
+              <p className="live-empty-subtitle">Be the first to go live or check back soon.</p>
+              {isLoggedIn && (
+                <button
+                  type="button"
+                  className="live-empty-cta"
+                  onClick={() => setIsGoLiveOpen(true)}
+                >
+                  <Sparkles size={18} />
+                  Go Live
+                </button>
+              )}
+            </div>
+          )}
+
+          {!loading && !error && liveEvents.length > 0 && (
+            <div className="live-grid">
+              {liveEvents.map((event) => (
+                <article
+                  key={event._id}
+                  className="live-card"
+                  onClick={() => navigate(`/live/${event._id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/live/${event._id}`);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Watch ${event.title} by ${event.createdBy?.username || "Organizer"}`}
+                >
+                  <div className="live-card-thumb">
+                    {event.image ? (
+                      <img
+                        src={`${PORT_URL}/uploads/event_image/${event.image}`}
+                        alt={event.title || "Event thumbnail"}
+                        className="live-card-thumb-img"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="live-card-thumb-placeholder">
+                        <Play size={36} strokeWidth={2} />
+                      </div>
+                    )}
+                    <span className="live-card-badge">LIVE</span>
+                    <span className="live-card-viewers">
+                      <Users size={12} />
+                      {typeof event.liveStream?.viewerCount === "number"
+                        ? event.liveStream.viewerCount
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="live-card-body">
+                    {event.createdBy?.profilePic ? (
+                      <img
+                        src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                        alt=""
+                        className="live-card-avatar"
+                        aria-hidden="true"
+                      />
+                    ) : (
+                      <div className="live-card-avatar live-card-avatar-fallback">
+                        {event.createdBy?.username?.charAt(0) || "U"}
+                      </div>
+                    )}
+                    <div className="live-card-info">
+                      <h3 className="live-card-title">{event.title}</h3>
+                      <p className="live-card-creator">
+                        {event.createdBy?.username || "Organizer"}
+                      </p>
+                      <div className="live-card-meta">
+                        {event.category && (
+                          <span className="live-card-category">{event.category}</span>
+                        )}
+                        {event.location && (
+                          <span className="live-card-location">
+                            <MapPin size={10} />
+                            {event.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       <GoLiveModal
         isOpen={isGoLiveOpen}
-        onClose={() => setIsGoLiveOpen(false)}
+        onClose={() => {
+          setIsGoLiveOpen(false);
+          goLiveBtnRef.current?.focus();
+        }}
         onStreamStarted={(eventId) => navigate(`/live/${eventId}`)}
+        focusReturnRef={goLiveBtnRef}
       />
     </div>
   );

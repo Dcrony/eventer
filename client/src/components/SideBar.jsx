@@ -26,7 +26,7 @@ import {
 export default function Sidebar() {
   const [user, setUser] = useState(null);
   const [expand, setexpand] = useState(false);
-  const { darkMode, toggleTheme } = useContext(ThemeContext);
+  const { darkMode } = useContext(ThemeContext);
   const location = useLocation();
   const [showCreateEvent, setShowCreateEvent] = useState(false); 
   
@@ -49,7 +49,7 @@ export default function Sidebar() {
   useEffect(() => {
     document.documentElement.style.setProperty(
       "--sidebar-width",
-      expand ? "16rem" : "3.75rem"
+      expand ? "15rem" : "4rem"
     );
     return () => {
       document.documentElement.style.removeProperty("--sidebar-width");
@@ -74,9 +74,9 @@ export default function Sidebar() {
       action: () => setShowCreateEvent(true),
       primary: true,
     },
-    { to: `/profile/${user?.id ?? user?._id ?? ""}`, label: "Profile", icon: <User size={20} /> },
-    { to: "/settings", label: "Settings", icon: <Settings size={20} /> },
   ];
+
+  const profileUrl = `/profile/${user?.id ?? user?._id ?? ""}`;
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -139,17 +139,30 @@ export default function Sidebar() {
           })}
         </div>
 
-        {/* Bottom Actions */}
+        {/* Divider */}
+        <div className="sidebar-divider" />
+
+        {/* Bottom: Notifications first, then Profile, Settings, Logout */}
         <div className="sidebar-bottom">
           <div className="sidebar-bottom-item" data-tooltip="Notifications">
             <NotificationBell userId={user.id} />
-            {expand && <span className="sidebar-link-text ml-3">Notifications</span>}
           </div>
-
-          {/* <div className="sidebar-bottom-item" data-tooltip={darkMode ? "Light mode" : "Dark mode"}>
-            <ThemeToggle showText={expand} className="sidebar-theme-toggle" />
-          </div> */}
-
+          <Link
+            to={profileUrl}
+            className={`sidebar-link ${location.pathname === profileUrl ? "is-active" : ""}`}
+            data-tooltip="Profile"
+          >
+            <span className="sidebar-link-icon"><User size={20} /></span>
+            {expand && <span className="sidebar-link-text">Profile</span>}
+          </Link>
+          <Link
+            to="/settings"
+            className={`sidebar-link ${location.pathname === "/settings" ? "is-active" : ""}`}
+            data-tooltip="Settings"
+          >
+            <span className="sidebar-link-icon"><Settings size={20} /></span>
+            {expand && <span className="sidebar-link-text">Settings</span>}
+          </Link>
           <button
             onClick={handleLogout}
             className="sidebar-link is-logout"
