@@ -99,8 +99,8 @@ export default function LandingPage() {
     };
   }, [events]);
 
-  
- // Add this function at the top of your LandingPage component
+
+// Add this function at the top of your LandingPage component
 const fetchEvents = async () => {
   try {
     setLoading(true);
@@ -109,24 +109,6 @@ const fetchEvents = async () => {
   } catch (error) {
     console.error("Error fetching events:", error);
     // Optionally set an error state to show user
-    const response = await fetch(
-      import.meta.env.VITE_API_URL
-        ? `${import.meta.env.VITE_API_URL}/events`
-        : "/api/events"
-    );
-
-    const data = await response.json();
-
-    console.log("LANDING EVENTS:", data); // 🔍 debug
-
-    const eventsArray = Array.isArray(data)
-      ? data
-      : data.events || [];
-
-    setEvents(eventsArray);
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    setEvents([]); // 👈 prevent crash
   } finally {
     setLoading(false);
   }
