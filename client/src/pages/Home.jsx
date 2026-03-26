@@ -20,34 +20,46 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { darkMode } = useContext(ThemeContext);
+useEffect(() => {
+  setLoading(true);
+  setError(null);
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
+  API.get("/events")
+    .then((res) => {
+      console.log("API RESPONSE:", res.data); // 👈 debug
 
-    API.get("/events")
-      .then((res) => {
-        setEvents(res.data);
-        setFilteredEvents(res.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load events. Please try again.");
-        setLoading(false);
-      });
-  }, []);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data.events || [];
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setFilteredEvents(
-      events.filter(
-        (event) =>
-          event.title.toLowerCase().includes(term.toLowerCase()) ||
-          event.location?.toLowerCase().includes(term.toLowerCase()) ||
-          event.category?.toLowerCase().includes(term.toLowerCase()),
-      ),
+      setEvents(data);
+      setFilteredEvents(data);
+      setLoading(false);
+    })
+    .catch((err) => {
+      console.error("FETCH ERROR:", err);
+      setError("Failed to load events. Please try again.");
+      setLoading(false);
+    });
+}, []);
+
+const handleSearch = (term) => {
+  setSearchTerm(term);
+
+  const filtered = events.filter((event) => {
+    const title = event.title?.toLowerCase() || "";
+    const location = event.location?.toLowerCase() || "";
+    const category = event.category?.toLowerCase() || "";
+
+    return (
+      title.includes(term.toLowerCase()) ||
+      location.includes(term.toLowerCase()) ||
+      category.includes(term.toLowerCase())
     );
-  };
+  });
+
+  setFilteredEvents(filtered);
+};
 
   return (
     <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
@@ -110,7 +122,8 @@ export default function Home() {
               </div>
             ) : (
               <div className="events-grid">
-                {filteredEvents.map((event) => (
+                {Array.isArray(filteredEvents) &&
+  filteredEvents.map((event) => (
                   <Link
                     to={`/eventdetail/${event._id}`}
                     key={event._id}

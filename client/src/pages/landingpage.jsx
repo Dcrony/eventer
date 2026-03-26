@@ -99,6 +99,7 @@ export default function LandingPage() {
     };
   }, [events]);
 
+  
  // Add this function at the top of your LandingPage component
 const fetchEvents = async () => {
   try {
@@ -108,6 +109,24 @@ const fetchEvents = async () => {
   } catch (error) {
     console.error("Error fetching events:", error);
     // Optionally set an error state to show user
+    const response = await fetch(
+      import.meta.env.VITE_API_URL
+        ? `${import.meta.env.VITE_API_URL}/events`
+        : "/api/events"
+    );
+
+    const data = await response.json();
+
+    console.log("LANDING EVENTS:", data); // 🔍 debug
+
+    const eventsArray = Array.isArray(data)
+      ? data
+      : data.events || [];
+
+    setEvents(eventsArray);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    setEvents([]); // 👈 prevent crash
   } finally {
     setLoading(false);
   }
@@ -138,9 +157,11 @@ const fetchEvents = async () => {
   };
 
   const filteredEvents = getFilteredEvents();
-  const trendingEvents = [...events]
-    .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
-    .slice(0, 6);
+  const trendingEvents = Array.isArray(events)
+  ? [...events]
+      .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
+      .slice(0, 6)
+  : [];
 
   const features = [
     {
