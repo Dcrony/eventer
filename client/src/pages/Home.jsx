@@ -43,17 +43,23 @@ useEffect(() => {
     });
 }, []);
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setFilteredEvents(
-      events.filter(
-        (event) =>
-          event.title.toLowerCase().includes(term.toLowerCase()) ||
-          event.location?.toLowerCase().includes(term.toLowerCase()) ||
-          event.category?.toLowerCase().includes(term.toLowerCase()),
-      ),
+const handleSearch = (term) => {
+  setSearchTerm(term);
+
+  const filtered = events.filter((event) => {
+    const title = event.title?.toLowerCase() || "";
+    const location = event.location?.toLowerCase() || "";
+    const category = event.category?.toLowerCase() || "";
+
+    return (
+      title.includes(term.toLowerCase()) ||
+      location.includes(term.toLowerCase()) ||
+      category.includes(term.toLowerCase())
     );
-  };
+  });
+
+  setFilteredEvents(filtered);
+};
 
   return (
     <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
@@ -116,7 +122,8 @@ useEffect(() => {
               </div>
             ) : (
               <div className="events-grid">
-                {filteredEvents.map((event) => (
+                {Array.isArray(filteredEvents) &&
+  filteredEvents.map((event) => (
                   <Link
                     to={`/eventdetail/${event._id}`}
                     key={event._id}
