@@ -95,19 +95,32 @@ export default function LandingPage() {
       elements.forEach((el) => observer.unobserve(el));
     };
   }, [events]);
+const fetchEvents = async () => {
+  try {
+    setLoading(true);
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/events");
-      const data = await response.json();
-      setEvents(data);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const response = await fetch(
+      import.meta.env.VITE_API_URL
+        ? `${import.meta.env.VITE_API_URL}/events`
+        : "/api/events"
+    );
+
+    const data = await response.json();
+
+    console.log("LANDING EVENTS:", data); // 🔍 debug
+
+    const eventsArray = Array.isArray(data)
+      ? data
+      : data.events || [];
+
+    setEvents(eventsArray);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    setEvents([]); // 👈 prevent crash
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter events based on category and search
   const getFilteredEvents = () => {
@@ -134,9 +147,11 @@ export default function LandingPage() {
   };
 
   const filteredEvents = getFilteredEvents();
-  const trendingEvents = [...events]
-    .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
-    .slice(0, 6);
+  const trendingEvents = Array.isArray(events)
+  ? [...events]
+      .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
+      .slice(0, 6)
+  : [];
 
   const features = [
     {
