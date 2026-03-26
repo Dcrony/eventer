@@ -44,4 +44,13 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080', // Your backend server
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 });

@@ -2,6 +2,9 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./CSS/landing.css";
 import icon from "../assets/icon.svg";
+import EventCard from "../components/EventCard";
+import API from "../api/axios";
+
 
 import {
   TicketCheck,
@@ -96,18 +99,19 @@ export default function LandingPage() {
     };
   }, [events]);
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/events");
-      const data = await response.json();
-      setEvents(data);
-    } catch (error) {
-      console.error("Error fetching events:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+ // Add this function at the top of your LandingPage component
+const fetchEvents = async () => {
+  try {
+    setLoading(true);
+    const response = await API.get("/events"); // Use the same API instance
+    setEvents(response.data);
+  } catch (error) {
+    console.error("Error fetching events:", error);
+    // Optionally set an error state to show user
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter events based on category and search
   const getFilteredEvents = () => {
