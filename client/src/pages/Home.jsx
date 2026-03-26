@@ -20,22 +20,28 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { darkMode } = useContext(ThemeContext);
+useEffect(() => {
+  setLoading(true);
+  setError(null);
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
+  API.get("/events")
+    .then((res) => {
+      console.log("API RESPONSE:", res.data); // 👈 debug
 
-    API.get("/events")
-      .then((res) => {
-        setEvents(res.data);
-        setFilteredEvents(res.data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load events. Please try again.");
-        setLoading(false);
-      });
-  }, []);
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data.events || [];
+
+      setEvents(data);
+      setFilteredEvents(data);
+      setLoading(false);
+    })
+    .catch((err) => {
+      console.error("FETCH ERROR:", err);
+      setError("Failed to load events. Please try again.");
+      setLoading(false);
+    });
+}, []);
 
   const handleSearch = (term) => {
     setSearchTerm(term);
