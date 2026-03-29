@@ -75,6 +75,12 @@ const UserSchema = new mongoose.Schema(
       plan: { type: String, default: "Free" },
       nextBillingDate: { type: String, default: "N/A" },
     },
+
+    isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+  deletedAt: Date,
   },
   { timestamps: true },
 );

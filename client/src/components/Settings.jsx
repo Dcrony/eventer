@@ -149,10 +149,14 @@ export default function Settings() {
       return;
     try {
       const token = localStorage.getItem("token");
-      await API.delete(`/profile/${user._id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      showNotification("Account deleted successfully.", "success");
+      await API.put(
+  `/profile/${user._id}/deactivate`,
+  {},
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  }
+);
+      showNotification("Your account has been deactivated (you can restore it later).", "success");
       localStorage.removeItem("token");
       window.location.href = "/";
     } catch (error) {

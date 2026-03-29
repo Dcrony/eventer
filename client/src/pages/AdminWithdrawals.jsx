@@ -170,8 +170,8 @@ export default function AdminWithdrawals() {
           {withdrawals.map((w) => (
             <div key={w._id} className="withdrawal-row">
               <div>
-                <strong>{w.organizer.username}</strong>
-                <div>{w.organizer.email}</div>
+                <strong>{w.organizer?.username || "Unknown User"}</strong>
+<div>{w.organizer?.email || "No email"}</div>
                 <div className="bank-inline">
                   {w.bankDetails?.bankName} - {w.bankDetails?.accountNumber}
                 </div>

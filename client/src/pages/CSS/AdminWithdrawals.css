@@ -3,15 +3,15 @@
 ================================ */
 
 .admin-page {
-   min-height: 100vh;
-  margin-left: 10px;
-  padding-top: 2rem;
+  min-height: 100vh;
   padding-left: var(--sidebar-width);
+  padding-top: 2rem;
   padding-right: 2rem;
   padding-bottom: 4rem;
   background: #f9fafb;
   color: #111;
-  transition: background 0.25s ease, color 0.25s ease;
+
+  transition: padding-left 0.3s ease;
 }
 
 .admin-page h2 {

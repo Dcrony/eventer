@@ -55,14 +55,20 @@ const UserManagement = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/profile/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(users.filter((u) => u._id !== id));
-      showToast("User deleted successfully");
+      await axios.put(
+  `${API_URL}/profile/${id}/deactivate`,
+  {},
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  }
+);
+      setUsers(users.map(u =>
+  u._id === id ? { ...u, isDeleted: true } : u
+));
+      showToast("User deactivated successfully");
     } catch (err) {
-      console.error("Error deleting user:", err);
-      showToast("Failed to delete user", "error");
+      console.error("Error deactivating user:", err);
+      showToast("Failed to deactivate user", "error");
     }
   };
 

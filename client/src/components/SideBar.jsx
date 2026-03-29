@@ -59,22 +59,33 @@ export default function Sidebar() {
   if (!user) return null;
 
   const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isOranizer = user?.role === "organizer" || user?.isOrganizer === true;
+
+  const canOrganize = isAdmin || isOranizer;
 
   const menuItems = [
-    { to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> },
-    { to: "/events", label: "Home", icon: <Home size={20} /> },
-    ...(isAdmin
-      ? [{ to: "/admin/dashboard", label: "Stats", icon: <BarChart3 size={20} /> }]
-      : []),
-    { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
-    { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
-    {
-      label: "Create",
-      icon: <PlusCircle size={20} />,
-      action: () => setShowCreateEvent(true),
-      primary: true,
-    },
-  ];
+  ...(canOrganize
+    ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
+    : []),
+
+  { to: "/events", label: "Home", icon: <Home size={20} /> },
+
+  ...(isAdmin
+    ? [{ to: "/admin/dashboard", label: "Stats", icon: <BarChart3 size={20} /> }]
+    : []),
+
+  { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
+  { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
+
+  ...(canOrganize
+    ? [{
+        label: "Create",
+        icon: <PlusCircle size={20} />,
+        action: () => setShowCreateEvent(true),
+        primary: true,
+      }]
+    : []),
+];
 
   const profileUrl = `/profile/${user?.id ?? user?._id ?? ""}`;
 
