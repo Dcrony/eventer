@@ -10,7 +10,9 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat("en-NG").format(num);
 };
 
-const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
+const PORT_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+).replace(/\/api\/?$/, "");
 
 export default function Home() {
   const [events, setEvents] = useState([]);
@@ -20,51 +22,74 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const { darkMode } = useContext(ThemeContext);
-useEffect(() => {
-  setLoading(true);
-  setError(null);
 
-  API.get("/events")
-    .then((res) => {
-      console.log("API RESPONSE:", res.data); // 👈 debug
+  useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-      const data = Array.isArray(res.data)
-        ? res.data
-        : res.data.events || [];
+      const res = await API.get("/events");
+
+      console.log("API RESPONSE:", res.data);
+
+      // ✅ FIX: Handle both direct array and nested data structure
+      const data = Array.isArray(res.data) 
+        ? res.data 
+        : Array.isArray(res.data?.data) 
+        ? res.data.data 
+        : [];
+
+     console.log("RES.DATA TYPE:", typeof res.data, Array.isArray(res.data));
 
       setEvents(data);
       setFilteredEvents(data);
-      setLoading(false);
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error("FETCH ERROR:", err);
       setError("Failed to load events. Please try again.");
+    } finally {
       setLoading(false);
-    });
+    }
+  };
+
+  fetchEvents();
 }, []);
 
-const handleSearch = (term) => {
+
+
+
+  const handleSearch = (term) => {
   setSearchTerm(term);
+  
+  if (!term.trim()) {
+    setFilteredEvents(events);
+    return;
+  }
 
   const filtered = events.filter((event) => {
-    const title = event.title?.toLowerCase() || "";
-    const location = event.location?.toLowerCase() || "";
-    const category = event.category?.toLowerCase() || "";
+    const title = event?.title?.toLowerCase() || "";
+    const location = event?.location?.toLowerCase() || "";
+    const category = event?.category?.toLowerCase() || "";
 
+    const searchLower = term.toLowerCase();
+    
     return (
-      title.includes(term.toLowerCase()) ||
-      location.includes(term.toLowerCase()) ||
-      category.includes(term.toLowerCase())
+      title.includes(searchLower) ||
+      location.includes(searchLower) ||
+      category.includes(searchLower)
     );
   });
 
   setFilteredEvents(filtered);
 };
 
+  console.log("FILTERED EVENTS:", filteredEvents);
+
   return (
     <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
       <div className="dashboard-container">
-        {/* Header */}
+
+        {/* HEADER */}
         <div className="dashboard-header">
           <div>
             <div className="dashboard-title">Events</div>
@@ -87,14 +112,16 @@ const handleSearch = (term) => {
           </div>
         </div>
 
-        {/* Loading */}
+        {/* LOADING */}
         {loading && (
           <div className="dash-card">
-            <div className="dash-card-body center muted">Loading events…</div>
+            <div className="dash-card-body center muted">
+              Loading events…
+            </div>
           </div>
         )}
 
-        {/* Error */}
+        {/* ERROR */}
         {error && (
           <div className="dash-card">
             <div className="dash-card-body center">
@@ -109,10 +136,10 @@ const handleSearch = (term) => {
           </div>
         )}
 
-        {/* Events */}
+        {/* EVENTS */}
         {!loading && !error && (
           <>
-            {filteredEvents.length === 0 ? (
+            {!Array.isArray(filteredEvents) || filteredEvents.length === 0 ? (
               <div className="dash-card">
                 <div className="dash-card-body center muted">
                   {searchTerm
@@ -122,36 +149,34 @@ const handleSearch = (term) => {
               </div>
             ) : (
               <div className="events-grid">
-                {Array.isArray(filteredEvents) &&
-  filteredEvents.map((event) => (
+                {filteredEvents.map((event) => (
                   <Link
                     to={`/eventdetail/${event._id}`}
                     key={event._id}
                     className="event-card"
                   >
-                    {/* Modern Image Container */}
+                    {/* IMAGE */}
                     <div className="event-image-container">
-                      {event.image ? (
+                      {event?.image ? (
                         <img
-                          src={`${
-                            import.meta.env.VITE_API_URL?.replace("/api", "") ||
-                            PORT_URL
-                          }/uploads/event_image/${event.image}`}
+                          src={`${PORT_URL}/uploads/event_image/${event.image}`}
                           alt={event.title}
                           className="event-image"
                         />
                       ) : (
-                        <div className="event-image placeholder">No Image</div>
+                        <div className="event-image placeholder">
+                          No Image
+                        </div>
                       )}
 
-                      {/* Floating Badges */}
+                      {/* BADGES */}
                       <div className="event-floating-badges">
-                        {event.category && (
+                        {event?.category && (
                           <span className="event-category-badge">
                             {event.category}
                           </span>
                         )}
-                        {event.liveStream?.isLive && (
+                        {event?.liveStream?.isLive && (
                           <span className="live-pill-floating">
                             <span className="live-dot pulse"></span>
                             LIVE
@@ -159,7 +184,7 @@ const handleSearch = (term) => {
                         )}
                       </div>
 
-                      {/* Hover Overlay */}
+                      {/* HOVER */}
                       <div className="event-hover-overlay">
                         <span className="view-details-btn">
                           View Details <ArrowRight size={16} />
@@ -167,61 +192,68 @@ const handleSearch = (term) => {
                       </div>
                     </div>
 
-                    {/* Content Section */}
+                    {/* BODY */}
                     <div className="event-body">
-                      <div className="event-title-row">
-                        <h3 className="event-title">{event.title}</h3>
-                      </div>
+                      <h3 className="event-title">
+                        {event?.title || "Untitled Event"}
+                      </h3>
 
                       <p className="event-desc">
-                        {event.description ||
-                          "Join us for this amazing event and experience something unique."}
+                        {event?.description ||
+                          "Join us for this amazing event."}
                       </p>
 
                       <div className="event-info-grid">
                         <div className="info-item">
-                          <MapPin size={16} className="info-icon" />
-                          <span>{event.location || "Online / TBA"}</span>
-                        </div>
-                        <div className="info-item">
-                          <Calendar size={16} className="info-icon" />
+                          <MapPin size={16} />
                           <span>
-                            {new Date(event.startDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              },
-                            )}
+                            {event?.location || "Online / TBA"}
                           </span>
                         </div>
-                        <div className="info-item tickets-info">
-                          <Users size={16} className="info-icon" />
+
+                        <div className="info-item">
+                          <Calendar size={16} />
                           <span>
-                            {formatNumber(event.ticketsSold)}/
-                            {formatNumber(event.totalTickets)} Attendee
+                            {event?.startDate
+                              ? new Date(event.startDate).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" }
+                                )
+                              : "Date TBA"}
+                          </span>
+                        </div>
+
+                        <div className="info-item">
+                          <Users size={16} />
+                          <span>
+                            {formatNumber(event?.ticketsSold)}/
+                            {formatNumber(event?.totalTickets)} Attendees
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Organizer */}
+                    {/* FOOTER */}
                     <div className="event-footer">
-                      {event.createdBy?.profilePic ? (
+                      {event?.createdBy?.profilePic ? (
                         <img
                           src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
                           alt="Organizer"
                         />
                       ) : (
                         <div className="avatar-fallback">
-                          {event.createdBy?.username?.charAt(0) || "U"}
+                          {event?.createdBy?.username?.charAt(0) || "U"}
                         </div>
                       )}
+
                       <div>
                         <p className="organizer-name">
-                          {event.createdBy?.username || "Unknown Organizer"}
+                          {event?.createdBy?.username ||
+                            "Unknown Organizer"}
                         </p>
-                        <span className="organizer-role">Organizer</span>
+                        <span className="organizer-role">
+                          Organizer
+                        </span>
                       </div>
                     </div>
                   </Link>

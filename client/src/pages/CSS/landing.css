@@ -1573,29 +1573,7 @@ html {
   }
 }
 
-/* Scroll-triggered animations */
-.stat-item,
-.feature-card,
-.testimonial-card,
-.section-header,
-.category-chip,
-.event-card,
-.step-card {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
 
-.stat-item.animate-in,
-.feature-card.animate-in,
-.testimonial-card.animate-in,
-.section-header.animate-in,
-.category-chip.animate-in,
-.event-card.animate-in,
-.step-card.animate-in {
-  opacity: 1;
-  transform: translateY(0);
-}
 
 /* Stagger animations */
 .category-chip:nth-child(1) { animation-delay: 0.1s; }

@@ -5,7 +5,6 @@ import icon from "../assets/icon.svg";
 import EventCard from "../components/EventCard";
 import API from "../api/axios";
 
-
 import {
   TicketCheck,
   Shield,
@@ -99,20 +98,17 @@ export default function LandingPage() {
     };
   }, [events]);
 
-
-// Add this function at the top of your LandingPage component
-const fetchEvents = async () => {
-  try {
-    setLoading(true);
-    const response = await API.get("/events"); // Use the same API instance
-    setEvents(response.data);
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    // Optionally set an error state to show user
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const response = await API.get("/events");
+      setEvents(response.data);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter events based on category and search
   const getFilteredEvents = () => {
@@ -140,10 +136,10 @@ const fetchEvents = async () => {
 
   const filteredEvents = getFilteredEvents();
   const trendingEvents = Array.isArray(events)
-  ? [...events]
-      .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
-      .slice(0, 6)
-  : [];
+    ? [...events]
+        .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
+        .slice(0, 6)
+    : [];
 
   const features = [
     {
@@ -332,22 +328,6 @@ const fetchEvents = async () => {
                   </Link>
                 </>
               )}
-            </div>
-
-            {/* Social Proof */}
-            <div className="hero-stats-mini">
-              <div className="stat-mini-item">
-                <span className="stat-mini-number">50K+</span>
-                <span className="stat-mini-label">Active Users</span>
-              </div>
-              <div className="stat-mini-item">
-                <span className="stat-mini-number">500K+</span>
-                <span className="stat-mini-label">Tickets Sold</span>
-              </div>
-              <div className="stat-mini-item">
-                <span className="stat-mini-number">10K+</span>
-                <span className="stat-mini-label">Events Created</span>
-              </div>
             </div>
           </div>
         </div>
@@ -539,6 +519,9 @@ const fetchEvents = async () => {
                     src={testimonial.avatar}
                     alt={testimonial.name}
                     className="author-avatar"
+                    onError={(e) => {
+                      e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23ec4899'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='white'%3E" + testimonial.name.charAt(0) + "%3C/text%3E%3C/svg%3E";
+                    }}
                   />
                   <div className="author-info">
                     <div className="author-name">{testimonial.name}</div>
@@ -674,7 +657,7 @@ const fetchEvents = async () => {
               <Link to="/donate">Donate</Link>
             </div>
           </div>
-          <div className="footer-bottom">
+          <div className="footer-footer">
             <p>© 2024 TickiSpot. All rights reserved.</p>
             <div className="footer-links">
               <Link to="/privacy">Privacy</Link>
