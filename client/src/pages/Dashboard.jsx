@@ -91,6 +91,16 @@ export default function Dashboard() {
   });
 }, []);
 
+// ✅ FIX: Remove duplicate banks based on bank code
+const uniqueBanks = useMemo(() => {
+  const seen = new Set();
+  return banks.filter(bank => {
+    if (seen.has(bank.code)) return false;
+    seen.add(bank.code);
+    return true;
+  });
+}, [banks]);
+
 const handleWithdraw = async () => {
     if (!withdrawAmount || withdrawAmount <= 0) {
       return alert("Enter valid amount");
@@ -374,7 +384,7 @@ const handleWithdraw = async () => {
               <div className="dash-card empty-state-card">
                 <div className="dash-card-body">
                   <p className="empty-state-p">
-                    You haven’t created any events yet. Ready to host your first
+                    You haven't created any events yet. Ready to host your first
                     one?
                   </p>
                   <div style={{ marginTop: "1rem" }}>
@@ -483,6 +493,9 @@ const handleWithdraw = async () => {
       {showWithdrawModal && (
         <div className="modal-overlay">
           <div className="withdraw-modal">
+            <button className="close-btn" onClick={() => setShowWithdrawModal(false)}>
+        ✕
+      </button>
             <h3>Request Withdrawal</h3>
 
             <div className="withdraw-balance">
@@ -497,22 +510,25 @@ const handleWithdraw = async () => {
             />
 
             <label>Payment Method</label>
+            {/* ✅ FIX: Use uniqueBanks instead of banks and ensure unique keys */}
             <select
               value={bankDetails.bankCode}
               onChange={(e) => {
-                const selected = banks.find(
+                const selected = uniqueBanks.find(
                   (b) => b.code === e.target.value
                 );
 
-                setBankDetails({
-                  ...bankDetails,
-                  bankCode: selected.code,
-                  bankName: selected.name,
-                });
+                if (selected) {
+                  setBankDetails({
+                    ...bankDetails,
+                    bankCode: selected.code,
+                    bankName: selected.name,
+                  });
+                }
               }}
             >
               <option value="">Select Bank</option>
-              {banks.map((bank) => (
+              {uniqueBanks.map((bank) => (
                 <option key={bank.code} value={bank.code}>
                   {bank.name}
                 </option>
@@ -543,11 +559,7 @@ const handleWithdraw = async () => {
 
 
             <div className="modal-actions">
-              <button onClick={() => setShowWithdrawModal(false)}>
-                Cancel
-              </button>
-
-              <button onClick={handleWithdraw} disabled={withdrawLoading}>
+                            <button onClick={handleWithdraw} disabled={withdrawLoading}>
                 {withdrawLoading ? "Processing..." : "Submit Request"}
               </button>
             </div>
