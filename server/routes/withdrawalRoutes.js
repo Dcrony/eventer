@@ -229,4 +229,25 @@ router.get(
   },
 );
 
+const axios = require("axios");
+
+router.get("/banks", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://api.paystack.co/bank?country=nigeria",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
+      }
+    );
+
+    res.json(response.data.data);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch banks" });
+  }
+});
+
+
+
 module.exports = router;

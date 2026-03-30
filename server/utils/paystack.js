@@ -31,7 +31,7 @@ const initiateTransfer = async (amount, recipientCode, reference) => {
     `${BASE_URL}/transfer`,
     {
       source: "balance",
-      amount: amount * 100, // Paystack uses kobo
+      amount,
       recipient: recipientCode,
       reference,
     },

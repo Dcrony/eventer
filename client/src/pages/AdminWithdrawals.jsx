@@ -50,15 +50,22 @@ export default function AdminWithdrawals() {
   }, [statusFilter, searchTerm, startDate, endDate]);
 
   const handleAction = async (id, status) => {
+  try {
     await API.patch(
       `/admin/withdrawals/${id}`,
       { status },
-      { headers: { Authorization: `Bearer ${token}` } },
+      { headers: { Authorization: `Bearer ${token}` } }
     );
+
     fetchWithdrawals();
     fetchAnalytics();
     fetchMonthlyTrend();
-  };
+
+  } catch (err) {
+    console.log("ERROR:", err.response?.data);
+    alert(err.response?.data?.message || "Action failed");
+  }
+};
 
   const exportToCSV = () => {
     const headers = [

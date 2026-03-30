@@ -25,26 +25,29 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const token = localStorage.getItem("token");
-  const navigate = useNavigate();
-  const user = useMemo(() => getCurrentUser(), []);
+ 
 
   // 🟢 For Modal Control
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
 
+  const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("bank");
 
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
     accountNumber: "",
     accountName: "",
+    bankCode: "",
   });
+
+   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+  const user = useMemo(() => getCurrentUser(), []);
 
   // 🟢 Functions
   const handleEditClick = (id) => {
@@ -81,6 +84,57 @@ export default function Dashboard() {
       setLoading(false);
     });
   }, [token]);
+
+  useEffect(() => {
+  API.get("/banks").then((res) => {
+    setBanks(res.data);
+  });
+}, []);
+
+const handleWithdraw = async () => {
+    if (!withdrawAmount || withdrawAmount <= 0) {
+      return alert("Enter valid amount");
+    }
+
+    if (
+      !bankDetails.bankCode ||
+      !bankDetails.accountNumber ||
+      !bankDetails.accountName
+    ) {
+      return alert("Complete bank details");
+    }
+
+    try {
+      setWithdrawLoading(true);
+
+      await API.post(
+        "/organizer/withdraw",
+        {
+          amount: Number(withdrawAmount),
+          paymentMethod: "bank",
+          bankDetails,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("Withdrawal submitted ✅");
+      setShowWithdrawModal(false);
+      setWithdrawAmount("");
+
+      const res = await API.get("/organizer/transactions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setTransactions(res.data);
+    } catch (err) {
+      console.log(err.response?.data);
+      alert(err.response?.data?.message || "Withdrawal failed");
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
 
   // 🟢 Toggle Live Event
   const toggleLive = async (id, currentStatus) => {
@@ -125,58 +179,6 @@ export default function Dashboard() {
     } catch (err) {
       console.error(err);
       alert("Failed to delete event. Please try again.");
-    }
-  };
-
-  const handleWithdraw = async () => {
-    if (!withdrawAmount || withdrawAmount <= 0) {
-      alert("Enter valid amount");
-      return;
-    }
-
-    if (paymentMethod === "bank") {
-      if (
-        !bankDetails.bankName ||
-        !bankDetails.accountNumber ||
-        !bankDetails.accountName
-      ) {
-        alert("Fill all bank details");
-        return;
-      }
-    }
-
-    try {
-      setWithdrawLoading(true);
-
-      const response = await API.post(
-        "/organizer/withdraw",
-        {
-          amount: Number(withdrawAmount), // ✅ IMPORTANT
-          paymentMethod,
-          bankDetails: paymentMethod === "bank" ? bankDetails : null,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      console.log("SUCCESS:", response.data);
-
-      alert("Withdrawal request submitted for approval");
-
-      setWithdrawAmount("");
-      setShowWithdrawModal(false);
-
-      const res = await API.get("/organizer/transactions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setTransactions(res.data);
-    } catch (err) {
-      console.log("ERROR:", err.response?.data); // ✅ NOW you’ll see real reason
-      alert(err.response?.data?.message || "Withdrawal failed");
-    } finally {
-      setWithdrawLoading(false);
     }
   };
 
@@ -496,45 +498,49 @@ export default function Dashboard() {
 
             <label>Payment Method</label>
             <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
+              value={bankDetails.bankCode}
+              onChange={(e) => {
+                const selected = banks.find(
+                  (b) => b.code === e.target.value
+                );
+
+                setBankDetails({
+                  ...bankDetails,
+                  bankCode: selected.code,
+                  bankName: selected.name,
+                });
+              }}
             >
-              <option value="bank">Bank Transfer</option>
-              <option value="paystack">Paystack</option>
-              <option value="flutterwave">Flutterwave</option>
+              <option value="">Select Bank</option>
+              {banks.map((bank) => (
+                <option key={bank.code} value={bank.code}>
+                  {bank.name}
+                </option>
+              ))}
             </select>
 
-            {paymentMethod === "bank" && (
-              <div className="bank-fields">
-                <input
-                  placeholder="Bank Name"
-                  value={bankDetails.bankName}
-                  onChange={(e) =>
-                    setBankDetails({ ...bankDetails, bankName: e.target.value })
-                  }
-                />
-                <input
-                  placeholder="Account Number"
-                  value={bankDetails.accountNumber}
-                  onChange={(e) =>
-                    setBankDetails({
-                      ...bankDetails,
-                      accountNumber: e.target.value,
-                    })
-                  }
-                />
-                <input
-                  placeholder="Account Name"
-                  value={bankDetails.accountName}
-                  onChange={(e) =>
-                    setBankDetails({
-                      ...bankDetails,
-                      accountName: e.target.value,
-                    })
-                  }
-                />
-              </div>
-            )}
+            <input
+              placeholder="Account Number"
+              value={bankDetails.accountNumber}
+              onChange={(e) =>
+                setBankDetails({
+                  ...bankDetails,
+                  accountNumber: e.target.value,
+                })
+              }
+            />
+
+            <input
+              placeholder="Account Name"
+              value={bankDetails.accountName}
+              onChange={(e) =>
+                setBankDetails({
+                  ...bankDetails,
+                  accountName: e.target.value,
+                })
+              }
+            />
+
 
             <div className="modal-actions">
               <button onClick={() => setShowWithdrawModal(false)}>
