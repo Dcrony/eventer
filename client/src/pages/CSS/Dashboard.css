@@ -254,12 +254,12 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: #1e293b;
   backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
+  z-index: 9999;
   padding: 1rem;
   animation: fadeIn 0.3s ease;
 }
@@ -520,7 +520,7 @@ body.dark-mode .modal-overlay {
 }
 
 body.dark-mode .withdraw-modal {
-  background: #0f172a;
+  background: #030303;
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 
     0 25px 50px -12px rgba(0, 0, 0, 0.5),
@@ -547,7 +547,7 @@ body.dark-mode .withdraw-modal label {
 
 body.dark-mode .withdraw-modal input,
 body.dark-mode .withdraw-modal select {
-  background: #1e293b;
+  background: #312f2f34;
   border-color: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
 }

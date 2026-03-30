@@ -559,7 +559,8 @@ const handleWithdraw = async () => {
 
 
             <div className="modal-actions">
-                            <button onClick={handleWithdraw} disabled={withdrawLoading}>
+              <div></div>
+              <button onClick={handleWithdraw} disabled={withdrawLoading}>
                 {withdrawLoading ? "Processing..." : "Submit Request"}
               </button>
             </div>
