@@ -8,6 +8,7 @@ import "./css/notificationsPage.css";
 
 // Add pull-to-refresh for mobile
 import { useCallback } from "react";
+import { useState } from "react";
 
 
 export default function NotificationsPage() {
