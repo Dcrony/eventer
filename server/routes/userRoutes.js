@@ -5,6 +5,7 @@ const path = require("path");
 const { authMiddleware, authorizeRoles } = require("../middleware/authMiddleware");
 const {
   updateMyProfile,
+  getMyProfile,
   getUserProfile,
   uploadProfilePic,
   uploadCoverPic,
@@ -13,6 +14,7 @@ const {
   getAllUsers,
   deleteUser,
   getMyEvents,
+  toggleFollow,
 } = require("../controllers/userController");
 
 const router = express.Router();
@@ -50,7 +52,7 @@ const upload = multer({ storage });
 
 // Profile routes
 router.put("/edit", authMiddleware, updateMyProfile);
-router.get("/:id", authMiddleware, getUserProfile);
+router.get("/me", authMiddleware, getMyProfile);
 
 router.post(
   "/me/upload",
@@ -93,5 +95,11 @@ router.put("/profile/:id/deactivate", async (req, res) => {
     res.status(500).json({ message: "Error deactivating account" });
   }
 });
+
+// Follow / Unfollow
+router.post("/:id/follow", authMiddleware, toggleFollow);
+
+// Get Profile
+router.get("/:id", authMiddleware, getUserProfile);
 
 module.exports = router;

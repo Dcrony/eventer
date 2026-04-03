@@ -6,7 +6,7 @@ const Ticket = require("../models/Ticket");
 // @route  GET /api/users/me
 // @access Private
 
-const getUserProfile = async (req, res) => {
+const getMyProfile = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
       return res.status(400).json({ message: "User ID not found in request" });
@@ -227,8 +227,80 @@ const getMyEvents = async (req, res) => {
   }
 };
 
+const toggleFollow = async (req, res) => {
+  try {
+    const currentUserId = req.user.id; // from auth middleware
+    const targetUserId = req.params.id;
+
+    if (currentUserId === targetUserId) {
+      return res.status(400).json({ msg: "You cannot follow yourself" });
+    }
+
+    const currentUser = await User.findById(currentUserId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    const isFollowing = currentUser.following.includes(targetUserId);
+
+    if (isFollowing) {
+      // UNFOLLOW
+      currentUser.following.pull(targetUserId);
+      targetUser.followers.pull(currentUserId);
+    } else {
+      // FOLLOW
+      currentUser.following.push(targetUserId);
+      targetUser.followers.push(currentUserId);
+    }
+
+    await currentUser.save();
+    await targetUser.save();
+
+    res.json({
+      success: true,
+      following: currentUser.following,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
+};
+
+const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId)
+      .select("-password")
+      .populate("followers", "name avatar")
+      .populate("following", "name avatar");
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    // Get user's events
+    const events = await Event.find({ organizer: userId }).sort({
+      createdAt: -1,
+    });
+
+    res.json({
+      user,
+      stats: {
+        followers: user.followers.length,
+        following: user.following.length,
+        events: events.length,
+      },
+      events,
+    });
+  } catch (err) {
+    res.status(500).json({ msg: err.message });
+  }
+};
+
 module.exports = {
-  getUserProfile,
+  getMyProfile,
   updateMyProfile,
   uploadProfilePic,
   uploadCoverPic,
@@ -237,4 +309,6 @@ module.exports = {
   getAllUsers,
   deleteUser,
   getMyEvents,
+  toggleFollow,
+  getUserProfile,
 };

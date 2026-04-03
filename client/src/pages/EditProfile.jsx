@@ -25,7 +25,7 @@ export default function EditProfile() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await API.get("/profile/me", {
+        const res = await API.get("/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);
@@ -84,7 +84,7 @@ const buildImageUrl = (path, type = "profile") => {
     try {
       setLoading(true);
       const endpoint =
-        type === "profilePic" ? "/profile/me/upload" : "/profile/me/cover";
+        type === "profilePic" ? "/users/me/upload" : "/users/me/cover";
 
       const res = await API.post(endpoint, form, {
         headers: {
@@ -115,12 +115,12 @@ const buildImageUrl = (path, type = "profile") => {
     setSaving(true);
     try {
       const token = localStorage.getItem("token");
-      await API.put("/profile/edit", formData, {
+      await API.put("/users/edit", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       alert("✅ Profile updated successfully!");
-      navigate("/profile/me");
+      navigate("/users/me");
     } catch (err) {
       console.error("Error updating profile:", err);
       alert("❌ Update failed. Please try again.");

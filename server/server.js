@@ -45,7 +45,7 @@ app.use("/api/events", eventRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/stats", statRoutes);
-app.use("/api/profile", userRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);

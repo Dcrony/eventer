@@ -16,7 +16,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("upcoming");
 
   useEffect(() => {
-    API.get(`/profile/${id}`)
+    API.get(`/users/${id}`)
       .then((res) => setProfile(res.data))
       .catch((err) => console.error(err));
   }, [id]);

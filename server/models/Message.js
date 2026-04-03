@@ -14,7 +14,11 @@ const messageSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now,
-  }
+  },
+  
+  sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  text: String,
 });
 
 module.exports = mongoose.model('Message', messageSchema);
