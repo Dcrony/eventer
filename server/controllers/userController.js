@@ -270,29 +270,40 @@ const toggleFollow = async (req, res) => {
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
+    const currentUserId = req.user.id;
 
     const user = await User.findById(userId)
       .select("-password")
-      .populate("followers", "name avatar")
-      .populate("following", "name avatar");
+      .populate("followers", "_id name profilePic")
+      .populate("following", "_id name profilePic");
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // Get user's events
-    const events = await Event.find({ organizer: userId }).sort({
-      createdAt: -1,
-    });
+    const tickets = await Ticket.find({ buyer: userId }).populate("event");
+
+    const createdEvents = await Event.find({ organizer: userId });
+
+    const isOwner = currentUserId === userId;
+    const isFollowing = user.followers.some(
+      (f) => f._id.toString() === currentUserId
+    );
 
     res.json({
-      user,
+      ...user.toObject(),
+
+      tickets,
+      createdEvents,
+
       stats: {
         followers: user.followers.length,
         following: user.following.length,
-        events: events.length,
+        events: createdEvents.length,
       },
-      events,
+
+      isOwner,
+      isFollowing,
     });
   } catch (err) {
     res.status(500).json({ msg: err.message });

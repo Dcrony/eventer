@@ -1,0 +1,28 @@
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.me {
+  text-align: right;
+  background: #4caf50;
+  color: white;
+  padding: 8px;
+  margin: 5px;
+  border-radius: 10px;
+}
+
+.them {
+  text-align: left;
+  background: #eee;
+  padding: 8px;
+  margin: 5px;
+  border-radius: 10px;
+}

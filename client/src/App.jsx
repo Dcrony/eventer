@@ -140,7 +140,7 @@ function Layout() {
           }
         />
         <Route
-          path="/profile/:id"
+          path="/users/:id"
           element={
             <ProtectedRoute>
               <Profile />

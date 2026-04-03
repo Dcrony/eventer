@@ -30,12 +30,15 @@ export default function Profile() {
     );
   }
 
+  const isOwner = profile.isOwner;
+
   const roleLabel =
     profile.role === "admin"
       ? "Admin"
       : profile.role === "organizer"
         ? "Organizer"
         : "Member";
+
 
   return (
     <div className={`dashboard-page profile-page ${darkMode ? "dark-mode" : ""}`}>
@@ -80,24 +83,56 @@ export default function Profile() {
               <p className="profile-username">@{profile.username}</p>
               {profile.bio && <p className="profile-bio">{profile.bio}</p>}
             </div>
+            <div className="profile-stats">
+  <span>{profile.stats.followers} Followers</span>
+  <span>{profile.stats.following} Following</span>
+  <span>{profile.stats.events} Events</span>
+</div>
             <div className="profile-actions">
-              <button
-                type="button"
-                className="profile-btn profile-btn-primary"
-                onClick={() => navigate("/dashboard")}
-              >
-                <LayoutDashboard size={18} />
-                Dashboard
-              </button>
-              <button
-                type="button"
-                className="profile-btn profile-btn-secondary"
-                onClick={() => navigate("/edit-profile")}
-              >
-                <Edit3 size={18} />
-                Edit Profile
-              </button>
-            </div>
+
+  {isOwner ? (
+    <>
+      <button
+        className="profile-btn profile-btn-primary"
+        onClick={() => navigate("/dashboard")}
+      >
+        <LayoutDashboard size={18} />
+        Dashboard
+      </button>
+
+      <button
+        className="profile-btn profile-btn-secondary"
+        onClick={() => navigate("/edit-profile")}
+      >
+        <Edit3 size={18} />
+        Edit Profile
+      </button>
+    </>
+  ) : (
+    <>
+      <button
+        className="profile-btn profile-btn-primary"
+        onClick={async () => {
+          await API.post(`/users/${profile._id}/follow`);
+          setProfile((prev) => ({
+            ...prev,
+            isFollowing: !prev.isFollowing,
+          }));
+        }}
+      >
+        {profile.isFollowing ? "Unfollow" : "Follow"}
+      </button>
+
+      <button
+        className="profile-btn profile-btn-secondary"
+        onClick={() => navigate(`/messages?user=${profile._id}`)}
+      >
+        Message
+      </button>
+    </>
+  )}
+
+</div>
           </header>
 
           {/* Tabs */}

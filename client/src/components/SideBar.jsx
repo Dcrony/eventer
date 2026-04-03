@@ -3,7 +3,6 @@ import { useState, useEffect, useContext } from "react";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import { logout, getCurrentUser } from "../utils/auth";
 import CreateEvent from "../pages/CreateEvent";
-import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./NotificationBell";
 import "./css/sidebar.css";
 import icon from "../assets/icon.svg"
@@ -87,7 +86,7 @@ export default function Sidebar() {
     : []),
 ];
 
-  const profileUrl = `/profile/${user?.id ?? user?._id ?? ""}`;
+  const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {

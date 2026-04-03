@@ -1,15 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import MessageBubble from "./MessageBubble";
-import socket from "../../socket";
-import API from "../../api/axios";
+import socket from "../socket";
+import API from "../api/axios";
+import "./CSS/ChatPage.css";
 
-export default function ChatWindow({ currentUser, selectedUser }) {
+export default function ChatPage({ user, selectedUser }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
 
   const scrollRef = useRef();
 
+  // connect user
+  useEffect(() => {
+    socket.emit("addUser", user._id);
+  }, [user]);
+
+  // receive message
+  useEffect(() => {
+    socket.on("receiveMessage", (data) => {
+      setMessages((prev) => [...prev, data]);
+    });
+
+    socket.on("typing", () => setTyping(true));
+    socket.on("stopTyping", () => setTyping(false));
+
+    return () => {
+      socket.off();
+    };
+  }, []);
+
+  // load messages
   useEffect(() => {
     if (!selectedUser) return;
 
@@ -21,17 +41,7 @@ export default function ChatWindow({ currentUser, selectedUser }) {
     fetchMessages();
   }, [selectedUser]);
 
-  useEffect(() => {
-    socket.on("receiveMessage", (data) => {
-      setMessages((prev) => [...prev, data]);
-    });
-
-    socket.on("typing", () => setTyping(true));
-    socket.on("stopTyping", () => setTyping(false));
-
-    return () => socket.off();
-  }, []);
-
+  // auto scroll
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -40,13 +50,15 @@ export default function ChatWindow({ currentUser, selectedUser }) {
     if (!text.trim()) return;
 
     const msg = {
-      senderId: currentUser._id,
+      senderId: user._id,
       receiverId: selectedUser._id,
       text,
     };
 
+    // emit socket
     socket.emit("sendMessage", msg);
 
+    // save to DB
     await API.post("/messages", {
       receiverId: selectedUser._id,
       text,
@@ -58,40 +70,40 @@ export default function ChatWindow({ currentUser, selectedUser }) {
 
   const handleTyping = () => {
     socket.emit("typing", {
-      senderId: currentUser._id,
+      senderId: user._id,
       receiverId: selectedUser._id,
     });
 
     setTimeout(() => {
       socket.emit("stopTyping", {
-        senderId: currentUser._id,
+        senderId: user._id,
         receiverId: selectedUser._id,
       });
     }, 1000);
   };
 
   return (
-    <div className="chat-window">
+    <div className="chat-container">
       <div className="messages">
-        {messages.map((msg, i) => (
-          <div key={i} ref={scrollRef}>
-            <MessageBubble
-              message={msg}
-              isMe={msg.sender === currentUser._id || msg.senderId === currentUser._id}
-            />
+        {messages.map((m, i) => (
+          <div
+            key={i}
+            ref={scrollRef}
+            className={m.senderId === user._id ? "me" : "them"}
+          >
+            {m.text}
           </div>
         ))}
-        {typing && <p className="typing">Typing...</p>}
+        {typing && <p>Typing...</p>}
       </div>
 
-      <div className="chat-input">
+      <div className="input">
         <input
           value={text}
           onChange={(e) => {
             setText(e.target.value);
             handleTyping();
           }}
-          placeholder="Type a message..."
         />
         <button onClick={handleSend}>Send</button>
       </div>

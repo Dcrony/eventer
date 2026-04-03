@@ -59,7 +59,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: `${FRONTEND_URL}`, // frontend port
+    origin: `${FRONTEND_URL}`,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -80,6 +80,56 @@ io.on("connection", (socket) => {
     // Notify broadcaster that a new viewer has joined
     socket.to(eventId).emit("userJoined", socket.id);
   });
+
+  let onlineUsers = new Map();
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  // USER CONNECT
+  socket.on("addUser", (userId) => {
+    onlineUsers.set(userId, socket.id);
+    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+  });
+
+  // SEND MESSAGE
+  socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+    const receiverSocket = onlineUsers.get(receiverId);
+
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("receiveMessage", {
+        senderId,
+        text,
+        createdAt: new Date(),
+      });
+    }
+  });
+
+  // TYPING
+  socket.on("typing", ({ senderId, receiverId }) => {
+    const receiverSocket = onlineUsers.get(receiverId);
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("typing", senderId);
+    }
+  });
+
+  socket.on("stopTyping", ({ senderId, receiverId }) => {
+    const receiverSocket = onlineUsers.get(receiverId);
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("stopTyping", senderId);
+    }
+  });
+
+  // DISCONNECT
+  socket.on("disconnect", () => {
+    for (let [userId, sockId] of onlineUsers.entries()) {
+      if (sockId === socket.id) {
+        onlineUsers.delete(userId);
+      }
+    }
+    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+  });
+});
 
   socket.on("signal", (data) => {
     io.to(data.to).emit("signal", {
