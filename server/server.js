@@ -12,8 +12,9 @@ const webhookRoutes = require("./routes/webhookRoutes");
 const statRoutes = require("./routes/statRoutes");
 const userRoutes = require("./routes/userRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const settingsRoutes = require("./routes/settingsRoutes")
-const withdrawalRoutes = require("./routes/withdrawalRoutes")
+const settingsRoutes = require("./routes/settingsRoutes");
+const withdrawalRoutes = require("./routes/withdrawalRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -49,6 +50,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);
+app.use("/api/messages", messageRoutes);
 
 const http = require("http");
 const { Server } = require("socket.io");
