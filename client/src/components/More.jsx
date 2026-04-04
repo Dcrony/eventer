@@ -37,7 +37,7 @@ export default function More() {
       {/* Account */}
       <section>
         <h4>Account</h4>
-        <Link to={`/profile/${user?._id}`}><User size={18}/> Profile</Link>
+        <Link to={`/users/${user?.id}`}><User size={18}/> Profile</Link>
         <Link to="/settings"><Settings size={18}/> Settings</Link>
       </section>
 
