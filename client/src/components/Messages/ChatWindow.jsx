@@ -10,17 +10,23 @@ export default function ChatWindow({ currentUser, selectedUser }) {
 
   const scrollRef = useRef();
 
+  // Fetch messages when selectedUser changes
   useEffect(() => {
-    if (!selectedUser) return;
+    if (!currentUser || !selectedUser) return;
 
     const fetchMessages = async () => {
-      const res = await API.get(`/messages/${selectedUser._id}`);
-      setMessages(res.data);
+      try {
+        const res = await API.get(`/messages/${selectedUser._id}`);
+        setMessages(res.data);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      }
     };
 
     fetchMessages();
-  }, [selectedUser]);
+  }, [currentUser, selectedUser]);
 
+  // Socket listeners
   useEffect(() => {
     socket.on("receiveMessage", (data) => {
       setMessages((prev) => [...prev, data]);
@@ -32,12 +38,13 @@ export default function ChatWindow({ currentUser, selectedUser }) {
     return () => socket.off();
   }, []);
 
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async () => {
-    if (!text.trim()) return;
+    if (!text.trim() || !currentUser || !selectedUser) return;
 
     const msg = {
       senderId: currentUser._id,
@@ -45,18 +52,24 @@ export default function ChatWindow({ currentUser, selectedUser }) {
       text,
     };
 
+    // Emit socket message
     socket.emit("sendMessage", msg);
 
-    await API.post("/messages", {
-      receiverId: selectedUser._id,
-      text,
-    });
-
-    setMessages((prev) => [...prev, msg]);
-    setText("");
+    try {
+      await API.post("/messages", {
+        receiverId: selectedUser._id,
+        text,
+      });
+      setMessages((prev) => [...prev, msg]);
+      setText("");
+    } catch (err) {
+      console.error("Failed to send message:", err);
+    }
   };
 
   const handleTyping = () => {
+    if (!currentUser || !selectedUser) return;
+
     socket.emit("typing", {
       senderId: currentUser._id,
       receiverId: selectedUser._id,
@@ -69,6 +82,11 @@ export default function ChatWindow({ currentUser, selectedUser }) {
       });
     }, 1000);
   };
+
+  // If user data isn’t ready, show a placeholder
+  if (!currentUser || !selectedUser) {
+    return <div className="chat-window">Select a user to start chatting...</div>;
+  }
 
   return (
     <div className="chat-window">
@@ -92,8 +110,11 @@ export default function ChatWindow({ currentUser, selectedUser }) {
             handleTyping();
           }}
           placeholder="Type a message..."
+          disabled={!currentUser || !selectedUser}
         />
-        <button onClick={handleSend}>Send</button>
+        <button onClick={handleSend} disabled={!currentUser || !selectedUser}>
+          Send
+        </button>
       </div>
     </div>
   );

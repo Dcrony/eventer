@@ -5,6 +5,7 @@ import { ThemeContext } from "../contexts/ThemeContexts";
 import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
 import "./CSS/Profile.css";
 
+
 const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function Profile() {
@@ -14,6 +15,12 @@ export default function Profile() {
 
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
+
+
+
+const handleMessageClick = () => {
+  navigate(`/messages?user=${profile._id}`);
+};
 
   useEffect(() => {
     API.get(`/users/${id}`)
@@ -125,7 +132,7 @@ export default function Profile() {
 
       <button
         className="profile-btn profile-btn-secondary"
-        onClick={() => navigate(`/messages?user=${profile._id}`)}
+        onClick={() => handleMessageClick() }
       >
         Message
       </button>

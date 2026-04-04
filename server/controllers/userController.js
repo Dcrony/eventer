@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket"); 
+const Notification = require("../models/Notification");
+
 
 // @desc   Get logged-in user profile with tickets and created events
 // @route  GET /api/users/me
@@ -227,12 +229,17 @@ const getMyEvents = async (req, res) => {
   }
 };
 
+
 const toggleFollow = async (req, res) => {
   try {
-    const currentUserId = req.user.id; // from auth middleware
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ msg: "Unauthorized" });
+    }
+
+    const currentUserId = req.user.id;
     const targetUserId = req.params.id;
 
-    if (currentUserId === targetUserId) {
+    if (currentUserId.toString() === targetUserId.toString()) {
       return res.status(400).json({ msg: "You cannot follow yourself" });
     }
 
@@ -243,26 +250,33 @@ const toggleFollow = async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    const isFollowing = currentUser.following.includes(targetUserId);
+    const isFollowing = currentUser.following.some(
+      (id) => id.toString() === targetUserId.toString()
+    );
 
     if (isFollowing) {
-      // UNFOLLOW
       currentUser.following.pull(targetUserId);
       targetUser.followers.pull(currentUserId);
     } else {
-      // FOLLOW
       currentUser.following.push(targetUserId);
       targetUser.followers.push(currentUserId);
+
+      const notification = await Notification.create({
+        user: targetUserId,
+        message: `${currentUser.name} started following you`,
+        type: "custom",
+      });
+
+      const io = req.app.get("io");
+      if (io) io.emit(`notify_${targetUserId}`, notification);
     }
 
     await currentUser.save();
     await targetUser.save();
 
-    res.json({
-      success: true,
-      following: currentUser.following,
-    });
+    res.json({ success: true, following: currentUser.following });
   } catch (err) {
+    console.error("Toggle follow error:", err);
     res.status(500).json({ msg: err.message });
   }
 };
