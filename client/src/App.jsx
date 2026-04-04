@@ -41,7 +41,6 @@ import Messages from "./pages/Messages";
 function Layout() {
   const location = useLocation();
 
-  const currentUser = JSON.parse(localStorage.getItem("user"));
 
   // hide navbar & sidebar on landing page and form pages
   const hideNavAndSidebar =
@@ -174,9 +173,8 @@ function Layout() {
             </ProtectedRoute>
           }
         />
-        {currentUser? (
           <Route path="/messages" element={<Messages />} />
-        ) : (<div>Loading user...</div>)}
+
         
         <Route
           path="/scanner"

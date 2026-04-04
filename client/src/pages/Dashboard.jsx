@@ -307,6 +307,12 @@ const handleWithdraw = async () => {
               icon={Wallet}
               color="green"
             />
+            <StatCard
+              title="Pending Balance"
+              value={`₦${formatNumber(stats.pendingBalance || 0)}`}
+              icon={Wallet}
+              color="green"
+            />
           </div>
         )}
 
