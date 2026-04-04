@@ -303,7 +303,7 @@ export default function MyTickets() {
                         )}
 
                         <Link
-                          to={`/events/${event._id}`}
+                          to={`/eventdetail/${event._id}`}
                           className="btn-premium btn-secondary"
                           style={{ padding: "0.75rem" }}
                         >
