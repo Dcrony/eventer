@@ -97,7 +97,7 @@ export default function AdminWithdrawals() {
   };
 
   return (
-    <div className="admin-page pt-20 px-20 min-h-screen">
+    <div className="admin-page">
       <h2>Withdrawal Management</h2>
 
       {/* Analytics */}
@@ -171,14 +171,25 @@ export default function AdminWithdrawals() {
 
       {/* Table */}
       {loading ? (
-        <p>Loading...</p>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div style={{
+            width: '2rem',
+            height: '2rem',
+            border: '3px solid rgba(236, 72, 153, 0.18)',
+            borderTopColor: '#ec4899',
+            borderRadius: '50%',
+            animation: 'spin 0.85s linear infinite',
+            margin: '0 auto 1rem'
+          }}></div>
+          <p>Loading withdrawals...</p>
+        </div>
       ) : (
         <div className="withdrawal-table">
           {withdrawals.map((w) => (
             <div key={w._id} className="withdrawal-row">
               <div>
                 <strong>{w.organizer?.username || "Unknown User"}</strong>
-<div>{w.organizer?.email || "No email"}</div>
+                <div>{w.organizer?.email || "No email"}</div>
                 <div className="bank-inline">
                   {w.bankDetails?.bankName} - {w.bankDetails?.accountNumber}
                 </div>
@@ -188,7 +199,9 @@ export default function AdminWithdrawals() {
               </div>
 
               <div>
-                ₦{w.amount.toLocaleString()}
+                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--aw-primary)' }}>
+                  ₦{w.amount.toLocaleString()}
+                </div>
                 <div className="fee">Fee: ₦{w.fee || 0}</div>
               </div>
 
