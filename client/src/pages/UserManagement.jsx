@@ -1,32 +1,104 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./CSS/UserManagement.css";
+import { Users, UserCheck, Shield } from "lucide-react";
 
 // Use VITE_API_URL for Vite projects (not REACT_APP_API_URL)
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+
+const MOCK_USERS = [
+  {
+    _id: "1",
+    username: "olaoluwa",
+    email: "olaoluwa@example.com",
+    role: "organizer",
+    bio: "Music event producer with 5 years experience.",
+  },
+  {
+    _id: "2",
+    username: "taslim",
+    email: "taslim@example.com",
+    role: "user",
+    bio: "Attending events and managing bookings.",
+  },
+  {
+    _id: "3",
+    username: "micheal",
+    email: "micheal@example.com",
+    role: "admin",
+    bio: "Platform administrator and product owner.",
+  },
+  {
+    _id: "4",
+    username: "funke",
+    email: "funke@example.com",
+    role: "organizer",
+    bio: "Curator of tech conferences and workshops.",
+  },
+];
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [toast, setToast] = useState(null);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const StatCard = ({ title, value, icon: Icon, color }) => (
+    <div className={`stat-tile ${color}`}>
+      <div className="stat-tile-content">
+        <div className="stat-label">{title}</div>
+        <div className="stat-value">{value}</div>
+      </div>
+      <div className="stat-tile-icon-wrapper">
+        <Icon size={24} className="stat-tile-icon" />
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         const token = localStorage.getItem("token");
-        console.log("Fetching users from:", `${API_URL}/profile`); // Debug log
-        
-        const res = await axios.get(`${API_URL}/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await axios.get(`${API_URL}/users`, {
+          headers: token
+            ? { Authorization: `Bearer ${token}` }
+            : {},
         });
-        setUsers(res.data);
+
+        const data = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.users)
+          ? res.data.users
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+
+        if (data.length === 0) {
+          setUsers(MOCK_USERS);
+          setError("No users returned from API. Using local sample users.");
+          showToast("Using fallback sample users", "error");
+        } else {
+          setUsers(data);
+        }
       } catch (err) {
         console.error("Error fetching users:", err);
-        console.error("API URL used:", API_URL); // Debug log
-        showToast("Failed to load users", "error");
+        const message =
+          err.response?.status === 401 || err.response?.status === 403
+            ? "Admin access required to load users. Please sign in as an admin."
+            : "Failed to load users. Showing sample data.";
+        setError(message);
+        setUsers(MOCK_USERS);
+        showToast(message, "error");
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchUsers();
   }, []);
 
@@ -39,7 +111,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.put(
-        `${API_URL}/profile/${id}/role`,
+        `${API_URL}/users/${id}/role`,
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -55,20 +127,14 @@ const UserManagement = () => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.put(
-  `${API_URL}/profile/${id}/deactivate`,
-  {},
-  {
-    headers: { Authorization: `Bearer ${token}` },
-  }
-);
-      setUsers(users.map(u =>
-  u._id === id ? { ...u, isDeleted: true } : u
-));
-      showToast("User deactivated successfully");
+      await axios.delete(`${API_URL}/users/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUsers(users.filter((u) => u._id !== id));
+      showToast("User deleted successfully");
     } catch (err) {
-      console.error("Error deactivating user:", err);
-      showToast("Failed to deactivate user", "error");
+      console.error("Error deleting user:", err);
+      showToast("Failed to delete user", "error");
     }
   };
 
@@ -83,102 +149,140 @@ const UserManagement = () => {
   });
 
   return (
-    <div className="user-management pt-20 px-20 min-h-screen">
-      <h2 className="text-2xl font-bold mb-4">User Management</h2>
-
-      {/* Analytics Cards */}
-      <div className="user-stats">
-        <div className="stat-card">
-          <h4>Total Users</h4>
-          <p>{users.length}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Organizers</h4>
-          <p>{users.filter((u) => u.role === "organizer").length}</p>
-        </div>
-        <div className="stat-card">
-          <h4>Admins</h4>
-          <p>{users.filter((u) => u.role === "admin").length}</p>
+    <div className="user-management">
+      <div className="page-header">
+        <div>
+          <h2>User Management</h2>
+          <p>View and manage registered participants, organizers, and admins.</p>
         </div>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border px-3 py-2 rounded focus:outline-none focus:ring"
+      <div className="user-metrics-grid">
+        <StatCard
+          title="Total Users"
+          value={users.length}
+          icon={Users}
+          color="blue"
         />
-        <select
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          className="border px-3 py-2 rounded"
-        >
-          <option value="all">All Roles</option>
-          <option value="user">User</option>
-          <option value="organizer">Organizer</option>
-          <option value="admin">Admin</option>
-        </select>
+        <StatCard
+          title="Organizers"
+          value={users.filter((u) => u.role === "organizer").length}
+          icon={UserCheck}
+          color="pink"
+        />
+        <StatCard
+          title="Admins"
+          value={users.filter((u) => u.role === "admin").length}
+          icon={Shield}
+          color="green"
+        />
       </div>
 
-      {/* User Table */}
-      <table className="user-table w-full border rounded overflow-hidden">
-        <thead>
-          <tr>
-            <th className="p-3 border">User</th>
-            <th className="p-3 border">Email</th>
-            <th className="p-3 border">Role</th>
-            <th className="p-3 border">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
-              <tr key={user._id}>
-                <td className="user-info">
-                  <div className="avatar">
-                    {user.username?.charAt(0).toUpperCase()}
-                  </div>
-                  <span>{user.username}</span>
-                </td>
-                <td className="p-3 border">{user.email}</td>
-                <td className="p-3 border">
-                  <div className={`role-badge role-${user.role}`}>
-                    {user.role}
-                  </div>
-                  <select
-                    value={user.role}
-                    onChange={(e) => updateRole(user._id, e.target.value)}
-                    className="mt-2 p-1 border rounded"
-                  >
-                    <option value="user">User</option>
-                    <option value="organizer">Organizer</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </td>
-                <td className="p-3 border text-center">
-                  <button
-                    onClick={() => deleteUser(user._id)}
-                    className="delete-btn text-white px-3 py-1 rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4" className="text-center p-4">
-                No users found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="user-actions-bar">
+        <div className="search-group">
+          <label htmlFor="user-search" className="sr-only">
+            Search users
+          </label>
+          <input
+            id="user-search"
+            type="text"
+            placeholder="Search by name or email"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="filter-group">
+          <label htmlFor="role-filter" className="sr-only">
+            Filter role
+          </label>
+          <select
+            id="role-filter"
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+          >
+            <option value="all">All Roles</option>
+            <option value="user">User</option>
+            <option value="organizer">Organizer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
 
-      {/* Toast Notification */}
+      {loading ? (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Loading users...</p>
+        </div>
+      ) : (
+        <div className="user-table-wrapper">
+          {error && (
+            <div className="alert-banner">
+              <p>{error}</p>
+            </div>
+          )}
+
+          <table className="user-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user._id}>
+                    <td data-label="User">
+                      <div className="user-info">
+                        <div className="avatar">
+                          {user.username?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="user-name">{user.username}</p>
+                          <p className="user-bio">{user.bio || "Active member"}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="Email">{user.email}</td>
+                    <td data-label="Role">
+                      <div className="role-wrapper">
+                        <span className={`role-badge role-${user.role}`}>
+                          {user.role}
+                        </span>
+                        <select
+                          value={user.role}
+                          onChange={(e) => updateRole(user._id, e.target.value)}
+                        >
+                          <option value="user">User</option>
+                          <option value="organizer">Organizer</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td data-label="Actions">
+                      <button
+                        onClick={() => deleteUser(user._id)}
+                        className="delete-btn"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="empty-row">
+                    No users match your search.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
     </div>
   );

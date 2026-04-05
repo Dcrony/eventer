@@ -15,6 +15,11 @@ export default function MobileBottomNav() {
     if (currentUser) setUser(currentUser);
   }, []);
 
+  // Don't show mobile nav if user is not logged in
+  if (!user) {
+    return null;
+  }
+
   const navItems = [
     { to: "/dashboard", icon: <LayoutDashboard size={22} />, label: "Dashboard" },
     { to: "/events", icon: <Home size={22} />, label: "Events" },

@@ -1,266 +1,478 @@
 /* ================================
-   Tickispot Theme Variables
+   User Management Page Styles
 ================================ */
 
 :root {
-  --ts-primary: #ec4899;
-  --ts-primary-hover: #db2777;
-
-  --ts-bg-primary: #ffffff;
-  --ts-bg-secondary: #f9fafb;
-
-  --ts-text-primary: #111111;
-  --ts-text-muted: #6b7280;
-
-  --ts-border: #e5e7eb;
-  --ts-danger: #ef4444;
-
-  --ts-card-bg: #ffffff;
-  --ts-hover: rgba(236,72,153,0.05);
+  --um-page-bg: var(--bg-page);
+  --um-surface: var(--card-bg);
+  --um-surface-soft: var(--gray-100);
+  --um-text-primary: var(--text-color);
+  --um-text-secondary: var(--gray-600);
+  --um-border: var(--gray-200);
+  --um-primary: var(--primary-pink);
+  --um-primary-strong: var(--primary-dark-pink);
+  --um-primary-soft: rgba(236, 72, 153, 0.14);
+  --um-danger: var(--error);
+  --um-success: var(--success);
+  --um-shadow: var(--shadow-lg);
 }
-
-
-/* ================================
-   Page
-================================ */
 
 .user-management {
-  background: var(--ts-bg-secondary);
-  color: var(--ts-text-primary);
+  background: var(--um-page-bg);
+  color: var(--um-text-primary);
   min-height: 100vh;
-  margin-left: 10px;
-  padding-top: 2rem;
+  padding: 2.5rem 1.5rem 3rem;
   padding-left: var(--sidebar-width);
-  padding-right: 2rem;
-  padding-bottom: 4rem;
-  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+  max-width: 1280px;
+  margin: auto;
+  position: relative;
+  z-index: 1;
 }
 
-.user-management h2 {
-  font-size: 26px;
-  font-weight: 700;
-}
-
-/* ================================
-   Inputs
-================================ */
-
-.user-management input,
-.user-management select {
-  border: 1px solid var(--ts-border);
-  background: var(--ts-bg-primary);
-  color: var(--ts-text-primary);
-  padding: 10px 14px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.user-management input:focus,
-.user-management select:focus {
-  outline: none;
-  border-color: var(--ts-primary);
-  box-shadow: 0 0 0 3px rgba(236,72,153,0.15);
-}
-
-/* ================================
-   Stats Cards
-================================ */
-
-.user-stats {
+.page-header {
   display: flex;
-  gap: 20px;
-  margin-bottom: 25px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
 }
 
-.stat-card {
-  background: var(--ts-card-bg);
-  border-radius: 12px;
-  padding: 20px;
+.page-header h2 {
+  font-size: clamp(2.2rem, 2.7vw, 3rem);
+  margin: 0;
+  line-height: 1.05;
+}
+
+.page-header p {
+  margin: 0.75rem 0 0;
+  max-width: 54rem;
+  color: var(--um-text-secondary);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.user-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.stat-tile {
+  background: var(--um-surface);
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.stat-tile-content {
   flex: 1;
-  border: 1px solid var(--ts-border);
 }
 
-.stat-card h4 {
-  color: var(--ts-text-muted);
-  font-size: 14px;
+.stat-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.stat-card p {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--ts-primary);
+.stat-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--um-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
 }
 
-/* ================================
-   Table
-================================ */
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--um-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.stat-tile-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.stat-tile.blue .stat-tile-icon-wrapper {
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+.stat-tile.pink .stat-tile-icon-wrapper {
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--um-primary);
+}
+
+.stat-tile.green .stat-tile-icon-wrapper {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.stat-tile:hover .stat-tile-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.user-actions-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.search-group,
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.search-group input,
+.filter-group select {
+  width: 100%;
+  border: 1px solid var(--um-border);
+  border-radius: 14px;
+  padding: 0.95rem 1.1rem;
+  background: var(--um-surface);
+  color: var(--um-text-primary);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--um-primary);
+  box-shadow: 0 0 0 4px var(--um-primary-soft);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loading-state,
+.alert-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1.1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 16px;
+  background: var(--um-surface);
+  border: 1px solid var(--um-border);
+  box-shadow: var(--um-shadow);
+  color: var(--um-text-secondary);
+}
+
+.loading-state p {
+  margin: 0;
+}
+
+.spinner {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 3px solid rgba(236, 72, 153, 0.18);
+  border-top-color: var(--um-primary);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.user-table-wrapper {
+  background: var(--um-surface);
+  border: 1px solid var(--um-border);
+  border-radius: 22px;
+  padding: 1.25rem;
+  box-shadow: var(--um-shadow);
+  overflow-x: auto;
+}
 
 .user-table {
   width: 100%;
-  border-collapse: collapse;
-  background: var(--ts-card-bg);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--ts-border);
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 720px;
 }
 
-.user-table thead {
-  background: var(--ts-bg-secondary);
-}
-
-.user-table th {
-  text-align: left;
-  font-weight: 600;
-  padding: 14px;
-  border-bottom: 1px solid var(--ts-border);
-}
-
+.user-table th,
 .user-table td {
-  padding: 14px;
-  border-bottom: 1px solid var(--ts-border);
+  padding: 1rem 1.1rem;
+  text-align: left;
 }
 
-.user-table tr:hover {
-  background: var(--ts-hover);
+.user-table thead th {
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: var(--gray-600);
+  text-transform: uppercase;
+  font-weight: 700;
+  border-bottom: 1px solid var(--um-border);
 }
 
-/* ================================
-   Avatar
-================================ */
+.user-table tbody tr {
+  border-bottom: 1px solid var(--um-border);
+}
+
+.user-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.user-table tbody tr:hover {
+  background: var(--um-surface-soft);
+}
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.85rem;
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--ts-primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
+  background: var(--um-primary);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1rem;
 }
 
-/* ================================
-   Role Badges
-================================ */
+.user-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--um-text-primary);
+}
+
+.user-bio {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--gray-500);
+}
+
+.user-table td > .role-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
 
 .role-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.77rem;
+  font-weight: 700;
+  text-transform: capitalize;
 }
 
 .role-user {
-  background: #e5e7eb;
-  color: #374151;
+  background: #e2e8f0;
+  color: #334155;
 }
 
 .role-organizer {
-  background: #fce7f3;
-  color: #be185d;
+  background: #fbe7c6;
+  color: #92400e;
 }
 
 .role-admin {
-  background: #ede9fe;
+  background: #e9d5ff;
   color: #5b21b6;
 }
 
-/* ================================
-   Delete Button
-================================ */
+.user-table select {
+  width: 100%;
+  max-width: 180px;
+  border: 1px solid var(--um-border);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  background: var(--gray-50);
+  color: var(--um-text-primary);
+}
 
 .delete-btn {
-  background: var(--ts-danger);
+  background: var(--um-primary);
   border: none;
-  padding: 7px 14px;
-  border-radius: 6px;
   color: white;
+  font-weight: 700;
+  padding: 0.85rem 1.15rem;
+  border-radius: 999px;
   cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .delete-btn:hover {
-  background: #dc2626;
+  transform: translateY(-1px);
+  background: var(--um-primary-strong);
 }
 
-/* ================================
-   Toast
-================================ */
+.empty-row {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--gray-500);
+}
 
 .toast {
   position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 12px 18px;
-  border-radius: 8px;
-  color: white;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  padding: 1rem 1.2rem;
+  border-radius: 16px;
+  box-shadow: var(--um-shadow);
+  color: #ffffff;
+  z-index: 50;
 }
 
 .toast.success {
-  background: #16a34a;
+  background: var(--um-success);
 }
 
 .toast.error {
-  background: #ef4444;
+  background: var(--um-danger);
 }
 
+@media (max-width: 980px) {
+  .user-metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
 
-/* ================================
-   Dark Mode (Matches Sidebar System)
-================================ */
+@media (max-width: 760px) {
+  .page-header {
+    flex-direction: column;
+  }
 
+  .user-actions-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .user-table-wrapper {
+    padding: 1rem;
+  }
+
+  .user-table {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .user-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-table th,
+  .user-table td {
+    padding: 0.95rem 0.9rem;
+  }
+
+  .user-table thead {
+    display: none;
+  }
+
+  .user-table,
+  .user-table tbody,
+  .user-table tr,
+  .user-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .user-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--um-border);
+    border-radius: 18px;
+    background: var(--um-surface);
+  }
+
+  .user-table td {
+    padding: 0.85rem 1rem;
+    border: none;
+  }
+
+  .user-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--gray-600);
+  }
+}
+
+/* Dark mode support if app uses a dark container */
 .dark-mode .user-management {
-  background: #111111;
-  color: #f9fafb;
+  background: var(--bg-page);
+  color: var(--text-color);
 }
 
-.dark-mode .stat-card {
-  background: #1f1f1f;
-  border: 1px solid rgba(255,255,255,0.06);
+.dark-mode .metric-card,
+.dark-mode .user-table-wrapper,
+.dark-mode .alert-banner,
+.dark-mode .loading-state {
+  background: #1f2937;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
-.dark-mode .user-table {
-  background: #1f1f1f;
-  border: 1px solid rgba(255,255,255,0.08);
+.dark-mode .user-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.dark-mode .user-table thead {
-  background: #181818;
-}
-
-.dark-mode .user-table th {
-  color: #e5e7eb;
+.dark-mode .user-table select,
+.dark-mode .search-group input,
+.dark-mode .filter-group select {
+  background: #111827;
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .dark-mode .user-table td {
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-
-.dark-mode .user-table tr:hover {
-  background: rgba(236,72,153,0.15);
-}
-
-.dark-mode input,
-.dark-mode select {
-  background: #1a1a1a;
-  color: white;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.dark-mode input::placeholder {
-  color: #9ca3af;
+  color: #e5e7eb;
 }
 
 .dark-mode .role-user {
   background: #374151;
   color: #e5e7eb;
+}
+
+.dark-mode .role-organizer {
+  background: #7c2d12;
+  color: #fcd34d;
+}
+
+.dark-mode .role-admin {
+  background: #5b21b6;
+  color: #e9d5ff;
 }
 
 .dark-mode .role-organizer {
