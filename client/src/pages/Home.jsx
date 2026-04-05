@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import { Search, MapPin, Calendar, Users, ArrowRight } from "lucide-react";
+import EmptyState from "../components/EmptyState";
+import useDemoEvents from "../hooks/useDemoEvents";
 import "./CSS/home.css";
 
 const formatNumber = (num) => {
@@ -20,8 +22,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [useDemoData, setUseDemoData] = useState(false);
 
   const { darkMode } = useContext(ThemeContext);
+  
+  // Get demo events as fallback
+  const demoEvents = useDemoEvents(events, error && !useDemoData);
 
   useEffect(() => {
   const fetchEvents = async () => {
@@ -44,9 +50,13 @@ export default function Home() {
 
       setEvents(data);
       setFilteredEvents(data);
+      setUseDemoData(false);
     } catch (err) {
       console.error("FETCH ERROR:", err);
-      setError("Failed to load events. Please try again.");
+      setError("Failed to load events. Showing demo events instead.");
+      setUseDemoData(true);
+      // Use demo data as fallback
+      setFilteredEvents(demoEvents);
     } finally {
       setLoading(false);
     }
@@ -122,7 +132,7 @@ export default function Home() {
         )}
 
         {/* ERROR */}
-        {error && (
+        {error && !useDemoData && (
           <div className="dash-card">
             <div className="dash-card-body center">
               <p className="error-text">{error}</p>
@@ -140,13 +150,10 @@ export default function Home() {
         {!loading && !error && (
           <>
             {!Array.isArray(filteredEvents) || filteredEvents.length === 0 ? (
-              <div className="dash-card">
-                <div className="dash-card-body center muted">
-                  {searchTerm
-                    ? `No events found for "${searchTerm}".`
-                    : "No events available yet."}
-                </div>
-              </div>
+              <EmptyState 
+                type={searchTerm ? "no-search-results" : "no-events"}
+                searchTerm={searchTerm}
+              />
             ) : (
               <div className="events-grid">
                 {filteredEvents.map((event) => (

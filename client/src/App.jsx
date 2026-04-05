@@ -60,11 +60,16 @@ function Layout() {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       {!hideNavAndSidebar && (isMobile ? <MobileBottomNav /> : <Sidebar />)}
-
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
+      
+      <main 
+        className={`flex-grow transition-all duration-300 ${
+          !hideNavAndSidebar && !isMobile ? "pl-[var(--sidebar-width,4rem)]" : ""
+        } ${!hideNavAndSidebar && isMobile ? "pb-16" : ""}`}
+      >
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
         <Route path="/events" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -197,7 +202,8 @@ function Layout() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
       </Routes>
-    </>
+      </main>
+    </div>
   );
 }
 

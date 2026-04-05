@@ -102,9 +102,19 @@ export default function LandingPage() {
     try {
       setLoading(true);
       const response = await API.get("/events");
-      setEvents(response.data);
+      
+      // Handle both array and nested data structure
+      const eventData = Array.isArray(response.data) 
+        ? response.data 
+        : Array.isArray(response.data?.data) 
+        ? response.data.data 
+        : [];
+      
+      console.log("Fetched events:", eventData);
+      setEvents(eventData);
     } catch (error) {
       console.error("Error fetching events:", error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -289,23 +299,6 @@ export default function LandingPage() {
               TickiSpot.
             </p>
             
-            {/* Search Bar */}
-            <div className="hero-search">
-              <div className="search-container">
-                <Search className="search-icon" size={20} />
-                <input
-                  type="text"
-                  placeholder="Search events by title, location, or description..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
-                />
-                <button className="search-btn">
-                  <ArrowRight size={20} />
-                </button>
-              </div>
-            </div>
-
             <div className="hero-cta">
               {isLoggedIn ? (
                 <>
@@ -333,95 +326,153 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Categories Section - New */}
-      <section className="categories-section">
-        <div className="categories-container">
-          <div className="section-header">
-            <h2 className="section-title">
-              <span className="title-box title-box-border">Browse by</span>
-              <span className="title-box title-box-filled">Category</span>
-            </h2>
-            <p className="section-subtitle">
-              Find your next experience across thousands of events
-            </p>
+      {/* Search Section - Below Hero */}
+      <section className="search-section">
+        <div className="search-section-container">
+          <div className="search-wrapper-expanded">
+            <Search className="search-icon" size={24} />
+            <input
+              type="text"
+              placeholder="Search events by title, location, or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input-expanded"
+            />
+            <button className="search-btn-expanded">
+              <ArrowRight size={20} />
+            </button>
           </div>
-
-          <div className="categories-grid">
-            {categories.map((category) => {
-              const IconComponent = category.icon;
-              return (
-                <button
-                  key={category.id}
-                  className={`category-chip ${
-                    selectedCategory === category.id ? "active" : ""
-                  }`}
-                  onClick={() => setSelectedCategory(category.id)}
-                >
-                  <IconComponent size={20} />
-                  <span>{category.name}</span>
-                </button>
-              );
-            })}
-          </div>
+          
+          {searchQuery && (
+            <div className="search-results-info">
+              Found {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} matching "{searchQuery}"
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Trending Events Section - New */}
-      <section className="trending-events-section">
-        <div className="trending-container">
-          <div className="section-header with-view-all">
-            <div>
-              <h2 className="section-title">
-                <span className="title-box title-box-border">Trending</span>
-                <span className="title-box title-box-filled">Events</span>
-              </h2>
-              <p className="section-subtitle">Popular this week near you</p>
-            </div>
-            <Link to="/events" className="view-all-link">
-              View All Events
-              <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="events-loading">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="event-card-skeleton">
-                  <div className="skeleton-image"></div>
-                  <div className="skeleton-content">
-                    <div className="skeleton-title"></div>
-                    <div className="skeleton-details"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <div className="events-grid">
-                {trendingEvents.length > 0 ? (
-                  trendingEvents.map((event) => (
-                    <EventCard key={event._id} event={event} />
-                  ))
-                ) : (
-                  <div className="no-events">
-                    <p>No trending events yet. Be the first to create one!</p>
-                    <Link to="/create" className="btn btn-primary">
-                      Create Event
-                    </Link>
-                  </div>
-                )}
+      {/* Events Display Section */}
+      <section className="events-display-section">
+        <div className="events-display-container">
+          {/* Show search results if search is active */}
+          {searchQuery && (
+            <div className="search-results-section">
+              <div className="results-header">
+                <h2 className="results-title">Search Results</h2>
+                <button 
+                  className="clear-search-btn"
+                  onClick={() => setSearchQuery("")}
+                >
+                  Clear Search
+                </button>
               </div>
-
-              {filteredEvents.length > 0 && searchQuery && (
-                <div className="search-results">
-                  <h3>Search Results</h3>
+              
+              {filteredEvents.length > 0 ? (
+                <>
                   <div className="events-grid">
-                    {filteredEvents.slice(0, 3).map((event) => (
+                    {filteredEvents.map((event) => (
                       <EventCard key={event._id} event={event} />
                     ))}
                   </div>
+                </>
+              ) : (
+                <div className="no-results">
+                  <div className="no-results-icon">🔍</div>
+                  <h3>No events found</h3>
+                  <p>Try searching with different keywords or browse all events below</p>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    Browse All Events
+                  </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Show categories and trending events when not searching */}
+          {!searchQuery && (
+            <>
+              {/* Categories Section */}
+              <div className="categories-showcase">
+                <div className="section-header">
+                  <h2 className="section-title">
+                    <span className="title-box title-box-border">Browse by</span>
+                    <span className="title-box title-box-filled">Category</span>
+                  </h2>
+                </div>
+
+                <div className="categories-grid">
+                  {categories.map((category) => {
+                    const IconComponent = category.icon;
+                    return (
+                      <button
+                        key={category.id}
+                        className={`category-chip ${
+                          selectedCategory === category.id ? "active" : ""
+                        }`}
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <IconComponent size={20} />
+                        <span>{category.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Trending Events or Category Filtered Events */}
+              <div className="trending-events-showcase">
+                <div className="section-header">
+                  <h2 className="section-title">
+                    <span className="title-box title-box-border">
+                      {selectedCategory === "all" ? "Trending" : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+                    </span>
+                    <span className="title-box title-box-filled">Events</span>
+                  </h2>
+                  <Link to="/events" className="view-all-link">
+                    View All Events
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+
+                {loading ? (
+                  <div className="events-loading">
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <div key={n} className="event-card-skeleton">
+                        <div className="skeleton-image"></div>
+                        <div className="skeleton-content">
+                          <div className="skeleton-title"></div>
+                          <div className="skeleton-details"></div>
+                          <div className="skeleton-details short"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {trendingEvents.length > 0 ? (
+                      <div className="events-grid">
+                        {trendingEvents.map((event) => (
+                          <EventCard key={event._id} event={event} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="no-events">
+                        <div className="no-events-icon">📭</div>
+                        <p>No events found in this category</p>
+                        <p className="no-events-subtitle">Try selecting a different category or create the first one!</p>
+                        {isLoggedIn && (
+                          <Link to="/create" className="btn btn-primary">
+                            Create Event
+                          </Link>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </>
           )}
         </div>

@@ -381,7 +381,7 @@ form .field-label {
   .event-type-selection{  display: grid;
   grid-template-columns: 1fr 1fr;
 }
-
+}
 
 /* Dark Mode */
 .dark-mode .create-event-container {

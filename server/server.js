@@ -65,9 +65,12 @@ const io = new Server(server, {
   },
 });
 
-io.on("connection", (socket) => {
-  console.log("⚡ New user connected");
+const onlineUsers = new Map();
 
+io.on("connection", (socket) => {
+  console.log("⚡ New user connected:", socket.id);
+
+  // JOIN ROOM (for Live Stream)
   socket.on("joinRoom", (eventId) => {
     socket.join(eventId);
     console.log(`User joined room: ${eventId}`);
@@ -81,27 +84,30 @@ io.on("connection", (socket) => {
     socket.to(eventId).emit("userJoined", socket.id);
   });
 
-  let onlineUsers = new Map();
-
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  // USER CONNECT
+  // USER CONNECT (for Chat/Online status)
   socket.on("addUser", (userId) => {
-    onlineUsers.set(userId, socket.id);
-    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+    if (userId) {
+      onlineUsers.set(userId, socket.id);
+      io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+    }
   });
 
-  // SEND MESSAGE
-  socket.on("sendMessage", ({ senderId, receiverId, text }) => {
-    const receiverSocket = onlineUsers.get(receiverId);
-
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("receiveMessage", {
-        senderId,
-        text,
-        createdAt: new Date(),
-      });
+  // SEND MESSAGE (General/Event Chat)
+  socket.on("sendMessage", (msg) => {
+    // If it's a direct message (has receiverId)
+    if (msg.receiverId) {
+      const receiverSocket = onlineUsers.get(msg.receiverId);
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("receiveMessage", {
+          senderId: msg.senderId,
+          text: msg.text,
+          createdAt: new Date(),
+        });
+      }
+    } 
+    // If it's an event room message (has eventId)
+    else if (msg.eventId) {
+      io.to(msg.eventId).emit("receiveMessage", msg);
     }
   });
 
@@ -120,17 +126,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // DISCONNECT
-  socket.on("disconnect", () => {
-    for (let [userId, sockId] of onlineUsers.entries()) {
-      if (sockId === socket.id) {
-        onlineUsers.delete(userId);
-      }
-    }
-    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
-  });
-});
-
+  // WEB RTC SIGNALING
   socket.on("signal", (data) => {
     io.to(data.to).emit("signal", {
       signal: data.signal,
@@ -138,22 +134,28 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("sendMessage", (msg) => {
-    io.to(msg.eventId).emit("receiveMessage", msg);
-  });
-
+  // DISCONNECTING
   socket.on("disconnecting", () => {
     // Before actual disconnect, update room counts
     socket.rooms.forEach(room => {
       const occupancy = io.sockets.adapter.rooms.get(room);
       if (occupancy) {
         io.to(room).emit("viewerCount", occupancy.size - 1);
+        io.to(room).emit("userLeft", socket.id);
       }
     });
   });
 
+  // DISCONNECT
   socket.on("disconnect", () => {
-    console.log("❌ User disconnected");
+    console.log("❌ User disconnected:", socket.id);
+    for (let [userId, sockId] of onlineUsers.entries()) {
+      if (sockId === socket.id) {
+        onlineUsers.delete(userId);
+        break;
+      }
+    }
+    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
   });
 });
 

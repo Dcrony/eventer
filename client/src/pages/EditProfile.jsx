@@ -120,7 +120,7 @@ const buildImageUrl = (path, type = "profile") => {
       });
 
       alert("✅ Profile updated successfully!");
-      navigate("/users/me");
+      navigate(`/users/${user?.id ?? user?._id ?? ""}`);
     } catch (err) {
       console.error("Error updating profile:", err);
       alert("❌ Update failed. Please try again.");

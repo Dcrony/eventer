@@ -24,53 +24,6 @@ exports.handlePaystackWebhook = async (req, res) => {
 
     /*
     |--------------------------------------------------------------------------
-    | PAYMENT SUCCESS (Ticket Purchase)
-    |--------------------------------------------------------------------------
-    */
-    if (event.event === "charge.success") {
-      const data = event.data;
-      const { eventId, userId, quantity } = data.metadata;
-
-      // Idempotency check
-      const existingTransaction = await Transaction.findOne({
-        paystackReference: data.reference,
-      });
-
-      if (existingTransaction) {
-        return res.sendStatus(200);
-      }
-
-      const targetEvent = await Event.findById(eventId);
-
-      if (!targetEvent || targetEvent.totalTickets < quantity) {
-        return res.sendStatus(200);
-      }
-
-      // Create ticket
-      await Ticket.create({
-        event: eventId,
-        user: userId,
-        quantity,
-      });
-
-      // Reduce ticket count
-      targetEvent.totalTickets -= quantity;
-      await targetEvent.save();
-
-      // Log transaction
-      await Transaction.create({
-        organizer: targetEvent.organizer,
-        type: "ticket_purchase",
-        amount: data.amount / 100,
-        status: "completed",
-        paystackReference: data.reference,
-      });
-
-      console.log("✅ Ticket issued:", data.customer.email);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | TRANSFER SUCCESS (Withdrawal Completed)
     |--------------------------------------------------------------------------
     */
@@ -79,24 +32,19 @@ exports.handlePaystackWebhook = async (req, res) => {
 
       const withdrawal = await Withdrawal.findOne({
         paystackReference: reference,
-      }).populate("organizer");
+      });
 
       if (!withdrawal || withdrawal.status === "completed") {
         return res.sendStatus(200);
       }
 
-      const organizer = withdrawal.organizer;
-
-      // Deduct balance safely
-      organizer.availableBalance -= withdrawal.amount;
-      await organizer.save();
-
       withdrawal.status = "completed";
       await withdrawal.save();
 
+      // Update transaction record
       await Transaction.findOneAndUpdate(
-        { referenceId: withdrawal._id, type: "withdrawal" },
-        { status: "completed" }
+        { reference: reference, type: "withdrawal" },
+        { status: "success" }
       );
 
       console.log("💸 Withdrawal completed:", reference);
@@ -112,24 +60,30 @@ exports.handlePaystackWebhook = async (req, res) => {
 
       const withdrawal = await Withdrawal.findOne({
         paystackReference: reference,
-      });
+      }).populate("organizer");
 
       if (!withdrawal || withdrawal.status === "failed") {
         return res.sendStatus(200);
       }
 
-      withdrawal.status = "failed";
-      withdrawal.failureReason =
-        event.data.failure_reason || "Transfer failed";
+      // REFUND BALANCE
+      const organizer = withdrawal.organizer;
+      if (organizer) {
+        organizer.availableBalance += withdrawal.amount;
+        await organizer.save();
+      }
 
+      withdrawal.status = "failed";
+      withdrawal.failureReason = event.data.failure_reason || "Transfer failed";
       await withdrawal.save();
 
+      // Update transaction record
       await Transaction.findOneAndUpdate(
-        { referenceId: withdrawal._id, type: "withdrawal" },
+        { reference: reference, type: "withdrawal" },
         { status: "failed" }
       );
 
-      console.log("❌ Withdrawal failed:", reference);
+      console.log("❌ Withdrawal failed and refunded:", reference);
     }
 
     res.sendStatus(200);

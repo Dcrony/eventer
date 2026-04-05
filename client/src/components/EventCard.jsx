@@ -1,14 +1,22 @@
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, Ticket } from "lucide-react";
 
+const PORT_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+).replace(/\/api\/?$/, "");
+
 export default function EventCard({ event }) {
   const formatDate = (dateString) => {
     if (!dateString) return "Date TBD";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return "Date TBD";
+    }
   };
 
   const formatPrice = (price) => {
@@ -16,8 +24,12 @@ export default function EventCard({ event }) {
     return `From ₦${price.toLocaleString()}`;
   };
 
-  // Get the lowest ticket price if there are multiple ticket types
+  // Get the lowest ticket price from pricing array or ticketPrice
   const getLowestPrice = () => {
+    if (Array.isArray(event.pricing) && event.pricing.length > 0) {
+      const prices = event.pricing.map(t => t.price || 0);
+      return Math.min(...prices);
+    }
     if (event.ticketTypes && event.ticketTypes.length > 0) {
       const prices = event.ticketTypes.map(t => t.price);
       return Math.min(...prices);
@@ -25,11 +37,27 @@ export default function EventCard({ event }) {
     return event.ticketPrice || 0;
   };
 
+  // Get image URL - handle both demo events (banner) and hosted uploads (image)
+  const getImageUrl = () => {
+    if (event.banner) {
+      return event.banner; // Demo events use direct Unsplash URLs
+    }
+    if (event.image) {
+      return `${PORT_URL}/uploads/event_image/${event.image}`;
+    }
+    return "https://via.placeholder.com/400x200/ec4899/ffffff?text=Event";
+  };
+
+  // Get event date - handle both startDate and date fields
+  const getEventDate = () => {
+    return event.startDate || event.date;
+  };
+
   return (
-    <Link to={`/events/${event._id}`} className="event-card">
+    <Link to={`/Eventdetail/${event._id}`} className="event-card">
       <div className="event-card-image-wrapper">
         <img
-          src={event.banner || "https://via.placeholder.com/400x200/ec4899/ffffff?text=Event"}
+          src={getImageUrl()}
           alt={event.title}
           className="event-card-image"
           loading="lazy"
@@ -46,7 +74,7 @@ export default function EventCard({ event }) {
         <div className="event-card-details">
           <div className="event-card-detail">
             <Calendar size={14} />
-            <span>{formatDate(event.date)}</span>
+            <span>{formatDate(getEventDate())}</span>
           </div>
           <div className="event-card-detail">
             <MapPin size={14} />

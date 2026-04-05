@@ -4,13 +4,13 @@ const sendEmail = require("./utils/email");
 
 async function testEmail() {
   console.log("🔍 Testing email configuration...");
-  console.log("SMTP Host:", process.env.SMTP_HOST);
-  console.log("SMTP User:", process.env.SMTP_USER);
-  console.log("SMTP From:", process.env.SMTP_FROM);
+  console.log("SMTP Host:", process.env.EMAIL_HOST || process.env.SMTP_HOST);
+  console.log("SMTP User:", process.env.EMAIL_USER || process.env.SMTP_USER);
+  console.log("SMTP From:", process.env.EMAIL_FROM || process.env.SMTP_FROM);
 
   try {
     const result = await sendEmail({
-      to: "your-email@gmail.com", // Replace with your email
+      to: "tickispot@gmail.com", // Replace with your email
       subject: "🎟️ TickiSpot Test Email",
       html: `
         <!DOCTYPE html>

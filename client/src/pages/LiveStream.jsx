@@ -89,6 +89,16 @@ export default function LiveStream() {
                         const peer = createPeer(userId, socket.id, currentStream);
                         peersRef.current.push({ peerId: userId, peer });
                     });
+
+                    socket.off("userLeft");
+                    socket.on("userLeft", (userId) => {
+                        const peerObj = peersRef.current.find(p => p.peerId === userId);
+                        if (peerObj) {
+                            peerObj.peer.destroy();
+                        }
+                        const peers = peersRef.current.filter(p => p.peerId !== userId);
+                        peersRef.current = peers;
+                    });
                 }
             })
             .catch((err) => {
