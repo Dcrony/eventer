@@ -1,6 +1,8 @@
 import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
+import { PORT_URL } from "../utils/config";
 import { useNavigate, useParams, Link } from "react-router-dom";
+import useProfileNavigation from "../hooks/useProfileNavigation";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import {
   MapPin,
@@ -28,8 +30,7 @@ export default function EventDetail() {
   const user = JSON.parse(localStorage.getItem("user"));
   const isLoggedIn = !!localStorage.getItem("token");
   const navigate = useNavigate();
-
-  const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
+  const { toProfile } = useProfileNavigation();
 
   // Format price function
   function formatPrice(price) {
@@ -230,7 +231,18 @@ export default function EventDetail() {
             {/* Organizer Section */}
             <div className="hub-organizer">
               <h3 className="hub-section-label">Organized By</h3>
-              <div className="hub-organizer-card">
+              <div
+                className="hub-organizer-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => toProfile(event.createdBy)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    toProfile(event.createdBy);
+                  }
+                }}
+              >
                 {event.createdBy?.profilePic ? (
                   <img
                     src={`${PORT_URL.replace("/api", "")}/uploads/profile_pic/${event.createdBy.profilePic}`}

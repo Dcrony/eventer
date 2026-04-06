@@ -1,9 +1,6 @@
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, Ticket } from "lucide-react";
-
-const PORT_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
-).replace(/\/api\/?$/, "");
+import { PORT_URL } from "../utils/config";
 
 export default function EventCard({ event }) {
   const formatDate = (dateString) => {

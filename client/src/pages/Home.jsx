@@ -5,16 +5,14 @@ import { ThemeContext } from "../contexts/ThemeContexts";
 import { Search, MapPin, Calendar, Users, ArrowRight } from "lucide-react";
 import EmptyState from "../components/EmptyState";
 import useDemoEvents from "../hooks/useDemoEvents";
+import useProfileNavigation from "../hooks/useProfileNavigation";
+import { PORT_URL } from "../utils/config";
 import "./CSS/home.css";
 
 const formatNumber = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "0";
   return new Intl.NumberFormat("en-NG").format(num);
 };
-
-const PORT_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
-).replace(/\/api\/?$/, "");
 
 export default function Home() {
   const [events, setEvents] = useState([]);
@@ -37,16 +35,12 @@ export default function Home() {
 
       const res = await API.get("/events");
 
-      console.log("API RESPONSE:", res.data);
-
       // ✅ FIX: Handle both direct array and nested data structure
       const data = Array.isArray(res.data) 
         ? res.data 
         : Array.isArray(res.data?.data) 
         ? res.data.data 
         : [];
-
-     console.log("RES.DATA TYPE:", typeof res.data, Array.isArray(res.data));
 
       setEvents(data);
       setFilteredEvents(data);
@@ -93,7 +87,7 @@ export default function Home() {
   setFilteredEvents(filtered);
 };
 
-  console.log("FILTERED EVENTS:", filteredEvents);
+  const { toProfile } = useProfileNavigation();
 
   return (
     <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
@@ -158,7 +152,7 @@ export default function Home() {
               <div className="events-grid">
                 {filteredEvents.map((event) => (
                   <Link
-                    to={`/eventdetail/${event._id}`}
+                    to={`/Eventdetail/${event._id}`}
                     key={event._id}
                     className="event-card"
                   >
@@ -241,7 +235,21 @@ export default function Home() {
                     </div>
 
                     {/* FOOTER */}
-                    <div className="event-footer">
+                    <div
+                      className="event-footer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toProfile(event.createdBy);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toProfile(event.createdBy);
+                        }
+                      }}
+                    >
                       {event?.createdBy?.profilePic ? (
                         <img
                           src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}

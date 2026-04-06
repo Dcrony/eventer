@@ -800,6 +800,129 @@
   box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
 }
 
+/* ==========================================
+   CHECKOUT SUMMARY STYLES
+   ========================================== */
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
+.summary-row.total {
+  border-top: 2px solid var(--hub-border);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.summary-value {
+  font-weight: 600;
+  color: var(--hub-text);
+}
+
+.total-value {
+  color: var(--hub-primary);
+  font-size: 1.1rem;
+}
+
+.summary-divider {
+  height: 1px;
+  background: var(--hub-border);
+  margin: 0.5rem 0;
+}
+
+/* Spinner for loading states */
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Info card styling */
+.hub-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 16px;
+  margin-top: 1rem;
+}
+
+.dark-mode .hub-info-card {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.hub-info-card p {
+  font-size: 0.9rem;
+  color: #92400e;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dark-mode .hub-info-card p {
+  color: #fbbf24;
+}
+
+/* Error container styling */
+.checkout-error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-icon {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.checkout-error-container h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--hub-text);
+  margin-bottom: 0.5rem;
+}
+
+.checkout-error-container p {
+  color: var(--hub-text-muted);
+  margin-bottom: 2rem;
+}
+
+.error-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--hub-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-btn:hover {
+  background: var(--hub-primary-hover);
+  transform: translateY(-2px);
+}
+
 /* Dark Mode Specific Adjustments */
 .dark-mode .ticket-type-card {
   background: rgba(255, 255, 255, 0.03);

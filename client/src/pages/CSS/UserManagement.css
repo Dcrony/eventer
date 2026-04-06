@@ -453,11 +453,21 @@
 .dark-mode .filter-group select {
   background: #111827;
   color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
-.dark-mode .user-table td {
+
+ .dark-mode .user-table-wrapper{
+    background-color: var(--card-bg);
+  }
+
+
+.dark-mode .user-table tr {
+  background-color: var(--card-bg);
   color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
 .dark-mode .role-user {

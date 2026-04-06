@@ -13,12 +13,13 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
+import { PORT_URL } from "../utils/config";
 
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/MyTickets.css";
 
-const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
@@ -28,6 +29,7 @@ export default function MyTickets() {
   const [filter, setFilter] = useState("all"); // all, upcoming, past
   const { darkMode } = useContext(ThemeContext);
   const user = JSON.parse(localStorage.getItem("user"));
+  const { toProfile } = useProfileNavigation();
 
   useEffect(() => {
     API.get("/tickets/my-tickets")
@@ -185,7 +187,21 @@ export default function MyTickets() {
 
                     <div className="ticket-overlay">
                       <h3 className="event-title">{event.title}</h3>
-                      <div className="creator-info">
+                      <div
+                        className="creator-info"
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toProfile(event.createdBy);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toProfile(event.createdBy);
+                          }
+                        }}
+                      >
                         {event.createdBy?.profilePic ? (
                           <img
                             src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
@@ -303,7 +319,7 @@ export default function MyTickets() {
                         )}
 
                         <Link
-                          to={`/eventdetail/${event._id}`}
+                          to={`/Eventdetail/${event._id}`}
                           className="btn-premium btn-secondary"
                           style={{ padding: "0.75rem" }}
                         >

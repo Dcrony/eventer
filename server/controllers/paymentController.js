@@ -337,6 +337,28 @@ exports.verifyPayment = async (req, res) => {
         console.error("❌ Exception sending email to buyer:", emailError);
       }
 
+      // ===== CREATE NOTIFICATION FOR BUYER =====
+      try {
+        const buyerNotification = new Notification({
+          user: finalUserId,
+          type: "ticket_purchase",
+          message: `🎟️ Ticket purchase confirmed for "${event.title}" - ${quantity} ticket(s) for ₦${(
+            ticketPrice * quantity
+          ).toLocaleString()}`,
+        });
+        await buyerNotification.save();
+
+        // Emit real-time notification if socket.io is available
+        const io = req.app.get("io");
+        if (io) {
+          io.to(`user_${finalUserId}`).emit("new_notification", buyerNotification);
+        }
+
+        console.log("✅ Notification created for buyer:", finalUserId);
+      } catch (buyerNotifError) {
+        console.error("❌ Failed to create buyer notification:", buyerNotifError);
+      }
+
       // ===== CREATE NOTIFICATION FOR ORGANIZER =====
       try {
         const notification = new Notification({

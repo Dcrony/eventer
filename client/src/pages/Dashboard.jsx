@@ -139,7 +139,6 @@ const handleWithdraw = async () => {
 
       setTransactions(res.data);
     } catch (err) {
-      console.log(err.response?.data);
       alert(err.response?.data?.message || "Withdrawal failed");
     } finally {
       setWithdrawLoading(false);

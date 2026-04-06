@@ -2,9 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
 import NotificationBell from "./NotificationBell";
+import { PORT_URL } from "../utils/config";
 import "./css/Navbar.css";
-
-const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:8080";
 
 export default function NavBar() {
   const [user, setUser] = useState(null);
@@ -52,7 +51,7 @@ export default function NavBar() {
               className="nav-profile-pic"
             />
             <div className="dropdown-menu">
-              <Link to={`/profile/${user.id}`}>👤 Profile</Link>
+              <Link to="/profile/me">👤 Profile</Link>
               <Link to="/dashboard">📋 Dashboard</Link>
               <Link to="/admin/dashboard">📊 Stats</Link>
               <button onClick={handleLogout} className="logout-btn">

@@ -147,6 +147,22 @@ function Layout() {
           }
         />
         <Route
+          path="/profile/me"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/users/:id"
           element={
             <ProtectedRoute>

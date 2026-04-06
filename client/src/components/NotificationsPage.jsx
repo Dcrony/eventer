@@ -16,17 +16,6 @@ export default function NotificationsPage() {
   const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
-
-
-const [refreshing, setRefreshing] = useState(false);
-
-const handleRefresh = useCallback(async () => {
-  setRefreshing(true);
-  await fetchNotifications();
-  setRefreshing(false);
-}, []);
-
-
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const formatDate = (dateString) => {

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import API from "../../api/axios";
+import useProfileNavigation from "../../hooks/useProfileNavigation";
 
 export default function ChatList({ setSelectedUser, selectedUserId }) {
+  const { toProfile } = useProfileNavigation();
   const [chats, setChats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -37,10 +39,27 @@ export default function ChatList({ setSelectedUser, selectedUserId }) {
           className={`chat-item ${selectedUserId === chat.user._id ? 'active' : ''}`}
           onClick={() => setSelectedUser(chat.user)}
         >
-          <img src={chat.user.avatar} alt="" />
-          <div>
-            <h4>{chat.user.name}</h4>
-            <p>{chat.lastMessage.text}</p>
+          <div
+            className="chat-user-link"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              toProfile(chat.user);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                toProfile(chat.user);
+              }
+            }}
+          >
+            <img src={chat.user.avatar} alt="" />
+            <div>
+              <h4>{chat.user.name}</h4>
+              <p>{chat.lastMessage.text}</p>
+            </div>
           </div>
         </div>
       ))}

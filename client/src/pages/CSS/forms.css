@@ -492,8 +492,16 @@
 
 @media (max-width: 640px) {
   .form-container {
-    padding: 2rem 1.5rem;
-    border-radius: 20px;
+    padding: 1rem;
+    max-width: 100%;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-btn {
+    width: 100%;
   }
 
   .form-title {

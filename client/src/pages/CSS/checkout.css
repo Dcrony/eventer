@@ -508,7 +508,19 @@
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
 }
-
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .checkout-page {
+    padding: 1rem 0.75rem 80px;
+  }
+  .checkout-card {
+    padding: 1.5rem;
+  }
+  .checkout-progress {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .checkout-page {

@@ -1000,6 +1000,16 @@ body.dark-mode .dash-btn-primary {
   color: #ef4444;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 80px;
+  }
+}
+
 
 /* Responsive Overrides */
 @media (max-width: 768px) {

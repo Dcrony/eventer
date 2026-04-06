@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
     Users,
     Heart,
@@ -47,6 +48,7 @@ export default function LiveStream() {
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem("user"));
     const currentUserId = user?.id || user?._id;
+    const { toProfile } = useProfileNavigation();
 
     // Host panel state
     const [hostPanelTab, setHostPanelTab] = useState("attendees");
@@ -546,7 +548,18 @@ export default function LiveStream() {
 
                     {!isBroadcaster && (
                         <div className="creator-strip">
-                            <div className="creator-info-left">
+                            <div
+                                className="creator-info-left"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => toProfile(event.createdBy)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        toProfile(event.createdBy);
+                                    }
+                                }}
+                            >
                                 {event.createdBy?.profilePic ? (
                                     <img
                                         src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
@@ -562,10 +575,10 @@ export default function LiveStream() {
                                     <h4>{event.createdBy?.username || "Organizer"}</h4>
                                     <p className="follower-count">1.2K followers</p>
                                 </div>
-                                <button type="button" className="btn-stream btn-follow">
-                                    <Heart size={18} /> Follow
-                                </button>
                             </div>
+                            <button type="button" className="btn-stream btn-follow">
+                                <Heart size={18} /> Follow
+                            </button>
                         </div>
                     )}
 
@@ -644,7 +657,19 @@ export default function LiveStream() {
                                 {!attendeesLoading && !attendeesError && attendees.length > 0 && (
                                     <ul className="host-attendees-list">
                                         {attendees.map((t) => (
-                                            <li key={t._id} className="host-attendee-item">
+                                            <li
+                                                key={t._id}
+                                                className="host-attendee-item"
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => toProfile(t.buyer)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Enter" || e.key === " ") {
+                                                        e.preventDefault();
+                                                        toProfile(t.buyer);
+                                                    }
+                                                }}
+                                            >
                                                 {t.buyer?.profilePic ? (
                                                     <img
                                                         src={`${PORT_URL}/uploads/profile_pic/${t.buyer.profilePic}`}

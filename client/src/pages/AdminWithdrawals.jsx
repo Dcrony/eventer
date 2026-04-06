@@ -62,7 +62,6 @@ export default function AdminWithdrawals() {
     fetchMonthlyTrend();
 
   } catch (err) {
-    console.log("ERROR:", err.response?.data);
     alert(err.response?.data?.message || "Action failed");
   }
 };

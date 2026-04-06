@@ -13,6 +13,7 @@ import {
   RotateCw,
   Settings,
 } from "lucide-react";
+import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import GoLiveModal from "./GoLiveModal";
 import { ThemeContext } from "../contexts/ThemeContexts";
@@ -47,6 +48,7 @@ export default function LiveEvent() {
   const sortWrapRef = useRef(null);
   const navigate = useNavigate();
   const { darkMode } = useContext(ThemeContext);
+  const { toProfile } = useProfileNavigation();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -389,33 +391,49 @@ export default function LiveEvent() {
                     </span>
                   </div>
                   <div className="live-card-body">
-                    {event.createdBy?.profilePic ? (
-                      <img
-                        src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
-                        alt=""
-                        className="live-card-avatar"
-                        aria-hidden="true"
-                      />
-                    ) : (
-                      <div className="live-card-avatar live-card-avatar-fallback">
-                        {event.createdBy?.username?.charAt(0) || "U"}
-                      </div>
-                    )}
-                    <div className="live-card-info">
-                      <h3 className="live-card-title">{event.title}</h3>
-                      <p className="live-card-creator">
-                        {event.createdBy?.username || "Organizer"}
-                      </p>
-                      <div className="live-card-meta">
-                        {event.category && (
-                          <span className="live-card-category">{event.category}</span>
-                        )}
-                        {event.location && (
-                          <span className="live-card-location">
-                            <MapPin size={10} />
-                            {event.location}
-                          </span>
-                        )}
+                    <div
+                      className="live-card-author"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toProfile(event.createdBy);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toProfile(event.createdBy);
+                        }
+                      }}
+                    >
+                      {event.createdBy?.profilePic ? (
+                        <img
+                          src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                          alt=""
+                          className="live-card-avatar"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <div className="live-card-avatar live-card-avatar-fallback">
+                          {event.createdBy?.username?.charAt(0) || "U"}
+                        </div>
+                      )}
+                      <div className="live-card-info">
+                        <h3 className="live-card-title">{event.title}</h3>
+                        <p className="live-card-creator">
+                          {event.createdBy?.username || "Organizer"}
+                        </p>
+                        <div className="live-card-meta">
+                          {event.category && (
+                            <span className="live-card-category">{event.category}</span>
+                          )}
+                          {event.location && (
+                            <span className="live-card-location">
+                              <MapPin size={10} />
+                              {event.location}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

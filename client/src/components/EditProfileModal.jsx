@@ -36,6 +36,18 @@ export default function EditProfileModal({
     setLoading(true);
     setMessage({ text: "", type: "" });
 
+    // Validation
+    if (!formData.name.trim()) {
+      setMessage({ text: "Name is required", type: "error" });
+      setLoading(false);
+      return;
+    }
+    if (formData.newPassword && !formData.currentPassword) {
+      setMessage({ text: "Current password is required to change password", type: "error" });
+      setLoading(false);
+      return;
+    }
+
     try {
       // Update profile
       const { data } = await axios.put("/profile/me", formData);
@@ -55,8 +67,7 @@ export default function EditProfileModal({
 
   return (
     <div
-      className={`settings-modal-backdrop ${darkMode === "dark" ? "dark-mode" : ""
-        }`}
+      className={`settings-modal-backdrop ${darkMode ? "dark-mode" : ""}`}
     >
       <div className="settings-modal">
         <h2>Account Settings</h2>

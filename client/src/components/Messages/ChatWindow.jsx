@@ -35,7 +35,11 @@ export default function ChatWindow({ currentUser, selectedUser }) {
     socket.on("typing", () => setTyping(true));
     socket.on("stopTyping", () => setTyping(false));
 
-    return () => socket.off();
+    return () => {
+      socket.off("receiveMessage");
+      socket.off("typing");
+      socket.off("stopTyping");
+    };
   }, []);
 
   // Scroll to bottom when messages change
@@ -95,7 +99,7 @@ export default function ChatWindow({ currentUser, selectedUser }) {
           <div key={i} ref={scrollRef}>
             <MessageBubble
               message={msg}
-              isMe={msg.sender === currentUser._id || msg.senderId === currentUser._id}
+              isMe={msg.senderId === currentUser._id}
             />
           </div>
         ))}

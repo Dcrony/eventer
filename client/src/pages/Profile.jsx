@@ -1,15 +1,15 @@
 import { useEffect, useState, useContext } from "react";
 import API from "../api/axios";
+import { PORT_URL } from "../utils/config";
 import { useParams, useNavigate } from "react-router-dom";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
 import "./CSS/Profile.css";
 
 
-const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
-
 export default function Profile() {
-  const { id } = useParams();
+  const { id, userId } = useParams();
+  const profileId = userId || id;
   const navigate = useNavigate();
   const { darkMode } = useContext(ThemeContext);
 
@@ -23,10 +23,12 @@ const handleMessageClick = () => {
 };
 
   useEffect(() => {
-    API.get(`/users/${id}`)
+    const path = profileId === "me" ? "/users/me" : `/users/${profileId}`;
+
+    API.get(path)
       .then((res) => setProfile(res.data))
-      .catch((err) => console.error(err));
-  }, [id]);
+      .catch((err) => alert(err.response?.data?.message || "Failed to load profile"));
+  }, [profileId]);
 
   if (!profile) {
     return (

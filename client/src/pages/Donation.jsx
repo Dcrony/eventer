@@ -31,7 +31,7 @@ export default function Donation() {
           </p>
         </div>
        
-        <button className="btn btn-primary">Donate Now</button>
+        <button className="btn btn-primary" onClick={() => alert('Donation feature coming soon!')}>Donate Now</button>
       </div>
       <Footer />
     </div>

@@ -70,7 +70,6 @@ export default function Settings() {
 
         const userData = res.data.user || res.data;
         setUser(userData);
-        console.log("Fetched user:", userData);
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }
