@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 1000;
+  z-index: 999;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
 }
 

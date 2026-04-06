@@ -1655,6 +1655,7 @@ html {
 }
 
 .search-input-expanded::placeholder {
+  padding-left: 2rem;
   color: #999;
 }
 
@@ -1680,7 +1681,7 @@ html {
 
 .search-btn-expanded:hover {
   background: #db2777;
-  transform: scale(1.1);
+  transform: scale(1.04);
 }
 
 .search-btn-expanded:active {
@@ -1947,12 +1948,16 @@ html {
   }
 
   .search-input-expanded {
-    padding: 0.75rem;
+    padding: 0.75rem 2.2rem;
     width: 100%;
   }
 
+  .search-input-expanded::placeholder{
+    padding-left: 10px;
+  }
+
   .search-btn-expanded {
-    width: 100%;
+    width: 90%;
     border-radius: 8px;
   }
 
@@ -2068,8 +2073,12 @@ html {
   }
 
   .search-input-expanded {
-    padding: 0.5rem;
+    padding: 0.5rem 1rem ;
     font-size: 1rem;
+  }
+
+  .search-input-expanded::placeholder{
+    padding-left: 10px;
   }
 
   .search-btn-expanded {

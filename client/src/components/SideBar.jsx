@@ -4,6 +4,7 @@ import { ThemeContext } from "../contexts/ThemeContexts";
 import { logout, getCurrentUser } from "../utils/auth";
 import CreateEvent from "../pages/CreateEvent";
 import NotificationBell from "./NotificationBell";
+import MessageIndicator from "./MessageIndicator";
 import "./css/sidebar.css";
 import icon from "../assets/icon.svg"
 
@@ -20,6 +21,7 @@ import {
   User,
   LogOut,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -74,6 +76,7 @@ export default function Sidebar() {
     : []),
 
   { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
+  { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
   ...(canOrganize
@@ -122,6 +125,24 @@ export default function Sidebar() {
         <div className="sidebar-nav">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.to;
+
+            if (item.component) {
+              // Special component like MessageIndicator
+              const Component = item.component;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`sidebar-link ${isActive ? "is-active" : ""}`}
+                  data-tooltip={item.label}
+                >
+                  <span className="sidebar-link-icon">
+                    <Component />
+                  </span>
+                  {expand && <span className="sidebar-link-text">{item.label}</span>}
+                </Link>
+              );
+            }
 
             return item.action ? (
               // ✅ Handle buttons like Create (not routes)

@@ -298,6 +298,28 @@ export default function LandingPage() {
               in-person and virtual events. Join 50,000+ organizers who trust
               TickiSpot.
             </p>
+
+            <div className="search-section-container">
+          <div className="search-wrapper-expanded">
+            <Search className="search-icon" size={24} />
+            <input
+              type="text"
+              placeholder="Search events by title, location, or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input-expanded"
+            />
+            <button className="search-btn-expanded">
+              <ArrowRight size={20} />
+            </button>
+          </div>
+          
+          {searchQuery && (
+            <div className="search-results-info">
+              Found {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} matching "{searchQuery}"
+            </div>
+          )}
+        </div>
             
             <div className="hero-cta">
               {isLoggedIn ? (
@@ -323,33 +345,10 @@ export default function LandingPage() {
               )}
             </div>
           </div>
+          
         </div>
       </section>
 
-      {/* Search Section - Below Hero */}
-      <section className="search-section">
-        <div className="search-section-container">
-          <div className="search-wrapper-expanded">
-            <Search className="search-icon" size={24} />
-            <input
-              type="text"
-              placeholder="Search events by title, location, or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input-expanded"
-            />
-            <button className="search-btn-expanded">
-              <ArrowRight size={20} />
-            </button>
-          </div>
-          
-          {searchQuery && (
-            <div className="search-results-info">
-              Found {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} matching "{searchQuery}"
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* Events Display Section */}
       <section className="events-display-section">
@@ -692,6 +691,7 @@ export default function LandingPage() {
               <Link to="/create">Create Event</Link>
               <Link to="/pricing">Pricing</Link>
               <Link to="/features">Features</Link>
+              <Link to="/Docs">Documentation</Link>
             </div>
             <div className="footer-section">
               <h4>Support</h4>

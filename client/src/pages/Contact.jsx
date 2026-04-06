@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import LandingNavbar from "../components/LandingNavbar";
-import Footer from "../components/Footer";
 import "./CSS/landing.css";
 
 export default function Contact() {
@@ -19,9 +17,8 @@ export default function Contact() {
   return (
     <div className="landing-page">
       <div className="grid-background"></div>
-      <LandingNavbar />
 
-      <div style={{ paddingTop: "120px", paddingBottom: "60px", maxWidth: "800px", margin: "0 auto", paddingLeft: "20px", paddingRight: "20px", position: "relative", zIndex: 1 }}>
+      <div style={{ paddingTop: "70px", paddingBottom: "80px", maxWidth: "800px", margin: "0 auto", paddingLeft: "20px", paddingRight: "20px", position: "relative", zIndex: 1 }}>
         <div className="section-header animate-in" style={{ marginBottom: "40px" }}>
           <h1 className="section-title" style={{ gap: "20px" }}>
             <span className="title-box title-box-border">Contact</span>
@@ -72,7 +69,6 @@ export default function Contact() {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 }

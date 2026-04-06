@@ -1,14 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useSearchParams } from "react-router-dom";
 import ChatList from "../components/Messages/ChatList";
 import ChatWindow from "../components/Messages/ChatWindow";
 import API from "../api/axios";
+import { ThemeContext } from "../contexts/ThemeContexts";
+import { getCurrentUser } from "../utils/auth";
 import "./CSS/Messages.css";
 
-export default function Messages({ user }) {
+export default function Messages() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchParams] = useSearchParams();
   const userIdFromQuery = searchParams.get("user");
+  const { darkMode } = useContext(ThemeContext);
+  const user = getCurrentUser();
 
   // auto select user if query param exists
   useEffect(() => {
@@ -27,10 +31,13 @@ export default function Messages({ user }) {
   }, [userIdFromQuery]);
 
   return (
-    <div className="messages-page">
+    <div className={`messages-page ${darkMode ? "dark-mode" : ""}`}>
       <div className="messages-container">
         <div className="messages-sidebar">
-          <ChatList setSelectedUser={setSelectedUser} />
+          <ChatList 
+            setSelectedUser={setSelectedUser} 
+            selectedUser={selectedUser}
+          />
         </div>
         <div className="messages-main">
           {selectedUser ? (

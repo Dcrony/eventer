@@ -1,11 +1,8 @@
 import React from "react";
-import LandingNavbar from "../components/LandingNavbar";
-import Footer from "../components/Footer";
 
 export default function Donation() {
   return (
     <div className="landing-page">
-      <LandingNavbar />
 
       <div
         className="page-container "
@@ -33,7 +30,6 @@ export default function Donation() {
        
         <button className="btn btn-primary" onClick={() => alert('Donation feature coming soon!')}>Donate Now</button>
       </div>
-      <Footer />
     </div>
   );
 }

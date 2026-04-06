@@ -44,9 +44,7 @@ exports.requestWithdrawal = async (req, res) => {
       status: "pending",
     });
 
-    // DEDUCT BALANCE IMMEDIATELY (Safety first)
-    organizer.availableBalance -= amount;
-    await organizer.save();
+    // Do not deduct balance yet - wait for admin approval
 
     // Log transaction
     await Transaction.create({
@@ -61,7 +59,7 @@ exports.requestWithdrawal = async (req, res) => {
     console.log(`💸 Withdrawal requested: ${amount} by ${organizer.username}`);
 
     res.status(200).json({
-      message: "Withdrawal request submitted. Balance deducted.",
+      message: "Withdrawal request submitted. Awaiting admin approval.",
       withdrawal,
     });
 
@@ -113,6 +111,19 @@ exports.adminUpdateWithdrawal = async (req, res) => {
 
     // ✅ HANDLE APPROVAL (INITIATE TRANSFER)
     if (status === "approved") {
+      // Check minimum withdrawal
+      const MIN_WITHDRAWAL = 1000; // NGN
+      if (withdrawal.amount < MIN_WITHDRAWAL) {
+        return res.status(400).json({ message: `Minimum withdrawal amount is ₦${MIN_WITHDRAWAL}` });
+      }
+
+      // Deduct balance now
+      if (organizer.availableBalance < withdrawal.amount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+      organizer.availableBalance -= withdrawal.amount;
+      await organizer.save();
+
       try {
         const recipientCode = await createRecipient(withdrawal.bankDetails);
 
@@ -123,25 +134,31 @@ exports.adminUpdateWithdrawal = async (req, res) => {
         );
 
         withdrawal.status = "processing";
+        withdrawal.paystackRecipientCode = recipientCode;
+        withdrawal.transferReference = transfer.reference;
         withdrawal.paystackReference = transfer.reference;
         withdrawal.processedBy = req.user.id;
         withdrawal.processedAt = new Date();
         await withdrawal.save();
+
+        // Update transaction
+        await Transaction.findOneAndUpdate(
+          { referenceId: withdrawal._id, type: "withdrawal" },
+          { status: "processing" }
+        );
 
         console.log(`🚀 Withdrawal approved and transfer initiated: ${withdrawal._id}`);
         return res.json({ message: "Transfer initiated successfully", withdrawal });
       } catch (paystackError) {
         console.error("Paystack Transfer Error:", paystackError.response?.data || paystackError.message);
         
-        // If Paystack fails, we mark as failed but don't refund yet? 
-        // Actually, if it fails here, we should probably refund or let admin retry.
-        // Let's mark as failed and refund to be safe.
+        // Refund balance on failure
+        organizer.availableBalance += withdrawal.amount;
+        await organizer.save();
+
         withdrawal.status = "failed";
         withdrawal.failureReason = paystackError.response?.data?.message || paystackError.message;
         await withdrawal.save();
-
-        organizer.availableBalance += withdrawal.amount;
-        await organizer.save();
 
         return res.status(500).json({ message: "Paystack transfer failed", error: withdrawal.failureReason });
       }

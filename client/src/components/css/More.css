@@ -7,6 +7,16 @@
   padding-bottom: 4rem;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .more-page {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 80px;
+  }
+}
+
 .more-page section {
   margin-bottom: 24px;
 }

@@ -3,6 +3,7 @@ import API from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import "./CSS/Dashboard.css";
 import EditEvent from "../components/EditEvent";
+import UpgradeModal from "../components/UpgradeModal";
 import { getCurrentUser } from "../utils/auth";
 import {
   ArrowRight,
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
@@ -82,8 +84,13 @@ export default function Dashboard() {
       setStats(statsRes.data);
       setTransactions(transactionRes.data);
       setLoading(false);
+
+      // Check if free plan user
+      if (user?.billing?.plan === "Free") {
+        setShowUpgradeModal(true);
+      }
     });
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
   API.get("/banks").then((res) => {
@@ -572,6 +579,10 @@ const handleWithdraw = async () => {
           </div>
         </div>
       )}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

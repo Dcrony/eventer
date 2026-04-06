@@ -35,6 +35,9 @@ const withdrawalSchema = new mongoose.Schema(
       bankCode: String,
     },
 
+    paystackRecipientCode: String,
+    transferReference: String,
+
     status: {
   type: String,
   enum: [

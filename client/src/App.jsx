@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import MyTickets from "./pages/MyTickets";
 import Dashboard from "./pages/Dashboard";
 import Success from "./pages/Success";
@@ -73,6 +76,9 @@ function Layout() {
         <Route path="/events" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route
           path="/more"
           element={
@@ -194,7 +200,14 @@ function Layout() {
             </ProtectedRoute>
           }
         />
-          <Route path="/messages" element={<Messages />} />
+          <Route
+          path="/messages"
+          element={
+            <ProtectedRoute>
+              <Messages />
+            </ProtectedRoute>
+          }
+        />
 
         
         <Route

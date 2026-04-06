@@ -1,6 +1,4 @@
 import React from "react";
-import LandingNavbar from "../components/LandingNavbar";
-import Footer from "../components/Footer";
 import { CheckCircle2 } from "lucide-react";
 import "./CSS/landing.css";
 
@@ -30,9 +28,8 @@ export default function Pricing() {
   return (
     <div className="landing-page">
       <div className="grid-background"></div>
-      <LandingNavbar />
 
-      <div style={{ paddingTop: "120px", paddingBottom: "80px", maxWidth: "1200px", margin: "0 auto", paddingLeft: "20px", paddingRight: "20px", position: "relative", zIndex: 1 }}>
+      <div style={{ paddingTop: "70px", paddingBottom: "80px", maxWidth: "1200px", margin: "0 auto", paddingLeft: "20px", paddingRight: "20px", position: "relative", zIndex: 1 }}>
         <div className="section-header animate-in">
           <h1 className="section-title">
             <span className="title-box title-box-border">Simple</span>
@@ -79,7 +76,6 @@ export default function Pricing() {
         </div>
       </div>
 
-      <Footer />
     </div>
   );
 }

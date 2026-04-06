@@ -3,8 +3,8 @@ import { useParams } from "react-router-dom";
 import API from "../api/axios";
 import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/Settings.css";
-import ThemeToggle from "./ThemeToggle";
 import ToggleSwitch from "./ToggleSwitch";
+import EditProfileModal from "./EditProfileModal";
 import {
   User,
   Lock,
@@ -26,6 +26,7 @@ import {
   Shield,
   LogOut,
   Trash2,
+  User2,
 } from "lucide-react";
 
 export default function Settings() {
@@ -33,6 +34,7 @@ export default function Settings() {
   const { darkMode, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   // Privacy
   const [privacy, setPrivacy] = useState({
@@ -170,6 +172,7 @@ export default function Settings() {
   };
 
   const tabs = [
+    { id: "profile", label: "Profile", icon: <User2 size={18} /> },
     { id: "privacy", label: "Privacy", icon: <Lock size={18} /> },
     { id: "notifications", label: "Notifications", icon: <Bell size={18} /> },
     { id: "billing", label: "Billing", icon: <CreditCard size={18} /> },
@@ -252,6 +255,51 @@ export default function Settings() {
 
       {/* Main Content */}
       <main className="settings-page-content">
+        {/* Profile Tab */}
+        {activeTab === "profile" && (
+          <div className="settings-page-card">
+            <div className="settings-page-card-header">
+              <h3 className="settings-page-card-title">
+                <User2 size={20} className="settings-page-title-icon" />
+                Profile Details
+              </h3>
+              <p className="settings-page-card-description">
+                View your account information and update via the profile editor.
+              </p>
+            </div>
+
+            <div className="settings-page-section settings-page-profile-view">
+              <div className="settings-page-profile-row">
+                <span className="settings-page-profile-label">Name</span>
+                <span className="settings-page-profile-value">{user?.name || "—"}</span>
+              </div>
+              <div className="settings-page-profile-row">
+                <span className="settings-page-profile-label">Username</span>
+                <span className="settings-page-profile-value">{user?.username || "—"}</span>
+              </div>
+              <div className="settings-page-profile-row">
+                <span className="settings-page-profile-label">Email</span>
+                <span className="settings-page-profile-value">{user?.email || "—"}</span>
+              </div>
+              <div className="settings-page-profile-row">
+                <span className="settings-page-profile-label">Phone</span>
+                <span className="settings-page-profile-value">{user?.phone || "—"}</span>
+              </div>
+              <div className="settings-page-profile-row">
+                <span className="settings-page-profile-label">Bio</span>
+                <span className="settings-page-profile-value">{user?.bio || "No bio yet."}</span>
+              </div>
+
+              <button
+                className="settings-page-btn-primary"
+                onClick={() => setEditProfileOpen(true)}
+              >
+                Edit Profile
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Privacy Tab */}
         {activeTab === "privacy" && (
           <div className="settings-page-card">
@@ -518,6 +566,18 @@ export default function Settings() {
           </div>
         )}
       </main>
+
+      {editProfileOpen && (
+        <EditProfileModal
+          isOpen={editProfileOpen}
+          onClose={() => setEditProfileOpen(false)}
+          currentUser={user}
+          onProfileUpdated={(updatedUser) => {
+            setUser(updatedUser);
+            setEditProfileOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

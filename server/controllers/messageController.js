@@ -49,8 +49,8 @@ const getMessages = async (req, res) => {
       ],
     })
       .sort({ createdAt: 1 })
-      .populate("sender", "name avatar")
-      .populate("receiver", "name avatar");
+.populate("sender", "name profilePic")
+    .populate("receiver", "name profilePic");
 
     res.json(messages);
   } catch (err) {
@@ -66,7 +66,7 @@ const getConversations = async (req, res) => {
       $or: [{ sender: userId }, { receiver: userId }],
     })
       .sort({ createdAt: -1 })
-      .populate("sender receiver", "name avatar");
+      .populate("sender receiver", "name profilePic");
 
     const conversations = {};
 
@@ -80,7 +80,13 @@ const getConversations = async (req, res) => {
         conversations[otherUser._id] = {
           user: otherUser,
           lastMessage: msg,
+          unreadCount: 0,
         };
+      }
+
+      // Count unread messages (messages not seen by current user)
+      if (!msg.seen && msg.receiver.toString() === userId) {
+        conversations[otherUser._id].unreadCount++;
       }
     });
 
@@ -90,8 +96,25 @@ const getConversations = async (req, res) => {
   }
 };
 
+ const markMessagesAsRead = async (req, res) => {
+   try {
+     const userId = req.user.id;
+     const { otherUserId } = req.params;
+
+     await Message.updateMany(
+       { sender: otherUserId, receiver: userId, seen: false },
+       { seen: true }
+     );
+
+     res.json({ msg: "Messages marked as read" });
+   } catch (err) {
+     res.status(500).json({ msg: err.message });
+  }
+};
+
 module.exports = {
     sendMessage,
     getMessages,
     getConversations,
+    markMessagesAsRead,
 };

@@ -1,27 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
+import { ThemeContext } from "../../contexts/ThemeContexts";
+import { PORT_URL } from "../../utils/config";
 
-export default function ChatList({ setSelectedUser, selectedUserId }) {
+export default function ChatList({ setSelectedUser, selectedUser }) {
   const { toProfile } = useProfileNavigation();
+  const { darkMode } = useContext(ThemeContext);
   const [chats, setChats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const fetchChats = async () => {
-      const res = await API.get("/messages");
-      setChats(res.data);
+      try {
+        const res = await API.get("/messages");
+        setChats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch chats:", err);
+      }
     };
 
     fetchChats();
   }, []);
 
-  const filteredChats = chats.filter(chat =>
+  // Combine existing chats with selected user if not already in chats
+  const allConversations = [...chats];
+  if (selectedUser && !chats.find(chat => chat.user._id === selectedUser._id)) {
+    allConversations.unshift({
+      user: {
+        _id: selectedUser._id,
+        name: selectedUser.name || selectedUser.username,
+        avatar: selectedUser.profilePic ? `${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}` : null
+      },
+      lastMessage: null
+    });
+  }
+
+  const filteredChats = allConversations.filter(chat =>
     chat.user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="chat-list">
+    <div className={`chat-list ${darkMode ? "dark-mode" : ""}`}>
       <div className="chat-list-header">
         <h2>Messages</h2>
       </div>
@@ -31,43 +51,44 @@ export default function ChatList({ setSelectedUser, selectedUserId }) {
           placeholder="Search conversations..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          className={darkMode ? "dark-mode" : ""}
         />
       </div>
-      {filteredChats.map((chat) => (
-        <div
-          key={chat.user._id}
-          className={`chat-item ${selectedUserId === chat.user._id ? 'active' : ''}`}
-          onClick={() => setSelectedUser(chat.user)}
-        >
-          <div
-            className="chat-user-link"
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation();
-              toProfile(chat.user);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                toProfile(chat.user);
-              }
-            }}
-          >
-            <img src={chat.user.avatar} alt="" />
-            <div>
-              <h4>{chat.user.name}</h4>
-              <p>{chat.lastMessage.text}</p>
-            </div>
+      <div className="chat-list-items">
+        {filteredChats.length === 0 ? (
+          <div className="chat-list-empty">
+            <p>No conversations found</p>
           </div>
-        </div>
-      ))}
-      {filteredChats.length === 0 && (
-        <div className="chat-list-empty">
-          <p>No conversations found</p>
-        </div>
-      )}
+        ) : (
+          filteredChats.map((chat) => (
+            <div
+              key={chat.user._id}
+              className={`chat-item ${selectedUser?._id === chat.user._id ? "active" : ""} ${darkMode ? "dark-mode" : ""}`}
+              onClick={() => setSelectedUser(chat.user)}
+            >
+              <div className="chat-item-avatar">
+                {chat.user.avatar ? (
+                  <img 
+                    src={chat.user.avatar.startsWith('http') ? chat.user.avatar : `${PORT_URL}/uploads/profile_pic/${chat.user.avatar}`} 
+                    alt={chat.user.name} 
+                  />
+                ) : (
+                  <div className="avatar-fallback">
+                    {chat.user.name?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                )}
+              </div>
+              <div className="chat-item-content">
+                <h4>{chat.user.name}</h4>
+                <p>{chat.lastMessage?.text || "Start a conversation"}</p>
+                {chat.unreadCount > 0 && (
+                  <span className="chat-item-unread">{chat.unreadCount}</span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

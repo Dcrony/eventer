@@ -35,6 +35,14 @@ const UserSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: String,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    googleId: String,
     role: {
       type: String,
       enum: ["admin", "organizer", "user"],

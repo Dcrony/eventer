@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const passport = require("passport");
+const session = require("express-session");
 const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
@@ -22,7 +24,23 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // set to true in production with HTTPS
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport config
+require("./config/passport")(passport);
 
 app.use("/api/webhook", webhookRoutes);
 app.use(express.json());

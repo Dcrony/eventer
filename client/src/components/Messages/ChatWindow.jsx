@@ -1,14 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
+import { Send, Phone, Info } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import socket from "../../socket";
 import API from "../../api/axios";
+import useProfileNavigation from "../../hooks/useProfileNavigation";
+import { ThemeContext } from "../../contexts/ThemeContexts";
+import { PORT_URL } from "../../utils/config";
 
 export default function ChatWindow({ currentUser, selectedUser }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
+  const { toProfile } = useProfileNavigation();
+  const { darkMode } = useContext(ThemeContext);
 
-  const scrollRef = useRef();
+  const messagesEndRef = useRef(null);
 
   // Fetch messages when selectedUser changes
   useEffect(() => {
@@ -18,6 +24,9 @@ export default function ChatWindow({ currentUser, selectedUser }) {
       try {
         const res = await API.get(`/messages/${selectedUser._id}`);
         setMessages(res.data);
+
+        // Mark messages as read
+        await API.put(`/messages/read/${selectedUser._id}`);
       } catch (err) {
         console.error("Failed to fetch messages:", err);
       }
@@ -44,8 +53,8 @@ export default function ChatWindow({ currentUser, selectedUser }) {
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
 
   const handleSend = async () => {
     if (!text.trim() || !currentUser || !selectedUser) return;
@@ -88,37 +97,115 @@ export default function ChatWindow({ currentUser, selectedUser }) {
   };
 
   // If user data isn’t ready, show a placeholder
-  if (!currentUser || !selectedUser) {
-    return <div className="chat-window">Select a user to start chatting...</div>;
+  if (!selectedUser) {
+    return <div className={`chat-window ${darkMode ? "dark-mode" : ""}`}>Select a user to start chatting...</div>;
   }
 
   return (
-    <div className="chat-window">
-      <div className="messages">
-        {messages.map((msg, i) => (
-          <div key={i} ref={scrollRef}>
-            <MessageBubble
-              message={msg}
-              isMe={msg.senderId === currentUser._id}
-            />
+    <div className={`chat-window ${darkMode ? "dark-mode" : ""}`}>
+      {/* Chat Header */}
+      <div className="chat-window-header">
+        <div
+          className="chat-header-user"
+          role="button"
+          tabIndex={0}
+          onClick={() => toProfile(selectedUser)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toProfile(selectedUser);
+            }
+          }}
+        >
+          <div className="chat-header-avatar">
+            {selectedUser.profilePic ? (
+              <img
+                src={`${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}`}
+                alt={selectedUser.username}
+                className="avatar-img"
+              />
+            ) : (
+              <div className="avatar-fallback">
+                {selectedUser.username?.charAt(0)?.toUpperCase() || "U"}
+              </div>
+            )}
+            <span className="online-indicator"></span>
           </div>
-        ))}
-        {typing && <p className="typing">Typing...</p>}
+          <div className="chat-header-info">
+            <h3 className="chat-header-name">{selectedUser.username || "User"}</h3>
+            <p className="chat-header-status">Online</p>
+          </div>
+        </div>
+        <div className="chat-header-actions">
+          <button className="chat-header-btn" title="Call">
+            <Phone size={20} />
+          </button>
+          <button className="chat-header-btn" title="Info">
+            <Info size={20} />
+          </button>
+        </div>
       </div>
 
-      <div className="chat-input">
-        <input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleTyping();
-          }}
-          placeholder="Type a message..."
-          disabled={!currentUser || !selectedUser}
-        />
-        <button onClick={handleSend} disabled={!currentUser || !selectedUser}>
-          Send
-        </button>
+      {/* Messages Area */}
+      <div className="chat-window-messages">
+        <div className="messages">
+          {messages.length === 0 ? (
+            <div className="chat-no-messages">
+              <div className="chat-no-messages-icon">💬</div>
+              <p>No messages yet. Start the conversation!</p>
+            </div>
+          ) : (
+            messages.map((msg, i) => (
+              <div key={i}>
+                <MessageBubble
+                  message={msg}
+                  isMe={msg.senderId === currentUser._id}
+                  currentUser={currentUser}
+                />
+              </div>
+            ))
+          )}
+          {typing && (
+            <div className="typing-indicator">
+              <div className="typing-bubble">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Chat Input Area */}
+      <div className="chat-input-area">
+        <div className="chat-input">
+          <input
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              handleTyping();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Type a message... (Shift+Enter for new line)"
+            disabled={!currentUser || !selectedUser}
+            className="chat-input-field"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!text.trim() || !currentUser || !selectedUser}
+            className="chat-send-btn"
+            title="Send message"
+          >
+            <Send size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

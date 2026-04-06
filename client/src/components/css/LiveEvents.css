@@ -37,6 +37,16 @@
   pointer-events: none;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .live-page {
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 80px;
+  }
+}
+
 .live-container {
   position: relative;
   z-index: 1;

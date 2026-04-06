@@ -3,6 +3,7 @@ const {
   sendMessage,
   getMessages,
   getConversations,
+  markMessagesAsRead,
 } = require("../controllers/messageController");
 
 const { authMiddleware } = require("../middleware/authMiddleware");
@@ -17,5 +18,8 @@ router.get("/:userId", authMiddleware, getMessages);
 
 // Get all conversations
 router.get("/", authMiddleware, getConversations);
+
+// Mark messages as read
+router.put("/read/:otherUserId", authMiddleware, markMessagesAsRead);
 
 module.exports = router;

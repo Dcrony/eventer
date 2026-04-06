@@ -2,12 +2,11 @@ const User = require("../models/User");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket"); 
 const Notification = require("../models/Notification");
-
+const bcrypt = require("bcryptjs");
 
 // @desc   Get logged-in user profile with tickets and created events
 // @route  GET /api/users/me
 // @access Private
-
 const getMyProfile = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
@@ -17,18 +16,14 @@ const getMyProfile = async (req, res) => {
     const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Use req.user.id consistently instead of req.params.id
     const userId = req.user.id;
 
-    // Fetch tickets purchased by this user
     const tickets = await Ticket.find({ buyer: userId })
       .populate("event")
       .exec();
 
-    // Fetch events created by this user
     const createdEvents = await Event.find({ createdBy: userId }).exec();
 
-    // Helper to safely format dates
     const formatDate = (date) => {
       if (!date) return "No date";
       return new Date(date).toLocaleString("en-US", {
@@ -42,11 +37,10 @@ const getMyProfile = async (req, res) => {
       });
     };
 
-    // ✅ Safely transform the data
     res.json({
       ...user.toObject(),
       tickets: tickets
-        .filter((t) => t.event) // remove broken ones
+        .filter((t) => t.event)
         .map((t) => ({
           ...t.toObject(),
           event: {
@@ -65,13 +59,9 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-
-
 // @desc   Update logged-in user profile (with password + bio support)
 // @route  PUT /api/users/me
 // @access Private
-const bcrypt = require("bcryptjs");
-
 const updateMyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -109,7 +99,6 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-
 // @desc   Upload profile picture
 // @route  POST /api/users/me/upload
 // @access Private
@@ -126,6 +115,7 @@ const uploadProfilePic = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // @desc   Upload cover picture
 // @route  POST /api/users/me/cover
 // @access Private
@@ -136,7 +126,6 @@ const uploadCoverPic = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Save file path (you can adjust the path based on your static folder setup)
     user.coverPic = `${req.file.filename}`;
     await user.save();
 
@@ -185,19 +174,17 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-// @desc   Get admin stats (users, active users, organizers)
-// @route  GET /api/users/stats
+// @desc   Get all users (admin only)
+// @route  GET /api/users
 // @access Admin
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
-
-    res.json( users);
+    res.json(users);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // @desc   Delete a user (admin only)
 // @route  DELETE /api/users/:id
@@ -229,7 +216,7 @@ const getMyEvents = async (req, res) => {
   }
 };
 
-
+// Follow / Unfollow
 const toggleFollow = async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
@@ -281,6 +268,7 @@ const toggleFollow = async (req, res) => {
   }
 };
 
+// Get user profile by ID
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -296,9 +284,7 @@ const getUserProfile = async (req, res) => {
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-
     const createdEvents = await Event.find({ organizer: userId });
-
     const isOwner = currentUserId === userId;
     const isFollowing = user.followers.some(
       (f) => f._id.toString() === currentUserId
@@ -306,16 +292,13 @@ const getUserProfile = async (req, res) => {
 
     res.json({
       ...user.toObject(),
-
       tickets,
       createdEvents,
-
       stats: {
         followers: user.followers.length,
         following: user.following.length,
         events: createdEvents.length,
       },
-
       isOwner,
       isFollowing,
     });
