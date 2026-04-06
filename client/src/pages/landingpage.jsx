@@ -680,9 +680,9 @@ export default function LandingPage() {
                 grow your events with confidence.
               </p>
               <div className="footer-social">
-                <a href="#" aria-label="Twitter">𝕏</a>
-                <a href="#" aria-label="LinkedIn">in</a>
-                <a href="#" aria-label="Instagram">📷</a>
+                <a href="https://x.com/tickispot" aria-label="Twitter">𝕏</a>
+                <a href="https://www.linkedin.com/company/tickispot" aria-label="LinkedIn">in</a>
+                <a href="https://www.instagram.com/tickispot" aria-label="Instagram">📷</a>
               </div>
             </div>
             <div className="footer-section">
