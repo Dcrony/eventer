@@ -14,6 +14,9 @@ import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
 import { useSearchParams } from "react-router-dom";
 
+
+const BACKEND_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -180,7 +183,7 @@ export default function Login() {
 
         <div style={{ textAlign: "center", margin: "1rem 0" }}>
           <button
-            onClick={() => window.location.href = "/api/auth/google"}
+            onClick={() => window.location.href = `${BACKEND_API_URL}/auth/google`}
             className="form-btn-secondary"
             style={{
               display: "flex",

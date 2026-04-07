@@ -15,6 +15,8 @@ import "./CSS/forms.css";
 import { isAuthenticated } from "../utils/auth";
 import icon from "../assets/icon.svg";
 
+const BACKEND_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -216,7 +218,7 @@ export default function Register() {
 
         <div style={{ textAlign: "center", margin: "1rem 0" }}>
           <button
-            onClick={() => (window.location.href = "/api/auth/google")}
+            onClick={() => (window.location.href = `${BACKEND_API_URL}/auth/google`}/auth/google`)}
             className="form-btn-secondary"
             style={{
               display: "flex",
