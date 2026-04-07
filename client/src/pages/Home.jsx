@@ -6,6 +6,7 @@ import { Search, MapPin, Calendar, Users, ArrowRight } from "lucide-react";
 import EmptyState from "../components/EmptyState";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
+import { DEMO_EVENTS } from "../utils/demoEvents";
 import { PORT_URL } from "../utils/config";
 import "./CSS/home.css";
 
@@ -28,40 +29,40 @@ export default function Home() {
   const demoEvents = useDemoEvents(events, error && !useDemoData);
 
   useEffect(() => {
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const res = await API.get("/events");
+        const res = await API.get("/events");
 
-      // ✅ FIX: Handle both direct array and nested data structure
-      const data = Array.isArray(res.data) 
-        ? res.data 
-        : Array.isArray(res.data?.data) 
-        ? res.data.data 
-        : [];
+        // ✅ FIX: Handle both direct array and nested data structure
+        const data = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
 
-      setEvents(data);
-      setFilteredEvents(data);
-      setUseDemoData(false);
-    } catch (err) {
-      console.error("FETCH ERROR:", {
-        status: err.response?.status,
-        message: err.response?.data?.message || err.message,
-        data: err.response?.data,
-      });
-      setError("Failed to load events. Showing demo events instead.");
-      setUseDemoData(true);
-      // Use demo data as fallback
-      setFilteredEvents(demoEvents);
-    } finally {
-      setLoading(false);
-    }
-  };
+        setEvents(data);
+        setFilteredEvents(data);
+        setUseDemoData(false);
+      } catch (err) {
+        console.error("FETCH ERROR:", {
+          status: err.response?.status,
+          message: err.response?.data?.message || err.message,
+          data: err.response?.data,
+        });
+        setError("Failed to load events. Showing demo events instead.");
+        setUseDemoData(true);
+        setEvents([]);
+        setFilteredEvents(DEMO_EVENTS);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchEvents();
-}, [demoEvents]);
+    fetchEvents();
+  }, []);
 
 
 
@@ -145,7 +146,7 @@ export default function Home() {
         )}
 
         {/* EVENTS */}
-        {!loading && !error && (
+        {!loading && (!error || useDemoData) && (
           <>
             {!Array.isArray(filteredEvents) || filteredEvents.length === 0 ? (
               <EmptyState 
