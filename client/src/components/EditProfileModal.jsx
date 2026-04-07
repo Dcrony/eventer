@@ -50,7 +50,7 @@ export default function EditProfileModal({
 
     try {
       // Update profile
-      const { data } = await axios.put("/profile/me", formData);
+      const { data } = await axios.put("/users/edit", formData);
       onProfileUpdated && onProfileUpdated(data.user);
 
       setMessage({ text: "Profile updated successfully!", type: "success" });
