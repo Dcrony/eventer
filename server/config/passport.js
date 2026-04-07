@@ -29,8 +29,11 @@ module.exports = function (passport) {
           user = await User.findOne({ email: profile.emails[0].value });
 
           if (user) {
-            // Link Google account
+            // Link Google account and mark verified if the email is trusted
             user.googleId = profile.id;
+            if (!user.isVerified) {
+              user.isVerified = true;
+            }
             await user.save();
             return done(null, user);
           }

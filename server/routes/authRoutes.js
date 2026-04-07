@@ -4,6 +4,8 @@ const passport = require("passport");
 const multer = require("multer");
 const { register, login, verifyEmail, forgotPassword, resetPassword } = require("../controllers/authControllers");
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 // 🧩 Multer for form-data parsing (no file uploads yet)
 const upload = multer();
 
@@ -25,10 +27,14 @@ router.post("/reset-password", resetPassword);
 // ✅ Google OAuth routes
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
-router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), (req, res) => {
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: `${FRONTEND_URL}/login` }),
+  (req, res) => {
   // Generate JWT token
   const jwt = require("jsonwebtoken");
   const JWT_SECRET = process.env.JWT_SECRET;
+  const frontEndUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const token = jwt.sign(
     {
       id: req.user._id,
@@ -44,7 +50,7 @@ router.get("/google/callback", passport.authenticate("google", { failureRedirect
 
   // Store token in session/cookie and redirect to frontend
   // The token will be passed via query param for client-side storage
-  const redirectUrl = `${process.env.FRONTEND_URL}/login?token=${token}&email=${req.user.email}&username=${req.user.username}`;
+  const redirectUrl = `${frontEndUrl}/login?token=${encodeURIComponent(token)}&email=${encodeURIComponent(req.user.email)}&username=${encodeURIComponent(req.user.username)}`;
   res.redirect(redirectUrl);
 });
 

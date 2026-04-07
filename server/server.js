@@ -20,13 +20,29 @@ const messageRoutes = require("./routes/messageRoutes");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-
+const DEFAULT_ALLOWED_ORIGINS = [
+  FRONTEND_URL,
+  "http://localhost:5173",
+  "https://tickispot.vercel.app",
+  "https://tickispot.pxxl.click",
+];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((url) => url.trim()).filter(Boolean)
+  : DEFAULT_ALLOWED_ORIGINS;
 
 const app = express();
 
 app.use(cors({
-  origin: FRONTEND_URL,
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS policy: Origin not allowed"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 app.use(session({
@@ -77,7 +93,13 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: `${FRONTEND_URL}`,
+    origin: function (origin, callback) {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Socket.IO CORS policy: Origin not allowed"));
+      }
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
