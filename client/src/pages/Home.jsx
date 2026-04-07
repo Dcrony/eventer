@@ -46,7 +46,11 @@ export default function Home() {
       setFilteredEvents(data);
       setUseDemoData(false);
     } catch (err) {
-      console.error("FETCH ERROR:", err);
+      console.error("FETCH ERROR:", {
+        status: err.response?.status,
+        message: err.response?.data?.message || err.message,
+        data: err.response?.data,
+      });
       setError("Failed to load events. Showing demo events instead.");
       setUseDemoData(true);
       // Use demo data as fallback
@@ -57,7 +61,7 @@ export default function Home() {
   };
 
   fetchEvents();
-}, []);
+}, [demoEvents]);
 
 
 

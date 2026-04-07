@@ -63,7 +63,8 @@ exports.getAllEvents = async (req, res) => {
       .sort({ createdAt: -1 });
     res.status(200).json(events);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching all events:", err.message);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -74,7 +75,8 @@ exports.getEventById = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Event not found" });
     res.status(200).json(event);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching event by ID:", err.message);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -109,7 +111,8 @@ exports.getEventBuyers = async (req, res) => {
 
     res.status(200).json(tickets);
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("❌ Error fetching event buyers:", err.message);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 

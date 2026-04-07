@@ -16,10 +16,8 @@ router.post("/", authMiddleware, sendMessage);
 // Get messages with a user
 router.get("/:userId", authMiddleware, getMessages);
 
-// Get all conversations
-router.get("/", authMiddleware, getConversations);
-
-// Mark messages as read
+// Get all conversations (note: must come after specific routes)
 router.put("/read/:otherUserId", authMiddleware, markMessagesAsRead);
+router.get("/", authMiddleware, getConversations);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { MessageSquare } from "lucide-react";
 import { ThemeContext } from "../contexts/ThemeContexts";
+import { isAuthenticated } from "../utils/auth";
 import API from "../api/axios";
 import "./css/MessageIndicator.css";
 
@@ -9,6 +10,11 @@ const MessageIndicator = () => {
   const { darkMode } = useContext(ThemeContext);
 
   useEffect(() => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated()) {
+      return;
+    }
+
     const fetchUnreadCount = async () => {
       try {
         const res = await API.get("/messages");
@@ -16,7 +22,11 @@ const MessageIndicator = () => {
         const totalUnread = res.data.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
         setUnreadCount(totalUnread);
       } catch (err) {
-        console.error("Failed to fetch message count:", err);
+        if (err.response?.status === 401) {
+          console.warn("User not authenticated, skipping message fetch");
+          return;
+        }
+        console.error("Failed to fetch message count:", err.message);
       }
     };
 
