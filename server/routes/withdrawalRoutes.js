@@ -76,7 +76,7 @@ router.get("/banks", async (req, res) => {
       "https://api.paystack.co/bank?country=nigeria",
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET}`,
         },
       }
     );

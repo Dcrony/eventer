@@ -1,6 +1,7 @@
 const axios = require("axios");
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_SECRET =
+  process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
 const BASE_URL = "https://api.paystack.co";
 
 const headers = {

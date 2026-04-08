@@ -14,21 +14,7 @@
   --input-text: #111827;
 }
 
-body.dark-mode {
-  --chat-bg: #1e1e2f;
-  --chat-header-bg: linear-gradient(to right, #2563eb, #7e22ce);
-  --chat-header-text: #ffffff;
-  --chat-border: #2c2c3a;
-  --message-sent-bg: #2563eb;
-  --message-sent-text: #ffffff;
-  --message-received-bg: #2d2d3a;
-  --message-received-text: #e5e7eb;
-  --system-message: #a1a1aa;
-  --send-btn-bg: #2563eb;
-  --send-btn-hover: #1d4ed8;
-  --input-bg: #2d2d3a;
-  --input-text: #e5e7eb;
-}
+
 
 /* Panel styling */
 .livechat-panel {

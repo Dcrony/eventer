@@ -283,45 +283,16 @@
 }
 
 /* ----- Dark mode ----- */
-.dark-mode .notification-bell-trigger,
-body.dark-mode .notification-bell-trigger {
-  --nb-text-muted: #94a3b8;
-  --nb-hover: rgba(255, 255, 255, 0.06);
-  --nb-text: #f1f5f9;
-}
 
-.dark-mode .notification-bell-badge,
-body.dark-mode .notification-bell-badge {
-  box-shadow: 0 0 0 2px var(--nb-bg);
-}
 
-.dark-mode .notification-bell-dropdown,
-body.dark-mode .notification-bell-dropdown {
-  --nb-bg: #1e1e1e;
-  --nb-border: rgba(255, 255, 255, 0.08);
-  --nb-text: #f8fafc;
-  --nb-text-muted: #94a3b8;
-  --nb-hover: rgba(255, 255, 255, 0.05);
-  --nb-empty-bg: #262626;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
-}
 
-.dark-mode .notification-bell-item.is-unread,
-body.dark-mode .notification-bell-item.is-unread {
-  background: rgba(236, 72, 153, 0.1);
-}
 
-.dark-mode .notification-bell-item.is-unread:hover,
-body.dark-mode .notification-bell-item.is-unread:hover {
-  background: rgba(236, 72, 153, 0.15);
-}
 
-.dark-mode .notification-bell-list::-webkit-scrollbar-thumb,
-body.dark-mode .notification-bell-list::-webkit-scrollbar-thumb {
-  background: #334155;
-}
 
-.dark-mode .notification-bell-list::-webkit-scrollbar-thumb:hover,
-body.dark-mode .notification-bell-list::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-}
+
+
+
+
+
+
+

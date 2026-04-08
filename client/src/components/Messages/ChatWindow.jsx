@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, useContext } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Send, Phone, Info } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import socket from "../../socket";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
-import { ThemeContext } from "../../contexts/ThemeContexts";
 import { PORT_URL } from "../../utils/config";
 
 export default function ChatWindow({ currentUser, selectedUser }) {
@@ -12,8 +11,6 @@ export default function ChatWindow({ currentUser, selectedUser }) {
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const { toProfile } = useProfileNavigation();
-  const { darkMode } = useContext(ThemeContext);
-
   const messagesEndRef = useRef(null);
 
   // Fetch messages when selectedUser changes
@@ -98,11 +95,11 @@ export default function ChatWindow({ currentUser, selectedUser }) {
 
   // If user data isn’t ready, show a placeholder
   if (!selectedUser) {
-    return <div className={`chat-window ${darkMode ? "dark-mode" : ""}`}>Select a user to start chatting...</div>;
+    return <div className="chat-window">Select a user to start chatting...</div>;
   }
 
   return (
-    <div className={`chat-window ${darkMode ? "dark-mode" : ""}`}>
+    <div className="chat-window">
       {/* Chat Header */}
       <div className="chat-window-header">
         <div

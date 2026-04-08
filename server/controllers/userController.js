@@ -79,6 +79,11 @@ const updateMyProfile = async (req, res) => {
 
     // Handle password update
     if (currentPassword && newPassword) {
+      if (!user.password) {
+        return res.status(400).json({
+          message: "This account uses Google sign-in. Password change is not available here.",
+        });
+      }
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
         return res.status(400).json({ message: "Current password is incorrect" });
@@ -141,7 +146,7 @@ const uploadCoverPic = async (req, res) => {
 // @access Private
 const getMyTickets = async (req, res) => {
   try {
-    const tickets = await Ticket.find({ user: req.user._id }).populate("event");
+    const tickets = await Ticket.find({ buyer: req.user._id }).populate("event");
     res.json(tickets);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -209,7 +214,7 @@ const deleteUser = async (req, res) => {
 // @access Organizer
 const getMyEvents = async (req, res) => {
   try {
-    const events = await Event.find({ organizer: req.user._id });
+    const events = await Event.find({ createdBy: req.user._id });
     res.json(events);
   } catch (error) {
     res.status(500).json({ message: "Server error" });
@@ -255,7 +260,9 @@ const toggleFollow = async (req, res) => {
       });
 
       const io = req.app.get("io");
-      if (io) io.emit(`notify_${targetUserId}`, notification);
+      if (io) {
+        io.emit(`notify_${targetUserId}`, notification);
+      }
     }
 
     await currentUser.save();
@@ -284,10 +291,10 @@ const getUserProfile = async (req, res) => {
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-    const createdEvents = await Event.find({ organizer: userId });
-    const isOwner = currentUserId === userId;
+    const createdEvents = await Event.find({ createdBy: userId });
+    const isOwner = String(currentUserId) === String(userId);
     const isFollowing = user.followers.some(
-      (f) => f._id.toString() === currentUserId
+      (f) => f._id.toString() === String(currentUserId)
     );
 
     res.json({
@@ -307,6 +314,23 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+const deactivateAccount = async (req, res) => {
+  try {
+    if (String(req.params.id) !== String(req.user.id)) {
+      return res.status(403).json({ message: "You can only deactivate your own account" });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isDeleted: true, deletedAt: new Date() },
+      { new: true }
+    ).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ message: "Account deactivated", user });
+  } catch (err) {
+    res.status(500).json({ message: "Error deactivating account" });
+  }
+};
+
 module.exports = {
   getMyProfile,
   updateMyProfile,
@@ -319,4 +343,5 @@ module.exports = {
   getMyEvents,
   toggleFollow,
   getUserProfile,
+  deactivateAccount,
 };

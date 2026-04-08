@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, MapPin, Ticket } from "lucide-react";
 import { PORT_URL } from "../utils/config";
+import icon from "../assets/icon.svg";
 
 export default function EventCard({ event }) {
+  const [imageFailed, setImageFailed] = useState(false);
   const formatDate = (dateString) => {
     if (!dateString) return "Date TBD";
     try {
@@ -37,13 +40,16 @@ export default function EventCard({ event }) {
   // Get image URL - handle both demo events (banner) and hosted uploads (image)
   const getImageUrl = () => {
     if (event.banner) {
-      return event.banner; // Demo events use direct Unsplash URLs
+      return event.banner;
     }
     if (event.image) {
       return `${PORT_URL}/uploads/event_image/${event.image}`;
     }
-    return "https://via.placeholder.com/400x200/ec4899/ffffff?text=Event";
+    return null;
   };
+
+  const imageUrl = getImageUrl();
+  const showImagePlaceholder = !imageUrl || imageFailed;
 
   // Get event date - handle both startDate and date fields
   const getEventDate = () => {
@@ -53,15 +59,21 @@ export default function EventCard({ event }) {
   return (
     <Link to={`/Eventdetail/${event._id}`} className="event-card">
       <div className="event-card-image-wrapper">
-        <img
-          src={getImageUrl()}
-          alt={event.title}
-          className="event-card-image"
-          loading="lazy"
-          onError={(e) => {
-            e.target.src = "https://via.placeholder.com/400x200/ec4899/ffffff?text=Event";
-          }}
-        />
+        {showImagePlaceholder ? (
+          <div className="event-card-image-placeholder" aria-hidden="true">
+            <div className="event-card-image-placeholder-shimmer" />
+            <img src={icon} alt="" className="event-card-placeholder-mark" />
+            <Ticket className="event-card-placeholder-fg" size={36} strokeWidth={1.35} />
+          </div>
+        ) : (
+          <img
+            src={imageUrl}
+            alt={event.title}
+            className="event-card-image"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        )}
         {event.category && (
           <span className="event-card-category">{event.category}</span>
         )}

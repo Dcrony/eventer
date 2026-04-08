@@ -49,29 +49,12 @@
 
 /* ===== Dark Mode ===== */
 
-.dark-mode .mobile-nav {
-  background: var(--bg-color, #0f172a);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
 
-  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.4);
-}
 
-.dark-mode .mobile-nav-item {
-  color: rgba(255, 255, 255, 0.65);
-}
 
-.dark-mode .mobile-nav-item:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
 
-.dark-mode .mobile-nav-item.active {
-  color: #ec4899;
-}
 
-.dark-mode .mobile-nav-item.primary svg {
-  background: #ec4899;
-  color: #ffffff;
-  box-shadow: 0 8px 20px rgba(236, 72, 153, 0.35);
-}
+
+
+
+

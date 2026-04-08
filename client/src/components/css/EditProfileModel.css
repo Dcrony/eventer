@@ -130,30 +130,15 @@
 }
 
 /* 🌙 Dark Mode */
-.dark-mode .settings-modal {
-  background-color: #1f1f1f;
-  color: #f9fafb;
-}
 
-.dark-mode .settings-modal input,
-.dark-mode .settings-modal textarea {
-  background-color: #2d2d2d;
-  color: #f9fafb;
-  border-color: #4b5563;
-}
 
-.dark-mode .save-btn {
-  background-color: #4f46e5;
-}
 
-.dark-mode .cancel-btn {
-  background-color: #4b5563;
-  color: #f9fafb;
-}
 
-.dark-mode .cancel-btn:hover {
-  background-color: #6b7280;
-}
+
+
+
+
+
 
 /* ✅ Scroll Styling */
 .settings-modal::-webkit-scrollbar {
@@ -175,10 +160,6 @@
 }
 
 /* 🌙 Dark Mode Scrollbar */
-.dark-mode .settings-modal::-webkit-scrollbar-thumb {
-  background-color: #4b5563; /* dark scrollbar thumb */
-}
 
-.dark-mode .settings-modal::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
-}
+
+

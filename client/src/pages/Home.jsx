@@ -1,14 +1,32 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
-import { Search, MapPin, Calendar, Users, ArrowRight } from "lucide-react";
+import { Search, MapPin, Calendar, Users, ArrowRight, Ticket } from "lucide-react";
 import EmptyState from "../components/EmptyState";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import { DEMO_EVENTS } from "../utils/demoEvents";
 import { PORT_URL } from "../utils/config";
+import icon from "../assets/icon.svg";
 import "./CSS/home.css";
+
+const EVENT_FILTER_CHIPS = [
+  { id: "all", label: "All" },
+  { id: "music", label: "Music" },
+  { id: "tech", label: "Tech" },
+  { id: "business", label: "Business" },
+  { id: "food", label: "Food" },
+  { id: "sports", label: "Sports" },
+  { id: "online", label: "Online" },
+];
+
+const eventRowKey = (event) => event._id ?? event.title;
+
+const getEventImageSrc = (event) => {
+  if (event?.banner) return event.banner;
+  if (event?.image) return `${PORT_URL}/uploads/event_image/${event.image}`;
+  return null;
+};
 
 const formatNumber = (num) => {
   if (num === null || num === undefined || isNaN(num)) return "0";
@@ -22,9 +40,10 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [useDemoData, setUseDemoData] = useState(false);
+  const [brokenImages, setBrokenImages] = useState(() => new Set());
+  const [filterVisual, setFilterVisual] = useState("all");
+  const [sortVisual, setSortVisual] = useState("newest");
 
-  const { darkMode } = useContext(ThemeContext);
-  
   // Get demo events as fallback
   const demoEvents = useDemoEvents(events, error && !useDemoData);
 
@@ -95,20 +114,19 @@ export default function Home() {
   const { toProfile } = useProfileNavigation();
 
   return (
-    <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="dashboard-page">
       <div className="dashboard-container">
 
-        {/* HEADER */}
-        <div className="dashboard-header">
-          <div>
-            <div className="dashboard-title">Events</div>
-            <div className="dashboard-subtitle">
-              Browse and discover events on TickiSpot
-            </div>
+        <div className="events-page-intro">
+          <div className="dashboard-title">Events</div>
+          <div className="dashboard-subtitle">
+            Browse and discover events on TickiSpot
           </div>
+        </div>
 
-          <div className="dashboard-actions">
-            <div className="search-wrapper">
+        <div className="events-sticky-toolbar">
+          <div className="events-toolbar-inner">
+            <div className="search-wrapper events-toolbar-search">
               <Search size={18} className="search-icon" />
               <input
                 type="text"
@@ -117,6 +135,36 @@ export default function Home() {
                 onChange={(e) => handleSearch(e.target.value)}
                 className="dash-search"
               />
+            </div>
+            <div className="events-filter-row">
+              <div className="events-filter-pills" role="toolbar" aria-label="Categories">
+                {EVENT_FILTER_CHIPS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`events-filter-pill ${filterVisual === c.id ? "active" : ""}`}
+                    onClick={() => setFilterVisual(c.id)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <div className="events-sort">
+                <label htmlFor="events-sort-select" className="events-sort-label">
+                  Sort
+                </label>
+                <select
+                  id="events-sort-select"
+                  className="events-sort-select"
+                  value={sortVisual}
+                  onChange={(e) => setSortVisual(e.target.value)}
+                  aria-label="Sort events"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="popular">Most popular</option>
+                  <option value="soonest">Starting soon</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -158,36 +206,53 @@ export default function Home() {
                 {filteredEvents.map((event) => (
                   <Link
                     to={`/Eventdetail/${event._id}`}
-                    key={event._id}
+                    key={eventRowKey(event)}
                     className="event-card"
                   >
                     {/* IMAGE */}
                     <div className="event-image-container">
-                      {event?.image ? (
-                        <img
-                          src={`${PORT_URL}/uploads/event_image/${event.image}`}
-                          alt={event.title}
-                          className="event-image"
-                        />
-                      ) : (
-                        <div className="event-image placeholder">
-                          No Image
-                        </div>
-                      )}
+                      {(() => {
+                        const src = getEventImageSrc(event);
+                        const key = eventRowKey(event);
+                        const showPlaceholder = !src || brokenImages.has(key);
+                        return showPlaceholder ? (
+                          <div className="event-image event-image-placeholder-block" aria-hidden="true">
+                            <div className="event-image-ph-shimmer" />
+                            <img src={icon} alt="" className="event-image-ph-logo" />
+                            <Ticket className="event-image-ph-icon" size={40} strokeWidth={1.25} />
+                          </div>
+                        ) : (
+                          <img
+                            src={src}
+                            alt={event.title}
+                            className="event-image"
+                            onError={() => {
+                              setBrokenImages((prev) => {
+                                const next = new Set(prev);
+                                next.add(key);
+                                return next;
+                              });
+                            }}
+                          />
+                        );
+                      })()}
 
-                      {/* BADGES */}
-                      <div className="event-floating-badges">
-                        {event?.category && (
-                          <span className="event-category-badge">
-                            {event.category}
-                          </span>
-                        )}
-                        {event?.liveStream?.isLive && (
-                          <span className="live-pill-floating">
-                            <span className="live-dot pulse"></span>
-                            LIVE
-                          </span>
-                        )}
+                      <div className="event-image-badges">
+                        <div className="event-image-badges-left">
+                          {event?.category && (
+                            <span className="event-category-badge">
+                              {event.category}
+                            </span>
+                          )}
+                        </div>
+                        <div className="event-image-badges-right">
+                          {event?.liveStream?.isLive && (
+                            <span className="live-pill-floating">
+                              <span className="live-dot pulse"></span>
+                              LIVE
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* HOVER */}

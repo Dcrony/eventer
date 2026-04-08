@@ -720,57 +720,23 @@
 }
 
 /* ----- Dark mode ----- */
-.live-page.dark-mode,
-body.dark-mode .live-page {
-  --live-bg: transparent;
-  --live-card-bg: #1e1e1e;
-  --live-card-border: rgba(255, 255, 255, 0.08);
-  --live-text: #f8fafc;
-  --live-text-muted: #94a3b8;
-  --live-input-bg: #262626;
-  --live-input-border: rgba(255, 255, 255, 0.1);
-}
 
-body.dark-mode .live-page .live-page-bg {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-}
 
-body.dark-mode .live-empty {
-  background: #262626;
-  border-color: rgba(255, 255, 255, 0.08);
-}
 
-body.dark-mode .live-card-thumb-placeholder {
-  background: linear-gradient(145deg, #262626 0%, #1a1a1a 100%);
-  color: rgba(236, 72, 153, 0.5);
-}
 
-body.dark-mode .live-card-category {
-  background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-}
 
-body.dark-mode .live-error {
-  background: #262626;
-  border-color: rgba(255, 255, 255, 0.08);
-}
 
-body.dark-mode .live-sort-dropdown {
-  background: #262626;
-  border-color: rgba(255, 255, 255, 0.08);
-}
 
-body.dark-mode .live-card-skeleton {
-  background: #262626;
-  border-color: rgba(255, 255, 255, 0.08);
-}
 
-body.dark-mode .live-organizer-entry-inner {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.18) 0%, rgba(236, 72, 153, 0.06) 100%);
-  border-color: rgba(236, 72, 153, 0.35);
-}
+
+
+
+
+
+
+
+
+
 
 /* ----- Responsive ----- */
 @media (max-width: 768px) {

@@ -515,81 +515,35 @@
 }
 
 /* 🌙 DARK MODE - Withdraw Modal */
-body.dark-mode .modal-overlay {
-  background: rgba(0, 0, 0, 0.7);
-}
 
-body.dark-mode .withdraw-modal {
-  background: #030303;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-}
 
-body.dark-mode .withdraw-modal h3 {
-  color: #f8fafc;
-}
 
-body.dark-mode .withdraw-balance {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #22c55e;
-}
 
-body.dark-mode .withdraw-balance::before {
-  color: #94a3b8;
-}
 
-body.dark-mode .withdraw-modal label {
-  color: #94a3b8;
-}
 
-body.dark-mode .withdraw-modal input,
-body.dark-mode .withdraw-modal select {
-  background: #312f2f34;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-}
 
-body.dark-mode .withdraw-modal input:focus,
-body.dark-mode .withdraw-modal select:focus {
-  border-color: #ec4899;
-  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.15);
-}
 
-body.dark-mode .withdraw-modal input::placeholder {
-  color: #64748b;
-}
 
-body.dark-mode .withdraw-modal select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-}
 
-body.dark-mode .modal-actions {
-  border-top-color: rgba(255, 255, 255, 0.05);
-}
 
-body.dark-mode .modal-actions button:first-child {
-  background: #1e293b;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-}
 
-body.dark-mode .modal-actions button:first-child:hover {
-  background: #334155;
-  color: #f8fafc;
-}
 
-body.dark-mode .withdraw-modal .close-btn {
-  background: #1e293b;
-  color: #94a3b8;
-}
 
-body.dark-mode .withdraw-modal .close-btn:hover {
-  background: #334155;
-  color: #f8fafc;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
@@ -845,160 +799,75 @@ body.dark-mode .withdraw-modal .close-btn:hover {
 }
 
 /* 🌙 Dark Mode Support */
-body.dark-mode .dashboard-page {
-  background-color: var(--bg-color);
-  color: #e2e8f0;
-}
 
-body.dark-mode .dashboard-page::before {
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
 
-body.dark-mode .dashboard-title {
-  color: #f8fafc;
-}
 
-body.dark-mode .dashboard-subtitle {
-  color: #94a3b8;
-}
 
-body.dark-mode .stat-tile,
-body.dark-mode .dash-card,
-body.dark-mode .event-card {
-  background-color: var(--card-bg);
-  border-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
 
-body.dark-mode .stat-value {
-  color: #f8fafc;
-}
 
-body.dark-mode .stat-label {
-  color: #94a3b8;
-}
 
-body.dark-mode .dash-card-header {
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom-color: rgba(255, 255, 255, 0.05);
-}
 
-body.dark-mode .dash-card-title {
-  color: #f8fafc;
-}
 
-body.dark-mode .top-event-name {
-  color: #f8fafc;
-}
 
-body.dark-mode .top-event-sales {
-  color: #94a3b8;
-}
 
-body.dark-mode .top-event-progress {
-  background: #1e293b;
-}
 
-body.dark-mode .event-title {
-  color: #f8fafc;
-}
 
-body.dark-mode .event-description {
-  color: #94a3b8;
-}
 
-body.dark-mode .event-meta-item {
-  color: #cbd5e1;
-}
 
-body.dark-mode .event-actions {
-  background: rgba(0, 0, 0, 0.2);
-  border-top-color: rgba(255, 255, 255, 0.05);
-}
 
-body.dark-mode .pill-btn,
-body.dark-mode .dash-btn {
-  background: #1e293b;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-}
 
-body.dark-mode .pill-btn:hover,
-body.dark-mode .dash-btn:hover {
-  background: #334155;
-  border-color: rgba(255, 255, 255, 0.2);
-}
 
-body.dark-mode .dash-btn-primary {
-  background: #ec4899;
-  border-color: #ec4899;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ============================= */
 /* 🌙 DARK MODE - Transactions   */
 /* ============================= */
 
-.dark-mode .dash-card {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
 
-.dark-mode .dash-card-title {
-  color: #f1f5f9;
-}
 
-.dark-mode .dash-card-body {
-  color: rgba(255, 255, 255, 0.75);
-}
+
+
+
 
 /* Transaction Table */
 
-.dark-mode .transaction-table {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
 
-.dark-mode .transaction-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: transparent;
-}
 
-.dark-mode .transaction-row:hover {
-  transform: translateX(3px);
-}
 
-.dark-mode .transaction-row strong {
-  color: #ffffff;
-}
 
-.dark-mode .tx-date {
-  color: rgba(255, 255, 255, 0.5);
-}
+
+
+
+
+
 
 /* Status Styling */
 
-.dark-mode .tx-status {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 12px;
-}
 
-.dark-mode .tx-status.pending {
-  background: rgba(234, 179, 8, 0.15);
-  color: #facc15;
-}
 
-.dark-mode .tx-status.completed {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-}
 
-.dark-mode .tx-status.failed {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-}
+
+
+
+
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {

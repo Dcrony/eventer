@@ -8,14 +8,7 @@
   --link-hover: #db2777;
 }
 
-body.dark-mode {
-  --bg-page: #000000;
-  --bg-card: #2d2d2d;
-  --text-color: #f3f4f6;
-  --accent-color: #ec4899;
-  --shadow-card: rgba(0, 0, 0, 0.4);
-  --link-hover: #db2777;
-}
+
 
 .static-page {
   max-width: 800px;

@@ -4,15 +4,19 @@ const Notification = require("../models/Notification");
 const createNotification = async (req, res) => {
   try {
     const { userId, message, type } = req.body;
+    if (!userId || String(userId) !== String(req.user._id)) {
+      return res.status(403).json({ message: "Can only create notifications for your own account" });
+    }
     const notification = await Notification.create({
       user: userId,
       message,
       type,
     });
 
-    // Emit real-time notification
     const io = req.app.get("io");
-    io.emit(`notify_${userId}`, notification);
+    if (io) {
+      io.emit(`notify_${userId}`, notification);
+    }
 
     res.status(201).json(notification);
   } catch (error) {

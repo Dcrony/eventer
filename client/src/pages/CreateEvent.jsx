@@ -1,8 +1,7 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import "./CSS/CreateEvent.css";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg"
 
@@ -50,7 +49,6 @@ export default function CreateEvent({ isOpen, onClose }) {
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
   // Disable scroll when modal is open
@@ -105,7 +103,7 @@ export default function CreateEvent({ isOpen, onClose }) {
 
   return (
     <div
-      className={`create-event-overlay ${darkMode ? "dark-mode" : ""}`}
+      className="create-event-overlay"
       onClick={(e) => {
         if (e.target.classList.contains("create-event-overlay")) onClose();
       }}

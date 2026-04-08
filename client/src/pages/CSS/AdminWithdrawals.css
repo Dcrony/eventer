@@ -418,69 +418,28 @@
    DARK MODE
 ================================ */
 
-.dark-mode .admin-page {
-  background: var(--bg-page);
-  color: var(--text-color);
-}
 
-.dark-mode .card,
-.dark-mode .chart,
-.dark-mode .withdrawal-table {
-  background: #1f2937;
-  border-color: rgba(255, 255, 255, 0.08);
-}
 
-.dark-mode .withdrawal-row {
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
 
-.dark-mode .withdrawal-row:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
 
-.dark-mode .filters input,
-.dark-mode .tabs button {
-  background: #111827;
-  color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.12);
-}
 
-.dark-mode .filters input:focus {
-  border-color: var(--aw-primary);
-  box-shadow: 0 0 0 4px var(--aw-primary-soft);
-}
 
-.dark-mode .tabs button:hover {
-  background: rgba(236, 72, 153, 0.08);
-  border-color: var(--aw-primary);
-}
 
-.dark-mode .tabs button.active {
-  background: var(--aw-primary);
-  color: white;
-}
 
-.dark-mode .chart rect {
-  fill: var(--aw-primary);
-}
 
-.dark-mode .status.pending {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-}
 
-.dark-mode .status.processing {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-}
 
-.dark-mode .status.completed {
-  background: rgba(22, 163, 74, 0.15);
-  color: #34d399;
-}
 
-.dark-mode .status.rejected,
-.dark-mode .status.failed {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+

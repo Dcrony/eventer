@@ -1,13 +1,11 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { useNavigate } from "react-router-dom";
 import "./CSS/EditProfile.css";
 
 const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function EditProfile() {
-  const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
@@ -138,7 +136,7 @@ const buildImageUrl = (path, type = "profile") => {
     );
 
   return (
-    <div className={`editprofile-page pl-20 ${darkMode ? "dark-mode" : ""}`}>
+    <div className="editprofile-page pl-20">
       {/* ===== Cover Section ===== */}
       <div className="cover-section">
         <img

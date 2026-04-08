@@ -1,16 +1,12 @@
-import { useState, useContext } from "react";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { X } from "lucide-react";
 
 export default function UpgradeModal({ isOpen, onClose }) {
-  const { darkMode } = useContext(ThemeContext);
-
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className={`modal-content ${darkMode ? "dark-mode" : ""}`}
+        className="modal-content"
         onClick={(e) => e.stopPropagation()}
         style={{
           maxWidth: "500px",

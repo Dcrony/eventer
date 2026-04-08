@@ -5,7 +5,6 @@ const UserSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     username: {
@@ -32,8 +31,20 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
-      minlength: 6,
+      required: false,
+      validate: {
+        validator(v) {
+          if (v == null || v === "") return true;
+          return String(v).length >= 6;
+        },
+        message: "Password must be at least 6 characters",
+      },
+    },
+    firebaseUid: {
+      type: String,
+      sparse: true,
+      unique: true,
+      index: true,
     },
     isVerified: {
       type: Boolean,

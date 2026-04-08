@@ -14,13 +14,7 @@
   --settings-danger-hover: #dc2626;
 }
 
-.settings-page.dark-mode {
-  --settings-bg: #0000;
-  --settings-text: #e2e8f0;
-  --settings-card-bg: #0000;
-  --settings-border: #2d3a4f;
-  --settings-accent-soft: rgba(236, 72, 153, 0.15);
-}
+
 
 /* Base Container */
 .settings-page {
@@ -806,19 +800,11 @@
 }
 
 /* Dark Mode Adjustments */
-.dark-mode .settings-page-sidebar {
-  background-color: var(--settings-card-bg);
-  border-right-color: var(--settings-border);
-}
 
-.dark-mode .settings-page-card {
-  background-color: var(--settings-card-bg);
-  border-color: var(--settings-border);
-}
 
-.dark-mode .settings-page-avatar-placeholder {
-  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.3);
-}
+
+
+
 
 /* Scrollbar Styling */
 .settings-page-sidebar-nav::-webkit-scrollbar {

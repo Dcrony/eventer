@@ -65,9 +65,7 @@ body.modal-open {
   letter-spacing: -0.02em;
 }
 
-.dark-mode .form-title {
-  color: #ffffff;
-}
+
 
 /* Modernized Event Type Buttons */
 .event-type-selection {
@@ -384,61 +382,26 @@ form .field-label {
 }
 
 /* Dark Mode */
-.dark-mode .create-event-container {
-  background: #1f1f1f;
-}
 
-.dark-mode .event-type-selection .event-type-btn {
-  background: #2d2d2d;
-  border-color: #4b5563;
-  color: #d1d5db;
-}
 
-.dark-mode .event-type-selection .event-type-btn {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #e5e5e5;
-}
 
-.dark-mode .event-type-selection .event-type-btn.active {
-  background: #ec4899;
-  border-color: #ec4899;
-}
 
-.dark-mode .event-type-btn .icon {
-  color: #ec4899;
-}
 
-.dark-mode .input-field {
-  background: #1a1a1a;
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #e5e5e5;
-}
-.dark-mode .input-field:focus {
-  background: #1a1a1a;
-  border-color: #ec4899;
-  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.2);
-}
 
-.dark-mode .pricing-section {
-  background: #2d2d2d;
-  border-color: #4b5563;
-  color: #f1f5f9;
-}
 
-.dark-mode .form-wrapper {
-  background: #1f1f1f;
-}
 
-.dark-mode .info-sidebar {
-  background: #2d2d2d;
-  color: #e5e7eb;
-}
 
-.dark-mode .input-field {
-  background: #2d2d2d;
-  color: #f1f5f9;
-}
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* ✅ Scroll Styling */
@@ -463,11 +426,6 @@ form .field-label {
 }
 
 /* 🌙 Dark Mode Scrollbar */
-.dark-mode .form-wrapper::-webkit-scrollbar-thumb {
-  background-color: #4b5563; /* dark scrollbar thumb */
-}
 
-.dark-mode .form-wrapper::-webkit-scrollbar-thumb:hover {
-  background-color: #6366f1;
-  
-}
+
+

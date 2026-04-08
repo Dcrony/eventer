@@ -7,10 +7,7 @@
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-.dark-mode {
-  --glass-bg: rgba(31, 41, 55, 0.7);
-  --glass-border: rgba(75, 85, 99, 0.3);
-}
+
 
 .dashboard-page {
   min-height: 100vh;
@@ -324,17 +321,11 @@
 }
 
 /* Dark Mode Overrides */
-.dark-mode .dashboard-subtitle {
-  color: #9ca3af;
-}
 
-.dark-mode .creator-name {
-  color: rgba(255, 255, 255, 0.8);
-}
 
-.dark-mode .empty-state p {
-  color: #9ca3af;
-}
+
+
+
 
 .past-ticket {
   filter: grayscale(0.5);

@@ -1,8 +1,7 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { isAuthenticated, login } from "../utils/auth";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { ArrowRight } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
 import {
@@ -12,52 +11,17 @@ import {
 } from "../utils/formValidation";
 import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
-import { useSearchParams } from "react-router-dom";
-
-
-const BACKEND_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { darkMode } = useContext(ThemeContext);
-  const [searchParams] = useSearchParams();
-
   useEffect(() => {
-    // Check if already authenticated
     if (isAuthenticated()) {
       navigate("/dashboard", { replace: true });
-      return;
     }
-
-    // Handle Google OAuth callback token
-    const token = searchParams.get("token");
-    if (token) {
-      try {
-        // Parse token to get user data
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split("")
-            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-            .join("")
-        );
-        const user = JSON.parse(jsonPayload);
-
-        // Auto-login with token
-        login(user, token);
-        setSuccess("Google login successful! Redirecting...");
-        setTimeout(() => navigate("/dashboard"), 1500);
-      } catch (err) {
-        console.error("Error processing Google OAuth token:", err);
-        setErrors({ general: "Google login failed. Please try again." });
-      }
-    }
-  }, [navigate, searchParams]);
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -98,9 +62,46 @@ export default function Login() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setErrors({});
+    setSuccess("");
+    setLoading(true);
+    try {
+      const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
+      const idToken = await signInWithGoogleAndGetIdToken();
+      const res = await API.post("/auth/firebase", { idToken });
+      login(res.data.user, res.data.token);
+      setSuccess("Google login successful! Redirecting...");
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (err) {
+      setErrors({
+        general:
+          err.response?.data?.message ||
+          err.message ||
+          "Google sign-in failed. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className={`form-page ${darkMode ? "dark-mode" : ""}`}>
-      <div className="form-grid-background"></div>
+    <div className="form-page">
+      <div className="form-grid-background" aria-hidden="true" />
+      <div className="form-layout">
+        <aside className="form-brand-panel" aria-hidden="true">
+          <span className="form-brand-float" />
+          <span className="form-brand-float form-brand-float--2" />
+          <div className="form-brand-inner">
+            <img src={icon} className="tickispot-icon" alt="" />
+            <h2 className="form-brand-headline">TickiSpot</h2>
+            <p className="form-brand-tagline">
+              Host events, sell tickets, and stream live — all in one place for
+              modern organizers.
+            </p>
+          </div>
+        </aside>
+        <div className="form-auth-column">
       <div className="form-container">
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <Link
@@ -114,7 +115,7 @@ export default function Login() {
               marginBottom: "1rem",
             }}
           >
-            <img src={icon} className="tickispot-icon" />
+            <img src={icon} className="tickispot-icon" alt="TickiSpot home" />
           </Link>
           <h1 className="form-title">Welcome Back</h1>
           <p className="form-subtitle">Sign in to your account to continue</p>
@@ -183,8 +184,9 @@ export default function Login() {
 
         <div style={{ textAlign: "center", margin: "1rem 0" }}>
           <button
-            onClick={() => window.location.href = `${BACKEND_API_URL}/auth/google`}
-            className="form-btn-secondary"
+            type="button"
+            onClick={handleGoogleLogin}
+            className="form-btn form-btn-google"
             style={{
               display: "flex",
               alignItems: "center",
@@ -208,6 +210,8 @@ export default function Login() {
           <Link to="/register" className="form-link">
             Sign up
           </Link>
+        </div>
+      </div>
         </div>
       </div>
     </div>

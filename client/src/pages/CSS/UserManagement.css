@@ -431,56 +431,22 @@
 }
 
 /* Dark mode support if app uses a dark container */
-.dark-mode .user-management {
-  background: var(--bg-page);
-  color: var(--text-color);
-}
-
-.dark-mode .metric-card,
-.dark-mode .user-table-wrapper,
-.dark-mode .alert-banner,
-.dark-mode .loading-state {
-  background: #1f2937;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.dark-mode .user-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.dark-mode .user-table select,
-.dark-mode .search-group input,
-.dark-mode .filter-group select {
-  background: #111827;
-  color: #f8fafc;
-  border-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
 
 
- .dark-mode .user-table-wrapper{
-    background-color: var(--card-bg);
-  }
 
 
-.dark-mode .user-table tr {
-  background-color: var(--card-bg);
-  color: #e5e7eb;
-  border-color: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-}
 
-.dark-mode .role-user {
-  background: #374151;
-  color: #e5e7eb;
-}
 
-.dark-mode .role-organizer {
-  background: #7c2d12;
-  color: #fcd34d;
-}
 
-.dark-mode .role-admin {
-  background: rgba(236, 72, 153, 0.15);
-  color: #db2777;
-}
+
+
+ 
+
+
+
+
+
+
+
+
+
