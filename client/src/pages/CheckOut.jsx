@@ -1,8 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
-import { useState, useContext } from "react";
-import { ThemeContext } from "../contexts/ThemeContexts";
+import { useState } from "react";
 import {
   Calendar,
   Clock,
@@ -26,8 +25,6 @@ export default function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const { darkMode } = useContext(ThemeContext);
-
   const { event, quantity, user, ticketType, price } = state || {};
 
   // Check if all necessary data exists
@@ -91,7 +88,7 @@ export default function Checkout() {
   };
 
   return (
-    <div className={`event-hub ${darkMode ? "dark-mode" : ""}`}>
+    <div className="event-hub">
       {/* Glassy Background Blur */}
       <div className="hub-bg-blur">
         {event.image && (

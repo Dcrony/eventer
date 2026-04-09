@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     X,
     Video,
@@ -8,7 +8,6 @@ import {
     Play
 } from "lucide-react";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/GoLiveModal.css";
 
 const FOCUSABLE = "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])";
@@ -20,8 +19,6 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
     const [selectedEventId, setSelectedEventId] = useState("");
     const [isToggling, setIsToggling] = useState(false);
     const modalRef = useRef(null);
-    const { darkMode } = useContext(ThemeContext);
-
     useEffect(() => {
         if (isOpen) {
             setLoading(true);
@@ -96,7 +93,7 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
 
     return (
         <div
-            className={`golive-overlay ${darkMode ? "dark" : ""}`}
+            className="golive-overlay"
             role="dialog"
             aria-modal="true"
             aria-labelledby="go-live-modal-title"

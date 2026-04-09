@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ThemeContext } from "../contexts/ThemeContexts";
-import { useContext } from "react";
 import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
 
@@ -10,7 +8,6 @@ export default function VerifyEmail() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -38,7 +35,7 @@ export default function VerifyEmail() {
   }, [token, navigate]);
 
   return (
-    <div className={`form-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="form-page">
       <div className="form-grid-background"></div>
       <div className="form-container">
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>

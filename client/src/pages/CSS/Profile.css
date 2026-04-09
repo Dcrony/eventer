@@ -44,14 +44,9 @@
   color: var(--profile-text-muted);
 }
 
-.profile-loading.dark-mode .profile-loading-spinner {
-  border-color: #334155;
-  border-top-color: var(--profile-accent);
-}
 
-.profile-loading.dark-mode .profile-loading-text {
-  color: #94a3b8;
-}
+
+
 
 @keyframes profile-spin {
   to {
@@ -463,63 +458,25 @@
 }
 
 /* ----- Dark mode ----- */
-.profile-page.dark-mode,
-body.dark-mode .profile-page {
-  --profile-bg: #1e1e1e;
-  --profile-border: rgba(255, 255, 255, 0.08);
-  --profile-text: #f8fafc;
-  --profile-text-muted: #94a3b8;
-  --profile-tab-bg: #262626;
-  --profile-tab-active: #333;
-  --profile-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-  --profile-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-}
 
-body.dark-mode .profile-cover {
-  background: linear-gradient(135deg, #262626 0%, #1a1a1a 100%);
-}
 
-body.dark-mode .profile-cover-overlay {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    transparent 50%,
-    rgba(0, 0, 0, 0.5) 100%
-  );
-}
 
-body.dark-mode .profile-avatar-ring {
-  background: var(--profile-bg);
-  border-color: var(--profile-bg);
-}
 
-body.dark-mode .profile-role-badge.role-user {
-  background: rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-}
 
-body.dark-mode .profile-btn-secondary:hover {
-  background: #333;
-  border-color: rgba(255, 255, 255, 0.12);
-}
 
-body.dark-mode .profile-event-card {
-  background: #262626;
-  border-color: rgba(255, 255, 255, 0.06);
-}
 
-body.dark-mode .profile-event-card-image {
-  background: #333;
-}
 
-body.dark-mode .profile-event-card-placeholder {
-  background: linear-gradient(135deg, #333 0%, #262626 100%);
-}
 
-body.dark-mode .profile-empty-icon {
-  background: #333;
-  color: #64748b;
-}
+
+
+
+
+
+
+
+
+
+
 
 /* ----- Responsive ----- */
 @media (max-width: 768px) {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useContext, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -16,7 +16,6 @@ import {
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import GoLiveModal from "./GoLiveModal";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/LiveEvents.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -47,7 +46,6 @@ export default function LiveEvent() {
   const goLiveBtnRef = useRef(null);
   const sortWrapRef = useRef(null);
   const navigate = useNavigate();
-  const { darkMode } = useContext(ThemeContext);
   const { toProfile } = useProfileNavigation();
 
   useEffect(() => {
@@ -156,7 +154,7 @@ export default function LiveEvent() {
   const isGenericEmpty = !loading && !error && liveEvents.length === 0 && searchQuery.trim() === "" && !categoryFilter && !locationFilter;
 
   return (
-    <div className={`live-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="live-page">
       <div className="live-page-bg" aria-hidden="true" />
       <div className="live-container">
         <header className="live-header">

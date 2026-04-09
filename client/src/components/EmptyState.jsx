@@ -1,7 +1,5 @@
-import { useContext } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/EmptyState.css";
 
 export default function EmptyState({ 
@@ -9,8 +7,6 @@ export default function EmptyState({
   searchTerm = null,
   onCreateClick = null 
 }) {
-  const { darkMode } = useContext(ThemeContext);
-
   const configs = {
     "no-events": {
       icon: "🎉",
@@ -42,7 +38,7 @@ export default function EmptyState({
   const BtnIcon = config.btnIcon;
 
   return (
-    <div className={`empty-state-wrapper ${darkMode ? "dark-mode" : ""}`}>
+    <div className="empty-state-wrapper">
       <div className="empty-state-container">
         {/* Icon */}
         <div className="empty-state-icon">{config.icon}</div>

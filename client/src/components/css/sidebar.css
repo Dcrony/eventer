@@ -390,47 +390,19 @@
 }
 
 /* ----- Dark mode ----- */
-.dark-mode.sidebar {
-  --sidebar-bg: rgba(18, 18, 18, 0.95);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-text: #f1f5f9;
-  --sidebar-text-muted: #94a3b8;
-  --sidebar-hover: rgba(255, 255, 255, 0.06);
-  --sidebar-active-bg: rgba(236, 72, 153, 0.15);
-  --sidebar-active-border: rgba(236, 72, 153, 0.3);
-}
 
-.dark-mode .sidebar-collapse {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: var(--sidebar-text-muted);
-}
 
-.dark-mode .sidebar-collapse:hover {
-  background: var(--sidebar-hover);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: var(--sidebar-text);
-}
 
-.dark-mode .sidebar-link.is-logout {
-  color: #f87171;
-}
 
-.dark-mode .sidebar-link.is-logout .sidebar-link-icon {
-  color: #f87171;
-}
 
-.dark-mode .sidebar-link.is-logout:hover {
-  background: rgba(248, 113, 113, 0.12);
-  border-color: rgba(248, 113, 113, 0.2);
-}
 
-.dark-mode.sidebar:not(.expand) .sidebar-link[data-tooltip]::after,
-.dark-mode.sidebar:not(.expand) .sidebar-bottom-item[data-tooltip]::after {
-  background: #334155;
-  color: #f1f5f9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
+
+
+
+
+
+
+
 
 /* ----- Scrollbar ----- */
 .sidebar-nav::-webkit-scrollbar {

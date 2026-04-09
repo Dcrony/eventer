@@ -1,8 +1,7 @@
-import { useContext, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNotifications } from "../hooks/useNotifications";
 import { useSocket } from "../hooks/useSocket";
 import { Bell } from "lucide-react";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/NotificationBell.css";
 
 function formatNotificationTime(date) {
@@ -24,7 +23,6 @@ function formatNotificationTime(date) {
 const NotificationBell = ({ userId }) => {
   const { notifications, setNotifications, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
-  const { darkMode } = useContext(ThemeContext);
   const dropdownRef = useRef(null);
 
   useSocket(userId, (data) => {
@@ -47,7 +45,7 @@ const NotificationBell = ({ userId }) => {
   }, []);
 
   return (
-    <div className={`notification-bell-wrap ${darkMode ? "dark-mode" : ""}`} ref={dropdownRef}>
+    <div className="notification-bell-wrap" ref={dropdownRef}>
       <button
         type="button"
         className="notification-bell-trigger"

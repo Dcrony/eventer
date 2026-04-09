@@ -1,7 +1,6 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./css/Settings.css";
 import ToggleSwitch from "./ToggleSwitch";
 import EditProfileModal from "./EditProfileModal";
@@ -14,8 +13,6 @@ import {
   AlertTriangle,
   ChevronRight,
   Save,
-  Moon,
-  Sun,
   Mail,
   Smartphone,
   Globe,
@@ -31,7 +28,6 @@ import {
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("privacy");
-  const { darkMode, toggleTheme } = useContext(ThemeContext);
   const [user, setUser] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -181,7 +177,7 @@ export default function Settings() {
   ];
 
   return (
-    <div className={`settings-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="settings-page">
       {/* Mobile Header */}
       <div className="settings-page-mobile-header">
         <h1 className="settings-page-mobile-header-title">Settings</h1>
@@ -239,18 +235,6 @@ export default function Settings() {
           ))}
         </nav>
 
-        <div className="settings-page-sidebar-footer">
-          <div className="settings-page-theme-toggle-wrapper">
-            <span className="settings-page-theme-label">Theme</span>
-            <button
-              onClick={toggleTheme}
-              className="settings-page-theme-toggle-button"
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              <span>{darkMode ? "Light" : "Dark"} Mode</span>
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* Main Content */}

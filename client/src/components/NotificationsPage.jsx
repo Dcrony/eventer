@@ -1,8 +1,6 @@
 // components/NotificationsPage.jsx
-import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../hooks/useNotifications";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { Bell, ArrowLeft, CheckCheck, Trash2 } from "lucide-react";
 import "./css/notificationsPage.css";
 
@@ -13,7 +11,6 @@ import { useState } from "react";
 
 export default function NotificationsPage() {
   const { notifications, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();
-  const { darkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -35,7 +32,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className={`notifications-page ${darkMode ? 'dark-mode' : ''}`}>
+    <div className="notifications-page">
       {/* Header */}
       <div className="notifications-header">
         <button onClick={() => navigate(-1)} className="back-btn">

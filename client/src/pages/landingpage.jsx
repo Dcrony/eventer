@@ -29,8 +29,6 @@ import {
   Mic2,
   Wrench,
 } from "lucide-react";
-import ThemeToggle from "../components/ThemeToggle";
-
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -63,13 +61,6 @@ export default function LandingPage() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    document.body.classList.toggle("dark-mode", prefersDark);
   }, []);
 
   // Scroll animation observer
@@ -281,10 +272,11 @@ export default function LandingPage() {
 
       {/* Hero Section - Redesigned */}
       <section className="hero">
+        <div className="hero-mesh" aria-hidden="true" />
         <div className="hero-content">
           <div className="hero-text-container">
             <div className="hero-badge">
-              <span className="badge-pulse">✨ The Future of Events</span>
+              <span className="badge-pulse">The future of events</span>
             </div>
             <h1 className="hero-title">
               <span className="hero-text-gradient">Host Events.</span>
@@ -518,7 +510,7 @@ export default function LandingPage() {
               return (
                 <div
                   key={index}
-                  className="feature-card"
+                  className={`feature-card feature-card--tone-${index % 6}`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="feature-icon-wrapper">
@@ -717,7 +709,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <ThemeToggle />
       </footer>
     </div>
   );

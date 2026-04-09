@@ -12,7 +12,13 @@ const sendEmail = require("../utils/email");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
-    const secret = process.env.PAYSTACK_SECRET_KEY;
+    const secret =
+      process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
+
+    if (!secret) {
+      console.error("PAYSTACK_SECRET_KEY / PAYSTACK_SECRET is not set");
+      return res.status(500).send("Server misconfigured");
+    }
 
     // 1️⃣ Verify signature using RAW BODY
     const hash = crypto

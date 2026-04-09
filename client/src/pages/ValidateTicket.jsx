@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import API from "../api/axios";
 import "./CSS/home.css";
-
-const PORT_URL = import.meta.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const TicketValidationPage = () => {
   const { ticketId } = useParams();
@@ -13,12 +11,15 @@ const TicketValidationPage = () => {
   useEffect(() => {
     const validateTicket = async () => {
       try {
-        const res = await axios.get(
-          `${PORT_URL}/api/tickets/validate/${ticketId}`
-        );
+        const res = await API.get(`/tickets/validate/${ticketId}`);
         setResult(res.data);
       } catch (err) {
-        setResult({ success: false, message: "Invalid or expired ticket" });
+        setResult({
+          success: false,
+          message:
+            err.response?.data?.message ||
+            "Invalid or expired ticket, or you are not allowed to check in this ticket.",
+        });
       } finally {
         setLoading(false);
       }

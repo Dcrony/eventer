@@ -62,11 +62,5 @@ input:checked+.toggle-switch-slider:before {
     color: inherit;
 }
 
-.dark-mode .toggle-switch-slider {
-    background-color: #334155;
-    border-color: rgba(255, 255, 255, 0.1);
-}
 
-.dark-mode .toggle-switch-slider:before {
-    background-color: #f8fafc;
-}
+

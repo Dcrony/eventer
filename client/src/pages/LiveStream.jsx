@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
@@ -28,7 +28,6 @@ import {
 import io from "socket.io-client";
 import Peer from "simple-peer";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/LiveStream.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -44,7 +43,6 @@ export default function LiveStream() {
     const [chatMessage, setChatMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [hasRemoteStream, setHasRemoteStream] = useState(false);
-    const { darkMode } = useContext(ThemeContext);
     const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem("user"));
     const currentUserId = user?.id || user?._id;
@@ -388,7 +386,7 @@ export default function LiveStream() {
         (event.liveStream?.streamType !== "Camera" && event.liveStream?.streamURL);
 
     return (
-        <div className={`live-stream-container ${isBroadcaster ? "host" : "viewer"} ${darkMode ? "dark" : ""}`}>
+        <div className={`live-stream-container ${isBroadcaster ? "host" : "viewer"}`}>
             {/* Main Stream Area */}
             <section className="main-stream-area">
                 <div className="video-container" ref={videoContainerRef}>

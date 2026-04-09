@@ -1,6 +1,5 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import axios from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import PasswordInput from "./PasswordInput";
 import "./css/EditProfileModel.css";
 
@@ -10,8 +9,6 @@ export default function EditProfileModal({
   currentUser,
   onProfileUpdated,
 }) {
-  const { darkMode } = useContext(ThemeContext);
-
   const [formData, setFormData] = useState({
     name: currentUser?.name || "",
     username: currentUser?.username || "",
@@ -66,9 +63,7 @@ export default function EditProfileModal({
   };
 
   return (
-    <div
-      className={`settings-modal-backdrop ${darkMode ? "dark-mode" : ""}`}
-    >
+    <div className="settings-modal-backdrop">
       <div className="settings-modal">
         <h2>Account Settings</h2>
 

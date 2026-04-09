@@ -32,8 +32,10 @@ import TermsOfService from "./pages/TermsOfService";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
+import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
 import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
+import FeaturesPage from "./pages/Features";
 import { useEffect, useState } from "react";
 import More from "./components/More";
 import AdminWithdrwal from "./pages/AdminWithdrawals";
@@ -213,14 +215,35 @@ function Layout() {
         <Route
           path="/scanner"
           element={
-            <ProtectedRoute>
+            <OrganizerStaffRoute>
               <TicketScanner />
+            </OrganizerStaffRoute>
+          }
+        />
+        <Route
+          path="/validate/:ticketId"
+          element={
+            <OrganizerStaffRoute>
+              <TicketValidationPage />
+            </OrganizerStaffRoute>
+          }
+        />
+        <Route
+          path="/transactions"
+          element={
+            <ProtectedRoute>
+              <Transactions />
             </ProtectedRoute>
           }
         />
-        <Route path="/validate/:ticketId" element={<TicketValidationPage />} />
-        <Route path="/transactions" element={<Transactions />} />
-        <Route path="/notifications" element={<Notifications />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<Contact />} />

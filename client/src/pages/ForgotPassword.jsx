@@ -1,8 +1,6 @@
 import { useState } from "react";
 import API from "../api/axios";
 import { Link } from "react-router-dom";
-import { ThemeContext } from "../contexts/ThemeContexts";
-import { useContext } from "react";
 import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
 
@@ -11,8 +9,6 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { darkMode } = useContext(ThemeContext);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -30,7 +26,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className={`form-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="form-page">
       <div className="form-grid-background"></div>
       <div className="form-container">
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>

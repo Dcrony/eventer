@@ -10,7 +10,8 @@ const sendEmail = require("../utils/email");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
+const PAYSTACK_SECRET =
+  process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const successURL = `${FRONTEND_URL}/success`;
 const failedURL = `${FRONTEND_URL}/failed`;
@@ -22,6 +23,10 @@ const PAYSTACK_CALLBACK =
 
 // 🟢 INITIATE PAYMENT
 exports.initiatePayment = async (req, res) => {
+  if (!PAYSTACK_SECRET) {
+    return res.status(500).json({ message: "Payment provider not configured" });
+  }
+
   const { email, amount, metadata } = req.body;
 
   console.log("📤 Payment initiation request received:", {
@@ -41,12 +46,18 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    let paystackEmail = email;
+    if (req.user) {
+      processedMetadata.userId = req.user.id.toString();
+      paystackEmail = req.user.email || email;
+    }
+
     console.log("📦 Processed metadata for Paystack:", processedMetadata);
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
-        email,
+        email: paystackEmail,
         amount: amount * 100, // in kobo
         callback_url: PAYSTACK_CALLBACK,
         metadata: processedMetadata,

@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const sendEmail = require("../utils/email");
 const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
+const { verifyIdToken } = require("../utils/firebaseAdmin");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -14,7 +15,7 @@ exports.register = async (req, res) => {
     if (!validation.ok) {
       return res.status(400).json({ message: validation.message });
     }
-    const { username, email, password, isOrganizer, isAdmin } = validation;
+    const { username, email, password } = validation;
 
     // Check if email exists
     const existingUser = await User.findOne({ email });
@@ -27,10 +28,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Username already in use" });
     }
 
-    // Determine user role
-    let role = "user";
-    if (isAdmin) role = "admin";
-    else if (isOrganizer) role = "organizer";
+    const role = "user";
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -84,6 +82,12 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.password) {
+      return res.status(403).json({
+        message: "This account uses Google sign-in. Please use Sign in with Google.",
+      });
+    }
 
     // Check if email is verified
     if (!user.isVerified) {
@@ -221,5 +225,89 @@ exports.resetPassword = async (req, res) => {
   } catch (error) {
     console.error("❌ RESET PASSWORD ERROR:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+async function ensureUniqueUsername(base) {
+  const clean = String(base || "user")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 24) || "user";
+  let username = clean;
+  let suffix = 0;
+  while (await User.findOne({ username })) {
+    suffix += 1;
+    username = `${clean.slice(0, 18)}${suffix.toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+  }
+  return username;
+}
+
+exports.firebaseLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    const decoded = await verifyIdToken(idToken);
+    const email = decoded.email;
+    const firebaseUid = decoded.uid;
+    if (!email) {
+      return res.status(400).json({ message: "Google account has no email" });
+    }
+
+    let user = await User.findOne({ firebaseUid });
+    if (!user) user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      const displayName = decoded.name || email.split("@")[0];
+      const username = await ensureUniqueUsername(displayName);
+      user = new User({
+        name: displayName,
+        username,
+        email: email.toLowerCase(),
+        firebaseUid,
+        isVerified: true,
+        role: "user",
+      });
+      await user.save();
+    } else {
+      if (!user.firebaseUid) user.firebaseUid = firebaseUid;
+      if (!user.isVerified) user.isVerified = true;
+      await user.save();
+    }
+
+    if (!JWT_SECRET) {
+      return res.status(500).json({ message: "Server configuration error" });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === "admin",
+        isOrganizer: user.role === "organizer",
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === "admin",
+        isOrganizer: user.role === "organizer",
+        profilePic: user.profilePic,
+      },
+    });
+  } catch (error) {
+    console.error("❌ FIREBASE LOGIN ERROR:", error.message);
+    res.status(401).json({ message: "Invalid or expired Google session" });
   }
 };

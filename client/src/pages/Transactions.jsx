@@ -1,7 +1,6 @@
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/axios";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { 
   CreditCard, 
   Calendar, 
@@ -37,7 +36,6 @@ export default function Transactions() {
   const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const { darkMode } = useContext(ThemeContext);
   const token = localStorage.getItem("token");
   const itemsPerPage = 10;
 
@@ -169,7 +167,7 @@ export default function Transactions() {
   };
 
   return (
-    <div className={`transactions-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="transactions-page">
       {/* Header Section with Gradient */}
       <div className="transactions-header-section">
         <div className="header-content">

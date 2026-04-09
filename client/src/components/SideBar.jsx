@@ -1,6 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useEffect, useContext } from "react";
-import { ThemeContext } from "../contexts/ThemeContexts";
+import { useState, useEffect } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
 import CreateEvent from "../pages/CreateEvent";
 import NotificationBell from "./NotificationBell";
@@ -27,7 +26,6 @@ import {
 export default function Sidebar() {
   const [user, setUser] = useState(null);
   const [expand, setexpand] = useState(false);
-  const { darkMode } = useContext(ThemeContext);
   const location = useLocation();
   const [showCreateEvent, setShowCreateEvent] = useState(false); 
   
@@ -101,7 +99,7 @@ export default function Sidebar() {
     <>
       <div
         className={`sidebar h-screen transition-all duration-300 ${expand ? "expand" : ""
-          } ${darkMode ? "dark-mode" : ""}`}
+          }`}
       >
         <div className="sidebar-top">
           <Link to="/" className="sidebar-brand" aria-label="TickiSpot home">

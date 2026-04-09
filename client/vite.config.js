@@ -1,9 +1,18 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
   plugins: [
     react(),
 
@@ -13,8 +22,10 @@ export default defineConfig({
 
     VitePWA({
       registerType: "autoUpdate",
+      // Service worker off in dev — avoids noisy Workbox logs ("Router is responding to: /").
+      // Test PWA with: npm run build && npm run preview
       devOptions: {
-        enabled: true,
+        enabled: false,
         suppressWarnings: true,
       },
       manifest: {

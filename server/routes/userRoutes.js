@@ -15,6 +15,7 @@ const {
   deleteUser,
   getMyEvents,
   toggleFollow,
+  deactivateAccount,
 } = require("../controllers/userController");
 
 
@@ -80,22 +81,7 @@ router.delete("/:id", authMiddleware, authorizeRoles("admin"), deleteUser);
 router.put("/:id/role", authMiddleware, authorizeRoles("admin"), updateUserRole);
 
 
-router.put("/profile/:id/deactivate", async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
-      { new: true }
-    );
-
-    res.json({ message: "Account deactivated", user });
-  } catch (err) {
-    res.status(500).json({ message: "Error deactivating account" });
-  }
-});
+router.put("/profile/:id/deactivate", authMiddleware, deactivateAccount);
 
 // Follow / Unfollow
 router.post("/:id/follow", authMiddleware, toggleFollow);

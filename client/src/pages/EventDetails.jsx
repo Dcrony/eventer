@@ -1,9 +1,8 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import {
   MapPin,
   Calendar,
@@ -26,7 +25,6 @@ export default function EventDetail() {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState({});
-  const { darkMode } = useContext(ThemeContext);
   const user = JSON.parse(localStorage.getItem("user"));
   const isLoggedIn = !!localStorage.getItem("token");
   const navigate = useNavigate();
@@ -125,7 +123,7 @@ export default function EventDetail() {
     );
 
   return (
-    <div className={`event-hub ${darkMode ? "dark-mode" : ""}`}>
+    <div className="event-hub">
       {/* Glassy Background Blur */}
       <div className="hub-bg-blur">
         {event.image && (

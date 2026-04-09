@@ -45,7 +45,8 @@ function validateLoginBody(body) {
 }
 
 /**
- * Sanitize and validate register body. Returns { ok: true, username, email, password, isOrganizer } or { ok: false, message }.
+ * Sanitize and validate register body. Returns { ok: true, username, email, password } or { ok: false, message }.
+ * Role is always "user" — never trust client-sent flags for admin/organizer.
  */
 function validateRegisterBody(body) {
   const rawUsername = body?.username;
@@ -57,8 +58,6 @@ function validateRegisterBody(body) {
     : "";
   const email = rawEmail != null ? sanitizeString(String(rawEmail), EMAIL_MAX_LENGTH).toLowerCase() : "";
   const password = rawPassword != null ? sanitizePassword(rawPassword) : "";
-  const isOrganizer = body?.isOrganizer === "true" || body?.isOrganizer === true;
-  const isAdmin = body?.isAdmin === "true" || body?.isAdmin === true;
 
   if (!username) return { ok: false, message: "Username is required" };
   if (username.length < USERNAME_MIN_LENGTH) return { ok: false, message: "Username is too short" };
@@ -78,8 +77,6 @@ function validateRegisterBody(body) {
     username,
     email,
     password,
-    isOrganizer,
-    isAdmin,
   };
 }
 

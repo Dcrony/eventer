@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Ticket,
   Calendar,
@@ -17,7 +17,6 @@ import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
 
-import { ThemeContext } from "../contexts/ThemeContexts";
 import "./CSS/MyTickets.css";
 
 
@@ -27,7 +26,6 @@ export default function MyTickets() {
   const [activeEventId, setActiveEventId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all"); // all, upcoming, past
-  const { darkMode } = useContext(ThemeContext);
   const user = JSON.parse(localStorage.getItem("user"));
   const { toProfile } = useProfileNavigation();
 
@@ -61,7 +59,7 @@ export default function MyTickets() {
   }, [tickets, searchQuery, filter]);
 
   return (
-    <div className={`dashboard-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="dashboard-page">
       <div className="dashboard-container">
         <div className="dashboard-title-section">
           <div>

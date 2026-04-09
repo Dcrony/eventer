@@ -1,11 +1,8 @@
 require("dotenv").config();
-const dotenv = require("dotenv");
 
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const passport = require("passport");
-const session = require("express-session");
 const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const ticketRoutes = require("./routes/ticketRoutes");
@@ -20,15 +17,21 @@ const messageRoutes = require("./routes/messageRoutes");
 
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+// localhost vs 127.0.0.1 are different origins — include both for Vite dev + preview.
 const DEFAULT_ALLOWED_ORIGINS = [
   FRONTEND_URL,
   "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
   "https://tickispot.vercel.app",
   "https://tickispot.pxxl.click",
 ];
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+const EXTRA_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((url) => url.trim()).filter(Boolean)
-  : DEFAULT_ALLOWED_ORIGINS;
+  : [];
+// Merge so ALLOWED_ORIGINS in .env adds hosts without removing local dev URLs.
+const ALLOWED_ORIGINS = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGINS])];
 
 const app = express();
 
@@ -37,26 +40,13 @@ app.use(cors({
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("CORS policy: Origin not allowed"));
+      callback(null, false);
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-session-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false } // set to true in production with HTTPS
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Passport config
-require("./config/passport")(passport);
 
 app.use("/api/webhook", webhookRoutes);
 app.use(express.json());
@@ -97,13 +87,15 @@ const io = new Server(server, {
       if (!origin || ALLOWED_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("Socket.IO CORS policy: Origin not allowed"));
+        callback(null, false);
       }
     },
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
+
+app.set("io", io);
 
 const onlineUsers = new Map();
 

@@ -1,7 +1,6 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/axios";
-import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { ThemeContext } from "../contexts/ThemeContexts";
+import { useNavigate, Link } from "react-router-dom";
 import { login } from "../utils/auth";
 import { ArrowRight } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
@@ -15,15 +14,11 @@ import "./CSS/forms.css";
 import { isAuthenticated } from "../utils/auth";
 import icon from "../assets/icon.svg";
 
-const BACKEND_API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
-
 export default function Register() {
   const [form, setForm] = useState({
     username: "",
     email: "",
     password: "",
-    isOrganizer: false,
   });
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
@@ -31,48 +26,14 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { darkMode } = useContext(ThemeContext);
-  const [searchParams] = useSearchParams();
-
   useEffect(() => {
-    // Check if already authenticated
     if (isAuthenticated()) {
       navigate("/dashboard", { replace: true });
-      return;
     }
-
-    // Handle Google OAuth callback token
-    const token = searchParams.get("token");
-    if (token) {
-      try {
-        // Parse token to get user data
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split("")
-            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-            .join("")
-        );
-        const user = JSON.parse(jsonPayload);
-
-        // Auto-login with token
-        login(user, token);
-        setSuccess("Google signup successful! Redirecting...");
-        setTimeout(() => navigate("/dashboard"), 1500);
-      } catch (err) {
-        console.error("Error processing Google OAuth token:", err);
-        setError("Google signup failed. Please try again.");
-      }
-    }
-  }, [navigate, searchParams]);
+  }, [navigate]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") {
-      setForm((prev) => ({ ...prev, [name]: checked }));
-      return;
-    }
+    const { name, value } = e.target;
     const sanitized =
       name === "username"
         ? sanitizeUsername(value)
@@ -99,7 +60,6 @@ export default function Register() {
       formData.append("username", sanitizeUsername(form.username));
       formData.append("email", sanitizeEmail(form.email));
       formData.append("password", sanitizePassword(form.password));
-      formData.append("isOrganizer", form.isOrganizer ? "true" : "false");
 
       await API.post("/auth/register", formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -118,17 +78,49 @@ export default function Register() {
   };
 
 
-  const handleGoogleSignup = () => {
-  window.location.href = `${BACKEND_API_URL}/auth/google`;
-};
+  const handleGoogleSignup = async () => {
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
+      const idToken = await signInWithGoogleAndGetIdToken();
+      const res = await API.post("/auth/firebase", { idToken });
+      login(res.data.user, res.data.token);
+      setSuccess("Google sign-up successful! Redirecting...");
+      setTimeout(() => navigate("/dashboard"), 1500);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Google sign-up failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className={`form-page ${darkMode ? "dark-mode" : ""}`}>
-      <div className="form-grid-background"></div>
+    <div className="form-page">
+      <div className="form-grid-background" aria-hidden="true" />
+      <div className="form-layout">
+        <aside className="form-brand-panel" aria-hidden="true">
+          <span className="form-brand-float" />
+          <span className="form-brand-float form-brand-float--2" />
+          <div className="form-brand-inner">
+            <img src={icon} className="tickispot-icon" alt="" />
+            <h2 className="form-brand-headline">TickiSpot</h2>
+            <p className="form-brand-tagline">
+              Create your account and start selling tickets in minutes — with
+              secure payments and real-time insights.
+            </p>
+          </div>
+        </aside>
+        <div className="form-auth-column">
       <div className="form-container">
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", textDecoration: "none", color: "inherit", marginBottom: "1rem" }}>
-            <img src={icon} className="tickispot-icon" />
+            <img src={icon} className="tickispot-icon" alt="TickiSpot home" />
           </Link>
           <h1 className="form-title">Create Account</h1>
           <p className="form-subtitle">Join TickiSpot and start creating amazing events</p>
@@ -192,20 +184,6 @@ export default function Register() {
             )}
           </div>
 
-          <div className="form-checkbox-wrapper">
-            <input
-              type="checkbox"
-              name="isOrganizer"
-              checked={form.isOrganizer}
-              onChange={handleChange}
-              className="form-checkbox"
-              id="isOrganizer"
-            />
-            <label htmlFor="isOrganizer" className="form-checkbox-label">
-              I'm an Event Organizer
-            </label>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -223,8 +201,9 @@ export default function Register() {
 
         <div style={{ textAlign: "center", margin: "1rem 0" }}>
           <button
-  onClick={handleGoogleSignup}
-  className="form-btn-secondary"
+            type="button"
+            onClick={handleGoogleSignup}
+            className="form-btn form-btn-google"
   style={{
     display: "flex",
     alignItems: "center",
@@ -248,6 +227,8 @@ export default function Register() {
           <Link to="/login" className="form-link">
             Sign in
           </Link>
+        </div>
+      </div>
         </div>
       </div>
     </div>

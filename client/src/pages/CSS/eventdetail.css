@@ -13,14 +13,7 @@
   --hub-glass: rgba(255, 255, 255, 0.7);
 }
 
-.dark-mode {
-  --hub-bg: #0000;
-  --hub-card: #1a1a1a;
-  --hub-text: #f8fafc;
-  --hub-text-muted: #94a3b8;
-  --hub-border: #1e293b;
-  --hub-glass: rgba(15, 23, 42, 0.7);
-}
+
 
 .event-hub {
   min-height: 100vh;
@@ -284,9 +277,7 @@
   color: var(--hub-primary);
 }
 
-.dark-mode .hub-detail-icon {
-  background: rgba(255, 255, 255, 0.05);
-}
+
 
 .hub-detail-info label {
   display: block;
@@ -353,9 +344,7 @@
   font-size: 0.9rem;
 }
 
-.dark-mode .hub-price-tier {
-  background: rgba(0, 0, 0, 0.2);
-}
+
 
 .hub-availability {
   margin-bottom: 2rem;
@@ -863,10 +852,7 @@
   margin-top: 1rem;
 }
 
-.dark-mode .hub-info-card {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.3);
-}
+
 
 .hub-info-card p {
   font-size: 0.9rem;
@@ -875,9 +861,7 @@
   line-height: 1.5;
 }
 
-.dark-mode .hub-info-card p {
-  color: #fbbf24;
-}
+
 
 /* Error container styling */
 .checkout-error-container {
@@ -924,13 +908,9 @@
 }
 
 /* Dark Mode Specific Adjustments */
-.dark-mode .ticket-type-card {
-  background: rgba(255, 255, 255, 0.03);
-}
 
-.dark-mode .ticket-type-card.active {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), transparent);
-}
+
+
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {

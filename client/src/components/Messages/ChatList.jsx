@@ -1,12 +1,10 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
-import { ThemeContext } from "../../contexts/ThemeContexts";
 import { PORT_URL } from "../../utils/config";
 
 export default function ChatList({ setSelectedUser, selectedUser }) {
   const { toProfile } = useProfileNavigation();
-  const { darkMode } = useContext(ThemeContext);
   const [chats, setChats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -41,7 +39,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
   );
 
   return (
-    <div className={`chat-list ${darkMode ? "dark-mode" : ""}`}>
+    <div className="chat-list">
       <div className="chat-list-header">
         <h2>Messages</h2>
       </div>
@@ -51,7 +49,6 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
           placeholder="Search conversations..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className={darkMode ? "dark-mode" : ""}
         />
       </div>
       <div className="chat-list-items">
@@ -63,7 +60,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
           filteredChats.map((chat) => (
             <div
               key={chat.user._id}
-              className={`chat-item ${selectedUser?._id === chat.user._id ? "active" : ""} ${darkMode ? "dark-mode" : ""}`}
+              className={`chat-item ${selectedUser?._id === chat.user._id ? "active" : ""}`}
               onClick={() => setSelectedUser(chat.user)}
             >
               <div className="chat-item-avatar">

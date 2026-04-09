@@ -1,8 +1,7 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
 import { useParams, useNavigate } from "react-router-dom";
-import { ThemeContext } from "../contexts/ThemeContexts";
 import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
 import "./CSS/Profile.css";
 
@@ -11,8 +10,6 @@ export default function Profile() {
   const { id, userId } = useParams();
   const profileId = userId || id;
   const navigate = useNavigate();
-  const { darkMode } = useContext(ThemeContext);
-
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
 
@@ -32,7 +29,7 @@ const handleMessageClick = () => {
 
   if (!profile) {
     return (
-      <div className={`profile-loading ${darkMode ? "dark-mode" : ""}`}>
+      <div className="profile-loading">
         <div className="profile-loading-spinner" />
         <p className="profile-loading-text">Loading your profile…</p>
       </div>
@@ -50,7 +47,7 @@ const handleMessageClick = () => {
 
 
   return (
-    <div className={`dashboard-page profile-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="dashboard-page profile-page">
       <div className="dashboard-container">
         {/* Cover + Avatar */}
         <div className="profile-hero">

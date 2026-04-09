@@ -16,15 +16,7 @@
   --tx-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-.dark-mode {
-  --tx-bg: #0b1120;
-  --tx-card-bg: #1a2332;
-  --tx-text: #e2e8f0;
-  --tx-text-light: #94a3b8;
-  --tx-border: #2d3a4f;
-  --tx-primary-soft: rgba(236, 72, 153, 0.15);
-  --tx-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
+
 
 .transactions-page {
   min-height: 100vh;

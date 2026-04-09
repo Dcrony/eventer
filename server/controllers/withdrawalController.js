@@ -88,25 +88,20 @@ exports.adminUpdateWithdrawal = async (req, res) => {
 
     const organizer = withdrawal.organizer;
 
-    // ✅ HANDLE REJECTION
+    // ✅ HANDLE REJECTION (balance was never deducted while pending — do not add funds)
     if (status === "rejected") {
       withdrawal.status = "rejected";
       withdrawal.processedBy = req.user.id;
       withdrawal.processedAt = new Date();
       await withdrawal.save();
 
-      // REFUND BALANCE
-      organizer.availableBalance += withdrawal.amount;
-      await organizer.save();
-
-      // Update transaction
       await Transaction.findOneAndUpdate(
         { referenceId: withdrawal._id, type: "withdrawal" },
         { status: "failed" }
       );
 
-      console.log(`❌ Withdrawal rejected and refunded: ${withdrawal.amount} to ${organizer.username}`);
-      return res.json({ message: "Withdrawal rejected and balance refunded" });
+      console.log(`❌ Withdrawal rejected (no balance change; pending request only): ${withdrawal.amount} for ${organizer.username}`);
+      return res.json({ message: "Withdrawal request rejected" });
     }
 
     // ✅ HANDLE APPROVAL (INITIATE TRANSFER)
