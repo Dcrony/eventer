@@ -37,16 +37,11 @@
 }
 
 .events-sticky-toolbar {
-  position: sticky;
+  position: flex;
   top: 0;
   z-index: 40;
   margin: 0 0 1.75rem;
   padding: 0.85rem 0 1rem;
-  background: rgba(248, 250, 252, 0.88);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.07);
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
 }
 
 .events-toolbar-inner {
