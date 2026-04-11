@@ -13,6 +13,7 @@ import {
 import "./CSS/forms.css";
 import { isAuthenticated } from "../utils/auth";
 import icon from "../assets/icon.svg";
+import emailService from "../api/emailVerificationService";
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -85,14 +86,31 @@ export default function Register() {
     try {
       const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
       const idToken = await signInWithGoogleAndGetIdToken();
-      const res = await API.post("/auth/firebase", { idToken });
-      login(res.data.user, res.data.token);
-      setSuccess("Google sign-up successful! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      
+      // 🆕 Use firebaseSync endpoint for OTP verification flow
+      const result = await emailService.firebaseSync(idToken);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Check if user is already verified (Google Sign-In users are auto-verified)
+      if (result.data.user.isVerified) {
+        // User already verified - proceed to dashboard
+        login(result.data.user, result.data.token);
+        setSuccess("Google sign-up successful! Redirecting...");
+        setTimeout(() => navigate("/dashboard"), 1500);
+      } else {
+        // User needs to verify OTP
+        localStorage.setItem("verifyEmail", result.data.user.email);
+        setSuccess("Account created! Check your email for verification code...");
+        setTimeout(() => {
+          navigate("/verify-otp", { state: { email: result.data.user.email } });
+        }, 1500);
+      }
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          err.message ||
+        err.message ||
           "Google sign-up failed. Please try again."
       );
     } finally {

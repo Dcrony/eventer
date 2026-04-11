@@ -307,7 +307,285 @@ exports.firebaseLogin = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ FIREBASE LOGIN ERROR:", error.message);
-    res.status(401).json({ message: "Invalid or expired Google session" });
+    console.error("❌ FIREBASE LOGIN ERROR:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
+// =====================================================================
+// 📧 EMAIL VERIFICATION WITH OTP (Firebase + OTP Flow)
+// =====================================================================
+
+/**
+ * FIREBASE SYNC - Handle user signup via Firebase
+ * 1. Verify Firebase ID token
+ * 2. Extract email/name from token
+ * 3. Create or update user in DB
+ * 4. If new user: Generate 6-digit OTP & send email
+ * 5. Return user verification status
+ */
+exports.firebaseSync = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) {
+      return res.status(400).json({ message: "idToken is required" });
+    }
+
+    // Verify Firebase token
+    const decoded = await verifyIdToken(idToken);
+    const { email: firebaseEmail, name: firebaseName, uid: firebaseUid } = decoded;
+
+    if (!firebaseEmail) {
+      return res.status(400).json({ message: "Email not found in Firebase token" });
+    }
+
+    const emailLower = firebaseEmail.toLowerCase();
+
+    // Check if user exists
+    let user = await User.findOne({ $or: [{ firebaseUid }, { email: emailLower }] });
+
+    if (!user) {
+      // 🆕 CREATE NEW USER with unverified status
+      const displayName = firebaseName || firebaseEmail.split("@")[0];
+      const username = await ensureUniqueUsername(displayName);
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+      user = new User({
+        name: displayName,
+        username,
+        email: emailLower,
+        firebaseUid,
+        isVerified: false, // ✅ Not verified until OTP is verified
+        verificationCode: hashedOtp,
+        verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
+      });
+
+      await user.save();
+
+      // 📧 Send OTP email
+      await sendEmail({
+        to: emailLower,
+        subject: "Verify Your Email - Ticki",
+        html: `
+          <h2>Welcome to Ticki! 🎉</h2>
+          <p>Your verification code is:</p>
+          <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
+          <p>This code expires in <strong>10 minutes</strong>.</p>
+          <p>If you didn't sign up, please ignore this email.</p>
+        `,
+      });
+
+      return res.status(201).json({
+        message: "User created. Please verify your email with the OTP sent to your inbox.",
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          isVerified: false,
+        },
+      });
+    } else {
+      // 👤 USER EXISTS
+      // If they haven't verified yet, regenerate OTP
+      if (!user.isVerified) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+        user.verificationCode = hashedOtp;
+        user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
+
+        // 📧 Resend OTP
+        await sendEmail({
+          to: user.email,
+          subject: "Your New Verification Code - Ticki",
+          html: `
+            <h2>Verification Code</h2>
+            <p>Your verification code is:</p>
+            <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
+            <p>This code expires in <strong>10 minutes</strong>.</p>
+          `,
+        });
+
+        return res.status(200).json({
+          message: "OTP resent to your email.",
+          user: {
+            id: user._id,
+            email: user.email,
+            name: user.name,
+            isVerified: false,
+          },
+        });
+      }
+
+      // ✅ USER ALREADY VERIFIED - Return JWT
+      const token = jwt.sign(
+        {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isAdmin: user.role === "admin",
+          isOrganizer: user.role === "organizer",
+        },
+        JWT_SECRET,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(200).json({
+        message: "User verified. Login successful.",
+        token,
+        user: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          isVerified: true,
+          profilePic: user.profilePic,
+        },
+      });
+    }
+  } catch (error) {
+    console.error("❌ FIREBASE SYNC ERROR:", error);
+    res.status(500).json({ message: "Server error during Firebase sync" });
+  }
+};
+
+/**
+ * VERIFY EMAIL - Verify OTP code
+ * 1. User submits 6-digit OTP
+ * 2. Hash the OTP and compare with stored hash
+ * 3. Check expiration
+ * 4. If valid: Set isVerified=true, remove OTP fields
+ * 5. Return JWT token
+ */
+exports.verifyEmailOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ message: "OTP must be exactly 6 digits" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if OTP exists and not expired
+    if (!user.verificationCode || !user.verificationCodeExpires) {
+      return res.status(400).json({ message: "No verification code found. Please request a new one." });
+    }
+
+    if (new Date() > user.verificationCodeExpires) {
+      return res.status(400).json({
+        message: "Verification code expired. Please request a new one.",
+        code: "OTP_EXPIRED",
+      });
+    }
+
+    // Hash the provided OTP and compare
+    const hashedInputOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    if (hashedInputOtp !== user.verificationCode) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // ✅ OTP VALID - Mark as verified
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    // Create JWT
+    const token = jwt.sign(
+      {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isAdmin: user.role === "admin",
+        isOrganizer: user.role === "organizer",
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      message: "Email verified successfully! ✅",
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isVerified: true,
+        profilePic: user.profilePic,
+      },
+    });
+  } catch (error) {
+    console.error("❌ VERIFY EMAIL OTP ERROR:", error);
+    res.status(500).json({ message: "Server error verifying OTP" });
+  }
+};
+
+/**
+ * RESEND OTP - Generate and send new verification code
+ * 1. Find user by email
+ * 2. Generate new 6-digit OTP
+ * 3. Send email
+ * 4. Store hashed OTP with 10-min expiration
+ */
+exports.resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User is already verified" });
+    }
+
+    // Generate new 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+    user.verificationCode = hashedOtp;
+    user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    await user.save();
+
+    // 📧 Send OTP email
+    await sendEmail({
+      to: user.email,
+      subject: "Your New Verification Code - Ticki",
+      html: `
+        <h2>Verification Code</h2>
+        <p>Your verification code is:</p>
+        <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
+        <p>This code expires in <strong>10 minutes</strong>.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `,
+    });
+
+    res.status(200).json({
+      message: "New OTP sent to your email",
+    });
+  } catch (error) {
+    console.error("❌ RESEND OTP ERROR:", error);
+    res.status(500).json({ message: "Server error resending OTP" });
+  }
+};
+

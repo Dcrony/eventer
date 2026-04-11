@@ -35,13 +35,13 @@ import AdminRoute from "./components/AdminRoute";
 import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
 import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
-import FeaturesPage from "./pages/Features";
 import { useEffect, useState } from "react";
 import More from "./components/More";
 import AdminWithdrwal from "./pages/AdminWithdrawals";
 import Transactions from "./pages/Transactions";
 import Notifications from "./components/NotificationsPage";
 import Messages from "./pages/Messages";
+import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 
 function Layout() {
   const location = useLocation();
@@ -81,6 +81,7 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/verify-otp" element={<VerifyEmailOtp />} />
         <Route
           path="/more"
           element={

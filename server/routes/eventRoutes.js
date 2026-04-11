@@ -3,6 +3,7 @@ const router = express.Router();
 const path = require("path");
 const multer = require("multer");
 const { authMiddleware } = require("../middleware/authMiddleware");
+const { requireEmailVerification } = require("../middleware/verificationMiddleware");
 const {
   createEvent,
   getAllEvents,
@@ -24,7 +25,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.post("/create", authMiddleware, upload.single("image"), createEvent);
+router.post("/create", authMiddleware, requireEmailVerification, upload.single("image"), createEvent);
 
 // Public route - fetch all events
 router.get("/", getAllEvents);

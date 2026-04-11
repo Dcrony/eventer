@@ -11,6 +11,7 @@ import {
 } from "../utils/formValidation";
 import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
+import emailService from "../api/emailVerificationService";
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -69,14 +70,31 @@ export default function Login() {
     try {
       const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
       const idToken = await signInWithGoogleAndGetIdToken();
-      const res = await API.post("/auth/firebase", { idToken });
-      login(res.data.user, res.data.token);
-      setSuccess("Google login successful! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      
+      // 🆕 Use firebaseSync endpoint for OTP verification flow
+      const result = await emailService.firebaseSync(idToken);
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Check if user is verified
+      if (result.data.user.isVerified) {
+        // Already verified - proceed to dashboard
+        login(result.data.user, result.data.token);
+        setSuccess("Google login successful! Redirecting...");
+        setTimeout(() => navigate("/dashboard"), 1500);
+      } else {
+        // User needs to verify OTP (shouldn't happen for Google Sign-In, but handle it)
+        localStorage.setItem("verifyEmail", result.data.user.email);
+        setSuccess("Check your email for verification code...");
+        setTimeout(() => {
+          navigate("/verify-otp", { state: { email: result.data.user.email } });
+        }, 1500);
+      }
     } catch (err) {
       setErrors({
         general:
-          err.response?.data?.message ||
           err.message ||
           "Google sign-in failed. Please try again.",
       });
