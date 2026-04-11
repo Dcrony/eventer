@@ -12,6 +12,7 @@ import {
 import icon from "../assets/icon.svg";
 import "./CSS/forms.css";
 import emailService from "../api/emailVerificationService";
+
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});

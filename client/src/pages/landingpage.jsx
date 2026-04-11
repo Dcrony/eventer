@@ -245,9 +245,6 @@ export default function LandingPage() {
                 <Link to="/my-tickets" className="nav-link">
                   My Tickets
                 </Link>
-                <Link to="/dashboard" className="nav-link">
-                  Dashboard
-                </Link>
               </>
             )}
             {isLoggedIn ? (

@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const sendEmail = require("../utils/email");
 const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
 const { verifyIdToken } = require("../utils/firebaseAdmin");
+const { welcomeEmail, otpEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -48,18 +49,26 @@ exports.register = async (req, res) => {
 
     await newUser.save();
 
+    await sendEmail({
+  to: email,
+  subject: "Welcome to TickiSpot 🎉",
+  html: welcomeEmail(username),
+});
+
     // Send verification email
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`;
     await sendEmail({
       to: email,
       subject: "Verify Your Email - Ticki",
       html: `
-        <h2>Welcome to Ticki!</h2>
+        <h2>Welcome to Tickispot!</h2>
         <p>Please verify your email by clicking the link below:</p>
         <a href="${verificationUrl}">Verify Email</a>
         <p>If you didn't create an account, please ignore this email.</p>
       `,
     });
+
+    
 
     // ✅ Success response (no token yet)
     res.status(201).json({
@@ -91,8 +100,27 @@ exports.login = async (req, res) => {
 
     // Check if email is verified
     if (!user.isVerified) {
-      return res.status(403).json({ message: "Please verify your email before logging in." });
-    }
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+  user.verificationCode = hashedOtp;
+  user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  const { otpEmail } = require("../utils/emailTemplates");
+
+  await sendEmail({
+    to: user.email,
+    subject: "Your Verification Code - TickiSpot",
+    html: otpEmail(otp),
+  });
+
+  return res.status(403).json({
+    message: "Account not verified. A new verification code has been sent to your email.",
+    code: "OTP_SENT",
+  });
+}
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
@@ -569,16 +597,10 @@ exports.resendOtp = async (req, res) => {
 
     // 📧 Send OTP email
     await sendEmail({
-      to: user.email,
-      subject: "Your New Verification Code - Ticki",
-      html: `
-        <h2>Verification Code</h2>
-        <p>Your verification code is:</p>
-        <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
-        <p>This code expires in <strong>10 minutes</strong>.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-      `,
-    });
+  to: user.email,
+  subject: "Your New Verification Code - TickiSpot",
+  html: otpEmail(otp),
+});
 
     res.status(200).json({
       message: "New OTP sent to your email",
