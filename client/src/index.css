@@ -113,7 +113,7 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   margin: 0;
-  padding: 0;
+  padding: 3rem 0;
 }
 
 h1, h2, h3, h4 {

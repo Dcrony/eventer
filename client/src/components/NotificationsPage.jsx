@@ -4,10 +4,6 @@ import { useNotifications } from "../hooks/useNotifications";
 import { Bell, ArrowLeft, CheckCheck, Trash2 } from "lucide-react";
 import "./css/notificationsPage.css";
 
-// Add pull-to-refresh for mobile
-import { useCallback } from "react";
-import { useState } from "react";
-
 
 export default function NotificationsPage() {
   const { notifications, loading, markAsRead, markAllAsRead, deleteNotification } = useNotifications();

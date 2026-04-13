@@ -310,7 +310,7 @@ form .field-label {
 }
 
 /* Pricing */
-.pricing-section {
+.form-pricing-section {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;

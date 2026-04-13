@@ -216,7 +216,7 @@ export default function CreateEvent({ isOpen, onClose }) {
             />
 
             {/* Pricing */}
-            <div className="pricing-section">
+            <div className="form-pricing-section">
               <h3>💳 Pricing Categories</h3>
               {form.pricing.map((item, index) => (
                 <div key={index} className="pricing-grid">

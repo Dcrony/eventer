@@ -48,17 +48,6 @@ export default function TopNav() {
     }
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-
   return (
     <>
       {/* Top Navigation Bar */}
@@ -324,11 +313,7 @@ export default function TopNav() {
           {/* App Section */}
           <div className="slide-menu-section">
             <h4>App</h4>
-            <button onClick={toggleDarkMode} className="slide-menu-item">
-              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-              <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
-              <ChevronRight size={16} className="menu-arrow" />
-            </button>
+            
             <Link to="/language" onClick={closeMenu} className="slide-menu-item">
               <Globe size={20} />
               <span>Language</span>

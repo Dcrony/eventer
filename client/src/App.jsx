@@ -36,7 +36,6 @@ import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
 import LandingPage from "./pages/landingpage";
 import Pricing from "./pages/pricing";
 import { useEffect, useState } from "react";
-import More from "./components/More";
 import AdminWithdrwal from "./pages/AdminWithdrawals";
 import Transactions from "./pages/Transactions";
 import Notifications from "./components/NotificationsPage";
@@ -98,14 +97,6 @@ function Layout() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify-otp" element={<VerifyEmailOtp />} />
-          <Route
-            path="/more"
-            element={
-              <ProtectedRoute>
-                <More />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/my-tickets"
             element={
