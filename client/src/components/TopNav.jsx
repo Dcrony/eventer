@@ -4,7 +4,7 @@ import {
   Menu, X, User, Settings, Radio, BarChart3, LogOut, ChevronRight,
   Ticket, Calendar, Heart, Star, Shield, CreditCard, HelpCircle,
   FileText, Users, Gift, TrendingUp, Award, Clock, DollarSign,
-  MapPin, Share2, Download, Bell, Moon, Sun, Globe, Lock
+  MapPin, Share2, Download, Bell, Globe, Lock
 } from "lucide-react";
 import { getCurrentUser, logout } from "../utils/auth";
 import "./css/TopNav.css";
@@ -13,19 +13,11 @@ export default function TopNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (currentUser) setUser(currentUser);
-    
-    // Check for saved dark mode preference
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.body.classList.add('dark-mode');
-    }
   }, []);
 
   const isAdmin = user?.role === "admin" || user?.isAdmin;

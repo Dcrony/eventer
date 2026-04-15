@@ -79,7 +79,7 @@ export default function LandingPage() {
     }, observerOptions);
 
     const elements = document.querySelectorAll(
-      ".stat-item, .feature-card, .testimonial-card, .section-header, .category-chip, .event-card",
+      ".stat-item, .feature-card, .testimonial-card, .section-header, .category-chip, .social-event-card",
     );
 
     elements.forEach((el) => observer.observe(el));

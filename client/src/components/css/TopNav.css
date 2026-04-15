@@ -424,17 +424,6 @@
   }
 }
 
-/* Dark mode adjustments */
-@media (prefers-color-scheme: dark) {
-  .slide-menu-user.clickable:hover {
-    background: rgba(236, 72, 153, 0.15);
-  }
-  
-  .user-arrow {
-    color: #ec4899;
-  }
-}
-
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .slide-menu-user {

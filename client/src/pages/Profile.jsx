@@ -1,290 +1,255 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, Edit3, LayoutDashboard, MessageSquare, Share2, Sparkles } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import API from "../api/axios";
-import { PORT_URL } from "../utils/config";
-import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Calendar, Ticket, ChevronRight, Edit3, LayoutDashboard } from "lucide-react";
+import EventCard from "../components/EventCard";
+import Button from "../components/ui/button";
+import VerifiedBadge from "../components/ui/verified-badge";
+import useShareLink from "../hooks/useShareLink";
+import { getCoverImageUrl, getProfileImageUrl, getProfileUrl } from "../utils/eventHelpers";
 import "./CSS/Profile.css";
 
+const PROFILE_TABS = [
+  { id: "upcoming", label: "Upcoming" },
+  { id: "created", label: "Created" },
+  { id: "past", label: "Past" },
+];
+
+function EmptyState({ title, subtitle, actionLabel, onAction }) {
+  return (
+    <div className="profile-empty">
+      <div className="profile-empty-icon">
+        <CalendarDays size={40} strokeWidth={1.5} />
+      </div>
+      <h3 className="profile-empty-title">{title}</h3>
+      <p className="profile-empty-subtitle">{subtitle}</p>
+      {actionLabel && onAction ? (
+        <button type="button" className="profile-empty-btn" onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export default function Profile() {
   const { id, userId } = useParams();
-  const profileId = userId || id;
   const navigate = useNavigate();
+  const shareLink = useShareLink();
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  const resolvedProfileId = userId || id || storedUser?._id || storedUser?.id;
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
 
-
-
-const handleMessageClick = () => {
-  navigate(`/messages?user=${profile._id}`);
-};
-
   useEffect(() => {
-    const path = profileId === "me" ? "/users/me" : `/users/${profileId}`;
+    const fetchProfile = async () => {
+      try {
+        const path =
+          resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id
+            ? "/users/me"
+            : `/users/${resolvedProfileId}`;
 
-    API.get(path)
-      .then((res) => setProfile(res.data))
-      .catch((err) => alert(err.response?.data?.message || "Failed to load profile"));
-  }, [profileId]);
+        const { data } = await API.get(path);
+        setProfile(data);
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+      }
+    };
+
+    if (resolvedProfileId) {
+      fetchProfile();
+    }
+  }, [resolvedProfileId, storedUser?._id, storedUser?.id]);
+
+  const createdEvents = profile?.createdEvents || [];
+  const upcomingTickets = useMemo(
+    () =>
+      (profile?.tickets || [])
+        .filter((ticket) => ticket?.event)
+        .map((ticket) => ticket.event),
+    [profile?.tickets],
+  );
+
+  const shareProfile = async () => {
+    if (!profile?._id) return;
+    await shareLink({
+      title: `${profile.name || profile.username} on TickiSpot`,
+      text: `View ${profile.name || profile.username}'s events and profile on TickiSpot`,
+      url: getProfileUrl(profile._id),
+      copiedMessage: "Profile link copied to clipboard",
+    });
+  };
 
   if (!profile) {
     return (
       <div className="profile-loading">
         <div className="profile-loading-spinner" />
-        <p className="profile-loading-text">Loading your profile…</p>
+        <p className="profile-loading-text">Loading profile...</p>
       </div>
     );
   }
 
   const isOwner = profile.isOwner;
 
-  const roleLabel =
-    profile.role === "admin"
-      ? "Admin"
-      : profile.role === "organizer"
-        ? "Organizer"
-        : "Member";
-
-
   return (
     <div className="dashboard-page profile-page">
       <div className="dashboard-container">
-        {/* Cover + Avatar */}
         <div className="profile-hero">
           <div className="profile-cover">
-            <img
-              src={
-                profile.coverPic
-                  ? `${PORT_URL}/uploads/cover_pic/${profile.coverPic}`
-                  : "/cover.jpg"
-              }
-              alt=""
-            />
+            {getCoverImageUrl(profile) ? <img src={getCoverImageUrl(profile)} alt="" /> : null}
             <div className="profile-cover-overlay" />
           </div>
           <div className="profile-avatar-wrap">
             <div className="profile-avatar-ring">
               <img
-                src={
-                  profile.profilePic
-                    ? `${PORT_URL}/uploads/profile_pic/${profile.profilePic}`
-                    : "/default-avatar.png"
-                }
-                alt={profile.name}
+                src={getProfileImageUrl(profile) || "/default-avatar.png"}
+                alt={profile.name || profile.username}
               />
             </div>
           </div>
         </div>
 
-        {/* Content card */}
         <div className="profile-card">
           <header className="profile-header">
             <div className="profile-info">
               <div className="profile-name-row">
-                <h1 className="profile-name">{profile.name}</h1>
-                <span className={`profile-role-badge role-${profile.role}`}>
-                  {roleLabel}
-                </span>
+                <h1 className="profile-name">{profile.name || profile.username}</h1>
+                <VerifiedBadge user={profile} />
               </div>
               <p className="profile-username">@{profile.username}</p>
-              {profile.bio && <p className="profile-bio">{profile.bio}</p>}
+              {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
+
+              <div className="profile-stats-grid">
+                <div>
+                  <strong>{profile.stats?.followers || 0}</strong>
+                  <span>Followers</span>
+                </div>
+                <div>
+                  <strong>{profile.stats?.events || 0}</strong>
+                  <span>Events</span>
+                </div>
+                <div>
+                  <strong>{profile.stats?.totalViews || 0}</strong>
+                  <span>Views</span>
+                </div>
+                <div>
+                  <strong>{profile.stats?.totalLikes || 0}</strong>
+                  <span>Likes</span>
+                </div>
+              </div>
             </div>
-            <div className="profile-stats">
-  <span>{profile.stats.followers} Followers</span>
-  <span>{profile.stats.following} Following</span>
-  <span>{profile.stats.events} Events</span>
-</div>
+
             <div className="profile-actions">
+              <Button variant="secondary" onClick={shareProfile}>
+                <Share2 size={16} />
+                Share profile
+              </Button>
 
-  {isOwner ? (
-    <>
-      <button
-        className="profile-btn profile-btn-primary"
-        onClick={() => navigate("/dashboard")}
-      >
-        <LayoutDashboard size={18} />
-        Dashboard
-      </button>
-
-      <button
-        className="profile-btn profile-btn-secondary"
-        onClick={() => navigate("/edit-profile")}
-      >
-        <Edit3 size={18} />
-        Edit Profile
-      </button>
-    </>
-  ) : (
-    <>
-      <button
-        className="profile-btn profile-btn-primary"
-        onClick={async () => {
-          await API.post(`/users/${profile._id}/follow`);
-          setProfile((prev) => ({
-            ...prev,
-            isFollowing: !prev.isFollowing,
-          }));
-        }}
-      >
-        {profile.isFollowing ? "Unfollow" : "Follow"}
-      </button>
-
-      <button
-        className="profile-btn profile-btn-secondary"
-        onClick={() => handleMessageClick() }
-      >
-        Message
-      </button>
-    </>
-  )}
-
-</div>
+              {isOwner ? (
+                <>
+                  <Button variant="secondary" onClick={() => navigate("/dashboard")}>
+                    <LayoutDashboard size={16} />
+                    Dashboard
+                  </Button>
+                  <Button onClick={() => navigate("/edit-profile")}>
+                    <Edit3 size={16} />
+                    Edit profile
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={async () => {
+                      const { data } = await API.post(`/users/${profile._id}/follow`);
+                      setProfile((current) => ({
+                        ...current,
+                        isFollowing: !current.isFollowing,
+                        stats: {
+                          ...current.stats,
+                          followers: Math.max(
+                            0,
+                            Number(current.stats?.followers || 0) + (current.isFollowing ? -1 : 1),
+                          ),
+                        },
+                      }));
+                      return data;
+                    }}
+                  >
+                    <Sparkles size={16} />
+                    {profile.isFollowing ? "Unfollow" : "Follow"}
+                  </Button>
+                  <Button variant="secondary" onClick={() => navigate(`/messages?user=${profile._id}`)}>
+                    <MessageSquare size={16} />
+                    Message
+                  </Button>
+                </>
+              )}
+            </div>
           </header>
 
-          {/* Tabs */}
           <nav className="profile-tabs" role="tablist">
-            {["upcoming", "past"].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                className={`profile-tab ${activeTab === tab ? "is-active" : ""}`}
-                onClick={() => setActiveTab(tab)}
-              >
-                {tab === "upcoming" ? "Upcoming" : "Past"}
-              </button>
-            ))}
-            {(profile.role === "organizer" || profile.role === "admin") && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "created"}
-                className={`profile-tab ${activeTab === "created" ? "is-active" : ""}`}
-                onClick={() => setActiveTab("created")}
-              >
-                Created
-              </button>
+            {PROFILE_TABS.filter((tab) => (tab.id === "created" ? createdEvents.length || isOwner : true)).map(
+              (tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  className={`profile-tab ${activeTab === tab.id ? "is-active" : ""}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ),
             )}
           </nav>
 
-          {/* Events */}
           <div className="profile-events">
-            {activeTab === "upcoming" &&
-              (profile.tickets?.length ? (
-                <div className="profile-event-grid">
-                  {profile.tickets.map((event) => (
-                    <EventCard
-                      key={event._id}
-                      event={event}
-                      onView={() => navigate(`/Eventdetail/${event._id}`)}
-                    />
+            {activeTab === "upcoming" ? (
+              upcomingTickets.length ? (
+                <div className="profile-event-grid modern">
+                  {upcomingTickets.map((ticketEvent) => (
+                    <EventCard key={ticketEvent._id} event={ticketEvent} />
                   ))}
                 </div>
               ) : (
                 <EmptyState
-                  title="No upcoming events"
-                  subtitle="Events you’ve registered for will appear here."
-                  actionLabel="Discover events"
+                  title="No upcoming events yet"
+                  subtitle="Events you RSVP to or buy tickets for will show up here."
+                  actionLabel="Browse events"
                   onAction={() => navigate("/events")}
                 />
-              ))}
+              )
+            ) : null}
 
-            {activeTab === "created" &&
-              (profile.createdEvents?.length ? (
-                <div className="profile-event-grid">
-                  {profile.createdEvents.map((event) => (
-                    <EventCard
-                      key={event._id}
-                      event={event}
-                      manage
-                      onView={() => navigate(`/Eventdetail/${event._id}`)}
-                      onManage={() => navigate("/dashboard")}
-                    />
+            {activeTab === "created" ? (
+              createdEvents.length ? (
+                <div className="profile-event-grid modern">
+                  {createdEvents.map((createdEvent) => (
+                    <EventCard key={createdEvent._id} event={createdEvent} />
                   ))}
                 </div>
               ) : (
                 <EmptyState
-                  title="No created events"
-                  subtitle="Events you create will show up here."
-                  actionLabel="Create event"
+                  title="No created events yet"
+                  subtitle="Create an event and it will appear here with its engagement stats."
+                  actionLabel="Open dashboard"
                   onAction={() => navigate("/dashboard")}
                 />
-              ))}
+              )
+            ) : null}
 
-            {activeTab === "past" && (
+            {activeTab === "past" ? (
               <EmptyState
-                title="No past events"
-                subtitle="Your past events will appear here."
-                actionLabel="Browse events"
+                title="No past events yet"
+                subtitle="Past attendance history will appear here once events wrap up."
+                actionLabel="Explore events"
                 onAction={() => navigate("/events")}
               />
-            )}
+            ) : null}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function EventCard({ event, manage, onView, onManage }) {
-  const handlePrimary = () => (manage ? onManage?.() : onView?.());
-  return (
-    <article className="profile-event-card">
-      <div className="profile-event-card-image">
-        {event.image ? (
-          <img
-            src={`${PORT_URL}/uploads/event_image/${event.image}`}
-            alt=""
-            loading="lazy"
-          />
-        ) : (
-          <div className="profile-event-card-placeholder" />
-        )}
-      </div>
-      <div className="profile-event-card-body">
-        <h3 className="profile-event-card-title">{event.title}</h3>
-        {event.description && (
-          <p className="profile-event-card-desc">{event.description}</p>
-        )}
-        <div className="profile-event-card-meta">
-          {event.location && (
-            <span>
-              <MapPin size={14} />
-              {event.location}
-            </span>
-          )}
-          <span>
-            <Ticket size={14} />
-            ₦{event.ticketPrice ?? "0"}
-          </span>
-        </div>
-        <button
-          type="button"
-          className={`profile-event-card-btn ${manage ? "is-outline" : ""}`}
-          onClick={handlePrimary}
-        >
-          {manage ? "Manage Event" : "View Details"}
-          <ChevronRight size={16} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function EmptyState({ title, subtitle, actionLabel, onAction }) {
-  return (
-    <div className="profile-empty">
-      <div className="profile-empty-icon">
-        <Calendar size={40} strokeWidth={1.5} />
-      </div>
-      <h3 className="profile-empty-title">{title}</h3>
-      <p className="profile-empty-subtitle">{subtitle}</p>
-      {actionLabel && onAction && (
-        <button type="button" className="profile-empty-btn" onClick={onAction}>
-          {actionLabel}
-        </button>
-      )}
     </div>
   );
 }

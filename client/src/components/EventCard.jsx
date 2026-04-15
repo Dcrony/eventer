@@ -1,103 +1,235 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Calendar, MapPin, Ticket } from "lucide-react";
-import { PORT_URL } from "../utils/config";
+import { useEffect, useState, startTransition, useOptimistic } from "react";
+import { CalendarDays, MapPin, Ticket, UserCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import API from "../api/axios";
 import icon from "../assets/icon.svg";
+import useShareLink from "../hooks/useShareLink";
+import { cn } from "../lib/utils";
+import {
+  formatEventDate,
+  formatEventPrice,
+  getEventImageUrl,
+  getEventUrl,
+  getProfileImageUrl,
+} from "../utils/eventHelpers";
+import EventCommentsModal from "./EventCommentsModal";
+import EventEngagementBar from "./EventEngagementBar";
+import VerifiedBadge from "./ui/verified-badge";
+import { useToast } from "./ui/toast";
+import "./css/EventCard.css";
 
-export default function EventCard({ event }) {
+export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
+  const [eventState, setEventState] = useState(event);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const formatDate = (dateString) => {
-    if (!dateString) return "Date TBD";
-    try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
+  const [optimisticEvent, updateOptimisticEvent] = useOptimistic(eventState, (current, patch) => ({
+    ...current,
+    ...patch,
+  }));
+  const navigate = useNavigate();
+  const shareLink = useShareLink();
+  const toast = useToast();
+
+  useEffect(() => {
+    setEventState(event);
+  }, [event]);
+
+  const syncEvent = (nextEvent) => {
+    setEventState(nextEvent);
+    onEventChange?.(nextEvent);
+  };
+
+  const handleProtectedAction = (callback) => {
+    if (!localStorage.getItem("token")) {
+      toast.info("Please log in to interact with events");
+      navigate("/login");
+      return;
+    }
+
+    callback();
+  };
+
+  const handleLike = (eventClick) => {
+    eventClick.preventDefault();
+    eventClick.stopPropagation();
+
+    handleProtectedAction(() => {
+      const nextLiked = !optimisticEvent.isLiked;
+      const nextLikeCount = Math.max(0, Number(optimisticEvent.likeCount || 0) + (nextLiked ? 1 : -1));
+
+      startTransition(async () => {
+        updateOptimisticEvent({
+          isLiked: nextLiked,
+          likeCount: nextLikeCount,
+        });
+
+        try {
+          const { data } = await API.post(`/events/${eventState._id}/like`);
+          syncEvent(data);
+        } catch (error) {
+          console.error("Like update failed:", error);
+          toast.error("Could not update like");
+          syncEvent(eventState);
+        }
       });
-    } catch {
-      return "Date TBD";
-    }
+    });
   };
 
-  const formatPrice = (price) => {
-    if (price === 0 || !price) return "Free";
-    return `From ₦${price.toLocaleString()}`;
+  const handleShare = async (eventClick) => {
+    eventClick.preventDefault();
+    eventClick.stopPropagation();
+
+    const eventUrl = getEventUrl(eventState._id);
+    const shared = await shareLink({
+      title: eventState.title,
+      text: `Check out ${eventState.title} on TickiSpot`,
+      url: eventUrl,
+      copiedMessage: "Event link copied to clipboard",
+    });
+
+    if (!shared) return;
+
+    startTransition(async () => {
+      updateOptimisticEvent({
+        shareCount: Number(optimisticEvent.shareCount || 0) + 1,
+      });
+
+      try {
+        const { data } = await API.post(`/events/${eventState._id}/share`);
+        syncEvent(data);
+      } catch (error) {
+        console.error("Share tracking failed:", error);
+      }
+    });
   };
 
-  // Get the lowest ticket price from pricing array or ticketPrice
-  const getLowestPrice = () => {
-    if (Array.isArray(event.pricing) && event.pricing.length > 0) {
-      const prices = event.pricing.map(t => t.price || 0);
-      return Math.min(...prices);
-    }
-    if (event.ticketTypes && event.ticketTypes.length > 0) {
-      const prices = event.ticketTypes.map(t => t.price);
-      return Math.min(...prices);
-    }
-    return event.ticketPrice || 0;
+  const handleCommentsOpen = (eventClick) => {
+    eventClick.preventDefault();
+    eventClick.stopPropagation();
+    setCommentsOpen(true);
   };
 
-  // Get image URL - handle both demo events (banner) and hosted uploads (image)
-  const getImageUrl = () => {
-    if (event.banner) {
-      return event.banner;
-    }
-    if (event.image) {
-      return `${PORT_URL}/uploads/event_image/${event.image}`;
-    }
-    return null;
-  };
-
-  const imageUrl = getImageUrl();
-  const showImagePlaceholder = !imageUrl || imageFailed;
-
-  // Get event date - handle both startDate and date fields
-  const getEventDate = () => {
-    return event.startDate || event.date;
-  };
+  const imageUrl = getEventImageUrl(eventState);
+  const showPlaceholder = !imageUrl || imageFailed;
 
   return (
-    <Link to={`/Eventdetail/${event._id}`} className="event-card">
-      <div className="event-card-image-wrapper">
-        {showImagePlaceholder ? (
-          <div className="event-card-image-placeholder" aria-hidden="true">
-            <div className="event-card-image-placeholder-shimmer" />
-            <img src={icon} alt="" className="event-card-placeholder-mark" />
-            <Ticket className="event-card-placeholder-fg" size={36} strokeWidth={1.35} />
+    <>
+      <article className={cn("social-event-card", className)}>
+        <Link to={`/Eventdetail/${eventState._id}`} className="social-event-card-link">
+          <div className="social-event-card-media">
+            {showPlaceholder ? (
+              <div className="social-event-card-placeholder" aria-hidden="true">
+                <div className="social-event-card-placeholder-glow" />
+                <img src={icon} alt="" className="social-event-card-placeholder-logo" />
+                <Ticket size={34} />
+              </div>
+            ) : (
+              <img
+                src={imageUrl}
+                alt={eventState.title}
+                className="social-event-card-image"
+                loading="lazy"
+                onError={() => setImageFailed(true)}
+              />
+            )}
+
+            <div className="social-event-card-topline">
+              {eventState.category ? <span className="social-event-card-chip">{eventState.category}</span> : null}
+              <span className="social-event-card-chip outline">
+                {eventState.eventType || "In-person"}
+              </span>
+            </div>
           </div>
-        ) : (
-          <img
-            src={imageUrl}
-            alt={event.title}
-            className="event-card-image"
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-          />
-        )}
-        {event.category && (
-          <span className="event-card-category">{event.category}</span>
-        )}
-      </div>
-      <div className="event-card-content">
-        <h3 className="event-card-title">{event.title}</h3>
-        <div className="event-card-details">
-          <div className="event-card-detail">
-            <Calendar size={14} />
-            <span>{formatDate(getEventDate())}</span>
+
+          <div className="social-event-card-content">
+            <div className="social-event-card-head">
+              <h3>{eventState.title}</h3>
+              <p>{eventState.description || "Discover a new experience happening on TickiSpot."}</p>
+            </div>
+
+            <div className="social-event-card-meta">
+              <span>
+                <CalendarDays size={15} />
+                {formatEventDate(eventState.startDate || eventState.date)}
+              </span>
+              <span>
+                <MapPin size={15} />
+                {eventState.location || "Online event"}
+              </span>
+            </div>
+
+            <div className="social-event-card-footer">
+              <div className="social-event-card-price">
+                <span>Tickets</span>
+                <strong>{formatEventPrice(eventState)}</strong>
+              </div>
+
+              <div
+                className="social-event-card-organizer"
+                onClick={(eventClick) => {
+                  eventClick.preventDefault();
+                  eventClick.stopPropagation();
+                  onOrganizerClick?.(eventState.createdBy);
+                }}
+                role={onOrganizerClick ? "button" : undefined}
+                tabIndex={onOrganizerClick ? 0 : undefined}
+                onKeyDown={(eventClick) => {
+                  if (!onOrganizerClick) return;
+                  if (eventClick.key === "Enter" || eventClick.key === " ") {
+                    eventClick.preventDefault();
+                    onOrganizerClick(eventState.createdBy);
+                  }
+                }}
+              >
+                <div className="social-event-card-organizer-avatar">
+                  {getProfileImageUrl(eventState.createdBy) ? (
+                    <img
+                      src={getProfileImageUrl(eventState.createdBy)}
+                      alt={eventState.createdBy?.username || "Organizer"}
+                    />
+                  ) : (
+                    <UserCircle2 size={20} />
+                  )}
+                </div>
+                <div className="social-event-card-organizer-copy">
+                  <span>
+                    {eventState.createdBy?.username || "Organizer"}
+                    <VerifiedBadge user={eventState.createdBy} />
+                  </span>
+                  <small>Organizer</small>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="event-card-detail">
-            <MapPin size={14} />
-            <span>{event.location || "Online Event"}</span>
-          </div>
-        </div>
-        <div className="event-card-footer">
-          <div className="event-card-price">
-            <Ticket size={16} />
-            <span>{formatPrice(getLowestPrice())}</span>
-          </div>
-          <span className="event-card-arrow">→</span>
-        </div>
-      </div>
-    </Link>
+        </Link>
+
+        <EventEngagementBar
+          event={optimisticEvent}
+          onLike={handleLike}
+          onComment={handleCommentsOpen}
+          onShare={handleShare}
+          compact
+        />
+      </article>
+
+      <EventCommentsModal
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        eventId={eventState._id}
+        eventTitle={eventState.title}
+        initialComments={eventState.comments || []}
+        initialCommentCount={optimisticEvent.commentCount || 0}
+        onCommentCountChange={(nextCount, nextEvent) => {
+          startTransition(() => {
+            updateOptimisticEvent({ commentCount: nextCount });
+          });
+          if (nextEvent) {
+            syncEvent(nextEvent);
+          } else {
+            syncEvent({ ...eventState, commentCount: nextCount });
+          }
+        }}
+      />
+    </>
   );
 }

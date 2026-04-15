@@ -1,63 +1,44 @@
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
-const User = require("../models/User"); // <-- import User
+const User = require("../models/User");
 
 exports.getStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const userRole = req.user.role;
-
-    // ✅ Get user (IMPORTANT)
     const user = await User.findById(userId);
 
-    // Organizer’s events
     const events = await Event.find({ createdBy: userId });
-    const eventIds = events.map((e) => e._id);
+    const eventIds = events.map((event) => event._id);
 
-    const tickets = await Ticket.find({ event: { $in: eventIds } })
-      .populate("buyer", "username email");
-
-    const totalTicketsSold = tickets.reduce(
-      (acc, ticket) => acc + ticket.quantity,
-      0
+    const tickets = await Ticket.find({ event: { $in: eventIds } }).populate(
+      "buyer",
+      "username email",
     );
 
-    const totalRevenue = tickets.reduce(
-      (acc, ticket) => acc + (ticket.amount || 0),
-      0
-    );
-
-    const currentlyLive = events.filter((e) => e.liveStream?.isLive).length;
+    const totalTicketsSold = tickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
+    const totalRevenue = tickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+    const currentlyLive = events.filter((event) => event.liveStream?.isLive).length;
 
     const perEventStats = events.map((event) => {
       const eventTickets = tickets.filter(
-        (t) => t.event.toString() === event._id.toString()
-      );
-
-      const ticketsSold = eventTickets.reduce(
-        (acc, t) => acc + t.quantity,
-        0
-      );
-
-      const revenue = eventTickets.reduce(
-        (sum, t) => sum + (t.amount || 0),
-        0
+        (ticket) => ticket.event.toString() === event._id.toString(),
       );
 
       return {
         id: event._id,
         title: event.title,
-        ticketsSold,
-        revenue,
-        attendees: eventTickets.map((t) => ({
-          buyer: t.buyer,
-          quantity: t.quantity,
+        ticketsSold: eventTickets.reduce((sum, ticket) => sum + ticket.quantity, 0),
+        revenue: eventTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0),
+        attendees: eventTickets.map((ticket) => ({
+          buyer: ticket.buyer,
+          quantity: ticket.quantity,
         })),
       };
     });
 
     const topEvents = [...perEventStats]
-      .sort((a, b) => b.ticketsSold - a.ticketsSold)
+      .sort((left, right) => right.ticketsSold - left.ticketsSold)
       .slice(0, 5);
 
     const response = {
@@ -67,14 +48,14 @@ exports.getStats = async (req, res) => {
       currentlyLive,
       topEvents,
       perEventStats,
-
-      // ✅ ADD THIS
       availableBalance: user?.availableBalance || 0,
+      pendingBalance: user?.pendingBalance || 0,
     };
 
     if (userRole === "admin") {
       const totalUsers = await User.countDocuments();
       const organizers = await User.countDocuments({ role: "organizer" });
+      const buyers = await User.countDocuments({ role: "user" });
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -85,6 +66,7 @@ exports.getStats = async (req, res) => {
 
       response.totalUsers = totalUsers;
       response.organizers = organizers;
+      response.buyers = buyers;
       response.activeUsers = activeUsers;
     }
 

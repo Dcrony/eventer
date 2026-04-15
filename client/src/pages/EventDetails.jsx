@@ -1,74 +1,98 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, startTransition } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Clock3,
+  ExternalLink,
+  Info,
+  MapPin,
+  MessageSquare,
+  MonitorPlay,
+  ShieldCheck,
+  Ticket,
+  UserCircle2,
+  Users,
+} from "lucide-react";
 import API from "../api/axios";
-import { PORT_URL } from "../utils/config";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import Button from "../components/ui/button";
+import EventCommentsModal from "../components/EventCommentsModal";
+import EventEngagementBar from "../components/EventEngagementBar";
+import VerifiedBadge from "../components/ui/verified-badge";
+import useShareLink from "../hooks/useShareLink";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
-  MapPin,
-  Calendar,
-  Clock,
-  Users,
-  ArrowLeft,
-  Share2,
-  Heart,
-  Ticket,
-  ExternalLink,
-  ShieldCheck,
-  Info,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
+  formatCurrency,
+  formatEventDateRange,
+  formatEventTimeRange,
+  getEventImageUrl,
+  getEventUrl,
+  getProfileImageUrl,
+} from "../utils/eventHelpers";
 import "./CSS/eventdetail.css";
 
 export default function EventDetail() {
   const { eventId } = useParams();
+  const navigate = useNavigate();
+  const shareLink = useShareLink();
+  const { toProfile } = useProfileNavigation();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [buying, setBuying] = useState({});
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isLoggedIn = !!localStorage.getItem("token");
-  const navigate = useNavigate();
-  const { toProfile } = useProfileNavigation();
-
-  // Format price function
-  function formatPrice(price) {
-    if (!price || isNaN(price)) return "Free";
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      maximumFractionDigits: 0,
-    }).format(price);
-  }
-
-  // State for selected ticket type
+  const [quantity, setQuantity] = useState(1);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
   useEffect(() => {
-    API.get(`/events/${eventId}`)
-      .then((res) => {
-        setEvent(res.data);
-        // Initialize selected ticket type once data is fetched
-        if (res.data.pricing && res.data.pricing.length > 0) {
-          setSelectedTicketType(res.data.pricing[0]);
-        }
+    const fetchEvent = async () => {
+      try {
+        setLoading(true);
+        const { data } = await API.get(`/events/${eventId}`);
+        setEvent(data);
+        setSelectedTicketType(data.pricing?.[0] || null);
+      } catch (error) {
+        console.error("Failed to fetch event:", error);
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    };
+
+    fetchEvent();
   }, [eventId]);
+
+  useEffect(() => {
+    const trackView = async () => {
+      const sessionKey = `event-view-${eventId}`;
+      if (sessionStorage.getItem(sessionKey)) return;
+
+      try {
+        const { data } = await API.post(`/events/${eventId}/view`);
+        setEvent(data);
+        sessionStorage.setItem(sessionKey, "tracked");
+      } catch (error) {
+        console.error("View tracking failed:", error);
+      }
+    };
+
+    if (eventId) {
+      trackView();
+    }
+  }, [eventId]);
+
+  const ticketStartingPrice = useMemo(() => {
+    if (!event?.pricing?.length) return "Free";
+    const lowest = Math.min(...event.pricing.map((ticketType) => Number(ticketType.price || 0)));
+    return lowest > 0 ? formatCurrency(lowest) : "Free";
+  }, [event]);
 
   const handleBuy = () => {
     if (!isLoggedIn) {
-      alert("Please login to purchase tickets.");
       navigate("/login");
       return;
     }
 
-    if (!selectedTicketType) {
-      alert("Please select a ticket type.");
-      return;
-    }
-
-    const quantity = parseInt(buying[event._id]) || 1;
+    if (!selectedTicketType) return;
 
     navigate(`/checkout/${event._id}`, {
       state: {
@@ -81,312 +105,307 @@ export default function EventDetail() {
     });
   };
 
-  // Format date range
-  const formatDateRange = () => {
-    if (!event.startDate) return "Date TBD";
-    
-    const start = new Date(event.startDate);
-    const end = event.endDate ? new Date(event.endDate) : null;
-    
-    const options = { weekday: "long", month: "long", day: "numeric", year: "numeric" };
-    
-    if (end && start.toDateString() !== end.toDateString()) {
-      return `${start.toLocaleDateString("en-US", options)} - ${end.toLocaleDateString("en-US", options)}`;
+  const handleLike = async () => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
     }
-    return start.toLocaleDateString("en-US", options);
+
+    const nextLiked = !event.isLiked;
+    const previousEvent = event;
+
+    setEvent((current) => ({
+      ...current,
+      isLiked: nextLiked,
+      likeCount: Math.max(0, Number(current.likeCount || 0) + (nextLiked ? 1 : -1)),
+    }));
+
+    try {
+      const { data } = await API.post(`/events/${event._id}/like`);
+      setEvent(data);
+    } catch (error) {
+      console.error("Failed to update like:", error);
+      setEvent(previousEvent);
+    }
   };
 
-  // Format time range
-  const formatTimeRange = () => {
-    if (!event.startTime) return "Time TBD";
-    if (!event.endTime) return event.startTime;
-    return `${event.startTime} - ${event.endTime}`;
+  const handleShare = async () => {
+    const shared = await shareLink({
+      title: event?.title,
+      text: `Check out ${event?.title} on TickiSpot`,
+      url: getEventUrl(event._id),
+      copiedMessage: "Event link copied to clipboard",
+    });
+
+    if (!shared) return;
+
+    startTransition(async () => {
+      setEvent((current) => ({
+        ...current,
+        shareCount: Number(current.shareCount || 0) + 1,
+      }));
+
+      try {
+        const { data } = await API.post(`/events/${event._id}/share`);
+        setEvent(data);
+      } catch (error) {
+        console.error("Failed to track share:", error);
+      }
+    });
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="event-loader-container">
-        <div className="loader-spinner"></div>
-        <p>Fetching event details...</p>
+      <div className="event-detail-state">
+        <div className="event-detail-spinner" />
+        <p>Loading event details...</p>
       </div>
     );
+  }
 
-  if (!event)
+  if (!event) {
     return (
-      <div className="event-not-found">
-        <Info size={48} />
-        <h2>Event not found</h2>
-        <Link to="/events" className="dash-btn">
-          Return to Browse
+      <div className="event-detail-state">
+        <Info size={38} />
+        <p>Event not found</p>
+        <Link to="/events">
+          <Button>Return to events</Button>
         </Link>
       </div>
     );
+  }
+
+  const imageUrl = getEventImageUrl(event);
+  const remainingTickets = Number(event.totalTickets || 0);
 
   return (
-    <div className="event-hub">
-      {/* Glassy Background Blur */}
-      <div className="hub-bg-blur">
-        {event.image && (
-          <img
-            src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
-            alt={event.title}
-          />
-        )}
-      </div>
-
-      <div className="hub-container">
-        {/* Top Navigation Bar */}
-        <header className="hub-header">
-          <button onClick={() => navigate("/events")} className="hub-back-btn">
-            <ArrowLeft size={18} />
-            <span>Back to Browse</span>
-          </button>
-          <div className="hub-header-actions">
-            <button className="hub-circle-btn" title="Share">
-              <Share2 size={18} />
-            </button>
-            <button className="hub-circle-btn" title="Save">
-              <Heart size={18} />
-            </button>
-          </div>
-        </header>
-
-        {/* Main Hub Layout */}
-        <div className="hub-main">
-          {/* Left Column: Content */}
-          <section className="hub-content">
-            <div className="hub-image-wrapper">
-              {event.image ? (
-                <img
-                  src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
-                  alt={event.title}
-                  className="hub-main-img"
-                />
+    <>
+      <div className="dashboard-page">
+        <div className="dashboard-container event-detail-page">
+          <div className="event-detail-hero glass-panel">
+            <div className="event-detail-hero-media">
+              {imageUrl ? (
+                <img src={imageUrl} alt={event.title} />
               ) : (
-                <div className="hub-img-placeholder">
-                  <Calendar size={80} />
+                <div className="event-detail-hero-placeholder">
+                  <CalendarDays size={48} />
                 </div>
               )}
             </div>
 
-            <div className="hub-title-section">
-              <div className="hub-category-row">
-                {event.category && <span className="hub-badge">{event.category}</span>}
-                <span className="hub-badge outline">{event.eventType || "In-Person"}</span>
-                {event.streamType && event.streamType !== "Camera" && (
-                  <span className="hub-badge live-badge">
-                    <MonitorPlay size={12} /> Live Stream
+            <div className="event-detail-hero-copy">
+              <div className="event-detail-hero-actions">
+                <Button variant="secondary" onClick={() => navigate("/events")}>
+                  <ArrowLeft size={16} />
+                  Back to browse
+                </Button>
+                {event.createdBy?._id === user?._id || event.createdBy?._id === user?.id ? (
+                  <Link to={`/events/${event._id}/analytics`}>
+                    <Button variant="secondary">View analytics</Button>
+                  </Link>
+                ) : null}
+              </div>
+
+              <div className="event-detail-badges">
+                {event.category ? <span className="event-detail-badge">{event.category}</span> : null}
+                <span className="event-detail-badge outline">{event.eventType || "In-person"}</span>
+                {event.liveStream?.streamType && event.liveStream.streamType !== "Camera" ? (
+                  <span className="event-detail-badge live">
+                    <MonitorPlay size={14} />
+                    Live stream ready
                   </span>
-                )}
+                ) : null}
               </div>
-              <h1 className="hub-title">{event.title}</h1>
-            </div>
 
-            <div className="hub-about">
-              <h3 className="hub-section-label">About the Event</h3>
-              <p className="hub-description">{event.description}</p>
-            </div>
+              <div className="event-detail-heading">
+                <h1>{event.title}</h1>
+                <p>{event.description}</p>
+              </div>
 
-            <div className="hub-details-grid">
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Calendar />
+              <div className="event-detail-organizer" onClick={() => toProfile(event.createdBy)}>
+                <div className="event-detail-organizer-avatar">
+                  {getProfileImageUrl(event.createdBy) ? (
+                    <img src={getProfileImageUrl(event.createdBy)} alt={event.createdBy?.username || "Organizer"} />
+                  ) : (
+                    <UserCircle2 size={22} />
+                  )}
                 </div>
-                <div className="hub-detail-info">
-                  <label>Date</label>
-                  <span>{formatDateRange()}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Clock />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Time</label>
-                  <span>{formatTimeRange()}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <MapPin />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Location</label>
-                  <span>{event.location || "Online Event"}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Users />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Attendees</label>
-                  <span>{event.ticketsSold || 0} people attending</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Organizer Section */}
-            <div className="hub-organizer">
-              <h3 className="hub-section-label">Organized By</h3>
-              <div
-                className="hub-organizer-card"
-                role="button"
-                tabIndex={0}
-                onClick={() => toProfile(event.createdBy)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    toProfile(event.createdBy);
-                  }
-                }}
-              >
-                {event.createdBy?.profilePic ? (
-                  <img
-                    src={`${PORT_URL.replace("/api", "")}/uploads/profile_pic/${event.createdBy.profilePic}`}
-                    alt={event.createdBy.username}
-                    className="hub-org-avatar"
-                  />
-                ) : (
-                  <div className="hub-org-avatar-fallback">
-                    {event.createdBy?.username?.charAt(0) || "O"}
-                  </div>
-                )}
-                <div className="hub-org-text">
-                  <span className="hub-org-name">
-                    {event.createdBy?.username || "TickiSpot Organizer"}
+                <div>
+                  <span>
+                    {event.createdBy?.name || event.createdBy?.username || "Organizer"}
+                    <VerifiedBadge user={event.createdBy} />
                   </span>
-                  <span className="hub-org-meta">Verified Host • 5 ★ Rating</span>
+                  <small>@{event.createdBy?.username || "tickispot"}</small>
                 </div>
-                <button className="hub-contact-btn">Message</button>
               </div>
+
+              <EventEngagementBar
+                event={event}
+                onLike={handleLike}
+                onComment={() => setCommentsOpen(true)}
+                onShare={handleShare}
+              />
             </div>
+          </div>
 
-            {/* Event Requirements/Info */}
-            {event.requirements && (
-              <div className="hub-requirements">
-                <h3 className="hub-section-label">Requirements</h3>
-                <div className="requirements-card">
-                  <AlertCircle size={18} />
-                  <p>{event.requirements}</p>
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Right Column: Checkout Card */}
-          <aside className="hub-sidebar">
-            <div className="hub-checkout-card">
-              <div className="hub-price-header">
-                <label>Tickets starting from</label>
-                <span className="hub-main-price">
-                  {event.pricing && event.pricing.length > 0
-                    ? formatPrice(Math.min(...event.pricing.map(p => p.price || 0)))
-                    : "Free"}
-                </span>
-              </div>
-
-              {event.pricing && event.pricing.length > 0 && (
-                <div className="hub-ticket-types">
-                  <label className="hub-label">Select Ticket Type</label>
-                  {event.pricing.map((p) => (
-                    <div
-                      key={p._id}
-                      className={`ticket-type-card ${
-                        selectedTicketType?.type === p.type ? "active" : ""
-                      }`}
-                      onClick={() => setSelectedTicketType(p)}
-                    >
-                      <div className="ticket-type-left">
-                        <div className="ticket-type-radio">
-                          {selectedTicketType?.type === p.type && (
-                            <CheckCircle size={16} />
-                          )}
-                        </div>
-                        <div className="ticket-type-info">
-                          <span className="ticket-type-name">{p.type}</span>
-                          {p.benefits && (
-                            <span className="ticket-type-benefits">{p.benefits}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="ticket-type-price">
-                        <span className="price">{formatPrice(p.price)}</span>
-                        <span className="price-per">/ ticket</span>
+          <div className="event-detail-layout">
+            <section className="event-detail-main glass-panel">
+              <div className="event-detail-grid">
+                <article>
+                  <span className="section-eyebrow">
+                    <CalendarDays size={14} />
+                    Schedule
+                  </span>
+                  <div className="event-detail-facts">
+                    <div>
+                      <CalendarDays size={18} />
+                      <div>
+                        <strong>Date</strong>
+                        <span>{formatEventDateRange(event.startDate, event.endDate)}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <div>
+                      <Clock3 size={18} />
+                      <div>
+                        <strong>Time</strong>
+                        <span>{formatEventTimeRange(event.startTime, event.endTime)}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <MapPin size={18} />
+                      <div>
+                        <strong>Location</strong>
+                        <span>{event.location || "Online event"}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Users size={18} />
+                      <div>
+                        <strong>Community</strong>
+                        <span>{event.ticketsSold || 0} attendees already in</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
 
-              <div className="hub-availability">
-                <div className="avail-header">
-                  <span className="avail-label">Availability</span>
-                  <span className="avail-count">
-                    {event.totalTickets - (event.ticketsSold || 0)} left
+                <article>
+                  <span className="section-eyebrow">
+                    <MessageSquare size={14} />
+                    What to expect
                   </span>
-                  <label className="avail-total">
-                    total {event.totalTickets} 
-                  </label>
-                </div>
-                <div className="avail-bar">
-                  <div
-                    className="avail-fill"
-                    style={{
-                      width: `${((event.ticketsSold || 0) / event.totalTickets) * 100}%`,
-                    }}
-                  ></div>
-                  
-                </div>
-                {event.totalTickets - (event.ticketsSold || 0) < 20 && (
-                  <span className="avail-warning">
-                    <AlertCircle size={12} />
-                    Only a few tickets left!
-                  </span>
-                )}
+                  <div className="event-detail-copy-block">
+                    <p>{event.description}</p>
+                    {event.requirements ? (
+                      <div className="event-detail-note">
+                        <Info size={16} />
+                        <span>{event.requirements}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
               </div>
+            </section>
 
-              <div className="hub-purchase-actions">
-                <div className="hub-qty-select">
-                  <label>Quantity</label>
+            <aside className="event-detail-sidebar glass-panel">
+              <div className="event-detail-sidebar-card">
+                <span className="section-eyebrow">
+                  <Ticket size={14} />
+                  Tickets
+                </span>
+                <h2>{ticketStartingPrice}</h2>
+                <p>Starting price for this event</p>
+
+                <div className="event-detail-ticket-list">
+                  {event.pricing?.length ? (
+                    event.pricing.map((ticketType) => (
+                      <button
+                        key={ticketType._id || ticketType.type}
+                        type="button"
+                        className={`event-detail-ticket-item ${
+                          selectedTicketType?.type === ticketType.type ? "is-active" : ""
+                        }`}
+                        onClick={() => setSelectedTicketType(ticketType)}
+                      >
+                        <div>
+                          <strong>{ticketType.type}</strong>
+                          <span>{ticketType.benefits || "Access to the event experience"}</span>
+                        </div>
+                        <strong>{ticketType.price > 0 ? formatCurrency(ticketType.price) : "Free"}</strong>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="event-detail-ticket-item is-static">
+                      <div>
+                        <strong>Free admission</strong>
+                        <span>Reserve your spot instantly.</span>
+                      </div>
+                      <strong>Free</strong>
+                    </div>
+                  )}
+                </div>
+
+                <div className="event-detail-purchase-row">
+                  <label htmlFor="event-quantity">Quantity</label>
                   <select
-                    value={buying[event._id] || "1"}
-                    onChange={(e) =>
-                      setBuying({ ...buying, [event._id]: e.target.value })
-                    }
+                    id="event-quantity"
+                    value={quantity}
+                    onChange={(selected) => setQuantity(Number(selected.target.value))}
                   >
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <option key={v} value={v}>
-                        {v}
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <option key={value} value={value}>
+                        {value}
                       </option>
                     ))}
                   </select>
                 </div>
-                <button onClick={handleBuy} className="hub-buy-btn">
-                  <Ticket size={20} />
-                  <span>Get Tickets Now</span>
-                </button>
-              </div>
 
-              <div className="hub-trust-tags">
-                <div className="trust-tag">
-                  <ShieldCheck size={14} />
-                  <span>Secure Checkout</span>
+                <div className="event-detail-availability">
+                  <div>
+                    <strong>{remainingTickets}</strong>
+                    <span>tickets remaining</span>
+                  </div>
+                  <div>
+                    <strong>{event.ticketsSold || 0}</strong>
+                    <span>tickets sold</span>
+                  </div>
                 </div>
-                <div className="trust-tag">
-                  <ExternalLink size={14} />
-                  <span>Instant Delivery</span>
+
+                <Button className="event-detail-buy-button" onClick={handleBuy}>
+                  <Ticket size={18} />
+                  Get tickets
+                </Button>
+
+                <div className="event-detail-support-points">
+                  <span>
+                    <ShieldCheck size={16} />
+                    Secure checkout
+                  </span>
+                  <span>
+                    <ExternalLink size={16} />
+                    Instant confirmation
+                  </span>
                 </div>
               </div>
-            </div>
-
-            <div className="hub-info-card">
-              <Info size={18} />
-              <p>Tickets are refundable up to 24 hours before the event start time.</p>
-            </div>
-          </aside>
+            </aside>
+          </div>
         </div>
       </div>
-    </div>
+
+      <EventCommentsModal
+        open={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+        eventId={event._id}
+        eventTitle={event.title}
+        initialComments={event.comments || []}
+        initialCommentCount={event.commentCount || 0}
+        onCommentCountChange={(nextCount, nextEvent) => {
+          if (nextEvent) {
+            setEvent(nextEvent);
+          } else {
+            setEvent((current) => ({ ...current, commentCount: nextCount }));
+          }
+        }}
+      />
+    </>
   );
 }

@@ -13,6 +13,12 @@ const {
   toggleLiveStream,
   updateEvent,
   deleteEvent,
+  trackEventView,
+  toggleEventLike,
+  getEventComments,
+  addEventComment,
+  trackEventShare,
+  getEventAnalytics,
 } = require("../controllers/eventController");
 
 // ✅ Multer configuration for image upload
@@ -34,6 +40,12 @@ router.get("/", getAllEvents);
 router.get("/my-events", authMiddleware, getMyEvents);
 router.get("/buyers/:eventId", authMiddleware, getEventBuyers);
 router.patch("/toggle-live", authMiddleware, toggleLiveStream);
+router.get("/:id/comments", getEventComments);
+router.post("/:id/comments", authMiddleware, addEventComment);
+router.post("/:id/like", authMiddleware, toggleEventLike);
+router.post("/:id/share", trackEventShare);
+router.post("/:id/view", trackEventView);
+router.get("/:id/analytics", authMiddleware, getEventAnalytics);
 router.put(
   "/update/:eventId",
   authMiddleware,

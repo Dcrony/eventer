@@ -42,6 +42,8 @@ import Notifications from "./components/NotificationsPage";
 import Messages from "./pages/Messages";
 import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
+import EventAnalytics from "./pages/EventAnalytics";
+import { ToastProvider } from "./components/ui/toast";
 
 function Layout() {
   const location = useLocation();
@@ -130,6 +132,14 @@ function Layout() {
             }
           />
           <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
+          <Route
+            path="/events/:eventId/analytics"
+            element={
+              <ProtectedRoute>
+                <EventAnalytics />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/success"
             element={
@@ -266,8 +276,10 @@ function Layout() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Layout />
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Layout />
+      </BrowserRouter>
+    </ToastProvider>
   );
 }

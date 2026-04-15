@@ -1,4 +1,59 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+
+const eventCommentSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 500,
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: true },
+);
+
+const eventDailyMetricSchema = new mongoose.Schema(
+  {
+    dateKey: {
+      type: String,
+      required: true,
+    },
+    views: {
+      type: Number,
+      default: 0,
+    },
+    likes: {
+      type: Number,
+      default: 0,
+    },
+    comments: {
+      type: Number,
+      default: 0,
+    },
+    shares: {
+      type: Number,
+      default: 0,
+    },
+    ticketsSold: {
+      type: Number,
+      default: 0,
+    },
+    revenue: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false },
+);
 
 const eventSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -24,6 +79,29 @@ const eventSchema = new mongoose.Schema({
   ticketsSold: {
     type: Number,
     default: 0,
+  },
+  viewCount: {
+    type: Number,
+    default: 0,
+  },
+  shareCount: {
+    type: Number,
+    default: 0,
+  },
+  likes: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "User",
+    default: [],
+  },
+  comments: {
+    type: [eventCommentSchema],
+    default: [],
+  },
+  analytics: {
+    daily: {
+      type: [eventDailyMetricSchema],
+      default: [],
+    },
   },
 
   eventType: {

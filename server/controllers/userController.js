@@ -1,15 +1,41 @@
-const User = require("../models/User");
-const Event = require("../models/Event");
-const Ticket = require("../models/Ticket"); 
-const Notification = require("../models/Notification");
 const bcrypt = require("bcryptjs");
+const Event = require("../models/Event");
+const Notification = require("../models/Notification");
+const Ticket = require("../models/Ticket");
+const User = require("../models/User");
 
-// @desc   Get logged-in user profile with tickets and created events
-// @route  GET /api/users/me
-// @access Private
+const buildProfileStats = (user, createdEvents = []) => ({
+  followers: Array.isArray(user.followers) ? user.followers.length : 0,
+  following: Array.isArray(user.following) ? user.following.length : 0,
+  events: createdEvents.length,
+  totalViews: createdEvents.reduce((sum, event) => sum + Number(event.viewCount || 0), 0),
+  totalLikes: createdEvents.reduce(
+    (sum, event) => sum + (Array.isArray(event.likes) ? event.likes.length : 0),
+    0,
+  ),
+  totalComments: createdEvents.reduce(
+    (sum, event) => sum + (Array.isArray(event.comments) ? event.comments.length : 0),
+    0,
+  ),
+  totalShares: createdEvents.reduce((sum, event) => sum + Number(event.shareCount || 0), 0),
+});
+
+const formatDate = (date) => {
+  if (!date) return "No date";
+  return new Date(date).toLocaleString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  });
+};
+
 const getMyProfile = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
+    if (!req.user?.id) {
       return res.status(400).json({ message: "User ID not found in request" });
     }
 
@@ -17,41 +43,27 @@ const getMyProfile = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const userId = req.user.id;
-
-    const tickets = await Ticket.find({ buyer: userId })
-      .populate("event")
-      .exec();
-
+    const tickets = await Ticket.find({ buyer: userId }).populate("event").exec();
     const createdEvents = await Event.find({ createdBy: userId }).exec();
-
-    const formatDate = (date) => {
-      if (!date) return "No date";
-      return new Date(date).toLocaleString("en-US", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "numeric",
-        minute: "numeric",
-        hour12: true,
-      });
-    };
 
     res.json({
       ...user.toObject(),
       tickets: tickets
-        .filter((t) => t.event)
-        .map((t) => ({
-          ...t.toObject(),
+        .filter((ticket) => ticket.event)
+        .map((ticket) => ({
+          ...ticket.toObject(),
           event: {
-            ...t.event.toObject(),
-            date: formatDate(t.event.date),
+            ...ticket.event.toObject(),
+            date: formatDate(ticket.event.date),
           },
         })),
-      createdEvents: createdEvents.map((e) => ({
-        ...e.toObject(),
-        date: formatDate(e.date),
+      createdEvents: createdEvents.map((event) => ({
+        ...event.toObject(),
+        date: formatDate(event.date),
       })),
+      stats: buildProfileStats(user, createdEvents),
+      isOwner: true,
+      isFollowing: false,
     });
   } catch (error) {
     console.error("Error fetching profile:", error);
@@ -59,35 +71,31 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-// @desc   Update logged-in user profile (with password + bio support)
-// @route  PUT /api/users/me
-// @access Private
 const updateMyProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const { name, username, email, phone, bio, currentPassword, newPassword } = req.body;
 
-    // Basic info updates
     if (name) user.name = name;
     if (username) user.username = username;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (bio) user.bio = bio;
 
-    // Handle password update
     if (currentPassword && newPassword) {
       if (!user.password) {
         return res.status(400).json({
           message: "This account uses Google sign-in. Password change is not available here.",
         });
       }
+
       const isMatch = await bcrypt.compare(currentPassword, user.password);
       if (!isMatch) {
         return res.status(400).json({ message: "Current password is incorrect" });
       }
+
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(newPassword, salt);
     }
@@ -104,9 +112,6 @@ const updateMyProfile = async (req, res) => {
   }
 };
 
-// @desc   Upload profile picture
-// @route  POST /api/users/me/upload
-// @access Private
 const uploadProfilePic = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -121,9 +126,6 @@ const uploadProfilePic = async (req, res) => {
   }
 };
 
-// @desc   Upload cover picture
-// @route  POST /api/users/me/cover
-// @access Private
 const uploadCoverPic = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -141,9 +143,6 @@ const uploadCoverPic = async (req, res) => {
   }
 };
 
-// @desc   Get tickets purchased by logged-in user
-// @route  GET /api/users/my-tickets
-// @access Private
 const getMyTickets = async (req, res) => {
   try {
     const tickets = await Ticket.find({ buyer: req.user._id }).populate("event");
@@ -153,9 +152,6 @@ const getMyTickets = async (req, res) => {
   }
 };
 
-// @desc   Admin: update user role
-// @route  PUT /api/users/:id/role
-// @access Admin
 const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
@@ -165,7 +161,6 @@ const updateUserRole = async (req, res) => {
     }
 
     const user = await User.findById(req.params.id);
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -179,9 +174,6 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-// @desc   Get all users (admin only)
-// @route  GET /api/users
-// @access Admin
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -191,13 +183,9 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-// @desc   Delete a user (admin only)
-// @route  DELETE /api/users/:id
-// @access Admin
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -209,9 +197,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// @desc   Get events created by logged-in organizer
-// @route  GET /api/users/my-events
-// @access Organizer
 const getMyEvents = async (req, res) => {
   try {
     const events = await Event.find({ createdBy: req.user._id });
@@ -221,10 +206,9 @@ const getMyEvents = async (req, res) => {
   }
 };
 
-// Follow / Unfollow
 const toggleFollow = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
+    if (!req.user?.id) {
       return res.status(401).json({ msg: "Unauthorized" });
     }
 
@@ -243,7 +227,7 @@ const toggleFollow = async (req, res) => {
     }
 
     const isFollowing = currentUser.following.some(
-      (id) => id.toString() === targetUserId.toString()
+      (id) => id.toString() === targetUserId.toString(),
     );
 
     if (isFollowing) {
@@ -275,7 +259,6 @@ const toggleFollow = async (req, res) => {
   }
 };
 
-// Get user profile by ID
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
@@ -294,18 +277,14 @@ const getUserProfile = async (req, res) => {
     const createdEvents = await Event.find({ createdBy: userId });
     const isOwner = String(currentUserId) === String(userId);
     const isFollowing = user.followers.some(
-      (f) => f._id.toString() === String(currentUserId)
+      (follower) => follower._id.toString() === String(currentUserId),
     );
 
     res.json({
       ...user.toObject(),
       tickets,
       createdEvents,
-      stats: {
-        followers: user.followers.length,
-        following: user.following.length,
-        events: createdEvents.length,
-      },
+      stats: buildProfileStats(user, createdEvents),
       isOwner,
       isFollowing,
     });
@@ -319,11 +298,13 @@ const deactivateAccount = async (req, res) => {
     if (String(req.params.id) !== String(req.user.id)) {
       return res.status(403).json({ message: "You can only deactivate your own account" });
     }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isDeleted: true, deletedAt: new Date() },
-      { new: true }
+      { new: true },
     ).select("-password");
+
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "Account deactivated", user });
   } catch (err) {

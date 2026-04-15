@@ -9,6 +9,7 @@ const path = require("path");
 const sendEmail = require("../utils/email");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
+const { recordTicketPurchaseMetrics } = require("./eventController");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -203,6 +204,7 @@ exports.verifyPayment = async (req, res) => {
       // Update event tickets
       event.ticketsSold += quantity;
       event.totalTickets -= quantity;
+      recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
       await event.save();
 
       // Create transaction record

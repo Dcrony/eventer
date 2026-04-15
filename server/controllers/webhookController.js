@@ -9,6 +9,7 @@ const Event = require("../models/Event");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const sendEmail = require("../utils/email");
+const { recordTicketPurchaseMetrics } = require("./eventController");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -122,6 +123,7 @@ exports.handlePaystackWebhook = async (req, res) => {
       // Update event tickets
       eventDoc.ticketsSold += quantity;
       eventDoc.totalTickets -= quantity;
+      recordTicketPurchaseMetrics(eventDoc, quantity, ticketPrice * quantity);
       await eventDoc.save();
 
       // Create transaction record

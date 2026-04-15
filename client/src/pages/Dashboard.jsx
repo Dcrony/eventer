@@ -476,6 +476,12 @@ const handleWithdraw = async () => {
                       >
                         Edit
                       </button>
+                      <Link
+                        to={`/events/${event._id}/analytics`}
+                        className="pill-btn pill-btn-primary"
+                      >
+                        Analytics
+                      </Link>
                       <button
                         onClick={() => handleDelete(event._id)}
                         className="pill-btn"
