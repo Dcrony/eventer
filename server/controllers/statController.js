@@ -25,11 +25,20 @@ exports.getStats = async (req, res) => {
         (ticket) => ticket.event.toString() === event._id.toString(),
       );
 
+      const sold = eventTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
+      const rev = eventTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+
       return {
         id: event._id,
         title: event.title,
-        ticketsSold: eventTickets.reduce((sum, ticket) => sum + ticket.quantity, 0),
-        revenue: eventTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0),
+        image: event.image,
+        startDate: event.startDate,
+        category: event.category,
+        location: event.location,
+        viewCount: Number(event.viewCount || 0),
+        eventType: event.eventType,
+        ticketsSold: sold,
+        revenue: rev,
         attendees: eventTickets.map((ticket) => ({
           buyer: ticket.buyer,
           quantity: ticket.quantity,
@@ -69,6 +78,38 @@ exports.getStats = async (req, res) => {
       response.buyers = buyers;
       response.activeUsers = activeUsers;
     }
+
+    const purchasedTickets = await Ticket.find({ buyer: userId })
+      .populate("event", "title image startDate location category eventType")
+      .sort({ purchasedAt: -1 })
+      .lean();
+
+    const totalSpentAsAttendee = purchasedTickets.reduce((sum, t) => sum + (t.amount || 0), 0);
+    const totalTicketsAsAttendee = purchasedTickets.reduce((sum, t) => sum + (t.quantity || 0), 0);
+
+    response.attendee = {
+      totalPurchases: purchasedTickets.length,
+      totalTickets: totalTicketsAsAttendee,
+      totalSpent: totalSpentAsAttendee,
+      recentPurchases: purchasedTickets.slice(0, 50).map((t) => ({
+        ticketId: t._id,
+        quantity: t.quantity,
+        amount: t.amount,
+        ticketType: t.ticketType,
+        purchasedAt: t.purchasedAt,
+        event: t.event
+          ? {
+              _id: t.event._id,
+              title: t.event.title,
+              image: t.event.image,
+              startDate: t.event.startDate,
+              location: t.event.location,
+              category: t.event.category,
+              eventType: t.event.eventType,
+            }
+          : null,
+      })),
+    };
 
     res.status(200).json(response);
   } catch (err) {

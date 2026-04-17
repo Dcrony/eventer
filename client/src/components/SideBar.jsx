@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Home,
   BarChart3,
+  LineChart,
   Ticket,
   Radio,
   PlusCircle,
@@ -74,17 +75,16 @@ export default function Sidebar() {
     : []),
 
   { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
+  { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
   { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
-  ...(canOrganize
-    ? [{
-        label: "Create",
-        icon: <PlusCircle size={20} />,
-        action: () => setShowCreateEvent(true),
-        primary: true,
-      }]
-    : []),
+  {
+    label: "Create event",
+    icon: <PlusCircle size={20} />,
+    action: () => setShowCreateEvent(true),
+    primary: true,
+  },
 ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;

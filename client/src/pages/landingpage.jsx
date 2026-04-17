@@ -28,7 +28,25 @@ import {
   Globe,
   Mic2,
   Wrench,
+  Linkedin,
+  Instagram,
 } from "lucide-react";
+
+function XLogo({ size = 18 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden={true}
+    >
+      <path
+        fill="currentColor"
+        d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+      />
+    </svg>
+  );
+}
 export default function LandingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -669,9 +687,30 @@ export default function LandingPage() {
                 grow your events with confidence.
               </p>
               <div className="footer-social">
-                <a href="https://x.com/tickispot" aria-label="Twitter">𝕏</a>
-                <a href="https://www.linkedin.com/company/tickispot" aria-label="LinkedIn">in</a>
-                <a href="https://www.instagram.com/tickispot" aria-label="Instagram">📷</a>
+                <a
+                  href="https://x.com/tickispot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TickiSpot on X"
+                >
+                  <XLogo size={17} />
+                </a>
+                <a
+                  href="https://www.linkedin.com/company/tickispot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TickiSpot on LinkedIn"
+                >
+                  <Linkedin size={18} strokeWidth={1.75} aria-hidden={true} />
+                </a>
+                <a
+                  href="https://www.instagram.com/tickispot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TickiSpot on Instagram"
+                >
+                  <Instagram size={18} strokeWidth={1.75} aria-hidden={true} />
+                </a>
               </div>
             </div>
             <div className="footer-section">

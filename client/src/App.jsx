@@ -43,6 +43,7 @@ import Messages from "./pages/Messages";
 import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
 import EventAnalytics from "./pages/EventAnalytics";
+import PlatformAnalytics from "./pages/PlatformAnalytics";
 import { ToastProvider } from "./components/ui/toast";
 
 function Layout() {
@@ -137,6 +138,14 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <EventAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <PlatformAnalytics />
               </ProtectedRoute>
             }
           />

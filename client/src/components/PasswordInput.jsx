@@ -2,7 +2,16 @@ import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import "./css/PasswordInput.css";
 
-const PasswordInput = ({ name, value, onChange, placeholder, className, required = false }) => {
+const PasswordInput = ({
+  name,
+  id,
+  value,
+  onChange,
+  placeholder,
+  className,
+  required = false,
+  autoComplete = "new-password",
+}) => {
     const [showPassword, setShowPassword] = useState(false);
 
     const toggleVisibility = () => {
@@ -13,12 +22,14 @@ const PasswordInput = ({ name, value, onChange, placeholder, className, required
         <div className="password-input-wrapper">
             <input
                 type={showPassword ? "text" : "password"}
+                id={id}
                 name={name}
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
                 className={`form-input password-input ${className || ""}`}
                 required={required}
+                autoComplete={autoComplete}
             />
             <button
                 type="button"

@@ -561,26 +561,22 @@
   }
 }
 
-/* Messages Page Layout */
+/* Messages Page Layout — uses global .dashboard-page (index.css) for sidebar alignment */
 .messages-page {
-  min-height: 100vh;
-  padding-left: var(--sidebar-width);
-  padding-top: 2rem;
-  padding-right: 2rem;
-  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
   background: #f8f9fa;
-  padding: 24px;
+  box-sizing: border-box;
 }
 
 .messages-container {
   max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
   background: white;
   border-radius: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   display: flex;
-  height: calc(100vh - 112px);
+  height: calc(100vh - 7rem);
   min-height: 500px;
 }
 
@@ -637,12 +633,8 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .messages-page {
-    padding: 12px;
-  }
-
   .messages-container {
-    height: calc(100vh - 80px);
+    height: calc(100vh - 9rem);
     flex-direction: column;
   }
 
@@ -742,12 +734,8 @@
 }
 
 @media (max-width: 480px) {
-  .messages-page {
-    padding: 8px;
-  }
-
   .messages-container {
-    height: calc(100vh - 60px);
+    height: calc(100vh - 8rem);
     border-radius: 8px;
   }
 

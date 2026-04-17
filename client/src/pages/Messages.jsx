@@ -29,7 +29,7 @@ export default function Messages() {
   }, [userIdFromQuery]);
 
   return (
-    <div className="messages-page">
+    <div className="dashboard-page messages-page">
       <div className="messages-container">
         <div className="messages-sidebar">
           <ChatList 

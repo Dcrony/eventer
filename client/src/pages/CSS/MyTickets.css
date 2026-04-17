@@ -9,17 +9,70 @@
 
 
 
-.dashboard-page {
+/* Shell + layout: align with app main (md:pl sidebar); do not add second sidebar offset here */
+.my-tickets-page {
   min-height: 100vh;
-  padding: 2rem 1rem;
-  background: var(--bg-color);
-  padding-left: var(--sidebar-width);
-
+  box-sizing: border-box;
+  background: var(--bg-color, #f5f7fb);
 }
 
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
+  padding: 0 0.25rem;
+}
+
+.my-tickets-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.my-tickets-header-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.my-tickets-heading {
+  min-width: min(100%, 280px);
+}
+
+.my-tickets-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.my-tickets-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
+}
+
+.my-tickets-btn--create {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+}
+
+.my-tickets-btn--create:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(236, 72, 153, 0.42);
 }
 
 .dashboard-title-section {
@@ -60,6 +113,79 @@
 .scanner-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(236,72,153,0.35);
+}
+
+.search-filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.my-tickets-search-input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: inherit;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.my-tickets-search-input:focus {
+  border-color: rgba(236, 72, 153, 0.45);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.12);
+}
+
+.my-tickets-filter-select {
+  padding: 0.6rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: inherit;
+  outline: none;
+  font-size: 0.95rem;
+  min-width: 140px;
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+}
+
+.browse-btn--outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: transparent;
+  color: #ec4899;
+  border: 2px solid #ec4899;
+}
+
+.browse-btn--outline:hover {
+  background: rgba(236, 72, 153, 0.08);
+  transform: scale(1.02);
 }
 
 .tickets-grid {
@@ -369,25 +495,43 @@
   font-weight: 700;
 }
 
+@media (max-width: 768px) {
+  .my-tickets-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-tickets-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .my-tickets-btn--create,
+  .scanner-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .search-filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input-wrapper {
+    max-width: none;
+  }
+
+  .my-tickets-filter-select {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .dashboard-title-section {
     flex-direction: column;
     align-items: flex-start;
     gap: 1.5rem;
-  }
-
-  .search-filter-controls {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .search-input-wrapper,
-  .search-input-wrapper input {
-    width: 100% !important;
-  }
-
-  .search-filter-controls select {
-    width: 100%;
   }
 
   .tickets-grid {
