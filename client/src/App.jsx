@@ -44,6 +44,8 @@ import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
 import EventAnalytics from "./pages/EventAnalytics";
 import { ToastProvider } from "./components/ui/toast";
+import { SocketProvider } from "./hooks/useSocket";
+import { NotificationsProvider } from "./hooks/useNotifications";
 
 function Layout() {
   const location = useLocation();
@@ -277,9 +279,13 @@ function Layout() {
 export default function App() {
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <Layout />
-      </BrowserRouter>
+      <SocketProvider>
+        <NotificationsProvider>
+          <BrowserRouter>
+            <Layout />
+          </BrowserRouter>
+        </NotificationsProvider>
+      </SocketProvider>
     </ToastProvider>
   );
 }
