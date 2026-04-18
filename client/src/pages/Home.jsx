@@ -5,7 +5,6 @@ import EmptyState from "../components/EmptyState";
 import EventCard from "../components/EventCard";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
-import { DEMO_EVENTS } from "../utils/demoEvents";
 import "./CSS/home.css";
 
 const EVENT_FILTER_CHIPS = [
