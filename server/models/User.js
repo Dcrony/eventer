@@ -93,6 +93,11 @@ followers: {
   ref: "User",
   default: [],
 },
+favorites: {
+  type: [mongoose.Schema.Types.ObjectId],
+  ref: "Event",
+  default: [],
+},
 
     // ✅ Settings sections
     privacy: {
@@ -140,6 +145,18 @@ followers: {
     billing: {
       plan: { type: String, default: "Free" },
       nextBillingDate: { type: String, default: "N/A" },
+    },
+
+    /** SaaS subscription tier (separate from legacy billing.plan label) */
+    plan: {
+      type: String,
+      enum: ["free", "pro", "business"],
+      default: "free",
+    },
+    /** Total events ever created (incremented on each create) */
+    eventCount: {
+      type: Number,
+      default: 0,
     },
 
     isDeleted: {

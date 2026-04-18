@@ -15,6 +15,9 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const favoriteRoutes = require("./routes/favoriteRoutes");
+const communityRoutes = require("./routes/communityRoutes");
+const postRoutes = require("./routes/postRoutes");
 const { buildSocketServer } = require("./socket");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -72,6 +75,9 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/favorites", favoriteRoutes);
+app.use("/api/community", communityRoutes);
+app.use("/api/posts", postRoutes);
 
 const server = http.createServer(app);
 const io = buildSocketServer(server, { allowedOrigins: ALLOWED_ORIGINS });

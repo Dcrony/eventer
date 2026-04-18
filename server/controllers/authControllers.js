@@ -9,6 +9,25 @@ const { otpEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const buildAuthUserPayload = (user) => {
+  if (!user) return null;
+  const id = user._id || user.id;
+  return {
+    _id: id,
+    id,
+    name: user.name,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    isAdmin: user.role === "admin",
+    isOrganizer: user.role === "organizer",
+    profilePic: user.profilePic,
+    plan: user.plan || "free",
+    eventCount: typeof user.eventCount === "number" ? user.eventCount : 0,
+    isVerified: user.isVerified,
+  };
+};
+
 /** When transactional email is not configured or fails, expose the OTP in the JSON so the app can show it. */
 function verificationCodeResponseField(emailSent, otp) {
   return emailSent ? {} : { verificationCode: otp };
@@ -149,15 +168,7 @@ exports.login = async (req, res) => {
     res.status(200).json({
       message: "Login successful ✅",
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === "admin",
-        isOrganizer: user.role === "organizer",
-        profilePic: user.profilePic,
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (error) {
     console.error("❌ LOGIN ERROR:", error);
@@ -328,15 +339,7 @@ exports.firebaseLogin = async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === "admin",
-        isOrganizer: user.role === "organizer",
-        profilePic: user.profilePic,
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (error) {
     console.error("❌ FIREBASE LOGIN ERROR:", error);
@@ -467,14 +470,7 @@ exports.firebaseSync = async (req, res) => {
       return res.status(200).json({
         message: "User verified. Login successful.",
         token,
-        user: {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          isVerified: true,
-          profilePic: user.profilePic,
-        },
+        user: buildAuthUserPayload(user),
       });
     }
   } catch (error) {
@@ -549,14 +545,7 @@ exports.verifyEmailOtp = async (req, res) => {
     res.status(200).json({
       message: "Email verified successfully! ✅",
       token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isVerified: true,
-        profilePic: user.profilePic,
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (error) {
     console.error("❌ VERIFY EMAIL OTP ERROR:", error);

@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
+const User = require("../models/User");
 const { createNotification } = require("../services/notificationService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
 
@@ -119,6 +120,9 @@ exports.createEvent = async (req, res) => {
     });
 
     await newEvent.save();
+
+    await User.findByIdAndUpdate(req.user._id || req.user.id, { $inc: { eventCount: 1 } });
+
     res.status(201).json({ message: "Event created successfully", event: newEvent });
   } catch (err) {
     console.error("Event creation error:", err);

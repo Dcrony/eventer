@@ -4,6 +4,7 @@ const path = require("path");
 const multer = require("multer");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { requireEmailVerification } = require("../middleware/verificationMiddleware");
+const { checkPlanLimit } = require("../middleware/planLimitMiddleware");
 const {
   createEvent,
   getAllEvents,
@@ -31,7 +32,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.post("/create", authMiddleware, requireEmailVerification, upload.single("image"), createEvent);
+router.post(
+  "/create",
+  authMiddleware,
+  requireEmailVerification,
+  checkPlanLimit,
+  upload.single("image"),
+  createEvent,
+);
 
 // Public route - fetch all events
 router.get("/", getAllEvents);

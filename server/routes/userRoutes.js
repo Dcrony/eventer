@@ -16,6 +16,8 @@ const {
   getMyEvents,
   toggleFollow,
   deactivateAccount,
+  getPublicProfile,
+  upgradeMyPlan,
 } = require("../controllers/userController");
 
 
@@ -55,6 +57,7 @@ const upload = multer({ storage });
 // Profile routes
 router.put("/edit", authMiddleware, updateMyProfile);
 router.get("/me", authMiddleware, getMyProfile);
+router.patch("/me/plan", authMiddleware, upgradeMyPlan);
 
 router.post(
   "/me/upload",
@@ -85,6 +88,7 @@ router.put("/profile/:id/deactivate", authMiddleware, deactivateAccount);
 
 // Follow / Unfollow
 router.post("/:id/follow", authMiddleware, toggleFollow);
+router.get("/public/:identifier", getPublicProfile);
 
 // Get Profile
 router.get("/:id", authMiddleware, getUserProfile);
