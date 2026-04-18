@@ -7,6 +7,7 @@ import {
   MapPin, Share2, Download, Bell, Globe, Lock
 } from "lucide-react";
 import { getCurrentUser, logout } from "../utils/auth";
+import NotificationBell from "./NotificationBell";
 import "./css/TopNav.css";
 
 export default function TopNav() {
@@ -50,6 +51,7 @@ export default function TopNav() {
           </Link>
           
           <div className="top-nav-actions">
+            <NotificationBell />
             <button 
               className="top-nav-more-btn"
               onClick={() => setIsMenuOpen(!isMenuOpen)}

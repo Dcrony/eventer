@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import { MessageSquare } from "lucide-react";
 import { isAuthenticated } from "../utils/auth";
 import API from "../api/axios";
+import { useSocket } from "../hooks/useSocket";
 import "./css/MessageIndicator.css";
 
 const MessageIndicator = () => {
   const [unreadCount, setUnreadCount] = useState(0);
+  const { socket, currentUserId } = useSocket();
+
   useEffect(() => {
-    // Only fetch if user is authenticated
     if (!isAuthenticated()) {
       return;
     }
@@ -29,10 +31,25 @@ const MessageIndicator = () => {
 
     fetchUnreadCount();
 
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    return undefined;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!socket || !currentUserId) return;
+
+    const refreshUnreadCount = async () => {
+      try {
+        const res = await API.get("/messages");
+        const totalUnread = res.data.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
+        setUnreadCount(totalUnread);
+      } catch (err) {
+        console.error("Failed to refresh message count:", err.message);
+      }
+    };
+
+    socket.on("conversation_update", refreshUnreadCount);
+    return () => socket.off("conversation_update", refreshUnreadCount);
+  }, [currentUserId, socket]);
 
   return (
     <div className="message-indicator">

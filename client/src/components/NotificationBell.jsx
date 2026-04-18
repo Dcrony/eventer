@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { useNotifications } from "../hooks/useNotifications";
-import { useSocket } from "../hooks/useSocket";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
+import { useNotifications } from "../hooks/useNotifications";
 import "./css/NotificationBell.css";
 
 function formatNotificationTime(date) {
-  const d = new Date(date);
+  const value = new Date(date);
   const now = new Date();
-  const diffMs = now - d;
+  const diffMs = now - value;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
@@ -17,22 +17,19 @@ function formatNotificationTime(date) {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays} days ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined });
+
+  return value.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: value.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
 }
 
-const NotificationBell = ({ userId }) => {
-  const { notifications, setNotifications, loading, markAsRead, markAllAsRead } = useNotifications();
+const NotificationBell = () => {
+  const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
-
-  useSocket(userId, (data) => {
-    setNotifications((prev) => [
-      { ...data, _id: data._id || Date.now(), read: false, createdAt: data.createdAt || new Date().toISOString() },
-      ...prev,
-    ]);
-  });
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -40,9 +37,24 @@ const NotificationBell = ({ userId }) => {
         setOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleNotificationClick = async (notification) => {
+    if (!(notification.isRead ?? notification.read)) {
+      await markAsRead(notification._id);
+    }
+
+    setOpen(false);
+
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    } else {
+      navigate("/notifications");
+    }
+  };
 
   return (
     <div className="notification-bell-wrap" ref={dropdownRef}>
@@ -55,38 +67,32 @@ const NotificationBell = ({ userId }) => {
         aria-haspopup="true"
       >
         <Bell size={22} strokeWidth={2} />
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <span className="notification-bell-badge" aria-hidden="true">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
-        )}
+        ) : null}
       </button>
 
-      {open && (
+      {open ? (
         <div className="notification-bell-dropdown" role="dialog" aria-label="Notifications">
           <header className="notification-bell-header">
             <div className="notification-bell-title-wrap">
               <h2 className="notification-bell-title">Notifications</h2>
-              {unreadCount > 0 && (
-                <span className="notification-bell-count">{unreadCount}</span>
-              )}
+              {unreadCount > 0 ? <span className="notification-bell-count">{unreadCount}</span> : null}
             </div>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                className="notification-bell-mark-all"
-                onClick={() => markAllAsRead()}
-              >
+            {unreadCount > 0 ? (
+              <button type="button" className="notification-bell-mark-all" onClick={markAllAsRead}>
                 Mark all read
               </button>
-            )}
+            ) : null}
           </header>
 
           <div className="notification-bell-list">
             {loading ? (
               <div className="notification-bell-loading">
                 <div className="notification-bell-loading-spinner" />
-                <span className="notification-bell-loading-text">Loading…</span>
+                <span className="notification-bell-loading-text">Loading...</span>
               </div>
             ) : notifications.length === 0 ? (
               <div className="notification-bell-empty">
@@ -95,22 +101,24 @@ const NotificationBell = ({ userId }) => {
                 </div>
                 <p className="notification-bell-empty-title">No notifications yet</p>
                 <p className="notification-bell-empty-subtitle">
-                  We’ll notify you when something arrives.
+                  We&apos;ll notify you when activity happens.
                 </p>
               </div>
             ) : (
-              notifications.map((n) => (
+              notifications.map((notification) => (
                 <button
-                  key={n._id}
+                  key={notification._id}
                   type="button"
-                  className={`notification-bell-item ${n.read ? "is-read" : "is-unread"}`}
-                  onClick={() => markAsRead(n._id)}
+                  className={`notification-bell-item ${
+                    notification.isRead ?? notification.read ? "is-read" : "is-unread"
+                  }`}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <span className="notification-bell-item-dot" aria-hidden="true" />
                   <div className="notification-bell-item-body">
-                    <p className="notification-bell-item-message">{n.message}</p>
+                    <p className="notification-bell-item-message">{notification.message}</p>
                     <span className="notification-bell-item-time">
-                      {formatNotificationTime(n.createdAt)}
+                      {formatNotificationTime(notification.createdAt)}
                     </span>
                   </div>
                 </button>
@@ -118,7 +126,7 @@ const NotificationBell = ({ userId }) => {
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

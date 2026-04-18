@@ -174,7 +174,7 @@ export default function Sidebar() {
         {/* Bottom: Notifications first, then Profile, Settings, Logout */}
         <div className="sidebar-bottom">
           <div className="sidebar-bottom-item" data-tooltip="Notifications">
-            <NotificationBell userId={user.id} />
+            <NotificationBell />
           </div>
           <Link
             to={profileUrl}
