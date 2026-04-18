@@ -101,10 +101,41 @@ followers: {
       searchable: { type: Boolean, default: true },
     },
     notifications: {
+      likes: { type: Boolean, default: true },
+      comments: { type: Boolean, default: true },
+      follows: { type: Boolean, default: true },
+      eventReminders: { type: Boolean, default: true },
       emailAlerts: { type: Boolean, default: true },
       smsAlerts: { type: Boolean, default: false },
       appPush: { type: Boolean, default: true },
       newsletter: { type: Boolean, default: false },
+    },
+    security: {
+      twoFactorEnabled: { type: Boolean, default: false },
+      lastPasswordChange: { type: Date, default: null },
+    },
+    eventPreferences: {
+      defaultTicketPrice: { type: Number, default: 0 },
+      eventVisibility: {
+        type: String,
+        enum: ["public", "private"],
+        default: "public",
+      },
+      autoPublishEvents: { type: Boolean, default: false },
+    },
+    integrations: {
+      stripe: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
+      googleCalendar: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
+      zoom: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
     },
     billing: {
       plan: { type: String, default: "Free" },
