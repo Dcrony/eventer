@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import API from "../api/axios";
 import EmptyState from "../components/EmptyState";
 import EventCard from "../components/EventCard";
+import EventCardSkeleton from "../components/EventCardSkeleton";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
@@ -157,8 +158,10 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="dash-card">
-            <div className="dash-card-body center muted">Loading events...</div>
+          <div className="events-grid" role="status" aria-label="Loading events">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <EventCardSkeleton key={`event-skeleton-${idx}`} />
+            ))}
           </div>
         ) : null}
 

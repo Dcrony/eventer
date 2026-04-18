@@ -4,6 +4,7 @@ import {
   CalendarDays,
   ChartColumn,
   Heart,
+  Link2,
   MapPin,
   MessageSquare,
   UserRoundPlus,
@@ -14,6 +15,7 @@ import EventCard from "../components/EventCard";
 import Button from "../components/ui/button";
 import VerifiedBadge from "../components/ui/verified-badge";
 import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import useShareLink from "../hooks/useShareLink";
 import "./CSS/Profile.css";
 
 const TAB_ITEMS = [
@@ -66,23 +68,27 @@ function AnalyticsCard({ label, value, helper }) {
 }
 
 export default function Profile() {
-  const { id, userId } = useParams();
+  const { id, userId, username } = useParams();
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
-  const resolvedProfileId = userId || id || storedUser?._id || storedUser?.id;
+  const resolvedProfileId = username || userId || id || storedUser?._id || storedUser?.id;
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("events");
   const [followPending, setFollowPending] = useState(false);
   const [indicator, setIndicator] = useState({ width: 0, left: 0 });
   const tabsRef = useRef({});
+  const shareLink = useShareLink();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const path =
-          resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id
-            ? "/users/me"
-            : `/users/${resolvedProfileId}`;
+        const isSelf = resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(resolvedProfileId || ""));
+        const path = isSelf
+          ? "/users/me"
+          : isObjectId
+            ? `/users/${resolvedProfileId}`
+            : `/users/public/${resolvedProfileId}`;
 
         const { data } = await API.get(path);
         setProfile(data);
@@ -129,7 +135,7 @@ export default function Profile() {
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
   const profileName = profile?.name || profile?.username || "Profile";
-  const username = profile?.username ? `@${profile.username}` : "@tickispot";
+  const profileHandle = profile?.username ? `@${profile.username}` : "@tickispot";
   const location = profile?.location || profile?.country || "Lagos, Nigeria";
   const analyticsSummary = [
     { label: "Events", value: profile?.stats?.events || 0, helper: "Published on TickiSpot" },
@@ -158,12 +164,12 @@ export default function Profile() {
           items: savedEvents,
           empty: {
             icon: Bookmark,
-            title: "Nothing saved yet",
+            title: "No saved events",
             subtitle: profile?.isOwner
-              ? "Saved events will live here once bookmarking is enabled in your flow."
+              ? "Events you favorite appear here. Browse events and tap Favorite on any card."
               : "This user has no saved events to display.",
-            actionLabel: null,
-            onAction: null,
+            actionLabel: profile?.isOwner ? "Discover events" : null,
+            onAction: profile?.isOwner ? () => navigate("/events") : null,
           },
         };
       case "analytics":
@@ -208,6 +214,19 @@ export default function Profile() {
     }
   };
 
+  const handleShareProfile = async () => {
+    const profileUrl = profile?.username
+      ? `${window.location.origin}/user/${profile.username}`
+      : `${window.location.origin}/profile/${profile?._id}`;
+
+    await shareLink({
+      title: `${profileName} on TickiSpot`,
+      text: `Check out ${profileName}'s profile on TickiSpot`,
+      url: profileUrl,
+      copiedMessage: "Profile link copied",
+    });
+  };
+
   if (!profile) {
     return (
       <div className="profile-shell profile-loading-state">
@@ -239,7 +258,13 @@ export default function Profile() {
 
               <div className="profile-header-actions">
                 {profile.isOwner ? (
-                  <Button onClick={() => navigate("/edit-profile")}>Edit Profile</Button>
+                  <>
+                    <Button variant="secondary" onClick={handleShareProfile}>
+                      <Link2 size={16} />
+                      Share Profile
+                    </Button>
+                    <Button onClick={() => navigate("/edit-profile")}>Edit Profile</Button>
+                  </>
                 ) : (
                   <>
                     <Button
@@ -264,7 +289,7 @@ export default function Profile() {
                 <h1>{profileName}</h1>
                 <VerifiedBadge user={profile} />
               </div>
-              <p className="profile-handle">{username}</p>
+              <p className="profile-handle">{profileHandle}</p>
               <p className="profile-bio-text">
                 {profile.bio || "Building community through memorable events and conversations."}
               </p>
