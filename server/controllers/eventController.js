@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
+const { createNotification } = require("../services/notificationService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -304,6 +305,18 @@ exports.toggleEventLike = async (req, res) => {
     } else {
       event.likes.push(req.user.id);
       recordEventMetrics(event, { likes: 1 });
+
+      if (String(event.createdBy?._id || event.createdBy) !== userId) {
+        await createNotification(req.app, {
+          userId: String(event.createdBy?._id || event.createdBy),
+          actorId: req.user.id,
+          type: "like",
+          message: `${req.user.name || req.user.username} liked your event "${event.title}"`,
+          actionUrl: `/Eventdetail/${event._id}`,
+          entityId: event._id,
+          entityType: "event",
+        });
+      }
     }
 
     await event.save();
@@ -349,6 +362,19 @@ exports.addEventComment = async (req, res) => {
     });
     recordEventMetrics(event, { comments: 1 });
     await event.save();
+
+    if (String(event.createdBy?._id || event.createdBy) !== String(req.user.id)) {
+      await createNotification(req.app, {
+        userId: String(event.createdBy?._id || event.createdBy),
+        actorId: req.user.id,
+        type: "comment",
+        message: `${req.user.name || req.user.username} commented on "${event.title}"`,
+        actionUrl: `/Eventdetail/${event._id}`,
+        entityId: event._id,
+        entityType: "event",
+        meta: { preview: text.slice(0, 120) },
+      });
+    }
 
     const refreshed = await Event.findById(req.params.id).populate(eventPopulateOptions);
     res.status(201).json(buildEventPayload(refreshed, req.user.id));

@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 const Event = require("../models/Event");
-const Notification = require("../models/Notification");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
+const { createNotification } = require("../services/notificationService");
 
 const buildProfileStats = (user, createdEvents = []) => ({
   followers: Array.isArray(user.followers) ? user.followers.length : 0,
@@ -19,6 +19,21 @@ const buildProfileStats = (user, createdEvents = []) => ({
   ),
   totalShares: createdEvents.reduce((sum, event) => sum + Number(event.shareCount || 0), 0),
 });
+
+const buildProfileEventPayload = (event, currentUserId) => {
+  const data = event.toObject ? event.toObject() : event;
+  const likes = Array.isArray(data.likes) ? data.likes : [];
+  const likeIds = likes.map((like) => String(like?._id || like));
+
+  return {
+    ...data,
+    likeCount: likeIds.length,
+    commentCount: Array.isArray(data.comments) ? data.comments.length : 0,
+    viewCount: Number(data.viewCount || 0),
+    shareCount: Number(data.shareCount || 0),
+    isLiked: currentUserId ? likeIds.includes(String(currentUserId)) : false,
+  };
+};
 
 const formatDate = (date) => {
   if (!date) return "No date";
@@ -44,7 +59,13 @@ const getMyProfile = async (req, res) => {
 
     const userId = req.user.id;
     const tickets = await Ticket.find({ buyer: userId }).populate("event").exec();
-    const createdEvents = await Event.find({ createdBy: userId }).exec();
+    const createdEvents = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .exec();
+    const likedEvents = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 })
+      .exec();
 
     res.json({
       ...user.toObject(),
@@ -57,10 +78,17 @@ const getMyProfile = async (req, res) => {
             date: formatDate(ticket.event.date),
           },
         })),
-      createdEvents: createdEvents.map((event) => ({
-        ...event.toObject(),
-        date: formatDate(event.date),
-      })),
+      createdEvents: createdEvents.map((event) =>
+        buildProfileEventPayload(
+          {
+            ...event.toObject(),
+            date: formatDate(event.date),
+          },
+          userId,
+        ),
+      ),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, userId)),
+      savedEvents: [],
       stats: buildProfileStats(user, createdEvents),
       isOwner: true,
       isFollowing: false,
@@ -236,17 +264,15 @@ const toggleFollow = async (req, res) => {
     } else {
       currentUser.following.push(targetUserId);
       targetUser.followers.push(currentUserId);
-
-      const notification = await Notification.create({
-        user: targetUserId,
+      await createNotification(req.app, {
+        userId: targetUserId,
+        actorId: currentUserId,
+        type: "follow",
         message: `${currentUser.name} started following you`,
-        type: "custom",
+        actionUrl: `/users/${currentUserId}`,
+        entityId: currentUserId,
+        entityType: "user",
       });
-
-      const io = req.app.get("io");
-      if (io) {
-        io.emit(`notify_${targetUserId}`, notification);
-      }
     }
 
     await currentUser.save();
@@ -266,15 +292,19 @@ const getUserProfile = async (req, res) => {
 
     const user = await User.findById(userId)
       .select("-password")
-      .populate("followers", "_id name profilePic")
-      .populate("following", "_id name profilePic");
+      .populate("followers", "_id name username profilePic")
+      .populate("following", "_id name username profilePic");
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-    const createdEvents = await Event.find({ createdBy: userId });
+    const createdEvents = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified");
+    const likedEvents = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 });
     const isOwner = String(currentUserId) === String(userId);
     const isFollowing = user.followers.some(
       (follower) => follower._id.toString() === String(currentUserId),
@@ -283,7 +313,9 @@ const getUserProfile = async (req, res) => {
     res.json({
       ...user.toObject(),
       tickets,
-      createdEvents,
+      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      savedEvents: [],
       stats: buildProfileStats(user, createdEvents),
       isOwner,
       isFollowing,
