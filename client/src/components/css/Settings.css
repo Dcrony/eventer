@@ -211,7 +211,7 @@
 
 .settings-primary-button {
   border: 0;
-  background: linear-gradient(135deg, #ff5a5f, #ee3846);
+  background: linear-gradient(135deg, #ec4899, #db2777);
   color: #fff;
   box-shadow: 0 16px 28px rgba(238, 56, 70, 0.18);
 }
@@ -294,7 +294,7 @@
 }
 
 .settings-toggle-switch.is-on {
-  background: #0f4c81;
+  background: #db2777;
 }
 
 .settings-toggle-thumb {
