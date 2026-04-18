@@ -47,6 +47,7 @@ import PlatformAnalytics from "./pages/PlatformAnalytics";
 import { ToastProvider } from "./components/ui/toast";
 import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
+import FeaturesPage from "./pages/Features";
 
 function Layout() {
   const location = useLocation();
@@ -271,6 +272,7 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+          <Route path="/features" element={<FeaturesPage/>} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<Pricing />} />
