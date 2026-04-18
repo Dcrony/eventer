@@ -214,7 +214,7 @@
 
 .event-engagement-button,
 .event-engagement-stat {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 0.8rem;

@@ -17,6 +17,10 @@
   transition: background 0.2s, color 0.2s;
 }
 
+.notification-bell-wrap {
+  position: relative;
+}
+
 .notification-bell-trigger:hover {
   background: var(--nb-hover, rgba(0, 0, 0, 0.04));
   color: var(--nb-text, #1e293b);
@@ -61,6 +65,15 @@
   z-index: 10001;
   overflow: hidden;
   animation: nb-slideUp 0.2s ease-out;
+}
+
+@media (max-width: 768px) {
+  .top-nav .notification-bell-dropdown {
+    left: auto;
+    right: 0;
+    top: calc(100% + 10px);
+    margin-left: 0;
+  }
 }
 
 @keyframes nb-slideUp {
