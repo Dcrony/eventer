@@ -5,9 +5,12 @@ import { login } from "../utils/auth";
 import { ArrowRight } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
 import {
+  sanitizeFullName,
   sanitizeUsername,
   sanitizeEmail,
+  sanitizePhone,
   sanitizePassword,
+  phoneDigitsOnly,
   validateRegisterForm,
 } from "../utils/formValidation";
 import "./CSS/forms.css";
@@ -17,8 +20,10 @@ import emailService from "../api/emailVerificationService";
 
 export default function Register() {
   const [form, setForm] = useState({
+    fullName: "",
     username: "",
     email: "",
+    phone: "",
     password: "",
   });
   const [errors, setErrors] = useState({});
@@ -36,13 +41,17 @@ export default function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     const sanitized =
-      name === "username"
-        ? sanitizeUsername(value)
-        : name === "email"
-          ? sanitizeEmail(value)
-          : name === "password"
-            ? sanitizePassword(value)
-            : value;
+      name === "fullName"
+        ? sanitizeFullName(value)
+        : name === "username"
+          ? sanitizeUsername(value)
+          : name === "email"
+            ? sanitizeEmail(value)
+            : name === "phone"
+              ? sanitizePhone(value)
+              : name === "password"
+                ? sanitizePassword(value)
+                : value;
     setForm((prev) => ({ ...prev, [name]: sanitized }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
@@ -58,16 +67,28 @@ export default function Register() {
 
     try {
       const formData = new FormData();
+      formData.append("fullName", sanitizeFullName(form.fullName));
       formData.append("username", sanitizeUsername(form.username));
       formData.append("email", sanitizeEmail(form.email));
+      formData.append("phone", phoneDigitsOnly(form.phone));
       formData.append("password", sanitizePassword(form.password));
 
-      await API.post("/auth/register", formData, {
+      const res = await API.post("/auth/register", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setSuccess("Registration successful! Please check your email to verify your account.");
-      // Don't redirect automatically
+      const { email, verificationCode } = res.data;
+      if (email) localStorage.setItem("verifyEmail", email);
+      if (verificationCode) {
+        sessionStorage.setItem("pendingVerificationCode", verificationCode);
+      } else {
+        sessionStorage.removeItem("pendingVerificationCode");
+      }
+
+      navigate("/verify-otp", {
+        replace: true,
+        state: { email, verificationCode },
+      });
     } catch (err) {
       setErrors({});
       setError(
@@ -101,12 +122,15 @@ export default function Register() {
         setSuccess("Google sign-up successful! Redirecting...");
         setTimeout(() => navigate("/dashboard"), 1500);
       } else {
-        // User needs to verify OTP
-        localStorage.setItem("verifyEmail", result.data.user.email);
-        setSuccess("Account created! Check your email for verification code...");
-        setTimeout(() => {
-          navigate("/verify-otp", { state: { email: result.data.user.email } });
-        }, 1500);
+        const emailAddr = result.data.user.email;
+        const code = result.data.verificationCode;
+        localStorage.setItem("verifyEmail", emailAddr);
+        if (code) sessionStorage.setItem("pendingVerificationCode", code);
+        else sessionStorage.removeItem("pendingVerificationCode");
+        navigate("/verify-otp", {
+          replace: true,
+          state: { email: emailAddr, verificationCode: code },
+        });
       }
     } catch (err) {
       setError(
@@ -141,10 +165,12 @@ export default function Register() {
             <img src={icon} className="tickispot-icon" alt="TickiSpot home" />
           </Link>
           <h1 className="form-title">Create Account</h1>
-          <p className="form-subtitle">Join TickiSpot and start creating amazing events</p>
+          <p className="form-subtitle">
+            Add your name, username, contact details, and password to get started.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           {(error || errors.general) && (
             <div className="form-alert form-alert-error">
               {error || errors.general}
@@ -157,15 +183,37 @@ export default function Register() {
           )}
 
           <div className="form-group">
-            <label className="form-label">Username</label>
+            <label className="form-label" htmlFor="reg-fullName">
+              Full name
+            </label>
             <input
+              id="reg-fullName"
+              name="fullName"
+              type="text"
+              autoComplete="name"
+              placeholder="e.g. Ada Okafor"
+              value={form.fullName}
+              onChange={handleChange}
+              className="form-input"
+            />
+            {errors.fullName && (
+              <span className="form-error">{errors.fullName}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="reg-username">
+              Username
+            </label>
+            <input
+              id="reg-username"
               name="username"
               type="text"
-              placeholder="Choose a username"
+              autoComplete="username"
+              placeholder="Your public @handle (letters, numbers, _ -)"
               value={form.username}
               onChange={handleChange}
               className="form-input"
-              required
             />
             {errors.username && (
               <span className="form-error">{errors.username}</span>
@@ -173,15 +221,18 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label" htmlFor="reg-email">
+              Email
+            </label>
             <input
+              id="reg-email"
               name="email"
               type="email"
-              placeholder="Enter your email"
+              autoComplete="email"
+              placeholder="you@example.com"
               value={form.email}
               onChange={handleChange}
               className="form-input"
-              required
             />
             {errors.email && (
               <span className="form-error">{errors.email}</span>
@@ -189,13 +240,39 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="reg-phone">
+              Phone number <span className="form-label-required">*</span>
+            </label>
+            <input
+              id="reg-phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="+234 800 000 0000"
+              value={form.phone}
+              onChange={handleChange}
+              className="form-input"
+            />
+            <p className="form-hint">
+              Include country code. At least 10 digits total.
+            </p>
+            {errors.phone && (
+              <span className="form-error">{errors.phone}</span>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="reg-password">
+              Password
+            </label>
             <PasswordInput
+              id="reg-password"
               name="password"
-              placeholder="Create a password"
+              placeholder="Create a password (min. 6 characters)"
               value={form.password}
               onChange={handleChange}
-              required
+              autoComplete="new-password"
             />
             {errors.password && (
               <span className="form-error">{errors.password}</span>

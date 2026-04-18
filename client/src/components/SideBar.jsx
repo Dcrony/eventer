@@ -21,6 +21,8 @@ import {
   LogOut,
   Bell,
   MessageSquare,
+  Users,
+  LineChart,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -74,6 +76,7 @@ export default function Sidebar() {
     : []),
 
   { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
+  {to: "/analysis", label: "Analytics", icon: <LineChart size={20} />},
   { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
@@ -85,6 +88,8 @@ export default function Sidebar() {
         primary: true,
       }]
     : []),
+
+    {to: "/community", label: "Community", icon: <Users size={20} />},
 ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;

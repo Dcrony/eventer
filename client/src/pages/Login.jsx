@@ -54,9 +54,24 @@ export default function Login() {
       setSuccess("Login successful ✅ Redirecting...");
       setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err) {
+      const data = err.response?.data;
+      if (err.response?.status === 403 && data?.code === "OTP_SENT") {
+        const email = sanitizeEmail(form.email);
+        localStorage.setItem("verifyEmail", email);
+        if (data.verificationCode) {
+          sessionStorage.setItem("pendingVerificationCode", data.verificationCode);
+        } else {
+          sessionStorage.removeItem("pendingVerificationCode");
+        }
+        navigate("/verify-otp", {
+          replace: true,
+          state: { email, verificationCode: data.verificationCode },
+        });
+        return;
+      }
       setErrors({
         general:
-          err.response?.data?.message ||
+          data?.message ||
           "Login failed. Please check your credentials.",
       });
     } finally {
@@ -86,12 +101,15 @@ export default function Login() {
         setSuccess("Google login successful! Redirecting...");
         setTimeout(() => navigate("/dashboard"), 1500);
       } else {
-        // User needs to verify OTP (shouldn't happen for Google Sign-In, but handle it)
-        localStorage.setItem("verifyEmail", result.data.user.email);
-        setSuccess("Check your email for verification code...");
-        setTimeout(() => {
-          navigate("/verify-otp", { state: { email: result.data.user.email } });
-        }, 1500);
+        const emailAddr = result.data.user.email;
+        const code = result.data.verificationCode;
+        localStorage.setItem("verifyEmail", emailAddr);
+        if (code) sessionStorage.setItem("pendingVerificationCode", code);
+        else sessionStorage.removeItem("pendingVerificationCode");
+        navigate("/verify-otp", {
+          replace: true,
+          state: { email: emailAddr, verificationCode: code },
+        });
       }
     } catch (err) {
       setErrors({

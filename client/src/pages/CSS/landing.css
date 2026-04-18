@@ -1562,7 +1562,8 @@ html {
   margin-top: 1.5rem;
 }
 
-.footer-social a {
+/* Higher specificity than `.footer-section a` so flex centering is not overridden */
+.landing-footer .footer-social a {
   width: 36px;
   height: 36px;
   background: rgba(255, 255, 255, 0.1);
@@ -1570,15 +1571,28 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: #94a3b8;
   text-decoration: none;
   transition: all 0.3s ease;
+  margin-bottom: 0;
+  padding-left: 0;
 }
 
-.footer-social a:hover {
+.landing-footer .footer-social a svg {
+  flex-shrink: 0;
+  display: block;
+}
+
+.landing-footer .footer-social a:hover {
   background: #ec4899;
-  color: white;
+  color: #ffffff;
   transform: translateY(-3px);
+  padding-left: 0;
+}
+
+.landing-footer .footer-social a:focus-visible {
+  outline: 1px solid rgba(236, 72, 153, 0.6);
+  outline-offset: 2px;
 }
 
 .footer-section h4 {

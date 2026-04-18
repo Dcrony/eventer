@@ -11,11 +11,14 @@ import {
   Clock,
   User,
   AlertCircle,
+  PlusCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
+import { getCurrentUser } from "../utils/auth";
+import CreateEvent from "./CreateEvent";
 
 import "./CSS/MyTickets.css";
 
@@ -26,7 +29,8 @@ export default function MyTickets() {
   const [activeEventId, setActiveEventId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all"); // all, upcoming, past
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const user = getCurrentUser();
   const { toProfile } = useProfileNavigation();
 
   useEffect(() => {
@@ -59,76 +63,55 @@ export default function MyTickets() {
   }, [tickets, searchQuery, filter]);
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page my-tickets-page">
       <div className="dashboard-container">
-        <div className="dashboard-title-section">
-          <div>
-            <h1 className="dashboard-title">My Tickets</h1>
-            <p className="dashboard-subtitle">
-              Manage your event access and digital passes
-            </p>
+        <header className="my-tickets-header">
+          <div className="my-tickets-header-top">
+            <div className="my-tickets-heading">
+              <h1 className="dashboard-title">My Tickets</h1>
+              <p className="dashboard-subtitle">
+                Manage your event access and digital passes
+              </p>
+            </div>
+            <div className="my-tickets-actions">
+              <button
+                type="button"
+                className="my-tickets-btn my-tickets-btn--create"
+                onClick={() => setShowCreateEvent(true)}
+              >
+                <PlusCircle size={18} />
+                Create event
+              </button>
+              {(user?.role === "organizer" || user?.role === "admin") && (
+                <Link to="/scanner" className="scanner-btn">
+                  <QrCode size={18} />
+                  Ticket Scanner
+                </Link>
+              )}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            {/* Ticket Scanner Button */}
-            {(user?.role === "organizer" || user?.role === "admin") && (
-              <Link to="/scanner" className="scanner-btn">
-                <QrCode size={18} />
-                Ticket Scanner
-              </Link>
-            )}
-          </div>
-          <div
-            className="search-filter-controls"
-            style={{ display: "flex", gap: "1rem", alignItems: "center" }}
-          >
-            <div
-              className="search-input-wrapper"
-              style={{ position: "relative" }}
-            >
-              <Search
-                size={18}
-                style={{
-                  position: "absolute",
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "#9ca3af",
-                }}
-              />
+          <div className="search-filter-controls">
+            <div className="search-input-wrapper">
+              <Search size={18} className="search-input-icon" aria-hidden />
               <input
-                type="text"
+                type="search"
                 placeholder="Search tickets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  padding: "0.6rem 1rem 0.6rem 2.5rem",
-                  borderRadius: "0.75rem",
-                  border: "1px solid var(--glass-border)",
-                  background: "var(--glass-bg)",
-                  color: "inherit",
-                  outline: "none",
-                  minWidth: "250px",
-                }}
+                className="my-tickets-search-input"
               />
             </div>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              style={{
-                padding: "0.6rem 1rem",
-                borderRadius: "0.75rem",
-                border: "1px solid var(--glass-border)",
-                background: "var(--glass-bg)",
-                color: "inherit",
-                outline: "none",
-              }}
+              className="my-tickets-filter-select"
             >
               <option value="all">All Tickets</option>
               <option value="upcoming">Upcoming</option>
               <option value="past">Past Events</option>
             </select>
           </div>
-        </div>
+        </header>
 
         {filteredTickets.length === 0 ? (
           <div className="empty-state">
@@ -142,9 +125,19 @@ export default function MyTickets() {
                 : "You haven't purchased any tickets. Discover amazing events happening near you!"}
             </p>
             {!searchQuery && (
-              <Link to="/" className="browse-btn">
-                Browse Events
-              </Link>
+              <div className="empty-state-actions">
+                <Link to="/events" className="browse-btn">
+                  Browse events
+                </Link>
+                <button
+                  type="button"
+                  className="browse-btn browse-btn--outline"
+                  onClick={() => setShowCreateEvent(true)}
+                >
+                  <PlusCircle size={18} />
+                  Create an event
+                </button>
+              </div>
             )}
           </div>
         ) : (
@@ -332,6 +325,11 @@ export default function MyTickets() {
           </div>
         )}
       </div>
+
+      <CreateEvent
+        isOpen={showCreateEvent}
+        onClose={() => setShowCreateEvent(false)}
+      />
     </div>
   );
 }

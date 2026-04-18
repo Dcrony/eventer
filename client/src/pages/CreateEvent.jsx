@@ -217,29 +217,46 @@ export default function CreateEvent({ isOpen, onClose }) {
 
             {/* Pricing */}
             <div className="form-pricing-section">
-              <h3>💳 Pricing Categories</h3>
+              <div className="pricing-section-head">
+                <h3>Ticket setup</h3>
+                <p>Define each ticket tier and how much each seat costs.</p>
+              </div>
               {form.pricing.map((item, index) => (
-                <div key={index} className="pricing-grid">
-                  <span>{item.type}</span>
-                  <input
-                    type="number"
-                    placeholder={`₦ ${item.type} Price`}
-                    className="input-field"
-                    value={item.price}
-                    onChange={(e) => handlePricingChange(index, e.target.value)}
-                  />
+                <div key={index} className="pricing-ticket-card">
+                  <div className="pricing-ticket-copy">
+                    <span className="pricing-ticket-name">{item.type}</span>
+                    <small className="pricing-ticket-meta">Price per attendee ticket</small>
+                  </div>
+                  <div className="pricing-ticket-input-wrap">
+                    <span className="pricing-ticket-currency">₦</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="0.00"
+                      className="input-field pricing-input-field"
+                      value={item.price}
+                      onChange={(e) => handlePricingChange(index, e.target.value)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
 
-            <input
-              name="totalTickets"
-              type="number"
-              placeholder="Total Tickets"
-              className="input-field"
-              onChange={handleChange}
-              required
-            />
+            <div className="ticket-capacity-card">
+              <label className="field-label">Total ticket quantity</label>
+              <p className="ticket-capacity-hint">
+                Set the maximum number of tickets available across all tiers.
+              </p>
+              <input
+                name="totalTickets"
+                type="number"
+                min="1"
+                placeholder="e.g. 500"
+                className="input-field"
+                onChange={handleChange}
+                required
+              />
+            </div>
 
             <label className="field-label">Stream Type</label>
             <select

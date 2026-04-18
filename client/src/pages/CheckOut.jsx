@@ -1,25 +1,21 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Calendar,
   Clock,
   MapPin,
-  User,
-  Mail,
+  Users,
   Ticket,
-  CreditCard,
-  Shield,
+  ShieldCheck,
   ArrowLeft,
   Lock,
   CheckCircle,
   AlertCircle,
-  Users,
-  ShieldCheck,
-  ExternalLink
+  Sparkles,
 } from "lucide-react";
-import "../pages/CSS/eventdetail.css";
+import "./CSS/checkout.css";
 
 export default function Checkout() {
   const { state } = useLocation();
@@ -27,38 +23,48 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const { event, quantity, user, ticketType, price } = state || {};
 
-  // Check if all necessary data exists
-  if (!event || !quantity || !user || !ticketType || !price) {
+  const [selectedPricing, setSelectedPricing] = useState(
+    event?.pricing?.find((p) => p.type === ticketType) || null
+  );
+
+  const unitPrice = useMemo(() => {
+    return selectedPricing?.price ?? price ?? 0;
+  }, [selectedPricing, price]);
+
+  const lineTotal = useMemo(() => unitPrice * (quantity || 0), [unitPrice, quantity]);
+
+  if (!event || !quantity || !user || !ticketType || price == null) {
     return (
-      <div className="checkout-error-container">
-        <AlertCircle size={48} className="error-icon" />
-        <h2>Invalid Checkout Details</h2>
-        <p>Something went wrong. Please try again.</p>
-        <button onClick={() => navigate("/events")} className="error-btn">
-          Browse Events
-        </button>
+      <div className="checkout-page checkout-page--error">
+        <div className="checkout-error-container">
+          <div className="checkout-error-icon-wrap">
+            <AlertCircle size={40} strokeWidth={1.5} />
+          </div>
+          <h2>Couldn&apos;t load checkout</h2>
+          <p>Go back to the event and select tickets again.</p>
+          <button
+            type="button"
+            onClick={() => navigate("/events")}
+            className="error-btn"
+          >
+            Browse events
+          </button>
+        </div>
       </div>
     );
   }
-
-  const totalAmount = price * quantity;
-
-  // State for selected pricing option
-  const [selectedPricing, setSelectedPricing] = useState(
-    event.pricing?.find((p) => p.type === ticketType) || null
-  );
 
   const handleConfirmPayment = async () => {
     setLoading(true);
     try {
       const res = await API.post("/payment/initiate", {
         email: user.email,
-        amount: totalAmount,
+        amount: lineTotal,
         metadata: {
           eventId: event._id,
           userId: user._id,
           quantity: quantity.toString(),
-          price: (selectedPricing?.price || price).toString(),
+          price: unitPrice.toString(),
           pricingType: selectedPricing?.type || ticketType,
         },
       });
@@ -71,13 +77,12 @@ export default function Checkout() {
       }
     } catch (err) {
       console.error(err);
-      alert("Payment failed");
+      alert(err.response?.data?.message || "Payment failed. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Format date
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
@@ -87,224 +92,220 @@ export default function Checkout() {
     });
   };
 
-  return (
-    <div className="event-hub">
-      {/* Glassy Background Blur */}
-      <div className="hub-bg-blur">
-        {event.image && (
-          <img
-            src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
-            alt={event.title}
-          />
-        )}
-      </div>
+  const imageBase = `${PORT_URL.replace("/api", "")}/uploads/event_image`;
+  const eventImg = event.image ? `${imageBase}/${event.image}` : null;
 
-      <div className="hub-container">
-        {/* Top Navigation Bar */}
-        <header className="hub-header">
-          <button onClick={() => navigate(-1)} className="hub-back-btn">
-            <ArrowLeft size={18} />
-            <span>Back to Event</span>
+  return (
+    <div className="dashboard-page checkout-page">
+      <div className="checkout-bg-pattern" aria-hidden="true" />
+
+      <div className="checkout-shell">
+        <nav className="checkout-top-bar">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="checkout-back-nav"
+          >
+            <ArrowLeft size={18} strokeWidth={2} />
+            <span>Back</span>
           </button>
-          <div className="hub-header-actions">
-            <button className="hub-circle-btn" title="Share">
-              <Shield size={18} />
-            </button>
+          <div className="checkout-top-trust">
+            <ShieldCheck size={16} />
+            <span>Secure payment via Paystack</span>
           </div>
+        </nav>
+
+        <header className="checkout-hero">
+          <div className="checkout-hero-badge">
+            <Sparkles size={14} />
+            Checkout
+          </div>
+          <h1 className="checkout-hero-title">Complete your order</h1>
+          <p className="checkout-hero-sub">
+            Review your tickets and pay securely. You’ll get a confirmation by email.
+          </p>
         </header>
 
-        {/* Main Hub Layout */}
-        <div className="hub-main">
-          {/* Left Column: Content */}
-          <section className="hub-content">
-            <div className="hub-image-wrapper">
-              {event.image ? (
-                <img
-                  src={`${PORT_URL.replace("/api", "")}/uploads/event_image/${event.image}`}
-                  alt={event.title}
-                  className="hub-main-img"
-                />
-              ) : (
-                <div className="hub-img-placeholder">
-                  <Calendar size={80} />
+        <div className="checkout-layout">
+          <div className="checkout-main-col">
+            <article className="checkout-card checkout-card--event">
+              <div className="event-summary-card event-summary-card--checkout">
+                <div className="event-image-placeholder">
+                  {eventImg ? (
+                    <img
+                      src={eventImg}
+                      alt=""
+                      className="event-image"
+                    />
+                  ) : (
+                    <Calendar size={36} strokeWidth={1.5} />
+                  )}
                 </div>
+                <div className="event-summary-details">
+                  <h2>{event.title}</h2>
+                  <div className="event-meta">
+                    {event.category && (
+                      <span className="checkout-pill">{event.category}</span>
+                    )}
+                    <span className="checkout-pill checkout-pill--muted">
+                      {event.eventType || "In person"}
+                    </span>
+                  </div>
+                  <div className="event-meta event-meta--icons">
+                    <span className="meta-item">
+                      <Calendar size={15} />
+                      {formatDate(event.startDate)}
+                    </span>
+                    <span className="meta-item">
+                      <Clock size={15} />
+                      {event.startTime}
+                    </span>
+                    <span className="meta-item">
+                      <MapPin size={15} />
+                      {event.location || "Online"}
+                    </span>
+                    <span className="meta-item">
+                      <Users size={15} />
+                      {event.ticketsSold ?? 0} attending
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {event.pricing && event.pricing.length > 1 && (
+                <section className="checkout-section checkout-section--flush">
+                  <div className="section-header">
+                    <Ticket className="section-icon" size={20} />
+                    <h3>Ticket type</h3>
+                  </div>
+                  <div className="ticket-types-grid">
+                    {event.pricing.map((p) => {
+                      const active = selectedPricing?.type === p.type;
+                      return (
+                        <button
+                          key={p.type}
+                          type="button"
+                          className={`ticket-type-card ${active ? "selected" : ""}`}
+                          onClick={() => setSelectedPricing(p)}
+                        >
+                          <div className="ticket-type-header">
+                            <span className="ticket-type-name">{p.type}</span>
+                            {active && (
+                              <CheckCircle className="selected-icon" size={18} />
+                            )}
+                          </div>
+                          <div className="ticket-type-price">
+                            ₦{Number(p.price).toLocaleString()}
+                          </div>
+                          {p.benefits && (
+                            <p className="ticket-type-benefits">{p.benefits}</p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
               )}
-            </div>
 
-            <div className="hub-title-section">
-              <div className="hub-category-row">
-                {event.category && <span className="hub-badge">{event.category}</span>}
-                <span className="hub-badge outline">{event.eventType || "In-Person"}</span>
-              </div>
-              <h1 className="hub-title">Complete Your Purchase</h1>
-              <p className="hub-description">You're just one step away from securing your tickets for this amazing event</p>
-            </div>
-
-            <div className="hub-about">
-              <h3 className="hub-section-label">Event Details</h3>
-              <p className="hub-description">{event.description}</p>
-            </div>
-
-            <div className="hub-details-grid">
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Calendar />
+              <section className="checkout-section">
+                <div className="section-header">
+                  <Users className="section-icon" size={20} />
+                  <h3>Buyer</h3>
                 </div>
-                <div className="hub-detail-info">
-                  <label>Date</label>
-                  <span>{formatDate(event.startDate)}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Clock />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Time</label>
-                  <span>{event.startTime}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <MapPin />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Location</label>
-                  <span>{event.location || "Online Event"}</span>
-                </div>
-              </div>
-              <div className="hub-detail-item">
-                <div className="hub-detail-icon">
-                  <Users />
-                </div>
-                <div className="hub-detail-info">
-                  <label>Attendees</label>
-                  <span>{event.ticketsSold || 0} people attending</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Ticket Type Selection */}
-            {event.pricing && event.pricing.length > 1 && (
-              <div className="hub-ticket-types">
-                <label className="hub-label">Select Your Ticket Type</label>
-                {event.pricing.map((pricing, index) => (
-                  <div
-                    key={pricing.type}
-                    className={`ticket-type-card ${
-                      selectedPricing?.type === pricing.type ? "active" : ""
-                    }`}
-                    onClick={() => setSelectedPricing(pricing)}
-                  >
-                    <div className="ticket-type-left">
-                      <div className="ticket-type-radio">
-                        {selectedPricing?.type === pricing.type && (
-                          <CheckCircle size={16} />
-                        )}
-                      </div>
-                      <div className="ticket-type-info">
-                        <span className="ticket-type-name">{pricing.type}</span>
-                        {pricing.benefits && (
-                          <span className="ticket-type-benefits">{pricing.benefits}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="ticket-type-price">
-                      <span className="price">₦{pricing.price.toLocaleString()}</span>
-                      <span className="price-per">/ ticket</span>
+                <div className="buyer-info-card">
+                  <div className="buyer-info-row">
+                    <span className="buyer-avatar" aria-hidden="true">
+                      {(user.username || "U").charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <div className="buyer-name">{user.username}</div>
+                      <div className="buyer-email">{user.email}</div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Buyer Information */}
-            <div className="hub-organizer">
-              <h3 className="hub-section-label">Buyer Information</h3>
-              <div className="hub-organizer-card">
-                <div className="hub-org-avatar-fallback">
-                  {user.username?.charAt(0) || "U"}
                 </div>
-                <div className="hub-org-text">
-                  <span className="hub-org-name">{user.username}</span>
-                  <span className="hub-org-meta">{user.email}</span>
-                </div>
-              </div>
-            </div>
-          </section>
+              </section>
 
-          {/* Right Column: Checkout Card */}
-          <aside className="hub-sidebar">
-            <div className="hub-checkout-card">
-              <div className="hub-price-header">
-                <label>Order Summary</label>
-                <span className="hub-main-price">
-                  ₦{((selectedPricing?.price || price) * quantity).toLocaleString()}
+              {event.description && (
+                <section className="checkout-section checkout-section--muted">
+                  <h4 className="checkout-about-title">About this event</h4>
+                  <p className="checkout-about-text">{event.description}</p>
+                </section>
+              )}
+            </article>
+          </div>
+
+          <aside className="checkout-aside-col">
+            <div className="checkout-card checkout-card--sticky">
+              <div className="checkout-aside-header">
+                <span className="checkout-aside-label">Order summary</span>
+                <span className="checkout-aside-total">
+                  ₦{lineTotal.toLocaleString()}
                 </span>
               </div>
 
-              <div className="hub-availability">
-                <div className="avail-header">
-                  <span className="avail-label">Ticket Details</span>
-                </div>
+              <div className="order-summary">
                 <div className="summary-row">
-                  <span>Ticket Type</span>
-                  <span className="summary-value">{selectedPricing?.type || ticketType}</span>
-                </div>
-                <div className="summary-row">
-                  <span>Price per ticket</span>
+                  <span>Type</span>
                   <span className="summary-value">
-                    ₦{(selectedPricing?.price || price).toLocaleString()}
+                    {selectedPricing?.type || ticketType}
+                  </span>
+                </div>
+                <div className="summary-row">
+                  <span>Unit price</span>
+                  <span className="summary-value">
+                    ₦{unitPrice.toLocaleString()}
                   </span>
                 </div>
                 <div className="summary-row">
                   <span>Quantity</span>
                   <span className="summary-value">{quantity}</span>
                 </div>
-                <div className="summary-divider"></div>
+                <div className="summary-divider" />
                 <div className="summary-row total">
-                  <span>Total Amount</span>
-                  <span className="total-value">
-                    ₦{((selectedPricing?.price || price) * quantity).toLocaleString()}
-                  </span>
+                  <span>Total</span>
+                  <span className="total-value">₦{lineTotal.toLocaleString()}</span>
                 </div>
               </div>
 
-              <div className="hub-purchase-actions">
+              <div className="checkout-actions">
                 <button
+                  type="button"
                   onClick={handleConfirmPayment}
                   disabled={loading}
-                  className="hub-buy-btn"
+                  className="checkout-pay-btn"
                 >
                   {loading ? (
                     <>
-                      <div className="spinner-small"></div>
-                      <span>Processing...</span>
+                      <span className="spinner-small" aria-hidden />
+                      Processing…
                     </>
                   ) : (
                     <>
-                      <Lock size={20} />
-                      <span>Complete Payment</span>
+                      <Lock size={20} strokeWidth={2} />
+                      Pay ₦{lineTotal.toLocaleString()}
                     </>
                   )}
                 </button>
               </div>
 
-              <div className="hub-trust-tags">
-                <div className="trust-tag">
-                  <ShieldCheck size={14} />
-                  <span>Secure Checkout</span>
+              <div className="trust-badges">
+                <div className="trust-badge">
+                  <ShieldCheck size={16} />
+                  Encrypted checkout
                 </div>
-                <div className="trust-tag">
-                  <ExternalLink size={14} />
-                  <span>Instant Delivery</span>
+                <div className="trust-badge">
+                  <Ticket size={16} />
+                  E-tickets by email
                 </div>
               </div>
             </div>
 
-            <div className="hub-info-card">
-              <AlertCircle size={18} />
-              <p>Tickets are refundable up to 24 hours before the event start time.</p>
+            <div className="checkout-notice">
+              <AlertCircle size={16} className="checkout-notice-icon" />
+              <p>
+                Refunds may be available up to 24 hours before the event, per organizer
+                policy.
+              </p>
             </div>
           </aside>
         </div>

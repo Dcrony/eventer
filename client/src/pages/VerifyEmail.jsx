@@ -14,7 +14,9 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (!token) {
-      setError("Invalid verification link.");
+      setError(
+        "This link is invalid. New accounts verify with a 6-digit code on the verify page after sign up."
+      );
       setLoading(false);
       return;
     }

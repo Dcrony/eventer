@@ -5,16 +5,23 @@
 
 // --- Constants (align with server / User model) ---
 const EMAIL_MAX_LENGTH = 254;
+const FULL_NAME_MIN_LENGTH = 2;
+const FULL_NAME_MAX_LENGTH = 100;
 const USERNAME_MIN_LENGTH = 2;
 const USERNAME_MAX_LENGTH = 30;
 const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_MAX_LENGTH = 128;
+const PHONE_DIGITS_MIN = 10;
+const PHONE_DIGITS_MAX = 15;
 
 // Email: standard format, no leading/trailing spaces
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
 // Username: alphanumeric, underscore, hyphen, 2–30 chars (no spaces, no special chars that could break things)
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+// Full name: letters (incl. unicode), spaces, hyphens, apostrophes, periods
+const FULL_NAME_REGEX = /^[\p{L}\p{M}][\p{L}\p{M}\s'.-]*$/u;
 
 /**
  * Sanitize a string: trim, remove control characters, limit length.
@@ -44,6 +51,26 @@ export function sanitizeUsername(value) {
 }
 
 /**
+ * Full name: trim, collapse spaces, max length.
+ */
+export function sanitizeFullName(value) {
+  const s = sanitizeString(value, FULL_NAME_MAX_LENGTH).replace(/\s+/g, " ").trim();
+  return s;
+}
+
+/**
+ * Phone: keep user-visible formatting in UI; strip to digits for validation.
+ */
+export function sanitizePhone(value) {
+  if (value == null || typeof value !== "string") return "";
+  return value.replace(/[\x00-\x1F\x7F]/g, "").trim().slice(0, 24);
+}
+
+export function phoneDigitsOnly(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, PHONE_DIGITS_MAX);
+}
+
+/**
  * Sanitize password: no trim (spaces can be intentional), strip control chars, enforce max length.
  */
 export function sanitizePassword(value) {
@@ -62,12 +89,33 @@ export function validateEmail(value) {
   return null;
 }
 
+export function validateFullName(value) {
+  const s = sanitizeFullName(value);
+  if (!s) return "Full name is required";
+  if (s.length < FULL_NAME_MIN_LENGTH) return `Full name must be at least ${FULL_NAME_MIN_LENGTH} characters`;
+  if (s.length > FULL_NAME_MAX_LENGTH) return "Full name is too long";
+  if (!FULL_NAME_REGEX.test(s)) {
+    return "Use letters only (spaces, hyphens, apostrophes, and periods allowed)";
+  }
+  return null;
+}
+
 export function validateUsername(value) {
   const s = value?.trim();
   if (!s) return "Username is required";
   if (s.length < USERNAME_MIN_LENGTH) return `Username must be at least ${USERNAME_MIN_LENGTH} characters`;
   if (s.length > USERNAME_MAX_LENGTH) return `Username must be at most ${USERNAME_MAX_LENGTH} characters`;
   if (!USERNAME_REGEX.test(s)) return "Username can only contain letters, numbers, underscores and hyphens";
+  return null;
+}
+
+export function validatePhone(value) {
+  const digits = phoneDigitsOnly(value);
+  if (!digits) return "Phone number is required";
+  if (digits.length < PHONE_DIGITS_MIN) {
+    return `Enter at least ${PHONE_DIGITS_MIN} digits (country code included if applicable)`;
+  }
+  if (digits.length > PHONE_DIGITS_MAX) return "Phone number is too long";
   return null;
 }
 
@@ -94,14 +142,19 @@ export function validateLoginForm({ email, password }) {
 }
 
 /**
- * Run all register validations. Returns { valid: boolean, errors: { username?, email?, password? } }.
+ * Run all register validations.
+ * Returns { valid, errors: { fullName?, username?, email?, phone?, password? } }.
  */
-export function validateRegisterForm({ username, email, password }) {
+export function validateRegisterForm({ fullName, username, email, phone, password }) {
   const errors = {};
+  const fullNameErr = validateFullName(fullName);
+  if (fullNameErr) errors.fullName = fullNameErr;
   const usernameErr = validateUsername(username);
   if (usernameErr) errors.username = usernameErr;
   const emailErr = validateEmail(email);
   if (emailErr) errors.email = emailErr;
+  const phoneErr = validatePhone(phone);
+  if (phoneErr) errors.phone = phoneErr;
   const passwordErr = validatePassword(password, "Password");
   if (passwordErr) errors.password = passwordErr;
   return {

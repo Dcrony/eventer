@@ -43,6 +43,7 @@ import Messages from "./pages/Messages";
 import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
 import EventAnalytics from "./pages/EventAnalytics";
+import PlatformAnalytics from "./pages/PlatformAnalytics";
 import { ToastProvider } from "./components/ui/toast";
 import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
@@ -139,6 +140,14 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <EventAnalytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <PlatformAnalytics />
               </ProtectedRoute>
             }
           />

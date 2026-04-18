@@ -5,18 +5,23 @@ const crypto = require("crypto");
 const sendEmail = require("../utils/email");
 const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
 const { verifyIdToken } = require("../utils/firebaseAdmin");
-const { welcomeEmail, otpEmail } = require("../utils/emailTemplates");
+const { otpEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// 🟢 REGISTER CONTROLLER
+/** When transactional email is not configured or fails, expose the OTP in the JSON so the app can show it. */
+function verificationCodeResponseField(emailSent, otp) {
+  return emailSent ? {} : { verificationCode: otp };
+}
+
+// 🟢 REGISTER CONTROLLER — OTP only (no magic link)
 exports.register = async (req, res) => {
   try {
     const validation = validateRegisterBody(req.body);
     if (!validation.ok) {
       return res.status(400).json({ message: validation.message });
     }
-    const { username, email, password } = validation;
+    const { fullName, username, email, phone, password } = validation;
 
     // Check if email exists
     const existingUser = await User.findOne({ email });
@@ -29,50 +34,48 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Username already in use" });
     }
 
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return res.status(400).json({ message: "Phone number already in use" });
+    }
+
     const role = "user";
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate email verification token
-    const emailVerificationToken = crypto.randomBytes(32).toString("hex");
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Create new user
+    // Create new user (verified after OTP)
     const newUser = new User({
-      name: username, // Use username as name since form only sends username
+      name: fullName,
       username,
       email,
+      phone,
       password: hashedPassword,
       role,
-      emailVerificationToken,
+      isVerified: false,
+      verificationCode: hashedOtp,
+      verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
     });
 
     await newUser.save();
 
-    await sendEmail({
-  to: email,
-  subject: "Welcome to TickiSpot 🎉",
-  html: welcomeEmail(username),
-});
-
-    // Send verification email
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${emailVerificationToken}`;
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: email,
-      subject: "Verify Your Email - Ticki",
-      html: `
-        <h2>Welcome to Tickispot!</h2>
-        <p>Please verify your email by clicking the link below:</p>
-        <a href="${verificationUrl}">Verify Email</a>
-        <p>If you didn't create an account, please ignore this email.</p>
-      `,
+      subject: "Your TickiSpot verification code",
+      html: otpEmail(otp),
     });
 
-    
+    const emailSent = Boolean(emailResult.success);
 
-    // ✅ Success response (no token yet)
     res.status(201).json({
-      message: "Registration successful! Please check your email to verify your account.",
+      message: emailSent
+        ? "Account created. Check your email for your verification code."
+        : "Account created. Copy your verification code below, then enter it to verify.",
+      email,
+      ...verificationCodeResponseField(emailSent, otp),
     });
   } catch (error) {
     console.error("❌ REGISTER ERROR:", error);
@@ -98,34 +101,35 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Check if email is verified
-    if (!user.isVerified) {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-  user.verificationCode = hashedOtp;
-  user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
-  await user.save();
-
-  const { otpEmail } = require("../utils/emailTemplates");
-
-  await sendEmail({
-    to: user.email,
-    subject: "Your Verification Code - TickiSpot",
-    html: otpEmail(otp),
-  });
-
-  return res.status(403).json({
-    message: "Account not verified. A new verification code has been sent to your email.",
-    code: "OTP_SENT",
-  });
-}
-
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
+
+    if (!user.isVerified) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+
+      user.verificationCode = hashedOtp;
+      user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
+
+      const emailResult = await sendEmail({
+        to: user.email,
+        subject: "Your Verification Code - TickiSpot",
+        html: otpEmail(otp),
+      });
+
+      const emailSent = Boolean(emailResult.success);
+
+      return res.status(403).json({
+        message: emailSent
+          ? "Account not verified. A verification code was sent to your email."
+          : "Account not verified. Copy your verification code below, then verify on the next screen.",
+        code: "OTP_SENT",
+        ...verificationCodeResponseField(emailSent, otp),
+      });
+    }
 
     // Create JWT
     const token = jwt.sign(
@@ -393,27 +397,25 @@ exports.firebaseSync = async (req, res) => {
 
       await user.save();
 
-      // 📧 Send OTP email
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: emailLower,
-        subject: "Verify Your Email - Ticki",
-        html: `
-          <h2>Welcome to Ticki! 🎉</h2>
-          <p>Your verification code is:</p>
-          <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
-          <p>This code expires in <strong>10 minutes</strong>.</p>
-          <p>If you didn't sign up, please ignore this email.</p>
-        `,
+        subject: "Verify Your Email - TickiSpot",
+        html: otpEmail(otp),
       });
 
+      const emailSent = Boolean(emailResult.success);
+
       return res.status(201).json({
-        message: "User created. Please verify your email with the OTP sent to your inbox.",
+        message: emailSent
+          ? "User created. Check your email for your verification code."
+          : "User created. Copy your verification code below, then enter it to verify.",
         user: {
           id: user._id,
           email: user.email,
           name: user.name,
           isVerified: false,
         },
+        ...verificationCodeResponseField(emailSent, otp),
       });
     } else {
       // 👤 USER EXISTS
@@ -426,26 +428,25 @@ exports.firebaseSync = async (req, res) => {
         user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
 
-        // 📧 Resend OTP
-        await sendEmail({
+        const emailResult = await sendEmail({
           to: user.email,
-          subject: "Your New Verification Code - Ticki",
-          html: `
-            <h2>Verification Code</h2>
-            <p>Your verification code is:</p>
-            <h1 style="color: #007bff; font-size: 2em; letter-spacing: 5px;">${otp}</h1>
-            <p>This code expires in <strong>10 minutes</strong>.</p>
-          `,
+          subject: "Your New Verification Code - TickiSpot",
+          html: otpEmail(otp),
         });
 
+        const emailSent = Boolean(emailResult.success);
+
         return res.status(200).json({
-          message: "OTP resent to your email.",
+          message: emailSent
+            ? "A new verification code was sent to your email."
+            : "Copy your new verification code below.",
           user: {
             id: user._id,
             email: user.email,
             name: user.name,
             isVerified: false,
           },
+          ...verificationCodeResponseField(emailSent, otp),
         });
       }
 
@@ -595,15 +596,19 @@ exports.resendOtp = async (req, res) => {
     user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
     await user.save();
 
-    // 📧 Send OTP email
-    await sendEmail({
-  to: user.email,
-  subject: "Your New Verification Code - TickiSpot",
-  html: otpEmail(otp),
-});
+    const emailResult = await sendEmail({
+      to: user.email,
+      subject: "Your New Verification Code - TickiSpot",
+      html: otpEmail(otp),
+    });
+
+    const emailSent = Boolean(emailResult.success);
 
     res.status(200).json({
-      message: "New OTP sent to your email",
+      message: emailSent
+        ? "New verification code sent to your email."
+        : "Copy your new verification code below.",
+      ...verificationCodeResponseField(emailSent, otp),
     });
   } catch (error) {
     console.error("❌ RESEND OTP ERROR:", error);
