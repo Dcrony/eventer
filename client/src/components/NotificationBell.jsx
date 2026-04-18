@@ -28,6 +28,7 @@ function formatNotificationTime(date) {
 const NotificationBell = () => {
   const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -40,6 +41,12 @@ const NotificationBell = () => {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleNotificationClick = async (notification) => {
@@ -75,7 +82,11 @@ const NotificationBell = () => {
       </button>
 
       {open ? (
-        <div className="notification-bell-dropdown" role="dialog" aria-label="Notifications">
+        <div
+          className={`notification-bell-dropdown ${isMobile ? "is-mobile" : ""}`}
+          role="dialog"
+          aria-label="Notifications"
+        >
           <header className="notification-bell-header">
             <div className="notification-bell-title-wrap">
               <h2 className="notification-bell-title">Notifications</h2>

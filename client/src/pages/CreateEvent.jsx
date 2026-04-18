@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../components/ui/toast";
 import "./CSS/CreateEvent.css";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg"
@@ -27,6 +28,8 @@ const eventTypes = [
 ];
 
 export default function CreateEvent({ isOpen, onClose }) {
+  const toast = useToast();
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -81,6 +84,7 @@ export default function CreateEvent({ isOpen, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubmitting(true);
       const formData = new FormData();
       Object.entries(form).forEach(([key, value]) => {
         if (key === "pricing") formData.append(key, JSON.stringify(value));
@@ -92,12 +96,21 @@ export default function CreateEvent({ isOpen, onClose }) {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("✅ Event created successfully!");
+      toast.success("Event created successfully!");
       navigate("/events");
       onClose();
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to create event");
+      const code = err.response?.data?.code;
+      const message = err.response?.data?.message || "Failed to create event";
+      if (err.response?.status === 403 && code === "PLAN_LIMIT") {
+        toast.error(message);
+        window.dispatchEvent(new CustomEvent("planLimitHit"));
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -299,7 +312,7 @@ export default function CreateEvent({ isOpen, onClose }) {
               </label>
             </div>
 
-            <button type="submit" className="submit-btn">
+            <button type="submit" className="submit-btn" disabled={submitting}>
               🚀 Create Event
             </button>
           </form>

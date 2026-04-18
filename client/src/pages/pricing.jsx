@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 import "./CSS/landing.css";
 
@@ -9,14 +10,14 @@ export default function Pricing() {
       price: "₦0",
       period: "/month",
       features: [
-        "Up to 2 published events per month",
-        "Core ticketing with QR code check-in",
-        "Standard event landing page",
-        "Email notifications for attendees",
+        "Up to 2 events per month",
+        "Standard visibility on discovery",
+        "Core ticketing & QR check-in",
+        "No analytics dashboard",
         "Community support & help center",
         "Secure payments via Paystack",
-        "Mobile-friendly organizer experience",
       ],
+      cta: { to: "/register", label: "Get started" },
       highlight: false,
     },
     {
@@ -25,31 +26,30 @@ export default function Pricing() {
       period: "/month",
       badge: "Most Popular",
       features: [
-        "Unlimited events & ticket types",
-        "Full analytics & revenue dashboard",
-        "Priority email & chat support",
-        "Live streaming embeds (YouTube, RTMP)",
-        "Advanced attendee insights & exports",
+        "Unlimited events",
+        "Full analytics dashboard",
+        "Featured listings in discovery",
+        "Live streaming embeds",
+        "Advanced attendee insights",
         "Custom branding on event pages",
-        "Discount codes & promotional tools",
-        "Lower platform fees on ticket sales",
+        "Priority support",
       ],
+      cta: { to: "/login", label: "Upgrade to Pro" },
       highlight: true,
     },
     {
-      name: "Enterprise",
+      name: "Business",
       price: "Custom",
       period: "",
       features: [
-        "Dedicated account manager",
-        "SLA, onboarding & staff training",
+        "Everything in Pro",
+        "Priority promotion & placement",
+        "Advanced analytics & exports",
+        "Custom branding & white-label options",
+        "Dedicated success manager",
         "Custom contracts & invoicing",
-        "White-label & API access",
-        "SSO / advanced security options",
-        "Volume pricing & multi-org billing",
-        "Custom integrations & webhooks",
-        "Strategic review & roadmap input",
       ],
+      cta: { to: "/contact", label: "Talk to sales" },
       highlight: false,
     },
   ];
@@ -99,12 +99,12 @@ export default function Pricing() {
                     ))}
                   </ul>
                 </div>
-                <button
-                  type="button"
+                <Link
+                  to={plan.cta?.to || "/register"}
                   className={`btn ${plan.highlight ? "btn-primary" : "btn-outline"} pricing-card-cta`}
                 >
-                  Choose {plan.name}
-                </button>
+                  {plan.cta?.label || `Choose ${plan.name}`}
+                </Link>
               </div>
             ))}
           </div>

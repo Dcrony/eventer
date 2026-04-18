@@ -48,9 +48,17 @@ import { ToastProvider } from "./components/ui/toast";
 import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
 import FeaturesPage from "./pages/Features";
+import Favorites from "./pages/Favorites";
+import Community from "./pages/Community";
+import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
+import API from "./api/axios";
+import { getCurrentUser, login } from "./utils/auth";
+import { useToast } from "./components/ui/toast";
 
 function Layout() {
   const location = useLocation();
+  const toast = useToast();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // hide navbar & sidebar on landing page and form pages
   const hideNavAndSidebar =
@@ -72,6 +80,49 @@ function Layout() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    const onLogin = () => {
+      const user = getCurrentUser();
+      const plan = String(user?.plan || "free").toLowerCase();
+      if (!user || plan !== "free") return;
+      if (sessionStorage.getItem("tickispot_upgrade_prompt_v1")) return;
+      sessionStorage.setItem("tickispot_upgrade_prompt_v1", "1");
+      setUpgradeOpen(true);
+    };
+
+    const onLimit = () => {
+      setUpgradeOpen(true);
+    };
+
+    window.addEventListener("userLogin", onLogin);
+    window.addEventListener("planLimitHit", onLimit);
+    return () => {
+      window.removeEventListener("userLogin", onLogin);
+      window.removeEventListener("planLimitHit", onLimit);
+    };
+  }, []);
+
+  const handleUpgradeToPro = async () => {
+    try {
+      const { data } = await API.patch("/users/me/plan", { plan: "pro" });
+      const token = localStorage.getItem("token");
+      const prev = getCurrentUser();
+      if (prev && token) {
+        login(
+          {
+            ...prev,
+            plan: data.plan,
+            eventCount: data.user?.eventCount ?? prev.eventCount,
+          },
+          token,
+        );
+      }
+      toast.success("You’re on Pro — enjoy unlimited events and analytics.");
+    } catch {
+      toast.error("Could not complete upgrade. Try again.");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -272,6 +323,23 @@ function Layout() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <Favorites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <Community />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/user/:username" element={<Profile />} />
           <Route path="/features" element={<FeaturesPage/>} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<Contact />} />
@@ -283,6 +351,12 @@ function Layout() {
           <Route path="/terms" element={<TermsOfService />} />
         </Routes>
       </main>
+
+      <UpgradeExperienceModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        onSelectPro={handleUpgradeToPro}
+      />
     </div>
   );
 }

@@ -67,9 +67,7 @@ export default function TopNav() {
             <span className="logo-text">TickiSpot</span>
           </Link>
 
-          <div className="top-nav-actions">
             <NotificationBell />
-          </div>
         </div>
       </div>
 
@@ -151,6 +149,11 @@ export default function TopNav() {
 
               {isOrganizer && (
                 <>
+                  <Link to="/dashboard" className="slide-menu-item">
+                    <BarChart3 size={18} />
+                    <span>Dashboard</span>
+                    <ChevronRight size={16} />
+                  </Link>
                   <Link to="/create-event" className="slide-menu-item">
                     <Calendar size={18} />
                     <span>Create Event</span>

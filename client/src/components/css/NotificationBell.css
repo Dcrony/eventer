@@ -68,11 +68,22 @@
 }
 
 @media (max-width: 768px) {
-  .top-nav .notification-bell-dropdown {
-    left: auto;
+  .notification-bell-dropdown.is-mobile {
+    position: fixed;
+    left: 0;
     right: 0;
-    top: calc(100% + 10px);
-    margin-left: 0;
+    top: 0;
+    margin: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    z-index: 10020;
+  }
+
+  .notification-bell-dropdown.is-mobile .notification-bell-list {
+    max-height: calc(100dvh - 70px);
   }
 }
 

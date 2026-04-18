@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Home, PlusCircle, Ticket, Bell, MessageCircle, LineChart, Users } from "lucide-react";
+import { Home, PlusCircle, Ticket, MessageCircle, LineChart, Users } from "lucide-react";
 import "./css/mobileNav.css";
 import { getCurrentUser } from "../utils/auth";
 import { useEffect, useState } from "react";
@@ -20,13 +20,7 @@ export default function MobileBottomNav() {
     return null;
   }
 
-  const canOrganize =
-    user?.role === "organizer" || user?.isOrganizer === true || user?.role === "admin";
-
   const navItems = [
-    ...(canOrganize
-      ? [{ to: "/dashboard", icon: <LayoutDashboard size={22} />, label: "Dashboard" }]
-      : []),
     { to: "/events", icon: <Home size={22} />, label: "Events" },
     { to: "/my-tickets", icon: <Ticket size={22} />, label: "Tickets" },
     { to: "/analytics", icon: <LineChart size={22} />, label: "Analytics" },
