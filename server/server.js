@@ -18,6 +18,8 @@ const messageRoutes = require("./routes/messageRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const communityRoutes = require("./routes/communityRoutes");
 const postRoutes = require("./routes/postRoutes");
+const commentRoutes = require("./routes/commentRoutes");
+const billingRoutes = require("./routes/billingRoutes");
 const { buildSocketServer } = require("./socket");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -78,6 +80,8 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/community", communityRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/comments", commentRoutes);
+app.use("/api/billing", billingRoutes);
 
 const server = http.createServer(app);
 const io = buildSocketServer(server, { allowedOrigins: ALLOWED_ORIGINS });
