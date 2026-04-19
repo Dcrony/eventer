@@ -105,7 +105,7 @@ exports.toggleLikePost = async (req, res) => {
           actorId: userId,
           type: "like",
           message: `${req.user.name || req.user.username} liked your post`,
-          actionUrl: "/community",
+          actionUrl: "/notifications",
           entityId: post._id,
           entityType: "post",
         });
@@ -163,7 +163,7 @@ exports.addComment = async (req, res) => {
           actorId,
           type: "reply",
           message: `${req.user.name || req.user.username} replied to your comment`,
-          actionUrl: "/community",
+          actionUrl: "/notifications",
           entityId: comment._id,
           entityType: "comment",
         });
@@ -174,7 +174,7 @@ exports.addComment = async (req, res) => {
         actorId,
         type: "comment",
         message: `${req.user.name || req.user.username} commented on your post`,
-        actionUrl: "/community",
+        actionUrl: "/notifications",
         entityId: comment._id,
         entityType: "comment",
       });

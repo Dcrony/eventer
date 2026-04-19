@@ -21,6 +21,25 @@
   position: relative;
 }
 
+/* Mobile top bar: bell is on the right — avoid opening the panel past the viewport */
+.top-nav .notification-bell-dropdown:not(.is-mobile) {
+  left: auto;
+  right: 0;
+  margin-left: 0;
+  animation: nb-slideInFromRight 0.2s ease-out;
+}
+
+@keyframes nb-slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .notification-bell-trigger:hover {
   background: var(--nb-hover, rgba(0, 0, 0, 0.04));
   color: var(--nb-text, #1e293b);

@@ -22,7 +22,6 @@ import {
   Bell,
   MessageSquare,
   Banknote,
-  Users,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -88,7 +87,6 @@ export default function Sidebar() {
       }]
     : []),
 
-    {to: "/community", label: "Community", icon: <Users size={20} />},
 ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
@@ -178,7 +176,9 @@ export default function Sidebar() {
         {/* Bottom: Notifications first, then Profile, Settings, Logout */}
         <div className="sidebar-bottom">
           <div className="sidebar-bottom-item" data-tooltip="Notifications">
-            <NotificationBell />
+            <div className="relative">
+              <NotificationBell />
+            </div>
           </div>
           <Link
             to={profileUrl}

@@ -14,6 +14,7 @@ import {
   Banknote,
   Users,
   DollarSign,
+  Bell,
 } from "lucide-react";
 
 import { logout } from "../utils/auth";
@@ -130,6 +131,12 @@ export default function TopNav() {
             <Link to="/favorites" className="slide-menu-item" onClick={closeMenu}>
               <Heart size={18} />
               <span>Favorites</span>
+              <ChevronRight size={16} />
+            </Link>
+
+            <Link to="/notifications" className="slide-menu-item" onClick={closeMenu}>
+              <Bell size={18} />
+              <span>Notifications</span>
               <ChevronRight size={16} />
             </Link>
 

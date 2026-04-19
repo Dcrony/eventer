@@ -50,7 +50,6 @@ import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
 import FeaturesPage from "./pages/Features";
 import Favorites from "./pages/Favorites";
-import Community from "./pages/Community";
 import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
 import API from "./api/axios";
 import { getCurrentUser, login } from "./utils/auth";
@@ -381,14 +380,6 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <Favorites />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <Community />
               </ProtectedRoute>
             }
           />
