@@ -122,7 +122,7 @@ body::-webkit-scrollbar-thumb {
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border-radius: 999px;
+  border-radius: 1rem;
   border: 1px solid transparent;
   font-weight: 700;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
@@ -130,6 +130,7 @@ body::-webkit-scrollbar-thumb {
 
 .ui-button:hover {
   transform: translateY(-1px);
+  box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.2);
 }
 
 .ui-button:disabled {
@@ -160,14 +161,15 @@ body::-webkit-scrollbar-thumb {
 }
 
 .ui-button-secondary {
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text-color);
+  background: #f8f8f8;
+  color: #f3f4f6;
   border-color: var(--border-subtle);
 }
 
 .ui-button-ghost {
   background: transparent;
-  color: var(--text-color);
+  color: #e5e7eb;
+  border-color: var(--border-subtle);
 }
 
 .ui-button-danger {
@@ -207,8 +209,8 @@ body::-webkit-scrollbar-thumb {
   max-height: min(88vh, 900px);
   overflow: auto;
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: #111827;
+  border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-lg);
 }
 
@@ -237,8 +239,8 @@ body::-webkit-scrollbar-thumb {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: rgba(241, 245, 249, 0.92);
-  color: var(--text-muted);
+  background: #1f2937;
+  color: #9ca3af;
 }
 
 .ui-modal-body {
@@ -263,7 +265,7 @@ body::-webkit-scrollbar-thumb {
   gap: 0.75rem;
   padding: 0.95rem 1rem;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.98);
+  background: #111827;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md);
 }
@@ -281,7 +283,7 @@ body::-webkit-scrollbar-thumb {
 }
 
 .ui-toast span {
-  color: var(--text-color);
+  color: #f3f4f6;
   font-size: 0.92rem;
 }
 
@@ -331,7 +333,7 @@ body::-webkit-scrollbar-thumb {
 
 .dashboard-page {
   min-height: 100vh;
-  padding: 2rem 1.5rem 3rem calc(var(--sidebar-width) + 1.5rem);
+  padding: 1.5rem 1.5rem 2.5rem calc(var(--sidebar-width) + 1.5rem);
 }
 
 .dashboard-container {
@@ -348,15 +350,10 @@ body::-webkit-scrollbar-thumb {
   backdrop-filter: blur(10px);
 }
 
-.dash-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--card-bg);
-  box-shadow: var(--shadow-sm);
-}
+
 
 .dash-card-body {
-  padding: 1.25rem;
+  padding: 1.25rem 1.4rem;
 }
 
 .center {
