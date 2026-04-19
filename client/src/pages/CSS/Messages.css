@@ -39,7 +39,8 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid #1f2937;
+  background: #0f172a;
   border-radius: 999px;
   padding: 0.65rem 0.8rem;
 }
@@ -48,6 +49,8 @@
   border: 0;
   outline: none;
   width: 100%;
+  background: transparent;
+  color: #e5e7eb;
 }
 
 .chat-list-items,
@@ -71,7 +74,7 @@
 }
 
 .chat-item.active {
-  background: color-mix(in srgb, var(--brand-primary) 10%, white);
+  background: rgba(236, 72, 153, 0.16);
 }
 
 .chat-item-avatar,
@@ -145,14 +148,15 @@
 }
 
 .message-bubble-them .message-bubble-content {
-  background: #f8fafc;
+  background: #1f2937;
+  color: #e5e7eb;
 }
 
 .chat-input-area {
   position: sticky;
   bottom: 0;
   border-top: 1px solid var(--border-subtle);
-  background: #fff;
+  background: #111827;
   padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
 }
 
@@ -165,9 +169,11 @@
 .chat-input-field {
   flex: 1;
   min-width: 0;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid #374151;
   border-radius: 999px;
   padding: 0.8rem 0.95rem;
+  background: #0f172a;
+  color: #f8fafc;
 }
 
 .chat-send-btn {

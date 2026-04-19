@@ -1,6 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Heart, MessageCircle } from "lucide-react";
-import { getPosts, createPost, likePost, commentOnPost } from "../services/api/posts";
+import {
+  getPosts,
+  createPost,
+  likePost,
+  getPostComments,
+  createComment,
+} from "../services/api/posts";
 import Button from "../components/ui/button";
 import { useToast } from "../components/ui/toast";
 
@@ -17,6 +23,7 @@ export default function Community() {
   const [loadError, setLoadError] = useState(null);
   const [posting, setPosting] = useState(false);
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [replyDrafts, setReplyDrafts] = useState({});
 
   const fetchPosts = async () => {
     const { data } = await getPosts();
@@ -79,29 +86,82 @@ export default function Community() {
     }
   };
 
-  const addComment = async (postId) => {
-    const content = String(commentDrafts[postId] || "").trim();
+  const syncPostComments = async (postId) => {
+    const { data } = await getPostComments(postId);
+    const comments = Array.isArray(data) ? data : [];
+    setPosts((prev) =>
+      prev.map((post) => (post._id === postId ? { ...post, comments, commentCount: comments.length } : post)),
+    );
+  };
+
+  const addComment = async (postId, parentComment = null) => {
+    const key = parentComment || postId;
+    const stateMap = parentComment ? replyDrafts : commentDrafts;
+    const setStateMap = parentComment ? setReplyDrafts : setCommentDrafts;
+    const content = String(stateMap[key] || "").trim();
     if (!content) return;
 
     try {
-      const { data } = await commentOnPost(postId, { content });
-      setPosts((prev) =>
-        prev.map((post) =>
-          post._id === postId
-            ? {
-                ...post,
-                comments: [...(post.comments || []), data],
-                commentCount: Number(post.commentCount || 0) + 1,
-              }
-            : post,
-        ),
-      );
-      setCommentDrafts((prev) => ({ ...prev, [postId]: "" }));
-      toast.success("Comment added");
+      await createComment({ postId, content, parentComment });
+      await syncPostComments(postId);
+      setStateMap((prev) => ({ ...prev, [key]: "" }));
+      toast.success(parentComment ? "Reply added" : "Comment added");
     } catch (error) {
       console.error("Failed to add comment", error);
       toast.error("Could not post comment");
     }
+  };
+
+  const commentsByPost = useMemo(() => {
+    return posts.reduce((acc, post) => {
+      const tree = {};
+      const list = post.comments || [];
+      list.forEach((comment) => {
+        const parentKey = comment.parentComment || "root";
+        tree[parentKey] = tree[parentKey] || [];
+        tree[parentKey].push(comment);
+      });
+
+      const makeTree = (parentKey = "root") =>
+        (tree[parentKey] || []).map((node) => ({
+          ...node,
+          replies: makeTree(node._id),
+        }));
+
+      acc[post._id] = makeTree();
+      return acc;
+    }, {});
+  }, [posts]);
+
+  const renderCommentNode = (postId, node, depth = 0) => {
+    return (
+      <div key={node._id} className={`${depth > 0 ? "ml-4 mt-2 border-l border-slate-200 pl-3" : "mt-2"}`}>
+        <p className="text-sm">
+          <strong>{node.author?.name || node.author?.username || "User"}:</strong> {node.content}
+        </p>
+        <button
+          type="button"
+          className="text-xs text-slate-500 mt-1"
+          onClick={() => setReplyDrafts((prev) => ({ ...prev, [node._id]: prev[node._id] || "" }))}
+        >
+          Reply
+        </button>
+        {Object.prototype.hasOwnProperty.call(replyDrafts, node._id) ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              className="flex-1 border rounded-full px-3 py-2 min-w-0 text-sm"
+              value={replyDrafts[node._id] || ""}
+              onChange={(event) => setReplyDrafts((prev) => ({ ...prev, [node._id]: event.target.value }))}
+              placeholder="Write a reply..."
+            />
+            <Button size="sm" variant="secondary" onClick={() => addComment(postId, node._id)}>
+              Reply
+            </Button>
+          </div>
+        ) : null}
+        {node.replies?.map((reply) => renderCommentNode(postId, reply, depth + 1))}
+      </div>
+    );
   };
 
   return (
@@ -168,6 +228,9 @@ export default function Community() {
                     <Button size="sm" variant="secondary" onClick={() => addComment(post._id)}>
                       Comment
                     </Button>
+                  </div>
+                  <div className="mt-1">
+                    {(commentsByPost[post._id] || []).map((comment) => renderCommentNode(post._id, comment))}
                   </div>
                 </div>
               </article>

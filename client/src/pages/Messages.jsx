@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import ChatList from "../components/Messages/ChatList";
 import ChatWindow from "../components/Messages/ChatWindow";
 import API from "../api/axios";
-import { getCurrentUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 import "./CSS/Messages.css";
 
 export default function Messages() {
@@ -12,7 +12,7 @@ export default function Messages() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [searchParams] = useSearchParams();
   const userIdFromQuery = searchParams.get("user");
-  const user = getCurrentUser();
+  const { user } = useAuth();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
