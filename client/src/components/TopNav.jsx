@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   X,
@@ -11,21 +11,19 @@ import {
   ChevronRight,
   BarChart3,
   HelpCircle,
+  ChevronDown,
 } from "lucide-react";
 
-import { getCurrentUser, logout } from "../utils/auth";
+import { logout } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import "./css/TopNav.css";
+import Avatar from "./ui/avatar";
 
 export default function TopNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) setUser(currentUser);
-  }, []);
 
   const isAdmin = user?.role === "admin" || user?.isAdmin;
   const isOrganizer = user?.role === "organizer" || user?.isOrganizer;
@@ -55,7 +53,11 @@ export default function TopNav() {
             onClick={() => setIsMenuOpen(true)}
           >
             {user?.profilePic ? (
-              <img src={user.profilePic} alt="avatar" />
+              <div className="profile-dropdown">
+                        <Avatar src={user?.profilePic} name={user?.name || user?.username} className="avatar-small" />
+                        <span className="user-name">{user?.name || "Account"}</span>
+                        <ChevronDown size={14} className="dropdown-icon" />
+                      </div>
             ) : (
               <div className="avatar-placeholder">
                 {user?.name?.charAt(0)?.toUpperCase()}

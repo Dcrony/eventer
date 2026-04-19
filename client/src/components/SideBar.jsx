@@ -76,7 +76,7 @@ export default function Sidebar() {
     : []),
 
   { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
-  {to: "/analysis", label: "Analytics", icon: <LineChart size={20} />},
+  {to: "/analytics", label: "Analytics", icon: <LineChart size={20} />},
   { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
