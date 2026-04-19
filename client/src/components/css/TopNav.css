@@ -25,12 +25,6 @@
   margin: 0 auto;
 }
 
-.top-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
 .top-nav-logo {
   text-decoration: none;
 }
