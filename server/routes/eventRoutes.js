@@ -4,7 +4,7 @@ const path = require("path");
 const multer = require("multer");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { requireEmailVerification } = require("../middleware/verificationMiddleware");
-const { checkPlanLimit } = require("../middleware/planLimitMiddleware");
+const { checkPlanLimit, checkUserPlan } = require("../middleware/planLimitMiddleware");
 const {
   createEvent,
   getAllEvents,
@@ -53,7 +53,7 @@ router.post("/:id/comments", authMiddleware, addEventComment);
 router.post("/:id/like", authMiddleware, toggleEventLike);
 router.post("/:id/share", trackEventShare);
 router.post("/:id/view", trackEventView);
-router.get("/:id/analytics", authMiddleware, getEventAnalytics);
+router.get("/:id/analytics", authMiddleware, checkUserPlan("analytics"), getEventAnalytics);
 router.put(
   "/update/:eventId",
   authMiddleware,

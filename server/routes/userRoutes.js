@@ -18,6 +18,8 @@ const {
   deactivateAccount,
   getPublicProfile,
   upgradeMyPlan,
+  getCreators,
+  getFounderProfile,
 } = require("../controllers/userController");
 
 
@@ -58,6 +60,8 @@ const upload = multer({ storage });
 router.put("/edit", authMiddleware, updateMyProfile);
 router.get("/me", authMiddleware, getMyProfile);
 router.patch("/me/plan", authMiddleware, upgradeMyPlan);
+router.get("/creators", getCreators);
+router.get("/founder/profile", getFounderProfile);
 
 router.post(
   "/me/upload",
