@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Helmet, HelmetProvider } from "react-helmet-async";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -42,6 +43,7 @@ import Notifications from "./components/NotificationsPage";
 import Messages from "./pages/Messages";
 import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
+import './App.css';
 import EventAnalytics from "./pages/EventAnalytics";
 import PlatformAnalytics from "./pages/PlatformAnalytics";
 import { ToastProvider } from "./components/ui/toast";
@@ -54,6 +56,10 @@ import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
 import API from "./api/axios";
 import { getCurrentUser, login } from "./utils/auth";
 import { useToast } from "./components/ui/toast";
+import { AuthProvider } from "./context/AuthContext";
+import FounderProfile from "./pages/FounderProfile";
+import Billing from "./pages/Billing";
+import DiscoverCreators from "./pages/DiscoverCreators";
 
 function Layout() {
   const location = useLocation();
@@ -126,6 +132,55 @@ function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <Helmet>
+        <title>TickiSpot - Discover & Manage Events</title>
+        <meta
+          name="description"
+          content="Created by Ibrahim Abdulmajeed, founder of TickiSpot"
+        />
+        <meta
+          name="keywords"
+          content="events, ticketing, Ibrahim Abdulmajeed, TickiSpot"
+        />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Person",
+                name: "Ibrahim Abdulmajeed",
+                jobTitle: "Founder",
+                worksFor: { "@type": "Organization", name: "TickiSpot" },
+                url: "https://dcrony.vercel.app",
+              },
+              {
+                "@type": "Person",
+                name: "OLarenwaju Oluwashinnayomi",
+                jobTitle: "Co-Founder",
+                worksFor: { "@type": "Organization", name: "TickiSpot" },
+                url: "",
+              },
+              {
+                "@type": "Organization",
+                name: "TickiSpot",
+                url: "https://tickispot.com" || "https://tickispot.vercel.app",
+                founder: {
+                  "@type": "Person",
+                  name: "Ibrahim Abdulmajeed",
+                },
+                coFounder: {
+                  "@type": "Person",
+                  name: "OLarenwaju Oluwashinnayomi",
+                },
+                foundingDate: "2024-01-01",
+                description:
+                  "TickiSpot is an all-in-one event management and ticketing platform designed to empower creators and organizers. With features like customizable event pages, secure ticketing, real-time analytics, and seamless integrations, TickiSpot makes it easy to create, promote, and manage events of all sizes. Whether you're hosting a small workshop or a large conference, TickiSpot provides the tools you need to succeed.",
+                logo: "https://tickispot.com/logo.png",
+              },
+            ],
+          })}
+        </script>
+      </Helmet>
       {/* Show Sidebar on Desktop, MobileBottomNav and TopNav on Mobile */}
       {!hideNavAndSidebar && (
         <>
@@ -140,11 +195,9 @@ function Layout() {
         </>
       )}
       
-      <main 
-        className={`flex-grow transition-all duration-300 ${
-          !hideNavAndSidebar && !isMobile ? "md:pl-[var(--sidebar-width,4rem)]" : ""
-        } ${!hideNavAndSidebar && isMobile ? "pb-20 pt-16" : ""}`}
-      >
+      <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
+
+   
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/events" element={<Home />} />
@@ -341,6 +394,16 @@ function Layout() {
           />
           <Route path="/user/:username" element={<Profile />} />
           <Route path="/features" element={<FeaturesPage/>} />
+          <Route path="/founder" element={<FounderProfile />} />
+          <Route
+            path="/billing"
+            element={
+              <ProtectedRoute>
+                <Billing />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/discover/creators" element={<DiscoverCreators />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<Pricing />} />
@@ -363,14 +426,18 @@ function Layout() {
 
 export default function App() {
   return (
-    <ToastProvider>
-      <SocketProvider>
-        <NotificationsProvider>
-          <BrowserRouter>
-            <Layout />
-          </BrowserRouter>
-        </NotificationsProvider>
-      </SocketProvider>
-    </ToastProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <SocketProvider>
+            <NotificationsProvider>
+              <BrowserRouter>
+                <Layout />
+              </BrowserRouter>
+            </NotificationsProvider>
+          </SocketProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
