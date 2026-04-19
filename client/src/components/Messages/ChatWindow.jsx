@@ -4,18 +4,20 @@ import MessageBubble from "./MessageBubble";
 import socket from "../../socket";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
-import { PORT_URL } from "../../utils/config";
+import { getProfileImageUrl } from "../../utils/eventHelpers";
+import { isMessageFromMe } from "../../utils/messaging";
 
-export default function ChatWindow({ currentUser, selectedUser }) {
+export default function ChatWindow({ currentUser, selectedUser, peerOnline = false }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [online, setOnline] = useState(false);
   const { toProfile } = useProfileNavigation();
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const myUserId = currentUser?.id ?? currentUser?._id;
 
   // Fetch messages when selectedUser changes
   useEffect(() => {
@@ -26,13 +28,13 @@ export default function ChatWindow({ currentUser, selectedUser }) {
         setLoading(true);
         const res = await API.get(`/messages/${selectedUser._id}`);
         // Ensure messages have consistent structure
-        const formattedMessages = res.data.map(msg => ({
+        const formattedMessages = res.data.map((msg) => ({
           ...msg,
-          senderId: msg.sender?._id || msg.sender,
-          receiverId: msg.receiver?._id || msg.receiver,
+          senderId: msg.sender?._id ?? msg.sender,
+          receiverId: msg.receiver?._id ?? msg.receiver,
           text: msg.text,
           createdAt: msg.createdAt,
-          seen: msg.seen
+          seen: msg.seen,
         }));
         setMessages(formattedMessages);
 
@@ -53,51 +55,38 @@ export default function ChatWindow({ currentUser, selectedUser }) {
     if (!currentUser || !selectedUser) return;
 
     // Join room for private chat
-    const room = [currentUser._id, selectedUser._id].sort().join('-');
+    const room = [myUserId, selectedUser._id].sort().join("-");
     socket.emit("joinChat", room);
 
     socket.on("receiveMessage", (data) => {
-      if (data.senderId === selectedUser._id || data.receiverId === selectedUser._id) {
-        setMessages((prev) => [...prev, data]);
-        // Mark as read if window is open
-        if (data.senderId === selectedUser._id) {
-          API.put(`/messages/read/${selectedUser._id}`).catch(console.error);
-        }
+      if (!data?.senderId || !myUserId) return;
+      const from = String(data.senderId);
+      const other = String(selectedUser._id);
+      const me = String(myUserId);
+      if (from !== other && from !== me) return;
+      setMessages((prev) => [...prev, data]);
+      if (from === other) {
+        API.put(`/messages/read/${selectedUser._id}`).catch(console.error);
       }
     });
 
-    socket.on("typing", ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        setIsTyping(true);
-      }
+    socket.on("typing", (payload) => {
+      const senderId = payload && typeof payload === "object" ? payload.senderId : payload;
+      if (String(senderId) === String(selectedUser._id)) setIsTyping(true);
     });
 
-    socket.on("stopTyping", ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        setIsTyping(false);
-      }
+    socket.on("stopTyping", (payload) => {
+      const senderId = payload && typeof payload === "object" ? payload.senderId : payload;
+      if (String(senderId) === String(selectedUser._id)) setIsTyping(false);
     });
-
-    socket.on("userOnline", ({ userId }) => {
-      if (userId === selectedUser._id) setOnline(true);
-    });
-
-    socket.on("userOffline", ({ userId }) => {
-      if (userId === selectedUser._id) setOnline(false);
-    });
-
-    // Emit that user is online
-    socket.emit("userOnline", currentUser._id);
 
     return () => {
       socket.off("receiveMessage");
       socket.off("typing");
       socket.off("stopTyping");
-      socket.off("userOnline");
-      socket.off("userOffline");
       socket.emit("leaveChat", room);
     };
-  }, [currentUser, selectedUser]);
+  }, [currentUser, selectedUser, myUserId]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -105,17 +94,17 @@ export default function ChatWindow({ currentUser, selectedUser }) {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!text.trim() || !currentUser || !selectedUser) return;
+    if (!text.trim() || !currentUser || !selectedUser || !myUserId) return;
 
     const tempId = Date.now();
     const msg = {
       _id: tempId,
-      senderId: currentUser._id,
+      senderId: myUserId,
       receiverId: selectedUser._id,
       text: text.trim(),
       createdAt: new Date().toISOString(),
       seen: false,
-      temp: true
+      temp: true,
     };
 
     // Optimistically add message
@@ -124,7 +113,7 @@ export default function ChatWindow({ currentUser, selectedUser }) {
 
     // Emit socket message
     socket.emit("sendMessage", {
-      senderId: currentUser._id,
+      senderId: myUserId,
       receiverId: selectedUser._id,
       text: text.trim(),
     });
@@ -147,17 +136,17 @@ export default function ChatWindow({ currentUser, selectedUser }) {
   };
 
   const handleTyping = () => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUser || !selectedUser || !myUserId) return;
 
     socket.emit("typing", {
-      senderId: currentUser._id,
+      senderId: myUserId,
       receiverId: selectedUser._id,
     });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit("stopTyping", {
-        senderId: currentUser._id,
+        senderId: myUserId,
         receiverId: selectedUser._id,
       });
     }, 1000);
@@ -193,9 +182,9 @@ export default function ChatWindow({ currentUser, selectedUser }) {
           }}
         >
           <div className="chat-header-avatar">
-            {selectedUser.profilePic ? (
+            {getProfileImageUrl(selectedUser) ? (
               <img
-                src={selectedUser.profilePic.startsWith('http') ? selectedUser.profilePic : `${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}`}
+                src={getProfileImageUrl(selectedUser)}
                 alt={selectedUser.username || selectedUser.name}
                 className="avatar-img"
               />
@@ -204,12 +193,12 @@ export default function ChatWindow({ currentUser, selectedUser }) {
                 {selectedUser.name?.charAt(0)?.toUpperCase() || selectedUser.username?.charAt(0)?.toUpperCase() || "U"}
               </div>
             )}
-            <span className={`online-indicator ${online ? 'online' : 'offline'}`}></span>
+            <span className={`online-indicator ${peerOnline ? "online" : "offline"}`}></span>
           </div>
           <div className="chat-header-info">
             <h3 className="chat-header-name">{selectedUser.name || selectedUser.username}</h3>
             <p className="chat-header-status">
-              {online ? 'Online' : 'Offline'}
+              {peerOnline ? "Online" : "Offline"}
             </p>
           </div>
         </div>
@@ -246,7 +235,7 @@ export default function ChatWindow({ currentUser, selectedUser }) {
                 <MessageBubble
                   key={msg._id || i}
                   message={msg}
-                  isMe={msg.senderId === currentUser._id || msg.sender?._id === currentUser._id}
+                  isMe={isMessageFromMe(msg, currentUser)}
                   currentUser={currentUser}
                 />
               ))}

@@ -3,7 +3,8 @@ import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import "./CSS/CreateEvent.css";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
-import icon from "../assets/icon.svg"
+import icon from "../assets/icon.svg";
+import { validateImageFile } from "../utils/imageUpload";
 
 const eventTypes = [
   {
@@ -71,11 +72,16 @@ export default function CreateEvent({ isOpen, onClose }) {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const err = validateImageFile(file);
+    if (err) {
+      alert(err);
+      e.target.value = "";
+      return;
     }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -88,9 +94,7 @@ export default function CreateEvent({ isOpen, onClose }) {
       });
       if (imageFile) formData.append("image", imageFile);
 
-      await API.post("/events/create", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await API.post("/events/create", formData);
 
       alert("✅ Event created successfully!");
       navigate("/events");
@@ -293,7 +297,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
                   onChange={handleImageChange}
                 />
               </label>

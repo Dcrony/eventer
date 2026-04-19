@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const multer = require("multer");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
@@ -76,6 +77,20 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);
 app.use("/api/messages", messageRoutes);
 
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "File too large (max 10MB)." });
+    }
+    return res.status(400).json({ message: err.message });
+  }
+  if (err?.message && String(err.message).includes("Only image files")) {
+    return res.status(400).json({ message: err.message });
+  }
+  console.error(err);
+  return res.status(500).json({ message: "Server error" });
+});
+
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -116,19 +131,25 @@ io.on("connection", (socket) => {
     socket.to(eventId).emit("userJoined", socket.id);
   });
 
-  // USER CONNECT (for Chat/Online status)
+  // USER CONNECT (for Chat/Online status) — keys normalized to strings for reliable lookups
   socket.on("addUser", (userId) => {
-    if (userId) {
-      onlineUsers.set(userId, socket.id);
+    if (userId != null && userId !== "") {
+      const id = String(userId);
+      onlineUsers.set(id, socket.id);
       io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
     }
+  });
+
+  // Let a client refresh the current online list (e.g. after switching chats) without rebroadcasting to everyone
+  socket.on("requestOnlineUsers", () => {
+    socket.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
   });
 
   // SEND MESSAGE (General/Event Chat)
   socket.on("sendMessage", (msg) => {
     // If it's a direct message (has receiverId)
     if (msg.receiverId) {
-      const receiverSocket = onlineUsers.get(msg.receiverId);
+      const receiverSocket = onlineUsers.get(String(msg.receiverId));
       if (receiverSocket) {
         io.to(receiverSocket).emit("receiveMessage", {
           senderId: msg.senderId,
@@ -145,14 +166,14 @@ io.on("connection", (socket) => {
 
   // TYPING
   socket.on("typing", ({ senderId, receiverId }) => {
-    const receiverSocket = onlineUsers.get(receiverId);
+    const receiverSocket = onlineUsers.get(String(receiverId));
     if (receiverSocket) {
       io.to(receiverSocket).emit("typing", senderId);
     }
   });
 
   socket.on("stopTyping", ({ senderId, receiverId }) => {
-    const receiverSocket = onlineUsers.get(receiverId);
+    const receiverSocket = onlineUsers.get(String(receiverId));
     if (receiverSocket) {
       io.to(receiverSocket).emit("stopTyping", senderId);
     }

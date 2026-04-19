@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
-import { PORT_URL } from "../../utils/config";
+import { getProfileImageUrl } from "../../utils/eventHelpers";
+import { isUserOnline } from "../../utils/messaging";
 
-export default function ChatList({ setSelectedUser, selectedUser }) {
+export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds = [] }) {
   const { toProfile } = useProfileNavigation();
   const [chats, setChats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,9 +23,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
             name: chat.user.name,
             username: chat.user.username,
             profilePic: chat.user.profilePic,
-            avatar: chat.user.profilePic ? 
-              (chat.user.profilePic.startsWith('http') ? chat.user.profilePic : `${PORT_URL}/uploads/profile_pic/${chat.user.profilePic}`) 
-              : null
+            avatar: getProfileImageUrl(chat.user),
           }
         }));
         setChats(formattedChats);
@@ -47,9 +46,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
         name: selectedUser.name || selectedUser.username,
         username: selectedUser.username,
         profilePic: selectedUser.profilePic,
-        avatar: selectedUser.profilePic ? 
-          (selectedUser.profilePic.startsWith('http') ? selectedUser.profilePic : `${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}`) 
-          : null
+        avatar: getProfileImageUrl(selectedUser),
       },
       lastMessage: null,
       unreadCount: 0
@@ -119,6 +116,10 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
                     {chat.user.name?.charAt(0)?.toUpperCase() || "U"}
                   </div>
                 )}
+                <span
+                  className={`online-indicator chat-item-online-indicator ${isUserOnline(onlineUserIds, chat.user._id) ? "online" : "offline"}`}
+                  aria-hidden
+                />
               </div>
               <div className="chat-item-content">
                 <div className="chat-item-info">

@@ -1,187 +1,312 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { jsPDF } from "jspdf";
+import { Link } from "react-router-dom";
+import {
+  QrCode,
+  Camera,
+  Square,
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  Download,
+  MapPin,
+  Calendar,
+  Ticket,
+  AlertCircle,
+  ScanLine,
+} from "lucide-react";
 import API from "../api/axios";
-import "./CSS/home.css";
+import "./CSS/TicketScanner.css";
 
 export default function TicketScanner() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [cooldown, setCooldown] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const scannerRef = useRef(null);
-  const [scanned, setScanned] = useState(false);
-
+  const scannedBlockRef = useRef(false);
 
   const playBeep = (file = "./sound/beep.m4a") => {
     const audio = new Audio(file);
     audio.play().catch(() => {});
   };
+
   const vibrate = (ms = 150) => navigator.vibrate && navigator.vibrate(ms);
 
   const extractTicketId = (text) => {
-    // Accepts formats like "TICKET:<id>:<buyer>" or just "<id>"
-    // Fallback: find the first 24-hex substring anywhere in the string.
     const m = String(text).match(/[0-9a-fA-F]{24}/);
     return m ? m[0] : null;
   };
 
-  const startScanner = () => {
-    if (!scannerRef.current) {
-      scannerRef.current = new Html5Qrcode("reader");
+  const stopScanner = useCallback(async () => {
+    const instance = scannerRef.current;
+    scannerRef.current = null;
+    if (!instance) {
+      setIsScanning(false);
+      return;
     }
-    scannerRef.current.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      async (decodedText) => {
-        if (cooldown || scanned) return;
-        const ticketId = extractTicketId(decodedText);
-        if (!ticketId) {
-          setError("Invalid QR format");
-          playBeep("./sound/bbb.wav");
-          vibrate(200);
-          setCooldown(true);
-          setTimeout(() => setCooldown(false), 1200);
-          return;
-        }
+    try {
+      await instance.stop();
+    } catch (_) {
+      /* already stopped */
+    }
+    try {
+      await instance.clear();
+    } catch (_) {
+      /* dom may be gone */
+    }
+    setIsScanning(false);
+  }, []);
 
-        try {
-          const res = await API.get(`/tickets/validate/${ticketId}`);
-          setResult(res.data);
-          setError(null);
-
-          if (res.data.success) {
-            playBeep("./sound/beep-valid.mp3");
+  const startScanner = async () => {
+    if (isScanning || isStarting) return;
+    setError(null);
+    setIsStarting(true);
+    try {
+      await stopScanner();
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 260, height: 260 } },
+        async (decodedText) => {
+          if (cooldown || scannedBlockRef.current) return;
+          const ticketId = extractTicketId(decodedText);
+          if (!ticketId) {
+            setError("That QR code is not a valid ticket.");
+            playBeep("./sound/bbb.wav");
             vibrate(200);
-            stopScanner(); // stop on success
-          } else {
+            setCooldown(true);
+            setTimeout(() => setCooldown(false), 1200);
+            return;
+          }
+
+          try {
+            const res = await API.get(`/tickets/validate/${ticketId}`);
+            setResult(res.data);
+            setError(null);
+
+            if (res.data.success) {
+              playBeep("./sound/beep-valid.mp3");
+              vibrate(200);
+              scannedBlockRef.current = true;
+              await stopScanner();
+            } else {
+              playBeep("./sound/bbb.wav");
+              vibrate(300);
+              setCooldown(true);
+              scannedBlockRef.current = true;
+              setTimeout(() => {
+                scannedBlockRef.current = false;
+                setCooldown(false);
+              }, 1000);
+            }
+          } catch (err) {
+            console.error(err);
+            const data = err.response?.data;
+            const msg =
+              (data && typeof data.message === "string" && data.message) ||
+              "Could not validate this ticket.";
+            if (data && typeof data === "object") {
+              setResult({
+                success: Boolean(data.success),
+                message: data.message || msg,
+                event: data.event,
+                ticket: data.ticket,
+              });
+              setError(null);
+            } else {
+              setResult(null);
+              setError(msg);
+            }
             playBeep("./sound/bbb.wav");
             vibrate(300);
             setCooldown(true);
-            setScanned(true);
-            setTimeout(() => setScanned(false), 1000);
-
+            scannedBlockRef.current = true;
+            setTimeout(() => {
+              scannedBlockRef.current = false;
+              setCooldown(false);
+            }, 1000);
           }
-        } catch (err) {
-          console.error(err);
-          setError("Failed to validate ticket.");
-          playBeep("./sound/bbb.wav");
-          vibrate(300);
-          setCooldown(true);
-          setScanned(true);
-          setTimeout(() => setScanned(false), 1000);
-        }
-      },
-      (scanError) => {
-        // Normal: frames without a QR will land here repeatedly
-        console.warn("QR Scan error:", scanError);
-      }
-    );
+        },
+        () => {}
+      );
+      setIsScanning(true);
+      scannedBlockRef.current = false;
+    } catch (e) {
+      console.error(e);
+      setError("Camera could not start. Allow camera access or try HTTPS.");
+      scannerRef.current = null;
+      setIsScanning(false);
+    } finally {
+      setIsStarting(false);
+    }
   };
 
-  const stopScanner = () => {
-    if (scannerRef.current) {
-      scannerRef.current.clear().then(() => (scannerRef.current = null));
+  const handleStop = () => {
+    stopScanner();
+    scannedBlockRef.current = false;
+  };
+
+  const clearOutcome = () => {
+    setResult(null);
+    setError(null);
+    scannedBlockRef.current = false;
+  };
+
+  const formatEventWhen = (ev) => {
+    if (!ev) return "—";
+    const raw = ev.startDate ?? ev.date;
+    if (!raw) return "—";
+    try {
+      return new Date(raw).toLocaleString("en-NG", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return String(raw);
     }
   };
 
   const downloadReceipt = () => {
     if (!result) return;
     const doc = new jsPDF();
-
     doc.setFontSize(18);
-    doc.text("🎫 Ticket Receipt", 20, 20);
-
+    doc.text("Ticket check-in receipt", 20, 20);
     doc.setFontSize(12);
-    doc.text(`Message: ${result.message}`, 20, 40);
-
+    doc.text(`Message: ${result.message || ""}`, 20, 36);
     if (result.event) {
-      doc.text(`Event: ${result.event.title}`, 20, 60);
-      doc.text(`Date: ${result.event.date}`, 20, 70);
-      doc.text(`Location: ${result.event.location}`, 20, 80);
+      const ev = result.event;
+      doc.text(`Event: ${ev.title || ""}`, 20, 52);
+      doc.text(`When: ${formatEventWhen(ev)}`, 20, 62);
+      doc.text(`Location: ${ev.location || ""}`, 20, 72);
     }
-
-    doc.text(`Status: ${result.success ? "✅ Valid" : "❌ Invalid"}`, 20, 100);
-
-    doc.save("ticket-receipt.pdf");
+    doc.text(`Status: ${result.success ? "Valid — checked in" : "Not valid"}`, 20, 90);
+    doc.save("ticket-check-in.pdf");
   };
 
+  const event = result?.event;
+  const showErrorBanner = Boolean(error) && !result;
+
   return (
-    <div className="home" style={{ textAlign: "center" }}>
-      <h2>🎫 Ticket Scanner</h2>
+    <div className="scanner-page">
+      <div className="scanner-shell">
+        <header className="scanner-top">
+          <div>
+            <Link to="/dashboard" className="scanner-back">
+              <ArrowLeft size={16} strokeWidth={2.25} />
+              Dashboard
+            </Link>
+            <h1 className="scanner-title">Ticket scanner</h1>
+            <p className="scanner-lede">
+              Check guests in at the door. Scan their QR code; valid tickets are marked used
+              automatically.
+            </p>
+          </div>
+          <div className="scanner-top-icon" aria-hidden>
+            <QrCode size={28} strokeWidth={1.75} />
+          </div>
+        </header>
 
-      <div id="reader" style={{ width: 320, margin: "auto" }} />
-
-      <div style={{ marginTop: 16 }}>
-        {!scannerRef.current ? (
-          <button
-            onClick={startScanner}
-            style={{
-              padding: "10px 20px",
-              background: "#4caf50",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Start Scanning
-          </button>
-        ) : (
-          <button
-            onClick={stopScanner}
-            style={{
-              padding: "10px 20px",
-              background: "#f44336",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Stop Scanning
-          </button>
-        )}
-      </div>
-
-      {result && (
-        <div style={{ marginTop: 20 }}>
-          {result.success ? (
-            <div style={{ color: "green" }}>
-              <h3>✅ {result.message}</h3>
-              <p>
-                <strong>Event:</strong> {result.event?.title}
-              </p>
-              <p>
-                <strong>Date:</strong> {result.event?.date}
-              </p>
-              <p>
-                <strong>Location:</strong> {result.event?.location}
-              </p>
-            </div>
-          ) : (
-            <div style={{ color: "red" }}>
-              <h3>❌ {result.message}</h3>
+        <div className="scanner-layout">
+          {showErrorBanner && (
+            <div className="scanner-error-banner" role="alert">
+              <AlertCircle size={20} />
+              <span>{error}</span>
             </div>
           )}
-          {/* Download button */}
-          <button
-            onClick={downloadReceipt}
-            style={{
-              marginTop: "15px",
-              padding: "10px 20px",
-              background: "#2196f3",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            ⬇ Download Receipt
-          </button>
-        </div>
-      )}
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+          <section className="scanner-panel" aria-label="Camera scanner">
+            <div className="scanner-viewport-wrap">
+              <div id="reader" />
+            </div>
+            <div className="scanner-controls">
+              {!isScanning ? (
+                <button
+                  type="button"
+                  className="scanner-btn scanner-btn--start"
+                  onClick={startScanner}
+                  disabled={isStarting}
+                >
+                  <Camera size={18} />
+                  {isStarting ? "Starting camera…" : "Start camera"}
+                </button>
+              ) : (
+                <button type="button" className="scanner-btn scanner-btn--stop" onClick={handleStop}>
+                  <Square size={16} />
+                  Stop camera
+                </button>
+              )}
+              {result && (
+                <button type="button" className="scanner-btn scanner-btn--ghost" onClick={clearOutcome}>
+                  <ScanLine size={18} />
+                  Scan another
+                </button>
+              )}
+            </div>
+            <p className="scanner-hint">
+              Use the back camera when possible. Hold the QR steady inside the frame until you hear the
+              tone.
+            </p>
+          </section>
+
+          {result && (
+            <aside
+              className={`scanner-result ${result.success ? "scanner-result--ok" : "scanner-result--bad"}`}
+              aria-live="polite"
+            >
+              <div className="scanner-result-head">
+                <div className="scanner-result-icon">
+                  {result.success ? <CheckCircle size={22} /> : <XCircle size={22} />}
+                </div>
+                <h2 className="scanner-result-title">{result.message}</h2>
+              </div>
+              <div className="scanner-result-body">
+                {event ? (
+                  <div className="scanner-result-meta">
+                    <div className="scanner-meta-row">
+                      <Ticket size={16} />
+                      <span className="scanner-meta-label">Event</span>
+                      <span className="scanner-meta-value">{event.title}</span>
+                    </div>
+                    <div className="scanner-meta-row">
+                      <Calendar size={16} />
+                      <span className="scanner-meta-label">When</span>
+                      <span className="scanner-meta-value">{formatEventWhen(event)}</span>
+                    </div>
+                    <div className="scanner-meta-row">
+                      <MapPin size={16} />
+                      <span className="scanner-meta-label">Where</span>
+                      <span className="scanner-meta-value">{event.location || "—"}</span>
+                    </div>
+                    {result.ticket?.quantity != null && (
+                      <div className="scanner-meta-row">
+                        <QrCode size={16} />
+                        <span className="scanner-meta-label">Passes</span>
+                        <span className="scanner-meta-value">{result.ticket.quantity}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  !result.success && <p className="scanner-meta-value">{result.message}</p>
+                )}
+                <div className="scanner-result-actions">
+                  <button type="button" className="scanner-btn scanner-btn--download" onClick={downloadReceipt}>
+                    <Download size={18} />
+                    Save PDF
+                  </button>
+                </div>
+              </div>
+            </aside>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

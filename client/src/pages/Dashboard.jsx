@@ -18,6 +18,8 @@ import {
   Wallet,
 } from "lucide-react";
 import CreateEvent from "./CreateEvent";
+import { ticketNetToOrganizer } from "../utils/transactions";
+import { getEventImageUrl } from "../utils/eventHelpers";
 
 const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
@@ -375,7 +377,7 @@ const handleWithdraw = async () => {
                       </div>
                     </div>
 
-                    <div>₦{formatNumber(tx.amount)}</div>
+                    <div>₦{formatNumber(ticketNetToOrganizer(tx))}</div>
 
                     <div className={`tx-status ${tx.status}`}>{tx.status}</div>
                   </div>
@@ -413,9 +415,9 @@ const handleWithdraw = async () => {
               <div className="events-grid">
                 {events.map((event) => (
                   <div key={event._id} className="event-card">
-                    {event.image && (
+                    {getEventImageUrl(event) && (
                       <img
-                        src={`${PORT_URL}/uploads/event_image/${event.image}`}
+                        src={getEventImageUrl(event)}
                         alt={event.title}
                         className="event-cover"
                       />

@@ -28,6 +28,7 @@ import {
 import io from "socket.io-client";
 import Peer from "simple-peer";
 import API from "../api/axios";
+import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import "./CSS/LiveStream.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -332,7 +333,7 @@ export default function LiveStream() {
                         ref={remoteVideo}
                         autoPlay
                         playsInline
-                        poster={event.image ? `${PORT_URL}/uploads/event_image/${event.image}` : undefined}
+                        poster={getEventImageUrl(event) || undefined}
                         onPlay={() => setViewerPaused(false)}
                         onPause={() => setViewerPaused(true)}
                     />
@@ -560,7 +561,7 @@ export default function LiveStream() {
                             >
                                 {event.createdBy?.profilePic ? (
                                     <img
-                                        src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                                        src={getProfileImageUrl(event.createdBy) || "/default-avatar.png"}
                                         alt=""
                                         className="creator-avatar-large"
                                     />
@@ -670,7 +671,7 @@ export default function LiveStream() {
                                             >
                                                 {t.buyer?.profilePic ? (
                                                     <img
-                                                        src={`${PORT_URL}/uploads/profile_pic/${t.buyer.profilePic}`}
+                                                        src={getProfileImageUrl(t.buyer) || "/default-avatar.png"}
                                                         alt=""
                                                         className="host-attendee-avatar"
                                                     />

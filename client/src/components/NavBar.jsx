@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
 import NotificationBell from "./NotificationBell";
-import { PORT_URL } from "../utils/config";
+import { getProfileImageUrl } from "../utils/eventHelpers";
 import "./css/Navbar.css";
 
 export default function NavBar() {
@@ -46,14 +46,14 @@ export default function NavBar() {
 
           <div className="profile-dropdown group">
             <img
-              src={`${PORT_URL}/uploads/profile_pic/${user.profilePic}`}
+              src={getProfileImageUrl(user) || "/default-avatar.png"}
               alt="Profile"
               className="nav-profile-pic"
             />
             <div className="dropdown-menu">
               <Link to="/profile/me">👤 Profile</Link>
               <Link to="/dashboard">📋 Dashboard</Link>
-              <Link to="/admin/dashboard">📊 Stats</Link>
+              <Link to="/analytics">📊 Analytics</Link>
               <button onClick={handleLogout} className="logout-btn">
                 🚪 Logout
               </button>

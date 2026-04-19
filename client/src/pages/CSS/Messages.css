@@ -322,6 +322,9 @@
   max-height: 100px;
   font-family: inherit;
   transition: all 0.2s;
+  color: var(--text-color, #102038);
+  background-color: #ffffff;
+  caret-color: #ff6b35;
 }
 
 .chat-input-field:focus {
@@ -335,7 +338,15 @@
 }
 
 .chat-input-field::placeholder {
-  color: #bbb;
+  color: #94a3b8;
+}
+
+.chat-input-field:-webkit-autofill,
+.chat-input-field:-webkit-autofill:hover,
+.chat-input-field:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-color, #102038);
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .chat-send-btn {
@@ -419,6 +430,9 @@
   font-size: 13px;
   outline: none;
   transition: all 0.2s;
+  color: var(--text-color, #102038);
+  background-color: #ffffff;
+  caret-color: #ff6b35;
 }
 
 .chat-list-search input:focus {
@@ -427,7 +441,15 @@
 }
 
 .chat-list-search input::placeholder {
-  color: #bbb;
+  color: #94a3b8;
+}
+
+.chat-list-search input:-webkit-autofill,
+.chat-list-search input:-webkit-autofill:hover,
+.chat-list-search input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text-color, #102038);
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .chat-list-items {
@@ -455,12 +477,18 @@
 }
 
 .chat-item-avatar {
+  position: relative;
   width: 48px;
   height: 48px;
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
   background: #f0f0f0;
+}
+
+.chat-item-online-indicator {
+  z-index: 1;
+  pointer-events: none;
 }
 
 .chat-item-avatar img {

@@ -4,13 +4,40 @@ import ChatList from "../components/Messages/ChatList";
 import ChatWindow from "../components/Messages/ChatWindow";
 import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
+import socket from "../socket";
+import { isUserOnline } from "../utils/messaging";
 import "./CSS/Messages.css";
 
 export default function Messages() {
   const [selectedUser, setSelectedUser] = useState(null);
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [searchParams] = useSearchParams();
   const userIdFromQuery = searchParams.get("user");
   const user = getCurrentUser();
+  const myUserId = user?.id ?? user?._id;
+
+  // Register with Socket.IO presence (server uses addUser + getOnlineUsers)
+  useEffect(() => {
+    if (!myUserId) return;
+
+    const onOnlineUsers = (ids) => {
+      setOnlineUserIds(Array.isArray(ids) ? ids : []);
+    };
+
+    const registerPresence = () => {
+      socket.emit("addUser", myUserId);
+      socket.emit("requestOnlineUsers");
+    };
+
+    socket.on("getOnlineUsers", onOnlineUsers);
+    socket.on("connect", registerPresence);
+    registerPresence();
+
+    return () => {
+      socket.off("getOnlineUsers", onOnlineUsers);
+      socket.off("connect", registerPresence);
+    };
+  }, [myUserId]);
 
   // auto select user if query param exists
   useEffect(() => {
@@ -32,9 +59,10 @@ export default function Messages() {
     <div className="dashboard-page messages-page">
       <div className="messages-container">
         <div className="messages-sidebar">
-          <ChatList 
-            setSelectedUser={setSelectedUser} 
+          <ChatList
+            setSelectedUser={setSelectedUser}
             selectedUser={selectedUser}
+            onlineUserIds={onlineUserIds}
           />
         </div>
         <div className="messages-main">
@@ -42,6 +70,7 @@ export default function Messages() {
             <ChatWindow
               currentUser={user}
               selectedUser={selectedUser}
+              peerOnline={isUserOnline(onlineUserIds, selectedUser._id)}
             />
           ) : (
             <div className="messages-empty">

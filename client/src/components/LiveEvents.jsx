@@ -16,6 +16,7 @@ import {
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import GoLiveModal from "./GoLiveModal";
+import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import "./css/LiveEvents.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -368,9 +369,9 @@ export default function LiveEvent() {
                   aria-label={`Watch ${event.title} by ${event.createdBy?.username || "Organizer"}`}
                 >
                   <div className="live-card-thumb">
-                    {event.image ? (
+                    {getEventImageUrl(event) ? (
                       <img
-                        src={`${PORT_URL}/uploads/event_image/${event.image}`}
+                        src={getEventImageUrl(event)}
                         alt={event.title || "Event thumbnail"}
                         className="live-card-thumb-img"
                         loading="lazy"
@@ -404,9 +405,9 @@ export default function LiveEvent() {
                         }
                       }}
                     >
-                      {event.createdBy?.profilePic ? (
+                      {getProfileImageUrl(event.createdBy) ? (
                         <img
-                          src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
+                          src={getProfileImageUrl(event.createdBy)}
                           alt=""
                           className="live-card-avatar"
                           aria-hidden="true"

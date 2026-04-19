@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
+import { getEventImageUrl } from "../utils/eventHelpers";
+import { validateImageFile } from "../utils/imageUpload";
 import "./css/Editevent.css";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
 
@@ -81,9 +83,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
         });
 
         if (data.image) {
-          setImagePreview(
-            `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/uploads/event_image/${data.image}`
-          );
+          setImagePreview(getEventImageUrl(data) || "");
         }
       })
       .catch(() => alert("❌ Failed to load event details"))
@@ -99,11 +99,16 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const err = validateImageFile(file);
+    if (err) {
+      alert(err);
+      e.target.value = "";
+      return;
     }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (e) => {
@@ -119,9 +124,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
 
       if (imageFile) formData.append("image", imageFile);
 
-      await API.put(`/events/update/${eventId}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await API.put(`/events/update/${eventId}`, formData);
 
       alert("✅ Event updated successfully!");
       onEventUpdated();
@@ -319,7 +322,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
                   onChange={handleImageChange}
                 />
               </label>

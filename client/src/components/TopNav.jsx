@@ -4,9 +4,10 @@ import {
   Menu, X, User, Settings, Radio, BarChart3, LogOut, ChevronRight,
   Ticket, Calendar, Heart, Star, Shield, CreditCard, HelpCircle,
   FileText, Users, Gift, TrendingUp, Award, Clock, DollarSign,
-  MapPin, Share2, Download, Bell, Globe, Lock
+  MapPin, Share2, Download, Bell, Globe, Lock, Banknote
 } from "lucide-react";
 import { getCurrentUser, logout } from "../utils/auth";
+import { getProfileImageUrl } from "../utils/eventHelpers";
 import "./css/TopNav.css";
 
 export default function TopNav() {
@@ -84,8 +85,8 @@ export default function TopNav() {
               }}
             >
               <div className="slide-menu-avatar">
-                {user.profilePic ? (
-                  <img src={user.profilePic} alt={user.name} />
+                {getProfileImageUrl(user) ? (
+                  <img src={getProfileImageUrl(user)} alt={user.name} />
                 ) : (
                   <div className="avatar-placeholder">
                     {user.name?.charAt(0)?.toUpperCase() || user.username?.charAt(0)?.toUpperCase()}
@@ -213,9 +214,14 @@ export default function TopNav() {
               <h4>Creator Hub</h4>
               {isOrganizer && (
                 <>
-                  <Link to="/organizer/dashboard" onClick={closeMenu} className="slide-menu-item">
+                  <Link to="/dashboard" onClick={closeMenu} className="slide-menu-item">
                     <BarChart3 size={20} />
                     <span>Dashboard</span>
+                    <ChevronRight size={16} className="menu-arrow" />
+                  </Link>
+                  <Link to="/earnings" onClick={closeMenu} className="slide-menu-item">
+                    <Banknote size={20} />
+                    <span>Earnings</span>
                     <ChevronRight size={16} className="menu-arrow" />
                   </Link>
                   <Link to="/create-event" onClick={closeMenu} className="slide-menu-item">
@@ -237,11 +243,6 @@ export default function TopNav() {
               )}
               {isAdmin && (
                 <>
-                  <Link to="/admin/dashboard" onClick={closeMenu} className="slide-menu-item">
-                    <BarChart3 size={20} />
-                    <span>Admin Dashboard</span>
-                    <ChevronRight size={16} className="menu-arrow" />
-                  </Link>
                   <Link to="/admin/users" onClick={closeMenu} className="slide-menu-item">
                     <Users size={20} />
                     <span>User Management</span>

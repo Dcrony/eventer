@@ -73,9 +73,7 @@ export default function Register() {
       formData.append("phone", phoneDigitsOnly(form.phone));
       formData.append("password", sanitizePassword(form.password));
 
-      const res = await API.post("/auth/register", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await API.post("/auth/register", formData);
 
       const { email, verificationCode } = res.data;
       if (email) localStorage.setItem("verifyEmail", email);

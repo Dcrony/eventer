@@ -13,6 +13,7 @@ const {
   getWithdrawalAnalytics,
   getMonthlyWithdrawalTrend,
 } = require("../controllers/withdrawalController");
+const { getOrganizerEarnings } = require("../controllers/statController");
 
 const {
   authMiddleware,
@@ -33,6 +34,13 @@ router.post(
 );
 
 router.get("/organizer/transactions", authMiddleware, getOrganizerTransactions);
+
+router.get(
+  "/organizer/earnings",
+  authMiddleware,
+  authorizeRoles("organizer", "admin"),
+  getOrganizerEarnings
+);
 
 /*
 |--------------------------------------------------------------------------

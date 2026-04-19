@@ -10,6 +10,7 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const sendEmail = require("../utils/email");
 const { recordTicketPurchaseMetrics } = require("./eventController");
+const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -113,10 +114,13 @@ exports.handlePaystackWebhook = async (req, res) => {
 
       await ticket.save();
 
+      const grossNaira = data.amount / 100;
+      const { platformFee, netToOrganizer } = splitTicketSaleForOrganizer(grossNaira);
+
       const organizer = await User.findById(eventDoc.createdBy);
 
       if (organizer) {
-        organizer.availableBalance += data.amount / 100;
+        organizer.availableBalance += netToOrganizer;
         await organizer.save();
       }
 
@@ -126,11 +130,12 @@ exports.handlePaystackWebhook = async (req, res) => {
       recordTicketPurchaseMetrics(eventDoc, quantity, ticketPrice * quantity);
       await eventDoc.save();
 
-      // Create transaction record
+      // Create transaction record (amount = buyer total; fee = platform commission)
       await Transaction.create({
         organizer: eventDoc.createdBy,
         type: "ticket",
-        amount: data.amount / 100,
+        amount: grossNaira,
+        fee: platformFee,
         status: "success",
         reference: data.reference,
         metadata: {

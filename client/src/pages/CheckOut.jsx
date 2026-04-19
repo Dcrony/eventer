@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
-import { PORT_URL } from "../utils/config";
+import { getEventImageUrl } from "../utils/eventHelpers";
 import { useMemo, useState } from "react";
 import {
   Calendar,
@@ -92,8 +92,7 @@ export default function Checkout() {
     });
   };
 
-  const imageBase = `${PORT_URL.replace("/api", "")}/uploads/event_image`;
-  const eventImg = event.image ? `${imageBase}/${event.image}` : null;
+  const eventImg = getEventImageUrl(event);
 
   return (
     <div className="dashboard-page checkout-page">

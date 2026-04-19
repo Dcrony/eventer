@@ -1,37 +1,32 @@
-
 import { useEffect, useState } from "react";
 import API from "../api/axios";
-import { 
-  CreditCard, 
-  Calendar, 
-  DollarSign, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Calendar,
+  CheckCircle,
+  XCircle,
   Clock,
   Download,
-  Filter,
   Search,
   ArrowUpDown,
   Receipt,
-  TrendingUp,
-  TrendingDown,
   Copy,
   Eye,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  BarChart3,
-  Wallet,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  ArrowLeft,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import "./CSS/Transactions.css";
+import { ticketNetToOrganizer } from "../utils/transactions";
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "date", direction: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,45 +52,56 @@ export default function Transactions() {
     fetchTransactions();
   }, [token]);
 
-  // Calculate totals and analytics
-  const totalAmount = transactions.reduce((sum, tx) => 
-    tx.status === "success" ? sum + tx.amount : sum, 0
-  );
-  
-  const successfulTransactions = transactions.filter(tx => tx.status === "success").length;
-  const pendingTransactions = transactions.filter(tx => tx.status === "pending").length;
-  const failedTransactions = transactions.filter(tx => tx.status === "failed").length;
-  
-  const successRate = transactions.length > 0 
-    ? ((successfulTransactions / transactions.length) * 100).toFixed(1) 
-    : 0;
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, typeFilter, searchTerm]);
 
-  // Sort transactions
-  const sortTransactions = (transactions) => {
-    return [...transactions].sort((a, b) => {
+  const successfulTicketNet = transactions.reduce((sum, tx) => {
+    if (tx.status !== "success" || tx.type !== "ticket") return sum;
+    return sum + ticketNetToOrganizer(tx);
+  }, 0);
+
+  const successfulWithdrawals = transactions.reduce((sum, tx) => {
+    if (tx.status !== "success" || tx.type !== "withdrawal") return sum;
+    return sum + (Number(tx.amount) || 0);
+  }, 0);
+
+  const netAfterWithdrawals = successfulTicketNet - successfulWithdrawals;
+
+  const successfulTransactions = transactions.filter((tx) => tx.status === "success").length;
+  const pendingTransactions = transactions.filter((tx) => tx.status === "pending").length;
+  const failedTransactions = transactions.filter((tx) => tx.status === "failed").length;
+
+  const successRate =
+    transactions.length > 0
+      ? ((successfulTransactions / transactions.length) * 100).toFixed(1)
+      : 0;
+
+  const sortTransactions = (list) => {
+    return [...list].sort((a, b) => {
       if (sortConfig.key === "date") {
-        return sortConfig.direction === "asc" 
+        return sortConfig.direction === "asc"
           ? new Date(a.createdAt) - new Date(b.createdAt)
           : new Date(b.createdAt) - new Date(a.createdAt);
       }
       if (sortConfig.key === "amount") {
-        return sortConfig.direction === "asc" 
-          ? a.amount - b.amount
-          : b.amount - a.amount;
+        const amt = (tx) =>
+          tx.type === "ticket" ? ticketNetToOrganizer(tx) : Number(tx.amount) || 0;
+        return sortConfig.direction === "asc" ? amt(a) - amt(b) : amt(b) - amt(a);
       }
       return 0;
     });
   };
 
-  // Filter and sort transactions
   const filteredAndSortedTransactions = sortTransactions(
-    transactions.filter(tx => {
+    transactions.filter((tx) => {
       if (filter !== "all" && tx.status !== filter) return false;
+      if (typeFilter !== "all" && tx.type !== typeFilter) return false;
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         return (
           tx.reference?.toLowerCase().includes(searchLower) ||
-          tx.amount.toString().includes(searchLower) ||
+          String(tx.amount).includes(searchLower) ||
           tx.status?.toLowerCase().includes(searchLower) ||
           tx.type?.toLowerCase().includes(searchLower)
         );
@@ -104,7 +110,6 @@ export default function Transactions() {
     })
   );
 
-  // Pagination
   const totalPages = Math.ceil(filteredAndSortedTransactions.length / itemsPerPage);
   const paginatedTransactions = filteredAndSortedTransactions.slice(
     (currentPage - 1) * itemsPerPage,
@@ -112,27 +117,66 @@ export default function Transactions() {
   );
 
   const handleSort = (key) => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   };
 
+  const exportCsv = () => {
+    if (filteredAndSortedTransactions.length === 0) return;
+    const headers = [
+      "Type",
+      "Status",
+      "Signed_amount_NGN",
+      "Fee_NGN",
+      "Buyer_paid_NGN",
+      "Reference",
+      "Date_ISO",
+    ];
+    const rows = filteredAndSortedTransactions.map((tx) => {
+      const fee = Number(tx.fee) || 0;
+      const buyerPaid = tx.type === "ticket" ? Number(tx.amount) || 0 : "";
+      const signed =
+        tx.type === "ticket"
+          ? ticketNetToOrganizer(tx)
+          : -(Number(tx.amount) || 0);
+      return [tx.type, tx.status, signed, fee, buyerPaid, tx.reference || "", new Date(tx.createdAt).toISOString()];
+    });
+    const escape = (v) => {
+      const s = String(v);
+      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+    const body = [headers.join(","), ...rows.map((r) => r.map(escape).join(","))].join("\n");
+    const blob = new Blob([body], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const getStatusIcon = (status) => {
-    switch(status) {
-      case "success": return <CheckCircle size={16} />;
-      case "pending": return <Clock size={16} />;
-      case "failed": return <XCircle size={16} />;
-      default: return null;
+    switch (status) {
+      case "success":
+        return <CheckCircle size={14} />;
+      case "pending":
+        return <Clock size={14} />;
+      case "failed":
+        return <XCircle size={14} />;
+      default:
+        return null;
     }
   };
 
-  const getTypeIcon = (type) => {
-    switch(type) {
-      case "ticket": return <ArrowUpRight size={14} className="type-icon income" />;
-      case "withdrawal": return <ArrowDownLeft size={14} className="type-icon expense" />;
-      default: return <CreditCard size={14} className="type-icon" />;
-    }
+  const getTypeDisplay = (type) => {
+    if (type === "ticket") return "Ticket sale";
+    if (type === "withdrawal") return "Withdrawal";
+    return type?.toUpperCase() || "Other";
   };
 
   const formatNumber = (num) => {
@@ -144,366 +188,493 @@ export default function Transactions() {
     const date = new Date(dateString);
     const now = new Date();
     const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 0) {
-      // Today - show time
-      return `Today at ${date.toLocaleTimeString("en-US", { 
-        hour: "2-digit", 
-        minute: "2-digit" 
+      return `Today, ${date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
       })}`;
     }
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString("en-US", { 
-      month: "short", 
-      day: "numeric", 
-      year: "numeric" 
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    // You could add a toast notification here
   };
+
+  const matchCount = filteredAndSortedTransactions.length;
+  const matchLabel =
+    matchCount === 0
+      ? "No rows match your filters."
+      : matchCount === 1
+        ? "1 row matches your filters."
+        : `${matchCount} rows match your filters.`;
 
   return (
     <div className="transactions-page">
-      {/* Header Section with Gradient */}
-      <div className="transactions-header-section">
-        <div className="header-content">
-          <div className="header-badge">
-            <BarChart3 size={20} />
-            <span>Financial Overview</span>
+      <div className="tx-layout">
+        <header className="tx-top-bar">
+          <div className="tx-top-bar-main">
+            <Link to="/dashboard" className="tx-back-link">
+              <ArrowLeft size={16} strokeWidth={2.25} />
+              Dashboard
+            </Link>
+            <h1 className="tx-page-title">Transaction history</h1>
+            <p className="tx-page-lede">
+              Naira (₦) only. Ticket rows show what you keep after fees; withdrawals show money sent to
+              your bank.
+            </p>
           </div>
-          <h1>
-            <Receipt size={32} />
-            Transaction History
-          </h1>
-          <p>View and manage all your payment transactions in one place</p>
-        </div>
-        
-        <div className="header-actions">
-          <Link to="/dashboard" className="back-to-dashboard-btn">
-            <ArrowUpDown size={18} />
-            Back to Dashboard
-          </Link>
-          <button className="export-btn">
+          <button
+            type="button"
+            className="tx-export-btn"
+            onClick={exportCsv}
+            disabled={loading || filteredAndSortedTransactions.length === 0}
+          >
             <Download size={18} />
             Export CSV
           </button>
-        </div>
-      </div>
+        </header>
 
-      {/* Stats Cards - Dashboard Style */}
-      <div className="stats-container-grid">
-        <div className="stat-tile pink">
-          <div className="stat-tile-content">
-            <div className="stat-label">Total Revenue</div>
-            <div className="stat-value">₦{formatNumber(totalAmount)}</div>
-          </div>
-          <div className="stat-tile-icon-wrapper">
-            <Wallet size={24} className="stat-tile-icon" />
-          </div>
-        </div>
-
-        <div className="stat-tile green">
-          <div className="stat-tile-content">
-            <div className="stat-label">Successful</div>
-            <div className="stat-value">{successfulTransactions}</div>
-          </div>
-          <div className="stat-tile-icon-wrapper">
-            <CheckCircle size={24} className="stat-tile-icon" />
-          </div>
-        </div>
-
-        <div className="stat-tile yellow">
-          <div className="stat-tile-content">
-            <div className="stat-label">Pending</div>
-            <div className="stat-value">{pendingTransactions}</div>
-          </div>
-          <div className="stat-tile-icon-wrapper">
-            <Clock size={24} className="stat-tile-icon" />
-          </div>
-        </div>
-
-        <div className="stat-tile red">
-          <div className="stat-tile-content">
-            <div className="stat-label">Failed</div>
-            <div className="stat-value">{failedTransactions}</div>
-          </div>
-          <div className="stat-tile-icon-wrapper">
-            <XCircle size={24} className="stat-tile-icon" />
-          </div>
-        </div>
-
-        <div className="stat-tile blue">
-          <div className="stat-tile-content">
-            <div className="stat-label">Success Rate</div>
-            <div className="stat-value">{successRate}%</div>
-          </div>
-          <div className="stat-tile-icon-wrapper">
-            <TrendingUp size={24} className="stat-tile-icon" />
-          </div>
-        </div>
-      </div>
-
-      {/* Filters Section */}
-      <div className="filters-section">
-        <div className="search-box">
-          <Search size={18} className="search-icon" />
-          <input
-            type="text"
-            placeholder="Search by reference, amount, or status..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="filter-tabs">
-          <button 
-            className={`filter-tab ${filter === "all" ? "active" : ""}`}
-            onClick={() => setFilter("all")}
-          >
-            All
-          </button>
-          <button 
-            className={`filter-tab success ${filter === "success" ? "active" : ""}`}
-            onClick={() => setFilter("success")}
-          >
-            <CheckCircle size={14} />
-            Success
-          </button>
-          <button 
-            className={`filter-tab pending ${filter === "pending" ? "active" : ""}`}
-            onClick={() => setFilter("pending")}
-          >
-            <Clock size={14} />
-            Pending
-          </button>
-          <button 
-            className={`filter-tab failed ${filter === "failed" ? "active" : ""}`}
-            onClick={() => setFilter("failed")}
-          >
-            <XCircle size={14} />
-            Failed
-          </button>
-        </div>
-      </div>
-
-      {/* Transactions Table Card */}
-      <div className="transactions-card">
-        <div className="table-header">
-          <div className="header-cell type">Type</div>
-          <div className="header-cell date" onClick={() => handleSort("date")}>
-            <Calendar size={14} />
-            <span>Date</span>
-            <ArrowUpDown size={12} className={`sort-icon ${sortConfig.key === "date" ? "active" : ""}`} />
-          </div>
-          <div className="header-cell amount" onClick={() => handleSort("amount")}>
-            <DollarSign size={14} />
-            <span>Amount</span>
-            <ArrowUpDown size={12} className={`sort-icon ${sortConfig.key === "amount" ? "active" : ""}`} />
-          </div>
-          <div className="header-cell status">Status</div>
-          <div className="header-cell reference">Reference</div>
-          <div className="header-cell actions">Actions</div>
-        </div>
-
-        <div className="table-body">
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Loading your transactions...</p>
+        <section className="tx-panel" aria-label="Transactions">
+          <div className="tx-summary-strip">
+            <div className="tx-sum-item">
+              <span className="tx-sum-label">Net after withdrawals</span>
+              <span className="tx-sum-value">₦{formatNumber(netAfterWithdrawals)}</span>
+              <span className="tx-sum-meta">Successful credits minus payouts</span>
             </div>
-          ) : paginatedTransactions.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon-wrapper">
-                <Receipt size={48} />
+            <div className="tx-sum-item">
+              <span className="tx-sum-label">Ticket sales (net)</span>
+              <span className="tx-sum-value">₦{formatNumber(successfulTicketNet)}</span>
+              <span className="tx-sum-meta">Your share after platform fees</span>
+            </div>
+            <div className="tx-sum-item">
+              <span className="tx-sum-label">Withdrawals paid</span>
+              <span className="tx-sum-value">₦{formatNumber(successfulWithdrawals)}</span>
+              <span className="tx-sum-meta">Completed bank transfers</span>
+            </div>
+            <div className="tx-sum-item">
+              <span className="tx-sum-label">Success rate</span>
+              <span className="tx-sum-value">{successRate}%</span>
+              <span className="tx-sum-meta">
+                {pendingTransactions} pending · {failedTransactions} failed
+              </span>
+            </div>
+          </div>
+
+          <div className="tx-toolbar">
+            <div className="tx-search-field">
+              <Search size={17} className="tx-search-icon" aria-hidden />
+              <input
+                type="search"
+                placeholder="Search reference, amount, status, type…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoComplete="off"
+                aria-label="Search transactions"
+              />
+            </div>
+            <div className="tx-filter-rows">
+              <div className="tx-filter-row">
+                <span className="tx-filter-name">Activity</span>
+                <div className="tx-chip-list">
+                  <button
+                    type="button"
+                    className={`tx-chip ${typeFilter === "all" ? "tx-chip--on" : ""}`}
+                    onClick={() => setTypeFilter("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={`tx-chip ${typeFilter === "ticket" ? "tx-chip--on" : ""}`}
+                    onClick={() => setTypeFilter("ticket")}
+                  >
+                    <ArrowUpRight size={13} />
+                    Sales
+                  </button>
+                  <button
+                    type="button"
+                    className={`tx-chip ${typeFilter === "withdrawal" ? "tx-chip--on" : ""}`}
+                    onClick={() => setTypeFilter("withdrawal")}
+                  >
+                    <ArrowDownLeft size={13} />
+                    Withdrawals
+                  </button>
+                </div>
               </div>
-              <h3>No transactions found</h3>
-              <p>Transactions will appear here once you start selling tickets</p>
-              <Link to="/events" className="browse-events-btn">
-                Browse Events
-              </Link>
+              <div className="tx-filter-row">
+                <span className="tx-filter-name">Status</span>
+                <div className="tx-chip-list">
+                  <button
+                    type="button"
+                    className={`tx-chip ${filter === "all" ? "tx-chip--on" : ""}`}
+                    onClick={() => setFilter("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    className={`tx-chip tx-chip--success ${filter === "success" ? "tx-chip--on" : ""}`}
+                    onClick={() => setFilter("success")}
+                  >
+                    <CheckCircle size={13} />
+                    Success
+                  </button>
+                  <button
+                    type="button"
+                    className={`tx-chip tx-chip--pending ${filter === "pending" ? "tx-chip--on" : ""}`}
+                    onClick={() => setFilter("pending")}
+                  >
+                    <Clock size={13} />
+                    Pending
+                  </button>
+                  <button
+                    type="button"
+                    className={`tx-chip tx-chip--failed ${filter === "failed" ? "tx-chip--on" : ""}`}
+                    onClick={() => setFilter("failed")}
+                  >
+                    <XCircle size={13} />
+                    Failed
+                  </button>
+                </div>
+              </div>
             </div>
-          ) : (
-            paginatedTransactions.map((tx, index) => (
-              <div 
-                key={tx._id} 
-                className={`table-row ${index % 2 === 0 ? "even" : "odd"}`}
-                onClick={() => setSelectedTransaction(tx)}
-              >
-                <div className="row-cell type" data-label="Type">
-                  <div className="transaction-type">
-                    {getTypeIcon(tx.type)}
-                    <span className="type-text">
-                      {tx.type === "ticket" ? "Ticket Sale" : 
-                       tx.type === "withdrawal" ? "Withdrawal" : 
-                       tx.type?.toUpperCase() || "TRANSFER"}
-                    </span>
-                  </div>
-                </div>
+          </div>
 
-                <div className="row-cell date" data-label="Date">
-                  <span className="date-full">{formatDate(tx.createdAt)}</span>
-                  <span className="date-mobile">
-                    {new Date(tx.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                
-                <div className="row-cell amount" data-label="Amount">
-                  <span className={`amount-value ${tx.type === "withdrawal" ? "negative" : "positive"}`}>
-                    {tx.type === "withdrawal" ? "-" : "+"} ₦{formatNumber(tx.amount)}
-                  </span>
-                </div>
+          <div className="tx-table-headline">
+            <h2>Movements</h2>
+            <p>{matchLabel}</p>
+          </div>
 
-                <div className="row-cell status" data-label="Status">
-                  <span className={`status-badge ${tx.status}`}>
-                    {getStatusIcon(tx.status)}
-                    <span className="status-text">{tx.status}</span>
-                  </span>
-                </div>
+          <div className="table-header" role="row">
+            <div className="header-cell type">Type</div>
+            <button
+              type="button"
+              className="header-cell date sortable"
+              onClick={() => handleSort("date")}
+            >
+              <Calendar size={14} />
+              <span>Date</span>
+              <ArrowUpDown
+                size={12}
+                className={`sort-icon ${sortConfig.key === "date" ? "active" : ""}`}
+              />
+            </button>
+            <button
+              type="button"
+              className="header-cell amount sortable"
+              onClick={() => handleSort("amount")}
+            >
+              <span className="tx-amount-heading">
+                Amount<span className="tx-amount-heading-cur">₦</span>
+              </span>
+              <ArrowUpDown
+                size={12}
+                className={`sort-icon ${sortConfig.key === "amount" ? "active" : ""}`}
+              />
+            </button>
+            <div className="header-cell status">Status</div>
+            <div className="header-cell reference">Reference</div>
+            <div className="header-cell actions" aria-hidden />
+          </div>
 
-                <div className="row-cell reference" data-label="Reference">
-                  <div className="reference-wrapper">
-                    <span className="reference-text">
-                      {tx.reference ? tx.reference.slice(0, 8) + "..." : "—"}
-                    </span>
-                    {tx.reference && (
-                      <button 
-                        className="copy-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyToClipboard(tx.reference);
-                        }}
-                      >
-                        <Copy size={14} />
-                      </button>
-                    )}
-                  </div>
+          <div className="table-body">
+            {loading ? (
+              <div className="loading-state">
+                <div className="spinner" />
+                <p>Loading transactions…</p>
+              </div>
+            ) : paginatedTransactions.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon-wrapper">
+                  <Receipt size={40} />
                 </div>
-
-                <div className="row-cell actions" data-label="Actions">
-                  <button 
-                    className="action-btn view" 
-                    title="View Details"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTransaction(tx);
+                <h3>No transactions match</h3>
+                <p>
+                  {transactions.length === 0
+                    ? "Sales and withdrawals will show up here as soon as there is activity on your account."
+                    : "Try clearing filters or searching with a different term."}
+                </p>
+                {transactions.length === 0 ? (
+                  <Link to="/events" className="browse-events-btn">
+                    Browse events
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="tx-reset-filters"
+                    onClick={() => {
+                      setFilter("all");
+                      setTypeFilter("all");
+                      setSearchTerm("");
                     }}
                   >
-                    <Eye size={14} />
+                    Reset filters
                   </button>
-                  <button className="action-btn download" title="Download Receipt">
-                    <Download size={14} />
-                  </button>
-                </div>
+                )}
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              paginatedTransactions.map((tx) => (
+                <div
+                  key={tx._id}
+                  className="table-row"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedTransaction(tx)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedTransaction(tx);
+                    }
+                  }}
+                >
+                  <div className="row-cell type" data-label="Type">
+                    <div className="transaction-type">
+                      <div
+                        className={`type-pill ${tx.type === "withdrawal" ? "expense" : "income"}`}
+                      >
+                        {tx.type === "withdrawal" ? (
+                          <ArrowDownLeft size={16} />
+                        ) : (
+                          <ArrowUpRight size={16} />
+                        )}
+                      </div>
+                      <span className="type-text">{getTypeDisplay(tx.type)}</span>
+                    </div>
+                  </div>
 
-        {/* Pagination */}
-        {filteredAndSortedTransactions.length > 0 && (
-          <div className="table-footer">
-            <span className="showing-info">
-              Showing {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredAndSortedTransactions.length)} of {filteredAndSortedTransactions.length} transactions
-            </span>
-            <div className="pagination">
-              <button 
-                className="page-nav"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              
-              {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                
-                return (
-                  <button
-                    key={i}
-                    className={`page-btn ${currentPage === pageNum ? "active" : ""}`}
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              
-              <button 
-                className="page-nav"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+                  <div className="row-cell date" data-label="Date">
+                    <span className="date-full">{formatDate(tx.createdAt)}</span>
+                    <span className="date-mobile">
+                      {new Date(tx.createdAt).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="row-cell amount" data-label="Amount">
+                    <span
+                      className={`amount-value ${tx.type === "withdrawal" ? "negative" : "positive"}`}
+                    >
+                      {tx.type === "withdrawal" ? "−" : "+"}₦
+                      {formatNumber(
+                        tx.type === "ticket" ? ticketNetToOrganizer(tx) : tx.amount
+                      )}
+                    </span>
+                    {tx.type === "ticket" && Number(tx.fee) > 0 && (
+                      <span className="amount-sub" title="Platform fee on this sale">
+                        Fee ₦{formatNumber(tx.fee)} · buyer paid ₦{formatNumber(tx.amount)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="row-cell status" data-label="Status">
+                    <span className={`status-badge ${tx.status}`}>
+                      {getStatusIcon(tx.status)}
+                      <span className="status-text">{tx.status}</span>
+                    </span>
+                  </div>
+
+                  <div className="row-cell reference" data-label="Reference">
+                    <div className="reference-wrapper">
+                      <span className="reference-text" title={tx.reference || undefined}>
+                        {tx.reference
+                          ? tx.reference.length > 14
+                            ? `${tx.reference.slice(0, 14)}…`
+                            : tx.reference
+                          : "—"}
+                      </span>
+                      {tx.reference && (
+                        <button
+                          type="button"
+                          className="copy-btn"
+                          title="Copy reference"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(tx.reference);
+                          }}
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="row-cell actions" data-label="">
+                    <button
+                      type="button"
+                      className="action-btn view"
+                      title="Details"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTransaction(tx);
+                      }}
+                    >
+                      <Eye size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-        )}
+
+          {filteredAndSortedTransactions.length > 0 && !loading && (
+            <div className="table-footer">
+              <span className="showing-info">
+                Showing {(currentPage - 1) * itemsPerPage + 1}–
+                {Math.min(currentPage * itemsPerPage, filteredAndSortedTransactions.length)} of{" "}
+                {filteredAndSortedTransactions.length}
+              </span>
+              <div className="pagination">
+                <button
+                  type="button"
+                  className="page-nav"
+                  aria-label="Previous page"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`page-btn ${currentPage === pageNum ? "active" : ""}`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  className="page-nav"
+                  aria-label="Next page"
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Transaction Details Modal */}
       {selectedTransaction && (
-        <div className="modal-overlay" onClick={() => setSelectedTransaction(null)}>
-          <div className="transaction-modal" onClick={e => e.stopPropagation()}>
-            <h3>Transaction Details</h3>
+        <div className="modal-overlay" role="presentation" onClick={() => setSelectedTransaction(null)}>
+          <div
+            className="transaction-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tx-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-top">
+              <h3 id="tx-modal-title">Transaction details</h3>
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Close"
+                onClick={() => setSelectedTransaction(null)}
+              >
+                <X size={18} />
+              </button>
+            </div>
             <div className="modal-content">
               <div className="detail-row">
-                <span className="detail-label">Type:</span>
-                <span className="detail-value">
-                  {selectedTransaction.type === "ticket" ? "Ticket Sale" : 
-                   selectedTransaction.type === "withdrawal" ? "Withdrawal" : 
-                   selectedTransaction.type?.toUpperCase() || "Transfer"}
-                </span>
+                <span className="detail-label">Type</span>
+                <span className="detail-value">{getTypeDisplay(selectedTransaction.type)}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Amount:</span>
-                <span className={`detail-value amount ${selectedTransaction.type === "withdrawal" ? "negative" : "positive"}`}>
-                  {selectedTransaction.type === "withdrawal" ? "-" : "+"} ₦{formatNumber(selectedTransaction.amount)}
+                <span className="detail-label">
+                  {selectedTransaction.type === "ticket" ? "You receive" : "Amount"}
+                </span>
+                <span
+                  className={`detail-value amount ${selectedTransaction.type === "withdrawal" ? "negative" : "positive"}`}
+                >
+                  {selectedTransaction.type === "withdrawal" ? "−" : "+"}₦
+                  {formatNumber(
+                    selectedTransaction.type === "ticket"
+                      ? ticketNetToOrganizer(selectedTransaction)
+                      : selectedTransaction.amount
+                  )}
                 </span>
               </div>
+              {selectedTransaction.type === "ticket" && Number(selectedTransaction.fee) > 0 && (
+                <>
+                  <div className="detail-row">
+                    <span className="detail-label">Buyer paid</span>
+                    <span className="detail-value">₦{formatNumber(selectedTransaction.amount)}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Platform fee</span>
+                    <span className="detail-value">₦{formatNumber(selectedTransaction.fee)}</span>
+                  </div>
+                </>
+              )}
               <div className="detail-row">
-                <span className="detail-label">Status:</span>
+                <span className="detail-label">Status</span>
                 <span className={`status-badge ${selectedTransaction.status}`}>
                   {getStatusIcon(selectedTransaction.status)}
                   <span>{selectedTransaction.status}</span>
                 </span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Reference:</span>
+                <span className="detail-label">Reference</span>
                 <span className="detail-value reference">{selectedTransaction.reference || "—"}</span>
               </div>
               <div className="detail-row">
-                <span className="detail-label">Date:</span>
+                <span className="detail-label">Date</span>
                 <span className="detail-value">
                   {new Date(selectedTransaction.createdAt).toLocaleString("en-US", {
-                    weekday: "long",
+                    weekday: "short",
                     year: "numeric",
-                    month: "long",
+                    month: "short",
                     day: "numeric",
                     hour: "2-digit",
-                    minute: "2-digit"
+                    minute: "2-digit",
                   })}
                 </span>
               </div>
             </div>
             <div className="modal-actions">
-              <button onClick={() => setSelectedTransaction(null)}>Close</button>
-              <button className="download-receipt-btn">
-                <Download size={16} />
-                Download Receipt
+              <button type="button" onClick={() => setSelectedTransaction(null)}>
+                Close
               </button>
+              {selectedTransaction.reference ? (
+                <button
+                  type="button"
+                  className="download-receipt-btn"
+                  onClick={() => copyToClipboard(selectedTransaction.reference)}
+                >
+                  <Copy size={16} />
+                  Copy reference
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
