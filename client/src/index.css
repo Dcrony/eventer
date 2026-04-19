@@ -394,7 +394,7 @@ body::-webkit-scrollbar-thumb {
 
 @media (max-width: 768px) {
   .dashboard-page {
-    padding: 1rem 0.85rem 6rem;
+    padding: 4rem 0 6rem;
   }
 
   .ui-toast-stack {
