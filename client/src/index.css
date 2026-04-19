@@ -161,8 +161,8 @@ body::-webkit-scrollbar-thumb {
 }
 
 .ui-button-secondary {
-  background: #f8f8f8;
-  color: #f3f4f6;
+  background: #f3f4f6;
+  color: #1f1313;
   border-color: var(--border-subtle);
 }
 

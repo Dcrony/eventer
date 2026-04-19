@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema(
       required: false,
       unique: false,
     },
+    location: {
+  type: String,
+  default: "Tickispot",
+},
     password: {
       type: String,
       required: false,

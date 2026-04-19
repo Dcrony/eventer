@@ -116,13 +116,14 @@ const updateMyProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const { name, username, email, phone, bio, currentPassword, newPassword } = req.body;
+    const { name, username, email, phone, bio, location, currentPassword, newPassword } = req.body;
 
     if (name) user.name = name;
     if (username) user.username = username;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (bio) user.bio = bio;
+    if (location) user.location = location;
 
     if (currentPassword && newPassword) {
       if (!user.password) {

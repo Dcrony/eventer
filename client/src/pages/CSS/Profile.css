@@ -148,6 +148,43 @@
   padding: 1.2rem 1.4rem 1.5rem;
 }
 
+.plan-badge-wrapper {
+  margin-top: 10px;
+}
+
+.plan-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* Free */
+.plan-badge.free {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Pro */
+.plan-badge.pro {
+  background: rgba(236, 72, 153, 0.1);
+  color: #ec4899;
+}
+
+/* Business */
+.plan-badge.business {
+  background: #111827;
+  color: #fff;
+}
+
+.plan-subtext {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
 .profile-tab-strip {
   position: sticky;
   top: 1rem;

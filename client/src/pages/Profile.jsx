@@ -257,6 +257,7 @@ export default function Profile() {
               </div>
 
               <div className="profile-header-actions">
+                                  
                 {profile.isOwner ? (
                   <>
                     <Button variant="secondary" onClick={handleShareProfile}>
@@ -284,6 +285,8 @@ export default function Profile() {
               </div>
             </div>
 
+
+
             <div className="profile-summary">
               <div className="profile-name-line">
                 <h1>{profileName}</h1>
@@ -304,6 +307,7 @@ export default function Profile() {
                   {formatJoinDate(profile.createdAt)}
                 </span>
               </div>
+              
 
               <div className="profile-follow-row">
                 <button type="button" className="profile-follow-stat">
@@ -316,7 +320,19 @@ export default function Profile() {
                 </button>
               </div>
             </div>
+            <div className="plan-badge-wrapper">
+  <span className={`plan-badge ${profile.plan}`}>
+    {profile.plan?.toUpperCase()} PLAN
+  </span>
+</div>
+<p className="plan-subtext">
+  {profile.plan === "free" && "Upgrade to unlock more features"}
+  {profile.plan === "pro" && "You have access to pro features"}
+  {profile.plan === "business" && "Full access enabled"}
+</p>
           </div>
+          
+    
         </section>
 
         <section className="profile-content-card">

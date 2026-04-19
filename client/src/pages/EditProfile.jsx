@@ -2,22 +2,27 @@ import { useState, useEffect } from "react";
 import API from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import "./CSS/EditProfile.css";
+import { useToast } from "../components/ui/toast";
 
 const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
 
 export default function EditProfile() {
   const navigate = useNavigate();
 
+  const toast = useToast();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewPic, setPreviewPic] = useState(null);
   const [previewCover, setPreviewCover] = useState(null);
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    bio: "",
-  });
+  name: "",
+  username: "",
+  bio: "",
+  location: "",
+  email: "",
+  phone: "",
+});
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -28,10 +33,13 @@ export default function EditProfile() {
         });
         setUser(res.data);
         setFormData({
-          name: res.data.name || "",
-          username: res.data.username || "",
-          bio: res.data.bio || "",
-        });
+  name: res.data.name || "",
+  username: res.data.username || "",
+  bio: res.data.bio || "",
+  location: res.data.location || "",
+  email: res.data.email || "",
+  phone: res.data.phone || "",
+});
       } catch (err) {
         console.error("Failed to load profile", err);
       }
@@ -91,7 +99,21 @@ const buildImageUrl = (path, type = "profile") => {
         },
       });
 
-      const objectUrl = URL.createObjectURL(file);
+      if (type === "profilePic") {
+  if (previewPic) URL.revokeObjectURL(previewPic);
+
+  const objectUrl = URL.createObjectURL(file);
+  setPreviewPic(objectUrl);
+
+  setUser((prev) => ({ ...prev, profilePic: res.data.profilePic }));
+} else {
+  if (previewCover) URL.revokeObjectURL(previewCover);
+
+  const objectUrl = URL.createObjectURL(file);
+  setPreviewCover(objectUrl);
+
+  setUser((prev) => ({ ...prev, coverPic: res.data.coverPic }));
+}
 
       if (type === "profilePic") {
         setPreviewPic(objectUrl);
@@ -102,7 +124,7 @@ const buildImageUrl = (path, type = "profile") => {
       }
     } catch (err) {
       console.error("Upload failed:", err);
-      alert("❌ Upload failed. Try again.");
+      toast.error("Update failed. Please try again");
     } finally {
       setLoading(false);
     }
@@ -117,11 +139,11 @@ const buildImageUrl = (path, type = "profile") => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      alert("✅ Profile updated successfully!");
+      toast.success("Profile updated successfully");
       navigate(`/users/${user?.id ?? user?._id ?? ""}`);
     } catch (err) {
       console.error("Error updating profile:", err);
-      alert("❌ Update failed. Please try again.");
+      toast.error("Update failed. Please try again");
     } finally {
       setSaving(false);
     }
@@ -178,40 +200,70 @@ const buildImageUrl = (path, type = "profile") => {
       </div>
 
       {/* ===== Form Section ===== */}
-      <form className="editprofile-form" onSubmit={handleSubmit}>
-        <h2>Edit Profile</h2>
+      <form className="settings-container" onSubmit={handleSubmit}>
+  
+  <div className="settings-header">
+    <h1>Account Settings</h1>
+    <p>Manage your profile and account details</p>
+  </div>
 
-        <label>Name</label>
-        <input
-          type="text"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Your full name"
-        />
+  {/* Profile Section */}
+  <div className="settings-card">
+    <h2>Profile Information</h2>
 
+    <div className="settings-grid">
+      <div>
+        <label>Full Name</label>
+        <input name="name" value={formData.name} onChange={handleChange} />
+      </div>
+
+      <div>
         <label>Username</label>
-        <input
-          type="text"
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          placeholder="@username"
-        />
+        <input name="username" value={formData.username} onChange={handleChange} />
+      </div>
 
+      <div className="full">
         <label>Bio</label>
-        <textarea
-          name="bio"
-          value={formData.bio}
-          onChange={handleChange}
-          placeholder="Write a short bio..."
-          rows="4"
-        />
+        <textarea name="bio" value={formData.bio} onChange={handleChange} />
+      </div>
 
-        <button type="submit" disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-      </form>
+      <div className="full">
+        <label>Location</label>
+        <input
+          name="location"
+          value={formData.location}
+          onChange={handleChange}
+          placeholder="e.g Lagos, Nigeria"
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* Account Section */}
+  <div className="settings-card">
+    <h2>Account Details</h2>
+
+    <div className="settings-grid">
+      <div>
+        <label>Email</label>
+        <input name="email" value={formData.email} onChange={handleChange} />
+      </div>
+
+      <div>
+        <label>Phone</label>
+        <input name="phone" value={formData.phone} onChange={handleChange} />
+      </div>
+    </div>
+  </div>
+
+  {/* Save */}
+  <div className="settings-actions">
+    <button type="submit" disabled={saving}>
+      {saving ? "Saving..." : "Save Changes"}
+    </button>
+  </div>
+
+</form>
     </div>
   );
 }
