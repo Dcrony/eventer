@@ -86,7 +86,7 @@ export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds 
         <div className="chat-list-topbar">
           <div>
             <h2>Messages</h2>
-            <p>Your recent conversations</p>
+            <p>Loading your conversations…</p>
           </div>
         </div>
         <div className="chat-list-loading">

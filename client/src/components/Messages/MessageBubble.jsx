@@ -47,9 +47,8 @@ export default function MessageBubble({ message, isMe }) {
           <div className="message-meta">
             <span className="message-time">{formatTime(message.createdAt)}</span>
             {isMe ? (
-              <span className={`message-status ${status.toLowerCase()}`}>
-                {message.seen ? <CheckCheck size={14} /> : <Check size={14} />}
-                {status}
+              <span className={`message-status ${status.toLowerCase()}`} title={status}>
+                {message.seen ? <CheckCheck size={14} strokeWidth={2.5} /> : <Check size={14} strokeWidth={2.5} />}
               </span>
             ) : null}
           </div>

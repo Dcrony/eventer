@@ -21,25 +21,6 @@
   position: relative;
 }
 
-/* Mobile top bar: bell is on the right — avoid opening the panel past the viewport */
-.top-nav .notification-bell-dropdown:not(.is-mobile) {
-  left: auto;
-  right: 0;
-  margin-left: 0;
-  animation: nb-slideInFromRight 0.2s ease-out;
-}
-
-@keyframes nb-slideInFromRight {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .notification-bell-trigger:hover {
   background: var(--nb-hover, rgba(0, 0, 0, 0.04));
   color: var(--nb-text, #1e293b);
@@ -69,19 +50,15 @@
   box-shadow: 0 0 0 2px var(--nb-bg, #fff);
 }
 
-/* ----- Dropdown panel (opens to the right of the bell so it’s not clipped by sidebar) ----- */
-.notification-bell-dropdown {
-  position: absolute;
-  left: 100%;
-  top: 0;
-  margin-left: 10px;
+/* ----- Dropdown: desktop is portaled to body with fixed top/left from JS (see .is-portal-desktop) ----- */
+.notification-bell-dropdown.is-portal-desktop {
+  margin: 0;
   width: 360px;
   max-width: calc(100vw - 2rem);
   background: var(--nb-bg, #ffffff);
   border: 1px solid var(--nb-border, rgba(0, 0, 0, 0.08));
   border-radius: 16px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
-  z-index: 10001;
   overflow: hidden;
   animation: nb-slideUp 0.2s ease-out;
 }
@@ -98,7 +75,6 @@
     height: 100dvh;
     border-radius: 0;
     border: 0;
-    z-index: 10020;
   }
 
   .notification-bell-dropdown.is-mobile .notification-bell-list {

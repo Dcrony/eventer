@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Smile } from "lucide-react";
+import { ArrowLeft, MessageCircleMore, Send, Smile } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
@@ -246,9 +246,13 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
             </div>
           ) : messages.length === 0 ? (
             <div className="chat-no-messages">
-              <div className="chat-no-messages-icon">...</div>
-              <p>No messages yet. Start the conversation.</p>
-              <span>Say hello to {selectedUser.name || selectedUser.username}</span>
+              <div className="chat-no-messages-icon" aria-hidden>
+                <MessageCircleMore size={32} strokeWidth={1.5} />
+              </div>
+              <p className="chat-no-messages-title">No messages yet</p>
+              <span className="chat-no-messages-hint">
+                Say hello to {selectedUser.name || selectedUser.username}
+              </span>
             </div>
           ) : (
             <>
