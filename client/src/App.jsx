@@ -42,7 +42,6 @@ import Notifications from "./components/NotificationsPage";
 import Messages from "./pages/Messages";
 import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
-import './App.css';
 import EventAnalytics from "./pages/EventAnalytics";
 import PlatformAnalytics from "./pages/PlatformAnalytics";
 import Earnings from "./pages/Earnings";
