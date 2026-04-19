@@ -13,6 +13,7 @@ import {
   HelpCircle,
   ChevronDown,
   ChevronsRight,
+  Bell,
 } from "lucide-react";
 
 import { logout } from "../utils/auth";
@@ -69,7 +70,9 @@ export default function TopNav() {
             <span className="logo-text">TickiSpot</span>
           </Link>
 
-            <NotificationBell />
+          <Link to="/notifiction">
+            <Bell size={20} />  
+            </Link>
         </div>
       </div>
 
