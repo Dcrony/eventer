@@ -158,6 +158,28 @@ favorites: {
       type: Number,
       default: 0,
     },
+    subscriptionHistory: [
+      {
+        plan: {
+          type: String,
+          enum: ["free", "pro", "business"],
+          required: true,
+        },
+        amount: {
+          type: Number,
+          default: 0,
+        },
+        interval: {
+          type: String,
+          enum: ["monthly", "yearly"],
+          default: "monthly",
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     isDeleted: {
     type: Boolean,

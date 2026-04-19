@@ -24,7 +24,18 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["system", "event", "ticket", "ticket_purchase", "message", "custom", "like", "follow", "comment"],
+      enum: [
+        "system",
+        "event",
+        "ticket",
+        "ticket_purchase",
+        "message",
+        "custom",
+        "like",
+        "follow",
+        "comment",
+        "reply",
+      ],
       default: "system",
     },
     actionUrl: {
