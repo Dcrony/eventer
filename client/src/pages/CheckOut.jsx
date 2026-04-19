@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
-import { PORT_URL } from "../utils/config";
+import { getEventImageUrl } from "../utils/eventHelpers";
+import { UserAvatar } from "../components/ui/avatar";
 import { useMemo, useState } from "react";
 import {
   Calendar,
@@ -92,8 +93,7 @@ export default function Checkout() {
     });
   };
 
-  const imageBase = `${PORT_URL.replace("/api", "")}/uploads/event_image`;
-  const eventImg = event.image ? `${imageBase}/${event.image}` : null;
+  const eventImg = getEventImageUrl(event);
 
   return (
     <div className="dashboard-page checkout-page">
@@ -214,9 +214,7 @@ export default function Checkout() {
                 </div>
                 <div className="buyer-info-card">
                   <div className="buyer-info-row">
-                    <span className="buyer-avatar" aria-hidden="true">
-                      {(user.username || "U").charAt(0).toUpperCase()}
-                    </span>
+                    <UserAvatar user={user} className="buyer-avatar" />
                     <div>
                       <div className="buyer-name">{user.username}</div>
                       <div className="buyer-email">{user.email}</div>

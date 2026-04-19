@@ -8,6 +8,7 @@ import {
     Play
 } from "lucide-react";
 import API from "../api/axios";
+import { getEventImageUrl } from "../utils/eventHelpers";
 import "./css/GoLiveModal.css";
 
 const FOCUSABLE = "button, [href], input, select, textarea, [tabindex]:not([tabindex=\"-1\"])";
@@ -89,8 +90,6 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
 
     if (!isOpen) return null;
 
-    const apiBase = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
-
     return (
         <div
             className="golive-overlay"
@@ -166,9 +165,9 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
                                     className={`golive-event-item ${selectedEventId === event._id ? "selected" : ""}`}
                                 >
                                     <div className="golive-event-thumb">
-                                        {event.image ? (
+                                        {getEventImageUrl(event) ? (
                                             <img
-                                                src={`${apiBase}/uploads/event_image/${event.image}`}
+                                                src={getEventImageUrl(event)}
                                                 alt=""
                                             />
                                         ) : (

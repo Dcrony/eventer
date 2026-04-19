@@ -341,7 +341,8 @@
   grid-column: span 6;
 }
 
-.analytics-chart-card--donut {
+.analytics-chart-card--donut,
+.analytics-chart-card--trend {
   grid-column: span 12;
 }
 

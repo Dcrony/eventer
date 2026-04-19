@@ -2,6 +2,7 @@ require("dotenv").config();
 const Withdrawal = require("../models/Withdrawal");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
 
 const WITHDRAWAL_FEE_PERCENT = 2; // change anytime
 
@@ -25,7 +26,11 @@ exports.requestWithdrawal = async (req, res) => {
       return res.status(404).json({ message: "Organizer not found" });
     }
 
-    if (amount > organizer.availableBalance) {
+    const maxWithdrawable = await capOrganizerAvailableBalance(
+      organizerId,
+      organizer.availableBalance,
+    );
+    if (amount > maxWithdrawable) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
@@ -112,10 +117,15 @@ exports.adminUpdateWithdrawal = async (req, res) => {
         return res.status(400).json({ message: `Minimum withdrawal amount is ₦${MIN_WITHDRAWAL}` });
       }
 
-      // Deduct balance now
-      if (organizer.availableBalance < withdrawal.amount) {
+      // Deduct balance now (snap to ticket-net cap first so DB cannot keep inflated balances)
+      const maxWithdrawable = await capOrganizerAvailableBalance(
+        organizer._id,
+        organizer.availableBalance,
+      );
+      if (withdrawal.amount > maxWithdrawable) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
+      organizer.availableBalance = maxWithdrawable;
       organizer.availableBalance -= withdrawal.amount;
       await organizer.save();
 

@@ -8,6 +8,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -17,8 +18,12 @@ import {
 } from "recharts";
 import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
-import { formatCurrency, formatEventDate, formatFullNumber } from "../utils/eventHelpers";
-import { PORT_URL } from "../utils/config";
+import {
+  formatCurrency,
+  formatEventDate,
+  formatFullNumber,
+  getEventImageUrl,
+} from "../utils/eventHelpers";
 import "./CSS/Analytics.css";
 
 function MetricCard({ label, value }) {
@@ -31,10 +36,11 @@ function MetricCard({ label, value }) {
 }
 
 function EventThumb({ event }) {
-  if (event?.image) {
+  const url = getEventImageUrl(event);
+  if (url) {
     return (
       <img
-        src={`${PORT_URL}/uploads/event_image/${event.image}`}
+        src={url}
         alt={event.title || "Event"}
         className="analytics-event-thumb"
       />
@@ -110,6 +116,16 @@ export default function PlatformAnalytics() {
         tickets: Number(event.ticketsSold || 0),
         revenue: Number(event.revenue || 0),
       }));
+  }, [organizerEvents]);
+
+  /** Per-event series for revenue vs tickets (all events you created). */
+  const revenueSalesTrendData = useMemo(() => {
+    return organizerEvents.map((e) => ({
+      label:
+        e.title && e.title.length > 28 ? `${e.title.slice(0, 28)}…` : e.title || "Event",
+      revenue: Number(e.revenue || 0),
+      ticketsSold: Number(e.ticketsSold || 0),
+    }));
   }, [organizerEvents]);
 
   const attendeeSpendTrend = useMemo(() => {
@@ -327,6 +343,30 @@ export default function PlatformAnalytics() {
                       </ResponsiveContainer>
                     ) : (
                       <div className="analytics-empty">No spend and revenue values to compare yet.</div>
+                    )}
+                  </div>
+                </article>
+
+                <article className="analytics-chart-card analytics-chart-card--trend">
+                  <div className="analytics-chart-head">
+                    <h3>Revenue &amp; sales trend</h3>
+                    <p>Revenue and tickets sold for each event you created.</p>
+                  </div>
+                  <div className="analytics-chart-canvas">
+                    {revenueSalesTrendData.length ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={revenueSalesTrendData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(96,112,137,0.2)" />
+                          <XAxis dataKey="label" tickLine={false} axisLine={false} interval={0} angle={-28} textAnchor="end" height={72} />
+                          <YAxis tickLine={false} axisLine={false} />
+                          <Tooltip formatter={(value, name) => (name === "Revenue" ? formatCurrency(value) : value)} />
+                          <Legend />
+                          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#0d9488" strokeWidth={2} dot={{ r: 3 }} />
+                          <Line type="monotone" dataKey="ticketsSold" name="Tickets sold" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="analytics-empty">Create events and sell tickets to see this trend.</div>
                     )}
                   </div>
                 </article>

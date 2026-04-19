@@ -9,7 +9,6 @@ import {
   ExternalLink,
   QrCode,
   Clock,
-  User,
   AlertCircle,
   PlusCircle,
 } from "lucide-react";
@@ -17,6 +16,8 @@ import { Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
+import { getEventImageUrl } from "../utils/eventHelpers";
+import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
 import CreateEvent from "./CreateEvent";
 
@@ -155,9 +156,9 @@ export default function MyTickets() {
                 >
                   {/* Event Visual */}
                   <div className="ticket-visual">
-                    {event.image ? (
+                    {getEventImageUrl(event) ? (
                       <img
-                        src={`${PORT_URL}/uploads/event_image/${event.image}`}
+                        src={getEventImageUrl(event)}
                         alt={event.title}
                         className="event-image"
                       />
@@ -193,17 +194,7 @@ export default function MyTickets() {
                           }
                         }}
                       >
-                        {event.createdBy?.profilePic ? (
-                          <img
-                            src={`${PORT_URL}/uploads/profile_pic/${event.createdBy.profilePic}`}
-                            alt={event.createdBy.username}
-                            className="creator-avatar"
-                          />
-                        ) : (
-                          <div className="avatar-fallback">
-                            <User size={14} />
-                          </div>
-                        )}
+                        <UserAvatar user={event.createdBy} className="creator-avatar" />
                         <span className="creator-name">
                           by {event.createdBy?.username || "Organizer"}
                         </span>
@@ -214,91 +205,80 @@ export default function MyTickets() {
                   {/* Ticket Body */}
                   <div className="ticket-body">
                     <div className="ticket-details">
-                      <div className="detail-item">
-                        <span className="detail-label">Date & Time</span>
-                        <div className="detail-value text-sm">
-                          <Calendar size={14} className="text-pink-500" />
-                          {event.startDate
-                            ? new Date(event.startDate).toLocaleDateString(
-                                "en-US",
-                                {
+                      <div className="detail-row">
+                        <span className="detail-label">When</span>
+                        <div className="detail-row-main">
+                          <span className="detail-when-line">
+                            <Calendar size={15} className="detail-icon" aria-hidden />
+                            {event.startDate
+                              ? new Date(event.startDate).toLocaleDateString("en-US", {
+                                  weekday: "short",
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
-                                },
-                              )
-                            : "TBD"}
-                        </div>
-                        <div className="detail-value text-xs text-gray-500 ml-5">
-                          <Clock size={12} />
-                          {event.startDate
-                            ? new Date(event.startDate).toLocaleTimeString(
-                                "en-US",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                },
-                              )
-                            : ""}
-                        </div>
-                      </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Location</span>
-                        <div className="detail-value">
-                          <MapPin size={14} className="text-pink-500" />
-                          <span
-                            style={{
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {event.location}
+                                })
+                              : "TBD"}
                           </span>
+                          {event.startDate ? (
+                            <span className="detail-when-time">
+                              <Clock size={14} className="detail-icon" aria-hidden />
+                              {new Date(event.startDate).toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Quantity</span>
-                        <div className="detail-value">
-                          <Ticket size={14} className="text-pink-500" />
-                          {ticket.quantity} Ticket
-                          {ticket.quantity > 1 ? "s" : ""}
+                      <div className="detail-row">
+                        <span className="detail-label">Where</span>
+                        <div className="detail-row-main detail-location">
+                          <MapPin size={15} className="detail-icon detail-icon--pin" aria-hidden />
+                          <span>{event.location}</span>
                         </div>
                       </div>
-                      <div className="detail-item">
-                        <span className="detail-label">Total Paid</span>
-                        <div className="detail-value font-bold">
-                          ₦{ticket.amount?.toLocaleString() || 0}
+                      <div className="detail-row detail-row--split">
+                        <div className="detail-split-cell">
+                          <span className="detail-label">Passes</span>
+                          <div className="detail-row-main detail-passes">
+                            <Ticket size={15} className="detail-icon" aria-hidden />
+                            <span className="detail-passes-text">
+                              {ticket.quantity}{" "}
+                              {ticket.quantity === 1 ? "ticket" : "tickets"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="detail-split-cell">
+                          <span className="detail-label">Paid</span>
+                          <div className="detail-row-main detail-price">
+                            ₦{(ticket.amount ?? 0).toLocaleString("en-NG")}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* QR Preview & Actions */}
-                    <div
-                      className="ticket-footer-actions"
-                      style={{ marginTop: "0.5rem" }}
-                    >
-                      {ticket.qrCode && (
-                        <div
-                          className="qr-preview"
-                          title="Click to view/download QR"
-                        >
+                    <div className="ticket-footer-actions">
+                      {ticket.qrCode ? (
+                        <div className="qr-preview" title="Your entry QR code">
                           <img
                             src={`${PORT_URL}/uploads/${ticket.qrCode}`}
-                            alt="Ticket QR Code"
+                            alt={`Check-in QR for ${event.title}`}
                             className="qr-image-small"
                           />
+                          <span className="qr-hint">Show at entry</span>
                         </div>
-                      )}
+                      ) : null}
 
                       <div className="ticket-actions">
-                        <a
-                          href={`${PORT_URL}/uploads/${ticket.qrCode}`}
-                          download={`ticket-${ticket._id}.png`}
-                          className="btn-premium btn-primary"
-                        >
-                          <Download size={18} /> Download
-                        </a>
+                        {ticket.qrCode ? (
+                          <a
+                            href={`${PORT_URL}/uploads/${ticket.qrCode}`}
+                            download={`ticket-${ticket._id}.png`}
+                            className="btn-premium btn-primary"
+                          >
+                            <Download size={18} /> Download
+                          </a>
+                        ) : null}
 
                         {event.liveStream?.isLive && !isPast && (
                           <Link
@@ -311,10 +291,10 @@ export default function MyTickets() {
 
                         <Link
                           to={`/Eventdetail/${event._id}`}
-                          className="btn-premium btn-secondary"
-                          style={{ padding: "0.75rem" }}
+                          className="btn-premium btn-secondary btn-ghost"
                         >
                           <ExternalLink size={18} />
+                          Event page
                         </Link>
                       </div>
                     </div>

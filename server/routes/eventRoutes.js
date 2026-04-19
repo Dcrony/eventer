@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const path = require("path");
-const multer = require("multer");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { requireEmailVerification } = require("../middleware/verificationMiddleware");
+const { uploadImageMemory } = require("../middleware/imageUploadMemory");
 const { checkPlanLimit, checkUserPlan } = require("../middleware/planLimitMiddleware");
 const {
   createEvent,
@@ -22,22 +21,12 @@ const {
   getEventAnalytics,
 } = require("../controllers/eventController");
 
-// ✅ Multer configuration for image upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/event_image"),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
-const upload = multer({ storage });
-
 router.post(
   "/create",
   authMiddleware,
   requireEmailVerification,
   checkPlanLimit,
-  upload.single("image"),
+  uploadImageMemory.single("image"),
   createEvent,
 );
 
@@ -54,13 +43,7 @@ router.post("/:id/like", authMiddleware, toggleEventLike);
 router.post("/:id/share", trackEventShare);
 router.post("/:id/view", trackEventView);
 router.get("/:id/analytics", authMiddleware, checkUserPlan("analytics"), getEventAnalytics);
-router.put(
-  "/update/:eventId",
-  authMiddleware,
-  upload.single("image"),
-  updateEvent
-  
-);
+router.put("/update/:eventId", authMiddleware, uploadImageMemory.single("image"), updateEvent);
 router.delete("/delete/:eventId", authMiddleware, deleteEvent);
 
 router.get("/:id", getEventById);

@@ -628,13 +628,19 @@
   flex: 1;
 }
 
-.creator-avatar-large {
+.creator-avatar-large,
+.creator-avatar-large.avatar,
+.creator-avatar-large img {
   width: 52px;
   height: 52px;
   border-radius: 14px;
   object-fit: cover;
   flex-shrink: 0;
   border: 2px solid var(--stream-accent-glow);
+}
+
+.creator-avatar-large.avatar {
+  overflow: hidden;
 }
 
 .creator-avatar-large.placeholder {
@@ -932,12 +938,18 @@
   border: 1px solid var(--stream-sidebar-border);
 }
 
-.host-attendee-avatar {
+.host-attendee-avatar,
+.host-attendee-avatar.avatar,
+.host-attendee-avatar img {
   width: 36px;
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+}
+
+.host-attendee-avatar.avatar {
+  border: none;
 }
 
 .host-attendee-avatar-fallback {

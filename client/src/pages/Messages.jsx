@@ -56,11 +56,11 @@ export default function Messages() {
             ) : (
               <div className="messages-empty">
                 <div className="messages-empty-content">
-                  <div className="messages-empty-icon">
-                    <MessageCircleMore size={34} />
+                  <div className="messages-empty-icon" aria-hidden>
+                    <MessageCircleMore size={36} strokeWidth={1.5} />
                   </div>
                   <h3>Select a conversation</h3>
-                  <p>Pick a chat from the left to jump into your messages.</p>
+                  <p>Choose someone from the list to read and send messages.</p>
                 </div>
               </div>
             )}

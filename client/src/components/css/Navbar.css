@@ -63,13 +63,15 @@ body {
 .profile-dropdown {
   position: relative;
 }
-.nav-profile-pic {
+.nav-profile-pic,
+.nav-profile-pic.avatar {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
   border: 2px solid var(--accent-color);
   cursor: pointer;
   transition: transform 0.2s ease;
+  box-sizing: border-box;
 }
 .nav-profile-pic:hover {
   transform: scale(1.05);

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send, Smile } from "lucide-react";
+import { ArrowLeft, MessageCircleMore, Send, Smile } from "lucide-react";
 import MessageBubble from "./MessageBubble";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
 import { useSocket } from "../../hooks/useSocket";
-import { PORT_URL } from "../../utils/config";
+import { UserAvatar } from "../ui/avatar";
 
 export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile }) {
   const [messages, setMessages] = useState([]);
@@ -27,8 +27,8 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
         const res = await API.get(`/messages/${selectedUser._id}`);
         const formattedMessages = res.data.map((msg) => ({
           ...msg,
-          senderId: msg.sender?._id || msg.sender,
-          receiverId: msg.receiver?._id || msg.receiver,
+          senderId: msg.sender?._id ?? msg.sender,
+          receiverId: msg.receiver?._id ?? msg.receiver,
           text: msg.text,
           createdAt: msg.createdAt,
           seen: msg.seen,
@@ -47,7 +47,7 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
   }, [currentUserId, selectedUser]);
 
   useEffect(() => {
-    if (!currentUserId || !selectedUser) return;
+    if (!currentUserId || !selectedUser || !socket) return;
 
     socket.emit("join_conversation", { participantId: selectedUser._id }, (response) => {
       if (response?.ok) {
@@ -129,7 +129,7 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!text.trim() || !currentUserId || !selectedUser) return;
+    if (!text.trim() || !currentUserId || !selectedUser || !socket) return;
 
     const nextText = text.trim();
     const tempId = `temp-${Date.now()}`;
@@ -147,25 +147,29 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
     setMessages((prev) => [...prev, optimisticMessage]);
     setText("");
 
-    socket.emit("send_message", {
-      receiverId: selectedUser._id,
-      text: nextText,
-      clientMessageId: tempId,
-    }, (response) => {
-      if (!response?.ok) {
-        console.error("Failed to send message:", response?.error);
-        setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
-        return;
-      }
+    socket.emit(
+      "send_message",
+      {
+        receiverId: selectedUser._id,
+        text: nextText,
+        clientMessageId: tempId,
+      },
+      (response) => {
+        if (!response?.ok) {
+          console.error("Failed to send message:", response?.error);
+          setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
+          return;
+        }
 
-      setMessages((prev) =>
-        prev.map((msg) => (msg._id === tempId ? { ...response.message, temp: false } : msg)),
-      );
-    });
+        setMessages((prev) =>
+          prev.map((msg) => (msg._id === tempId ? { ...response.message, temp: false } : msg)),
+        );
+      },
+    );
   };
 
-  const handleTyping = () => {
-    if (!currentUserId || !selectedUser) return;
+  const handleTypingEmit = () => {
+    if (!currentUserId || !selectedUser || !socket) return;
 
     socket.emit("typing_start", {
       receiverId: selectedUser._id,
@@ -210,29 +214,15 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
           }}
         >
           <div className="chat-header-avatar">
-            {selectedUser.profilePic ? (
-              <img
-                src={
-                  selectedUser.profilePic.startsWith("http")
-                    ? selectedUser.profilePic
-                    : `${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}`
-                }
-                alt={selectedUser.username || selectedUser.name}
-                className="avatar-img"
-              />
-            ) : (
-              <div className="avatar-fallback">
-                {selectedUser.name?.charAt(0)?.toUpperCase() ||
-                  selectedUser.username?.charAt(0)?.toUpperCase() ||
-                  "U"}
-              </div>
-            )}
+            <UserAvatar user={selectedUser} className="chat-header-avatar-inner" />
             <span className={`online-indicator ${online ? "online" : "offline"}`}></span>
           </div>
 
           <div className="chat-header-info">
             <h3 className="chat-header-name">{selectedUser.name || selectedUser.username}</h3>
-            <p className="chat-header-status">{online ? "Online now" : `@${selectedUser.username || "user"}`}</p>
+            <p className="chat-header-status">
+              {online ? "Online now" : `@${selectedUser.username || "user"}`}
+            </p>
           </div>
         </div>
       </div>
@@ -246,9 +236,13 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
             </div>
           ) : messages.length === 0 ? (
             <div className="chat-no-messages">
-              <div className="chat-no-messages-icon">...</div>
-              <p>No messages yet. Start the conversation.</p>
-              <span>Say hello to {selectedUser.name || selectedUser.username}</span>
+              <div className="chat-no-messages-icon" aria-hidden>
+                <MessageCircleMore size={32} strokeWidth={1.5} />
+              </div>
+              <p className="chat-no-messages-title">No messages yet</p>
+              <span className="chat-no-messages-hint">
+                Say hello to {selectedUser.name || selectedUser.username}
+              </span>
             </div>
           ) : (
             <>
@@ -284,7 +278,7 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
             value={text}
             onChange={(event) => {
               setText(event.target.value);
-              handleTyping();
+              handleTypingEmit();
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {

@@ -2,14 +2,22 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { MessageCircleMore, Search } from "lucide-react";
 import API from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
-import { PORT_URL } from "../../utils/config";
+import { UserAvatar } from "../ui/avatar";
+import { isUserOnline } from "../../utils/messaging";
 
-export default function ChatList({ setSelectedUser, selectedUser }) {
+export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds = [] }) {
   const [chats, setChats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const deferredSearch = useDeferredValue(searchTerm);
   const { socket, currentUserId } = useSocket();
+
+  const formatChatUser = (u) => ({
+    _id: u.id || u._id,
+    name: u.name,
+    username: u.username,
+    profilePic: u.profilePic,
+  });
 
   useEffect(() => {
     const fetchChats = async () => {
@@ -18,17 +26,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
         const res = await API.get("/messages");
         const formattedChats = res.data.map((chat) => ({
           ...chat,
-          user: {
-            _id: chat.user.id || chat.user._id,
-            name: chat.user.name,
-            username: chat.user.username,
-            profilePic: chat.user.profilePic,
-            avatar: chat.user.profilePic
-              ? chat.user.profilePic.startsWith("http")
-                ? chat.user.profilePic
-                : `${PORT_URL}/uploads/profile_pic/${chat.user.profilePic}`
-              : null,
-          },
+          user: formatChatUser(chat.user),
         }));
         setChats(formattedChats);
       } catch (err) {
@@ -49,17 +47,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
         const res = await API.get("/messages");
         const formattedChats = res.data.map((chat) => ({
           ...chat,
-          user: {
-            _id: chat.user.id || chat.user._id,
-            name: chat.user.name,
-            username: chat.user.username,
-            profilePic: chat.user.profilePic,
-            avatar: chat.user.profilePic
-              ? chat.user.profilePic.startsWith("http")
-                ? chat.user.profilePic
-                : `${PORT_URL}/uploads/profile_pic/${chat.user.profilePic}`
-              : null,
-          },
+          user: formatChatUser(chat.user),
         }));
         setChats(formattedChats);
       } catch (err) {
@@ -74,17 +62,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
   const allConversations = [...chats];
   if (selectedUser && !chats.find((chat) => chat.user._id === selectedUser._id)) {
     allConversations.unshift({
-      user: {
-        _id: selectedUser._id,
-        name: selectedUser.name || selectedUser.username,
-        username: selectedUser.username,
-        profilePic: selectedUser.profilePic,
-        avatar: selectedUser.profilePic
-          ? selectedUser.profilePic.startsWith("http")
-            ? selectedUser.profilePic
-            : `${PORT_URL}/uploads/profile_pic/${selectedUser.profilePic}`
-          : null,
-      },
+      user: formatChatUser(selectedUser),
       lastMessage: null,
       unreadCount: 0,
     });
@@ -107,7 +85,7 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
         <div className="chat-list-topbar">
           <div>
             <h2>Messages</h2>
-            <p>Your recent conversations</p>
+            <p>Loading your conversations…</p>
           </div>
         </div>
         <div className="chat-list-loading">
@@ -157,13 +135,15 @@ export default function ChatList({ setSelectedUser, selectedUser }) {
               onClick={() => setSelectedUser(chat.user)}
             >
               <div className="chat-item-avatar">
-                {chat.user.avatar ? (
-                  <img src={chat.user.avatar} alt={chat.user.name} />
-                ) : (
-                  <div className="avatar-fallback">
-                    {chat.user.name?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
-                )}
+                <UserAvatar
+                  user={chat.user}
+                  name={chat.user.name || chat.user.username || "User"}
+                  className="chat-item-avatar-img"
+                />
+                <span
+                  className={`online-indicator chat-item-online-indicator ${isUserOnline(onlineUserIds, chat.user._id) ? "online" : "offline"}`}
+                  aria-hidden
+                />
               </div>
 
               <div className="chat-item-content">

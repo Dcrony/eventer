@@ -19,6 +19,12 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
 
+    /** Ticket sales: platform commission (NGN). Withdrawals: processing fee (NGN). */
+    fee: {
+      type: Number,
+      default: 0,
+    },
+
     status: {
       type: String,
       enum: ["pending", "success", "failed"],  // ✅ allow success
@@ -27,6 +33,11 @@ const transactionSchema = new mongoose.Schema(
 
     reference: {
       type: String,
+    },
+
+    referenceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Withdrawal",
     },
 
     metadata: {

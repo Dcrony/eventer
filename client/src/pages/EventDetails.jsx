@@ -11,7 +11,6 @@ import {
   MonitorPlay,
   ShieldCheck,
   Ticket,
-  UserCircle2,
   Users,
 } from "lucide-react";
 import API from "../api/axios";
@@ -19,6 +18,7 @@ import Button from "../components/ui/button";
 import EventCommentsModal from "../components/EventCommentsModal";
 import EventEngagementBar from "../components/EventEngagementBar";
 import VerifiedBadge from "../components/ui/verified-badge";
+import { UserAvatar } from "../components/ui/avatar";
 import useShareLink from "../hooks/useShareLink";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
@@ -27,7 +27,6 @@ import {
   formatEventTimeRange,
   getEventImageUrl,
   getEventUrl,
-  getProfileImageUrl,
 } from "../utils/eventHelpers";
 import "./CSS/eventdetail.css";
 
@@ -224,11 +223,7 @@ export default function EventDetail() {
 
               <div className="event-detail-organizer" onClick={() => toProfile(event.createdBy)}>
                 <div className="event-detail-organizer-avatar">
-                  {getProfileImageUrl(event.createdBy) ? (
-                    <img src={getProfileImageUrl(event.createdBy)} alt={event.createdBy?.username || "Organizer"} />
-                  ) : (
-                    <UserCircle2 size={22} />
-                  )}
+                  <UserAvatar user={event.createdBy} className="event-detail-organizer-avatar-img" />
                 </div>
                 <div>
                   <span>

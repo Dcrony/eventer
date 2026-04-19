@@ -6,6 +6,11 @@ const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const { createNotification } = require("../services/notificationService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
+const {
+  isConfigured,
+  uploadImageBuffer,
+  destroyCloudinaryImage,
+} = require("../utils/cloudinaryMedia");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -96,7 +101,24 @@ exports.createEvent = async (req, res) => {
       streamURL,
     } = req.body;
 
-    const imagePath = req.file ? req.file.filename : null;
+    let parsedPricing = [];
+    if (pricing != null && pricing !== "") {
+      try {
+        parsedPricing = typeof pricing === "string" ? JSON.parse(pricing) : pricing;
+        if (!Array.isArray(parsedPricing)) parsedPricing = [];
+      } catch {
+        return res.status(400).json({ message: "Invalid pricing data." });
+      }
+    }
+
+    let imagePath = null;
+    if (req.file) {
+      if (!isConfigured()) {
+        return res.status(503).json({ message: "Image storage is not configured on the server." });
+      }
+      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/events" });
+      imagePath = uploaded.secure_url;
+    }
 
     const newEvent = new Event({
       title,
@@ -108,7 +130,7 @@ exports.createEvent = async (req, res) => {
       endTime,
       location,
       image: imagePath,
-      pricing: pricing ? JSON.parse(pricing) : [],
+      pricing: parsedPricing,
       totalTickets,
       eventType,
       liveStream: {
@@ -234,12 +256,19 @@ exports.updateEvent = async (req, res) => {
     }
 
     if (req.file) {
-      if (event.image) {
-        const oldImagePath = path.join(__dirname, "../uploads/event_image", event.image);
-        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      if (!isConfigured()) {
+        return res.status(503).json({ message: "Image storage is not configured on the server." });
       }
-
-      updates.image = req.file.filename;
+      if (event.image) {
+        if (String(event.image).startsWith("http")) {
+          await destroyCloudinaryImage(event.image);
+        } else {
+          const oldImagePath = path.join(__dirname, "../uploads/event_image", event.image);
+          if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+        }
+      }
+      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/events" });
+      updates.image = uploaded.secure_url;
     }
 
     if (updates.streamType || updates.streamURL) {
@@ -271,6 +300,16 @@ exports.deleteEvent = async (req, res) => {
     const lookup = await getEventByIdForOwner(eventId, req.user.id);
     if (lookup.error) {
       return res.status(lookup.error.status).json({ message: lookup.error.message });
+    }
+
+    const ev = lookup.event;
+    if (ev.image) {
+      if (String(ev.image).startsWith("http")) {
+        await destroyCloudinaryImage(ev.image);
+      } else {
+        const oldImagePath = path.join(__dirname, "../uploads/event_image", ev.image);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
     }
 
     await Event.findByIdAndDelete(eventId);

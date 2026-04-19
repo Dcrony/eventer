@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -9,7 +9,6 @@ import VerifyEmail from "./pages/VerifyEmail";
 import MyTickets from "./pages/MyTickets";
 import Dashboard from "./pages/Dashboard";
 import Success from "./pages/Success";
-import StatsDashboard from "./pages/StatsDashboard";
 import Sidebar from "./components/SideBar";
 import MobileBottomNav from "./components/MobileBottomNav";
 import LiveEvent from "./components/LiveEvents";
@@ -45,12 +44,12 @@ import VerifyEmailOtp from "./pages/VerifyEmailOtp";
 import TopNav from "./components/TopNav";
 import EventAnalytics from "./pages/EventAnalytics";
 import PlatformAnalytics from "./pages/PlatformAnalytics";
+import Earnings from "./pages/Earnings";
 import { ToastProvider } from "./components/ui/toast";
 import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
 import FeaturesPage from "./pages/Features";
 import Favorites from "./pages/Favorites";
-import Community from "./pages/Community";
 import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
 import API from "./api/axios";
 import { getCurrentUser, login } from "./utils/auth";
@@ -223,6 +222,14 @@ function Layout() {
             }
           />
           <Route
+            path="/earnings"
+            element={
+              <OrganizerStaffRoute>
+                <Earnings />
+              </OrganizerStaffRoute>
+            }
+          />
+          <Route
             path="/admin/withdrawals"
             element={
               <AdminRoute>
@@ -230,14 +237,7 @@ function Layout() {
               </AdminRoute>
             }
           />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <AdminRoute>
-                <StatsDashboard />
-              </AdminRoute>
-            }
-          />
+          <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
           <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
           <Route
             path="/events/:eventId/analytics"
@@ -380,14 +380,6 @@ function Layout() {
             element={
               <ProtectedRoute>
                 <Favorites />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/community"
-            element={
-              <ProtectedRoute>
-                <Community />
               </ProtectedRoute>
             }
           />

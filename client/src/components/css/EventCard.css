@@ -193,10 +193,15 @@
   color: #475569;
 }
 
-.social-event-card-organizer-avatar img {
+.social-event-card-organizer-avatar img,
+.social-event-card-organizer-avatar .avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.social-event-card-organizer-avatar .avatar {
+  border: none;
 }
 
 .social-event-card-organizer-copy {
@@ -305,10 +310,15 @@
   color: #64748b;
 }
 
-.event-comment-avatar img {
+.event-comment-avatar img,
+.event-comment-avatar .avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.event-comment-avatar .avatar {
+  border: none;
 }
 
 .event-comment-body {

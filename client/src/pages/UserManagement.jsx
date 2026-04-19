@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./CSS/UserManagement.css";
 import { Users, UserCheck, Shield } from "lucide-react";
+import { UserAvatar } from "../components/ui/avatar";
 
 // Use VITE_API_URL for Vite projects (not REACT_APP_API_URL)
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -236,9 +237,7 @@ const UserManagement = () => {
                   <tr key={user._id}>
                     <td data-label="User">
                       <div className="user-info">
-                        <div className="avatar">
-                          {user.username?.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar user={user} className="user-table-avatar" />
                         <div>
                           <p className="user-name">{user.username}</p>
                           <p className="user-bio">{user.bio || "Active member"}</p>

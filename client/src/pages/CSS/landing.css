@@ -1351,10 +1351,13 @@ html {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  object-fit: cover;
   border: 1px solid rgba(15, 23, 42, 0.1);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   transition: transform 180ms ease;
+}
+
+.author-avatar .avatar-img {
+  object-fit: cover;
 }
 
 .testimonial-card:hover .author-avatar {

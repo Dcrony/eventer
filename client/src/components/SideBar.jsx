@@ -9,8 +9,8 @@ import icon from "../assets/icon.svg"
 
 import {
   LayoutDashboard,
-  Home,
-  BarChart3,
+  Calendar,
+  LineChart,
   Ticket,
   Radio,
   PlusCircle,
@@ -21,8 +21,7 @@ import {
   LogOut,
   Bell,
   MessageSquare,
-  Users,
-  LineChart,
+  Banknote,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -69,14 +68,13 @@ export default function Sidebar() {
     ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
     : []),
 
-  { to: "/events", label: "Home", icon: <Home size={20} /> },
-
-  ...(isAdmin
-    ? [{ to: "/admin/dashboard", label: "Stats", icon: <BarChart3 size={20} /> }]
-    : []),
+  { to: "/events", label: "Event", icon: <Calendar size={20} /> },
 
   { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
-  {to: "/analytics", label: "Analytics", icon: <LineChart size={20} />},
+  { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
+  ...(canOrganize
+    ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
+    : []),
   { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
@@ -89,7 +87,6 @@ export default function Sidebar() {
       }]
     : []),
 
-    {to: "/community", label: "Community", icon: <Users size={20} />},
 ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
@@ -179,7 +176,9 @@ export default function Sidebar() {
         {/* Bottom: Notifications first, then Profile, Settings, Logout */}
         <div className="sidebar-bottom">
           <div className="sidebar-bottom-item" data-tooltip="Notifications">
-            <NotificationBell />
+            <div className="relative">
+              <NotificationBell />
+            </div>
           </div>
           <Link
             to={profileUrl}

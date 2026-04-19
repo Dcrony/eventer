@@ -32,22 +32,38 @@ export const formatEventPrice = (event) => {
   return amount > 0 ? formatCurrency(amount) : "Free";
 };
 
+/** Stored value is either a Cloudinary HTTPS URL or a legacy local filename / uploads path. */
+export const resolveStoredMediaUrl = (value, legacySubdir) => {
+  if (value == null || value === "") return null;
+  const s = String(value);
+  if (/^https?:\/\//i.test(s)) return s;
+  const normalized = s.replace(/^\/+/, "");
+  if (
+    normalized.startsWith("uploads") ||
+    /profile_pic|cover_pic|event_image/.test(normalized)
+  ) {
+    return `${PORT_URL}/${normalized}`;
+  }
+  if (!normalized.includes("/")) {
+    return `${PORT_URL}${legacySubdir}${normalized}`;
+  }
+  return `${PORT_URL}/${normalized}`;
+};
+
 export const getEventImageUrl = (event) => {
   if (event?.banner) return event.banner;
-  if (event?.image) return `${PORT_URL}/uploads/event_image/${event.image}`;
-  return null;
+  if (!event?.image) return null;
+  return resolveStoredMediaUrl(event.image, "/uploads/event_image/");
 };
 
 export const getProfileImageUrl = (user) => {
   if (!user?.profilePic) return null;
-  if (String(user.profilePic).startsWith("http")) return user.profilePic;
-  return `${PORT_URL}/uploads/profile_pic/${user.profilePic}`;
+  return resolveStoredMediaUrl(user.profilePic, "/uploads/profile_pic/");
 };
 
 export const getCoverImageUrl = (user) => {
   if (!user?.coverPic) return null;
-  if (String(user.coverPic).startsWith("http")) return user.coverPic;
-  return `${PORT_URL}/uploads/cover_pic/${user.coverPic}`;
+  return resolveStoredMediaUrl(user.coverPic, "/uploads/cover_pic/");
 };
 
 export const isVerifiedOrganizer = (user) =>

@@ -30,7 +30,8 @@
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, border-color 0.2s;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  /* allow notification dropdown (portaled) / overlays to extend past the rail */
+  overflow: visible;
 }
 
 

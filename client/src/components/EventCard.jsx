@@ -1,5 +1,5 @@
 import { useEffect, useState, startTransition, useOptimistic } from "react";
-import { CalendarDays, Heart, MapPin, Ticket, UserCircle2 } from "lucide-react";
+import { CalendarDays, Heart, MapPin, Ticket } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import icon from "../assets/icon.svg";
@@ -10,11 +10,11 @@ import {
   formatEventPrice,
   getEventImageUrl,
   getEventUrl,
-  getProfileImageUrl,
 } from "../utils/eventHelpers";
 import EventCommentsModal from "./EventCommentsModal";
 import EventEngagementBar from "./EventEngagementBar";
 import VerifiedBadge from "./ui/verified-badge";
+import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
 import "./css/EventCard.css";
 
@@ -223,14 +223,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 }}
               >
                 <div className="social-event-card-organizer-avatar">
-                  {getProfileImageUrl(eventState.createdBy) ? (
-                    <img
-                      src={getProfileImageUrl(eventState.createdBy)}
-                      alt={eventState.createdBy?.username || "Organizer"}
-                    />
-                  ) : (
-                    <UserCircle2 size={20} />
-                  )}
+                  <UserAvatar user={eventState.createdBy} className="social-event-card-organizer-avatar-img" />
                 </div>
                 <div className="social-event-card-organizer-copy">
                   <span>

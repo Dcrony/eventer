@@ -38,7 +38,7 @@ exports.validateTicket = async (req, res) => {
 
     const ticket = await Ticket.findById(ticketId).populate({
       path: "event",
-      select: "title date location createdBy",
+      select: "title startDate location createdBy",
     });
 
     if (!ticket || !ticket.event) {

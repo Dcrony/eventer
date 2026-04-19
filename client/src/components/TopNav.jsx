@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   X,
-  User,
   Settings,
   Ticket,
   Calendar,
@@ -11,13 +10,16 @@ import {
   ChevronRight,
   BarChart3,
   HelpCircle,
-  ChevronDown,
-  ChevronsRight,
+  Banknote,
+  Users,
+  DollarSign,
   Bell,
+  ChevronsRight,
 } from "lucide-react";
 
 import { logout } from "../utils/auth";
 import { useAuth } from "../context/AuthContext";
+import { getProfileImageUrl } from "../utils/eventHelpers";
 import NotificationBell from "./NotificationBell";
 import "./css/TopNav.css";
 import Avatar from "./ui/avatar";
@@ -29,6 +31,8 @@ export default function TopNav() {
 
   const isAdmin = user?.role === "admin" || user?.isAdmin;
   const isOrganizer = user?.role === "organizer" || user?.isOrganizer;
+
+  const closeMenu = () => setIsMenuOpen(false);
 
   const handleLogout = () => {
     if (window.confirm("Logout from your account?")) {
@@ -44,6 +48,7 @@ export default function TopNav() {
     setIsMenuOpen(false);
   };
 
+
   return (
     <>
       {/* TOP BAR */}
@@ -54,25 +59,15 @@ export default function TopNav() {
             className="top-nav-more-btn"
             onClick={() => setIsMenuOpen(true)}
           >
-            {user?.profilePic ? (
-              <div className="profile-dropdown">
-                        <Avatar src={user?.profilePic} name={user?.name || user?.username} className="avatar-small" />
-                        <ChevronsRight size={14} className="dropdown-icon" />
-                      </div>
-            ) : (
-              <div className="avatar-placeholder">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </div>
-            )}
+              <Avatar src={user ? getProfileImageUrl(user) : null} name={user?.name || user?.username || "Account"} className="avatar-small" />
+              <ChevronsRight size={14} className="dropdown-icon" />
           </div>
 
           <Link to="/" className="top-nav-logo">
             <span className="logo-text">TickiSpot</span>
           </Link>
 
-          <Link to="/notifiction">
-            <Bell size={20} />  
-            </Link>
+          <NotificationBell />
         </div>
       </div>
 
@@ -82,7 +77,7 @@ export default function TopNav() {
         <div className="slide-menu-header">
           <div className="slide-menu-header-content">
             <h3>Menu</h3>
-            <button onClick={() => setIsMenuOpen(false)}>
+            <button type="button" onClick={closeMenu}>
               <X size={24} />
             </button>
           </div>
@@ -91,13 +86,7 @@ export default function TopNav() {
           {user && (
             <div className="slide-menu-user clickable" onClick={goToProfile}>
               <div className="slide-menu-avatar">
-                {user.profilePic ? (
-                  <img src={user.profilePic} />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {user.name?.charAt(0)}
-                  </div>
-                )}
+                <Avatar src={getProfileImageUrl(user)} name={user.name || user.username} />
               </div>
 
               <div className="slide-menu-user-info">
@@ -117,19 +106,25 @@ export default function TopNav() {
           <div className="slide-menu-section">
             <h4>My Activity</h4>
 
-            <Link to="/my-tickets" className="slide-menu-item">
+            <Link to="/my-tickets" className="slide-menu-item" onClick={closeMenu}>
               <Ticket size={18} />
               <span>My Tickets</span>
               <ChevronRight size={16} />
             </Link>
 
-            <Link to="/favorites" className="slide-menu-item">
+            <Link to="/favorites" className="slide-menu-item" onClick={closeMenu}>
               <Heart size={18} />
               <span>Favorites</span>
               <ChevronRight size={16} />
             </Link>
 
-            <Link to="/events" className="slide-menu-item">
+            <Link to="/notifications" className="slide-menu-item" onClick={closeMenu}>
+              <Bell size={18} />
+              <span>Notifications</span>
+              <ChevronRight size={16} />
+            </Link>
+
+            <Link to="/events" className="slide-menu-item" onClick={closeMenu}>
               <Calendar size={18} />
               <span>Events</span>
               <ChevronRight size={16} />
@@ -140,7 +135,7 @@ export default function TopNav() {
           <div className="slide-menu-section">
             <h4>Account</h4>
 
-            <Link to="/settings" className="slide-menu-item">
+            <Link to="/settings" className="slide-menu-item" onClick={closeMenu}>
               <Settings size={18} />
               <span>Settings</span>
               <ChevronRight size={16} />
@@ -154,18 +149,23 @@ export default function TopNav() {
 
               {isOrganizer && (
                 <>
-                  <Link to="/dashboard" className="slide-menu-item">
+                  <Link to="/dashboard" className="slide-menu-item" onClick={closeMenu}>
                     <BarChart3 size={18} />
                     <span>Dashboard</span>
                     <ChevronRight size={16} />
                   </Link>
-                  <Link to="/create-event" className="slide-menu-item">
+                  <Link to="/earnings" className="slide-menu-item" onClick={closeMenu}>
+                    <Banknote size={18} />
+                    <span>Earnings</span>
+                    <ChevronRight size={16} className="menu-arrow" />
+                  </Link>
+                  <Link to="/create-event" className="slide-menu-item" onClick={closeMenu}>
                     <Calendar size={18} />
                     <span>Create Event</span>
                     <ChevronRight size={16} />
                   </Link>
 
-                  <Link to="/analytics" className="slide-menu-item">
+                  <Link to="/analytics" className="slide-menu-item" onClick={closeMenu}>
                     <BarChart3 size={18} />
                     <span>Analytics</span>
                     <ChevronRight size={16} />
@@ -174,11 +174,18 @@ export default function TopNav() {
               )}
 
               {isAdmin && (
-                <Link to="/admin/dashboard" className="slide-menu-item">
-                  <BarChart3 size={18} />
-                  <span>Admin Dashboard</span>
-                  <ChevronRight size={16} />
-                </Link>
+                <>
+                  <Link to="/admin/users" className="slide-menu-item" onClick={closeMenu}>
+                    <Users size={18} />
+                    <span>User Management</span>
+                    <ChevronRight size={16} className="menu-arrow" />
+                  </Link>
+                  <Link to="/admin/withdrawals" className="slide-menu-item" onClick={closeMenu}>
+                    <DollarSign size={18} />
+                    <span>Withdrawals</span>
+                    <ChevronRight size={16} className="menu-arrow" />
+                  </Link>
+                </>
               )}
             </div>
           )}
@@ -187,7 +194,7 @@ export default function TopNav() {
           <div className="slide-menu-section">
             <h4>Support</h4>
 
-            <Link to="/help" className="slide-menu-item">
+            <Link to="/help" className="slide-menu-item" onClick={closeMenu}>
               <HelpCircle size={18} />
               <span>Help</span>
               <ChevronRight size={16} />
@@ -196,7 +203,7 @@ export default function TopNav() {
 
           {/* LOGOUT */}
           <div className="slide-menu-section">
-            <button onClick={handleLogout} className="slide-menu-item logout">
+            <button type="button" onClick={handleLogout} className="slide-menu-item logout">
               <LogOut size={18} />
               <span>Logout</span>
             </button>
@@ -208,7 +215,7 @@ export default function TopNav() {
       {isMenuOpen && (
         <div
           className="slide-menu-overlay"
-          onClick={() => setIsMenuOpen(false)}
+          onClick={closeMenu}
         />
       )}
     </>

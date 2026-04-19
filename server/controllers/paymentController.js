@@ -10,6 +10,7 @@ const sendEmail = require("../utils/email");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const { recordTicketPurchaseMetrics } = require("./eventController");
+const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -198,7 +199,9 @@ exports.verifyPayment = async (req, res) => {
         return res.status(404).json({ message: "Organizer not found" });
       }
 
-      organizer.availableBalance += data.amount / 100;
+      const grossNaira = data.amount / 100;
+      const { platformFee, netToOrganizer } = splitTicketSaleForOrganizer(grossNaira);
+      organizer.availableBalance += netToOrganizer;
       await organizer.save();
 
       // Update event tickets
@@ -207,11 +210,12 @@ exports.verifyPayment = async (req, res) => {
       recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
       await event.save();
 
-      // Create transaction record
+      // Create transaction record (amount = buyer total; fee = platform commission)
       await Transaction.create({
         organizer: event.createdBy,
         type: "ticket",
-        amount: data.amount / 100,
+        amount: grossNaira,
+        fee: platformFee,
         status: "success",
         reference: data.reference,
         metadata: {

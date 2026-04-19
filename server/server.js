@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const multer = require("multer");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
@@ -16,7 +17,6 @@ const settingsRoutes = require("./routes/settingsRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
-const communityRoutes = require("./routes/communityRoutes");
 const postRoutes = require("./routes/postRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const billingRoutes = require("./routes/billingRoutes");
@@ -78,10 +78,23 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/favorites", favoriteRoutes);
-app.use("/api/community", communityRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/billing", billingRoutes);
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ message: "File too large (max 10MB)." });
+    }
+    return res.status(400).json({ message: err.message });
+  }
+  if (err?.message && String(err.message).includes("Only image files")) {
+    return res.status(400).json({ message: err.message });
+  }
+  console.error(err);
+  return res.status(500).json({ message: "Server error" });
+});
 
 const server = http.createServer(app);
 const io = buildSocketServer(server, { allowedOrigins: ALLOWED_ORIGINS });

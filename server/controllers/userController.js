@@ -1,7 +1,14 @@
 const bcrypt = require("bcryptjs");
+const fs = require("fs");
+const path = require("path");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
+const {
+  isConfigured,
+  uploadImageBuffer,
+  destroyCloudinaryImage,
+} = require("../utils/cloudinaryMedia");
 const { createNotification } = require("../services/notificationService");
 
 const buildProfileStats = (user, createdEvents = []) => ({
@@ -156,31 +163,68 @@ const updateMyProfile = async (req, res) => {
 const uploadProfilePic = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    if (!isConfigured()) {
+      return res.status(503).json({ message: "Image storage is not configured on the server." });
+    }
 
     const user = await User.findById(req.user._id);
-    user.profilePic = `${req.file.filename}`;
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.profilePic) {
+      if (String(user.profilePic).startsWith("http")) {
+        await destroyCloudinaryImage(user.profilePic);
+      } else {
+        const oldPath = path.join(__dirname, "../uploads/profile_pic", user.profilePic);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+    }
+
+    const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/profiles" });
+    user.profilePic = uploaded.secure_url;
     await user.save();
 
     res.json({ message: "Profile picture updated", profilePic: user.profilePic });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Profile picture upload error:", error);
+    const message =
+      error?.message && String(error.message).includes("Cloudinary")
+        ? "Image upload failed. Check server image storage configuration."
+        : "Server error";
+    res.status(500).json({ message });
   }
 };
 
 const uploadCoverPic = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    if (!isConfigured()) {
+      return res.status(503).json({ message: "Image storage is not configured on the server." });
+    }
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.coverPic = `${req.file.filename}`;
+    if (user.coverPic) {
+      if (String(user.coverPic).startsWith("http")) {
+        await destroyCloudinaryImage(user.coverPic);
+      } else {
+        const oldPath = path.join(__dirname, "../uploads/cover_pic", user.coverPic);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+    }
+
+    const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/covers" });
+    user.coverPic = uploaded.secure_url;
     await user.save();
 
     res.json({ message: "Cover picture updated", coverPic: user.coverPic });
   } catch (error) {
     console.error("Cover picture upload error:", error);
-    res.status(500).json({ message: "Server error" });
+    const message =
+      error?.message && String(error.message).includes("Cloudinary")
+        ? "Image upload failed. Check server image storage configuration."
+        : "Server error";
+    res.status(500).json({ message });
   }
 };
 

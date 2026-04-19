@@ -4,6 +4,7 @@ import "./CSS/landing.css";
 import icon from "../assets/icon.svg";
 import EventCard from "../components/EventCard";
 import API from "../api/axios";
+import Avatar from "../components/ui/avatar";
 
 import {
   TicketCheck,
@@ -572,13 +573,11 @@ export default function LandingPage() {
                 </div>
                 <p className="testimonial-content">"{testimonial.content}"</p>
                 <div className="testimonial-author">
-                  <img
+                  <Avatar
                     src={testimonial.avatar}
-                    alt={testimonial.name}
+                    name={testimonial.name}
                     className="author-avatar"
-                    onError={(e) => {
-                      e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Crect width='48' height='48' fill='%23ec4899'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='white'%3E" + testimonial.name.charAt(0) + "%3C/text%3E%3C/svg%3E";
-                    }}
+                    alt={testimonial.name}
                   />
                   <div className="author-info">
                     <div className="author-name">{testimonial.name}</div>

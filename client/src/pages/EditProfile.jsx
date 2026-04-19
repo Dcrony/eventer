@@ -1,20 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import API from "../api/axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Camera, ImageIcon } from "lucide-react";
+import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import { validateImageFile } from "../utils/imageUpload";
 import "./CSS/EditProfile.css";
 import { useToast } from "../components/ui/toast";
+import Avatar from "../components/ui/avatar";
 
-const PORT_URL = (import.meta.env.VITE_API_URL || "http://localhost:8080/api").replace(/\/api\/?$/, "");
+const BIO_MAX = 500;
 
 export default function EditProfile() {
   const navigate = useNavigate();
 
   const toast = useToast();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [previewPic, setPreviewPic] = useState(null);
-  const [previewCover, setPreviewCover] = useState(null);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [feedback, setFeedback] = useState({ type: "", text: "" });
+
+  const profileBlobRef = useRef(null);
+  const coverBlobRef = useRef(null);
+
+  const [profilePreview, setProfilePreview] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
+
   const [formData, setFormData] = useState({
   name: "",
   username: "",
@@ -24,246 +36,344 @@ export default function EditProfile() {
   phone: "",
 });
 
+  const setProfileBlobPreview = useCallback((blobUrl) => {
+    if (profileBlobRef.current) URL.revokeObjectURL(profileBlobRef.current);
+    profileBlobRef.current = blobUrl;
+    setProfilePreview(blobUrl);
+  }, []);
+
+  const setCoverBlobPreview = useCallback((blobUrl) => {
+    if (coverBlobRef.current) URL.revokeObjectURL(coverBlobRef.current);
+    coverBlobRef.current = blobUrl;
+    setCoverPreview(blobUrl);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (profileBlobRef.current) URL.revokeObjectURL(profileBlobRef.current);
+      if (coverBlobRef.current) URL.revokeObjectURL(coverBlobRef.current);
+    };
+  }, []);
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await API.get("/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await API.get("/users/me");
         setUser(res.data);
         setFormData({
-  name: res.data.name || "",
-  username: res.data.username || "",
-  bio: res.data.bio || "",
-  location: res.data.location || "",
-  email: res.data.email || "",
-  phone: res.data.phone || "",
-});
+          name: res.data.name || "",
+          username: res.data.username || "",
+          bio: res.data.bio || "",
+          location: res.data.location || "",
+          email: res.data.email || "",
+          phone: res.data.phone || "",
+        });
+        setLoadError(null);
       } catch (err) {
         console.error("Failed to load profile", err);
+        setLoadError(err.response?.data?.message || "Could not load your profile.");
       }
     };
     fetchProfile();
   }, []);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === "bio" && value.length > BIO_MAX) return;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Normalize file path so images always render correctly
-const buildImageUrl = (path, type = "profile") => {
-    if (!path) return "";
-    // If already a full URL, return as-is
-    if (/^https?:\/\//i.test(path)) return path;
-
-    // strip leading slashes
-    const normalized = path.replace(/^\/+/, "");
-
-    // If path already references uploads/profile_pic or uploads/cover_pic or includes "uploads"
-    if (
-        normalized.startsWith("uploads") ||
-        /profile_pic|cover_pic/.test(normalized)
-    ) {
-        return `${PORT_URL}/${normalized}`;
+  const uploadImageFile = async (file, type) => {
+    const err = validateImageFile(file);
+    if (err) {
+      setFeedback({ type: "error", text: err });
+      return false;
     }
 
-    // If backend returned just a filename (no slash), pick folder based on type
-    if (!normalized.includes("/")) {
-        if (type === "cover") return `${PORT_URL}/uploads/cover_pic/${normalized}`;
-        return `${PORT_URL}/uploads/profile_pic/${normalized}`;
-    }
-
-    // Fallback: join with base URL
-    return `${PORT_URL}/${normalized}`;
-};
-
-
-  const handleImageUpload = async (e, type) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const token = localStorage.getItem("token");
     const form = new FormData();
-    form.append(type, file); // 'profilePic' or 'coverPic'
+    form.append(type, file);
+    const setUploading = type === "profilePic" ? setUploadingProfile : setUploadingCover;
+    setFeedback({ type: "", text: "" });
+    setUploading(true);
 
     try {
-      setLoading(true);
       const endpoint =
         type === "profilePic" ? "/users/me/upload" : "/users/me/cover";
-
-      const res = await API.post(endpoint, form, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await API.post(endpoint, form);
 
       if (type === "profilePic") {
-  if (previewPic) URL.revokeObjectURL(previewPic);
-
-  const objectUrl = URL.createObjectURL(file);
-  setPreviewPic(objectUrl);
-
-  setUser((prev) => ({ ...prev, profilePic: res.data.profilePic }));
-} else {
-  if (previewCover) URL.revokeObjectURL(previewCover);
-
-  const objectUrl = URL.createObjectURL(file);
-  setPreviewCover(objectUrl);
-
-  setUser((prev) => ({ ...prev, coverPic: res.data.coverPic }));
-}
-
-      if (type === "profilePic") {
-        setPreviewPic(objectUrl);
+        if (profileBlobRef.current) URL.revokeObjectURL(profileBlobRef.current);
+        profileBlobRef.current = null;
+        setProfilePreview(null);
         setUser((prev) => ({ ...prev, profilePic: res.data.profilePic }));
       } else {
-        setPreviewCover(objectUrl);
+        if (coverBlobRef.current) URL.revokeObjectURL(coverBlobRef.current);
+        coverBlobRef.current = null;
+        setCoverPreview(null);
         setUser((prev) => ({ ...prev, coverPic: res.data.coverPic }));
       }
+
+      setFeedback({
+        type: "success",
+        text:
+          type === "profilePic"
+            ? "Profile photo updated."
+            : "Cover image updated.",
+      });
+      return true;
     } catch (err) {
       console.error("Upload failed:", err);
-      toast.error("Update failed. Please try again");
+      setFeedback({
+        type: "error",
+        text:
+          err.response?.data?.message ||
+          "Upload failed. Check your connection and try again.",
+      });
+      return false;
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
+  };
+
+  const onPickProfile = async (e) => {
+    const file = e.target.files?.[0];
+    const input = e.target;
+    if (!file) return;
+
+    const err = validateImageFile(file);
+    if (err) {
+      setFeedback({ type: "error", text: err });
+      input.value = "";
+      return;
+    }
+
+    setProfileBlobPreview(URL.createObjectURL(file));
+    await uploadImageFile(file, "profilePic");
+    input.value = "";
+  };
+
+  const onPickCover = async (e) => {
+    const file = e.target.files?.[0];
+    const input = e.target;
+    if (!file) return;
+
+    const err = validateImageFile(file);
+    if (err) {
+      setFeedback({ type: "error", text: err });
+      input.value = "";
+      return;
+    }
+
+    setCoverBlobPreview(URL.createObjectURL(file));
+    await uploadImageFile(file, "coverPic");
+    input.value = "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setFeedback({ type: "", text: "" });
     try {
-      const token = localStorage.getItem("token");
-      await API.put("/users/edit", formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      await API.put("/users/edit", formData);
       toast.success("Profile updated successfully");
-      navigate(`/users/${user?.id ?? user?._id ?? ""}`);
+      const id = user?.id ?? user?._id ?? "";
+      navigate(`/users/${id}`);
     } catch (err) {
       console.error("Error updating profile:", err);
+      setFeedback({
+        type: "error",
+        text: err.response?.data?.message || "Update failed. Please try again.",
+      });
       toast.error("Update failed. Please try again");
     } finally {
       setSaving(false);
     }
   };
 
-  if (!user)
+  if (loadError && !user) {
+    return (
+      <div className="editprofile-page editprofile-page--centered">
+        <div className="editprofile-card editprofile-card--narrow">
+          <p className="editprofile-error-text">{loadError}</p>
+          <Link to="/events" className="editprofile-back-link">
+            <ArrowLeft size={18} />
+            Back to events
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="editprofile-loading">
         <div className="spinner" />
         <p>Loading your profile...</p>
       </div>
     );
+  }
+
+  const profileId = user?.id ?? user?._id ?? "";
+  const coverSrc = coverPreview || getCoverImageUrl(user) || "/cover.jpg";
+  const profileSrc = profilePreview || getProfileImageUrl(user) || null;
 
   return (
-    <div className="editprofile-page pl-20">
-      {/* ===== Cover Section ===== */}
-      <div className="cover-section">
-        <img
-          src={previewCover || buildImageUrl(user.coverPic, "cover") || "/cover.jpg"}
-          alt="Cover"
-          className="cover-image"
-        />
-        <label htmlFor="coverPic" className="cover-upload">
-          {loading ? "Uploading..." : "Change Cover"}
-          <input
-            type="file"
-            id="coverPic"
-            accept="image/*"
-            onChange={(e) => handleImageUpload(e, "coverPic")}
-          />
-        </label>
+    <div className="editprofile-page">
+      <div className="editprofile-inner">
+        <header className="editprofile-header">
+          <Link to={`/users/${profileId}`} className="editprofile-back-link">
+            <ArrowLeft size={20} />
+            Profile
+          </Link>
+          <h1 className="editprofile-heading">Edit profile</h1>
+          <p className="editprofile-lead">
+            Update how you appear on TickiSpot. Photos are stored securely; use
+            JPEG, PNG, WebP, GIF, AVIF, or HEIC up to 10MB.
+          </p>
+        </header>
 
-        {/* ===== Profile Pic ===== */}
-        <div className="profile-pic-wrapper">
-          <img
-            src={
-              previewPic ||
-              buildImageUrl(user.profilePic, "profile") ||
-              "/default-avatar.png"
-            }
-            alt="Profile"
-            className="profile-pic"
-          />
-          <label htmlFor="profilePic" className="profile-upload">
-            {loading ? "Uploading..." : "Change Photo"}
+        {feedback.text ? (
+          <div
+            className={`editprofile-banner editprofile-banner--${feedback.type}`}
+            role="status"
+          >
+            {feedback.text}
+          </div>
+        ) : null}
+
+        <div className="cover-section">
+          <img src={coverSrc} alt="" className="cover-image" />
+          <label className="cover-upload">
+            {uploadingCover ? (
+              <>
+                <ImageIcon size={18} />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Camera size={18} />
+                Change cover
+              </>
+            )}
             <input
               type="file"
-              id="profilePic"
-              accept="image/*"
-              onChange={(e) => handleImageUpload(e, "profilePic")}
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
+              onChange={onPickCover}
+              disabled={uploadingCover || uploadingProfile}
             />
           </label>
+
+          <div className="profile-pic-wrapper">
+            <Avatar
+              src={profileSrc}
+              name={formData.name || formData.username || "User"}
+              className="profile-pic"
+            />
+            <label className="profile-upload">
+              {uploadingProfile ? (
+                <>
+                  <ImageIcon size={14} />
+                  …
+                </>
+              ) : (
+                <>
+                  <Camera size={14} />
+                  Photo
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
+                onChange={onPickProfile}
+                disabled={uploadingProfile || uploadingCover}
+              />
+            </label>
+          </div>
         </div>
+
+        <form className="editprofile-form" onSubmit={handleSubmit}>
+          <h2 className="editprofile-form-title">Details</h2>
+
+          <label htmlFor="edit-name">Name</label>
+          <input
+            id="edit-name"
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Your full name"
+            autoComplete="name"
+          />
+
+          <label htmlFor="edit-username">Username</label>
+          <input
+            id="edit-username"
+            type="text"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            placeholder="username"
+            autoComplete="username"
+          />
+
+          <div className="editprofile-bio-row">
+            <label htmlFor="edit-bio">Bio</label>
+            <span className="editprofile-char-count">
+              {formData.bio.length}/{BIO_MAX}
+            </span>
+          </div>
+          <textarea
+            id="edit-bio"
+            name="bio"
+            value={formData.bio}
+            onChange={handleChange}
+            placeholder="A short line about you…"
+            rows={4}
+            maxLength={BIO_MAX}
+          />
+
+          <label htmlFor="edit-location">Location</label>
+          <input
+            id="edit-location"
+            type="text"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            placeholder="e.g. Lagos, Nigeria"
+            autoComplete="address-level1"
+          />
+
+          <label htmlFor="edit-email">Email</label>
+          <input
+            id="edit-email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+
+          <label htmlFor="edit-phone">Phone</label>
+          <input
+            id="edit-phone"
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="Phone number"
+            autoComplete="tel"
+          />
+
+          <button
+            type="submit"
+            className="editprofile-save"
+            disabled={saving || uploadingProfile || uploadingCover}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </form>
       </div>
-
-      {/* ===== Form Section ===== */}
-      <form className="settings-container" onSubmit={handleSubmit}>
-  
-  <div className="settings-header">
-    <h1>Account Settings</h1>
-    <p>Manage your profile and account details</p>
-  </div>
-
-  {/* Profile Section */}
-  <div className="settings-card">
-    <h2>Profile Information</h2>
-
-    <div className="settings-grid">
-      <div>
-        <label>Full Name</label>
-        <input name="name" value={formData.name} onChange={handleChange} />
-      </div>
-
-      <div>
-        <label>Username</label>
-        <input name="username" value={formData.username} onChange={handleChange} />
-      </div>
-
-      <div className="full">
-        <label>Bio</label>
-        <textarea name="bio" value={formData.bio} onChange={handleChange} />
-      </div>
-
-      <div className="full">
-        <label>Location</label>
-        <input
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          placeholder="e.g Lagos, Nigeria"
-        />
-      </div>
-    </div>
-  </div>
-
-  {/* Account Section */}
-  <div className="settings-card">
-    <h2>Account Details</h2>
-
-    <div className="settings-grid">
-      <div>
-        <label>Email</label>
-        <input name="email" value={formData.email} onChange={handleChange} />
-      </div>
-
-      <div>
-        <label>Phone</label>
-        <input name="phone" value={formData.phone} onChange={handleChange} />
-      </div>
-    </div>
-  </div>
-
-  {/* Save */}
-  <div className="settings-actions">
-    <button type="submit" disabled={saving}>
-      {saving ? "Saving..." : "Save Changes"}
-    </button>
-  </div>
-
-</form>
     </div>
   );
 }

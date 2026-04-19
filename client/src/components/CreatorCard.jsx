@@ -1,4 +1,5 @@
 import Avatar from "./ui/avatar";
+import { getProfileImageUrl } from "../utils/eventHelpers";
 import Badge from "./ui/badge";
 import Button from "./ui/button";
 
@@ -7,7 +8,7 @@ export default function CreatorCard({ creator }) {
     <article className="dash-card">
       <div className="dash-card-body">
         <div className="flex items-center gap-3">
-          <Avatar src={creator.profilePic} name={creator.name || creator.username} className="h-12 w-12" />
+          <Avatar src={getProfileImageUrl(creator)} name={creator.name || creator.username} className="h-12 w-12" />
           <div>
             <h3>{creator.name || creator.username}</h3>
             <p className="muted">@{creator.username}</p>
