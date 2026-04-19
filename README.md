@@ -1,137 +1,198 @@
-🎟️ TickiSpot
-TickiSpot is a modern event management and ticketing platform that allows users to discover events, purchase digital tickets, and attend live experiences. Organizers can create events, sell tickets, manage attendees, and track earnings — all from a powerful dashboard.
-The platform also includes QR ticket validation, live streaming, withdrawal management, and admin analytics.
-🚀 Features
-🎫 Ticketing System
-Digital ticket generation
-QR code ticket validation
-Secure ticket purchase
-Ticket download & management
-🎤 Event Management
-Create and edit events
-Upload event images
-Event categories and locations
-Live event streaming support
-👤 User Dashboard
-Manage purchased tickets
-Transaction history
-Event access and chat
-Profile management
-🧑‍💼 Organizer Tools
-Event analytics
-Revenue tracking
-Withdrawal requests
-Ticket scanner for entry validation
-🛠️ Admin Dashboard
-User management
-Withdrawal approvals
-Platform analytics
-Payout tracking
-💳 Payment & Finance
-Organizer withdrawals
-Transaction records
-Platform fee tracking
-🌙 Modern UI
-Responsive design
-Dark mode support
-Mobile-friendly interface
-🧰 Tech Stack
-Frontend
-React
-Vite
-React Router
-Lucide Icons
-CSS Modules / Custom CSS
-Backend
-Node.js
-Express.js
-MongoDB
-Mongoose
-Other Tools
-JWT Authentication
-QR Code Generation
-Axios API Client
-📂 Project Structure
-Copy code
+# TickiSpot
 
-tickispot/
-│
-├── client/                # React frontend
-│   ├── src/
-│   │   ├── pages/
-│   │   ├── components/
-│   │   ├── contexts/
-│   │   ├── api/
-│   │   └── utils/
-│
-├── server/                # Express backend
+**Event discovery, ticketing, and organizer operations in one platform.**
+
+TickiSpot connects attendees and organizers: browse and purchase tickets, validate entry with QR codes, run live experiences, and operate payouts and analytics—with role-aware access for users, organizers, staff, and administrators.
+
+---
+
+## Overview
+
+TickiSpot is a full-stack web application consisting of a **React (Vite)** client and a **Node.js (Express)** API backed by **MongoDB**. Real-time features use **Socket.IO**. Authentication is **JWT-based**; payments and webhooks integrate with **Paystack** where configured.
+
+---
+
+## Capabilities
+
+| Area | What you can do |
+|------|------------------|
+| **Ticketing** | Digital tickets, secure checkout, QR generation and on-site scanning |
+| **Events** | Create and manage events, media, categories, and live streaming flows |
+| **Attendees** | Ticket wallet, transactions, favorites, messaging, notifications |
+| **Organizers** | Analytics, earnings, withdrawals, staff tooling |
+| **Platform** | Admin oversight, user management, billing and plan limits |
+| **Community** | Posts, comments, and social surfaces alongside core ticketing |
+
+---
+
+## Architecture
+
+```
+┌─────────────┐     HTTPS / WSS      ┌─────────────┐     ┌──────────────┐
+│   Browser   │ ◄──────────────────► │  Express    │ ◄──► │   MongoDB    │
+│  (React)    │      REST + Socket   │  + Socket   │      │  (Mongoose)  │
+└─────────────┘                      └─────────────┘     └──────────────┘
+```
+
+- **Client**: SPA with React Router, shared auth context, and API client (`axios`).
+- **Server**: REST API under `/api/*`, static uploads, CORS allowlist, global error handling.
+- **Realtime**: Socket server shares JWT verification with HTTP auth patterns.
+
+---
+
+## Repository structure
+
+```
+.
+├── client/                 # Vite + React frontend
+│   └── src/
+│       ├── pages/
+│       ├── components/
+│       ├── context/
+│       ├── hooks/
+│       ├── services/api/
+│       └── utils/
+├── server/                 # Express API
 │   ├── routes/
 │   ├── controllers/
 │   ├── models/
-│   └── middleware/
-│
+│   ├── middleware/
+│   ├── services/
+│   ├── socket/
+│   └── uploads/
 └── README.md
-⚙️ Installation
-1️⃣ Clone the Repository
-Bash
-Copy code
-git clone https://github.com/yourusername/tickispot.git
-cd tickispot
-2️⃣ Install Dependencies
-Frontend:
-Bash
-Copy code
-cd client
-npm install
-Backend:
-Bash
-Copy code
-cd server
-npm install
-3️⃣ Setup Environment Variables
-Create a .env file inside the server folder:
-Copy code
+```
 
-PORT=5000
-MONGO_URI=your_mongodb_connection
-JWT_SECRET=your_secret_key
-Frontend .env:
-Copy code
+---
 
-VITE_API_URL=http://localhost:5000
-4️⃣ Run the App
-Start backend:
-Bash
-Copy code
+## Prerequisites
+
+- **Node.js** (LTS recommended)
+- **npm** (or compatible package manager)
+- **MongoDB** instance (local or hosted)
+- Optional: **Paystack**, **Cloudinary**, **Firebase**, **Resend** (or other email) for full production parity
+
+---
+
+## Quick start
+
+### 1. Clone and install
+
+```bash
+git clone <your-repository-url>
+cd <repository-directory>
+
+cd server && npm install
+cd ../client && npm install
+```
+
+### 2. Configure environment
+
+Create `server/.env` with at least the variables in [Server environment](#server-environment). Create `client/.env` for API and optional socket URLs as in [Client environment](#client-environment).
+
+### 3. Run
+
+**Terminal A — API**
+
+```bash
 cd server
 npm run dev
-Start frontend:
-Bash
-Copy code
+```
+
+**Terminal B — UI**
+
+```bash
 cd client
 npm run dev
-🔐 Authentication
-TickiSpot uses JWT-based authentication for secure access to:
-User dashboards
-Organizer tools
-Admin routes
-Protected routes require a valid token in request headers.
+```
 
-🌍 Future Improvements
-Mobile app version
-Advanced event analytics
-Email ticket delivery
-Stripe/Paystack integration
-Multi-organizer team support
-Real-time attendee analytics
-🤝 Contributing
-Contributions are welcome!
-Fork the repository
-Create a feature branch
-Commit your changes
-Submit a Pull Request
-📜 License
-This project is licensed under the MIT License.
-👨‍💻 Author
-TickiSpot Team
-Building the future of event ticketing.
+By default the API listens on **port 8080** unless `PORT` is set. Point the client `VITE_API_URL` at that origin.
+
+---
+
+## Configuration
+
+### Server environment
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `MONGO_URI` | Yes | MongoDB connection string |
+| `JWT_SECRET` | Yes | Signing key for access tokens |
+| `PORT` | No | HTTP port (default **8080**) |
+| `FRONTEND_URL` | Recommended | Origin of the web app (CORS, links, callbacks) |
+| `BACKEND_URL` | Recommended | Public API base URL (e.g. Paystack callback construction) |
+| `ALLOWED_ORIGINS` | No | Comma-separated extra CORS origins |
+| `PAYSTACK_SECRET_KEY` or `PAYSTACK_SECRET` | For payments | Paystack secret |
+| `PAYSTACK_CALLBACK` | No | Override for payment verification callback URL |
+| `CLOUDINARY_*` | For media | Cloud name, API key, API secret |
+| `FIREBASE_*` | For push/admin | Project ID, client email, private key |
+| `RESEND_API_KEY` | For email | Transactional email (see `server/utils/email.js`) |
+| `PLATFORM_TICKET_FEE_PERCENT` | No | Platform fee (see `server/utils/platformFee.js`) |
+| `WITHDRAWAL_PROCESSING_FEE_PERCENT`, `MIN_WITHDRAWAL_NGN` | No | Withdrawal rules |
+
+Example **minimal** `server/.env`:
+
+```env
+PORT=8080
+MONGO_URI=mongodb://localhost:27017/tickispot
+JWT_SECRET=change-me-to-a-long-random-secret
+FRONTEND_URL=http://localhost:5173
+BACKEND_URL=http://localhost:8080
+```
+
+### Client environment
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_API_URL` | Base URL of the API (e.g. `http://localhost:8080`) |
+| `VITE_SOCKET_URL` | Socket.IO server URL if different from the API host |
+| `VITE_FIREBASE_*` | Firebase web app config when using client Firebase features |
+
+Example **local** `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_SOCKET_URL=http://localhost:8080
+```
+
+Use values from your Firebase project settings only in private env files; do not commit secrets.
+
+---
+
+## Scripts
+
+| Location | Command | Description |
+|----------|---------|-------------|
+| `client/` | `npm run dev` | Vite dev server |
+| `client/` | `npm run build` | Production build |
+| `client/` | `npm run preview` | Preview production build |
+| `server/` | `npm run dev` | Nodemon API + Socket |
+| `server/` | `npm start` | Run API without file watcher |
+
+---
+
+## Security notes
+
+- Store secrets only in environment variables or a secrets manager; never commit `.env` files.
+- JWTs must be transmitted over HTTPS in production.
+- CORS is restricted to an explicit allowlist; add production domains via `FRONTEND_URL` and `ALLOWED_ORIGINS`.
+- Webhook handlers should validate provider signatures (e.g. Paystack) using configured secrets.
+
+---
+
+## Contributing
+
+1. Fork the repository and create a branch for your change.  
+2. Keep commits focused and describe the intent in the message.  
+3. Open a pull request with a short summary of behavior and any new configuration.  
+4. Ensure new features document required env vars in this README when applicable.
+
+---
+
+## License and ownership
+
+Licensing terms are defined by the repository maintainers. If no `LICENSE` file is present at the root, confirm usage with the project owner before redistribution.
+
+---
+
+**TickiSpot** — ticketing and events, built for scale from local development to production deployment.
