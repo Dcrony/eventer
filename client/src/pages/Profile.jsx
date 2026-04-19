@@ -15,6 +15,7 @@ import EventCard from "../components/EventCard";
 import Button from "../components/ui/button";
 import VerifiedBadge from "../components/ui/verified-badge";
 import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import Avatar from "../components/ui/avatar";
 import useShareLink from "../hooks/useShareLink";
 import "./CSS/Profile.css";
 
@@ -249,10 +250,7 @@ export default function Profile() {
             <div className="profile-identity-row">
               <div className="profile-avatar-column">
                 <div className="profile-avatar">
-                  <img
-                    src={getProfileImageUrl(profile) || "/default-avatar.png"}
-                    alt={profileName}
-                  />
+                  <Avatar src={getProfileImageUrl(profile)} name={profileName} className="profile-avatar-inner" />
                 </div>
               </div>
 

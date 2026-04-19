@@ -264,11 +264,16 @@
 }
 
 .creator-avatar,
-.avatar-fallback {
+.creator-avatar.avatar,
+.creator-avatar img {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   border: 2px solid white;
+}
+
+.creator-avatar.avatar {
+  box-sizing: border-box;
 }
 
 .creator-name {

@@ -159,11 +159,16 @@
   flex-shrink: 0;
 }
 
-.slide-menu-avatar img {
+.slide-menu-avatar img,
+.slide-menu-avatar .avatar {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.slide-menu-avatar .avatar {
+  border: none;
 }
 
 .avatar-placeholder {

@@ -4,7 +4,7 @@ import MessageBubble from "./MessageBubble";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
 import { useSocket } from "../../hooks/useSocket";
-import { getProfileImageUrl } from "../../utils/eventHelpers";
+import { UserAvatar } from "../ui/avatar";
 
 export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile }) {
   const [messages, setMessages] = useState([]);
@@ -192,8 +192,6 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
     );
   }
 
-  const avatarSrc = getProfileImageUrl(selectedUser);
-
   return (
     <div className="chat-window">
       <div className="chat-window-header">
@@ -216,15 +214,7 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
           }}
         >
           <div className="chat-header-avatar">
-            {avatarSrc ? (
-              <img src={avatarSrc} alt={selectedUser.username || selectedUser.name} className="avatar-img" />
-            ) : (
-              <div className="avatar-fallback">
-                {selectedUser.name?.charAt(0)?.toUpperCase() ||
-                  selectedUser.username?.charAt(0)?.toUpperCase() ||
-                  "U"}
-              </div>
-            )}
+            <UserAvatar user={selectedUser} className="chat-header-avatar-inner" />
             <span className={`online-indicator ${online ? "online" : "offline"}`}></span>
           </div>
 

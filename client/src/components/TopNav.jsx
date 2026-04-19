@@ -48,7 +48,6 @@ export default function TopNav() {
     setIsMenuOpen(false);
   };
 
-  const profilePicUrl = user ? getProfileImageUrl(user) : null;
 
   return (
     <>
@@ -60,17 +59,11 @@ export default function TopNav() {
             className="top-nav-more-btn"
             onClick={() => setIsMenuOpen(true)}
           >
-            {profilePicUrl ? (
-              <div className="profile-dropdown">
-                <Avatar src={profilePicUrl} name={user?.name || user?.username} className="avatar-small" />
-                <span className="user-name">{user?.name || "Account"}</span>
-                <ChevronDown size={14} className="dropdown-icon" />
-              </div>
-            ) : (
-              <div className="avatar-placeholder">
-                {user?.name?.charAt(0)?.toUpperCase()}
-              </div>
-            )}
+            <div className="profile-dropdown">
+              <Avatar src={user ? getProfileImageUrl(user) : null} name={user?.name || user?.username || "Account"} className="avatar-small" />
+              <span className="user-name">{user?.name || "Account"}</span>
+              <ChevronDown size={14} className="dropdown-icon" />
+            </div>
           </div>
 
           <Link to="/" className="top-nav-logo">
@@ -96,13 +89,7 @@ export default function TopNav() {
           {user && (
             <div className="slide-menu-user clickable" onClick={goToProfile}>
               <div className="slide-menu-avatar">
-                {profilePicUrl ? (
-                  <img src={profilePicUrl} alt={user.name} />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {user.name?.charAt(0)}
-                  </div>
-                )}
+                <Avatar src={getProfileImageUrl(user)} name={user.name || user.username} />
               </div>
 
               <div className="slide-menu-user-info">

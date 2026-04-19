@@ -2,7 +2,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { MessageCircleMore, Search } from "lucide-react";
 import API from "../../api/axios";
 import { useSocket } from "../../hooks/useSocket";
-import { getProfileImageUrl } from "../../utils/eventHelpers";
+import { UserAvatar } from "../ui/avatar";
 import { isUserOnline } from "../../utils/messaging";
 
 export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds = [] }) {
@@ -17,7 +17,6 @@ export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds 
     name: u.name,
     username: u.username,
     profilePic: u.profilePic,
-    avatar: getProfileImageUrl(u),
   });
 
   useEffect(() => {
@@ -136,13 +135,11 @@ export default function ChatList({ setSelectedUser, selectedUser, onlineUserIds 
               onClick={() => setSelectedUser(chat.user)}
             >
               <div className="chat-item-avatar">
-                {chat.user.avatar ? (
-                  <img src={chat.user.avatar} alt={chat.user.name} />
-                ) : (
-                  <div className="avatar-fallback">
-                    {chat.user.name?.charAt(0)?.toUpperCase() || "U"}
-                  </div>
-                )}
+                <UserAvatar
+                  user={chat.user}
+                  name={chat.user.name || chat.user.username || "User"}
+                  className="chat-item-avatar-img"
+                />
                 <span
                   className={`online-indicator chat-item-online-indicator ${isUserOnline(onlineUserIds, chat.user._id) ? "online" : "offline"}`}
                   aria-hidden

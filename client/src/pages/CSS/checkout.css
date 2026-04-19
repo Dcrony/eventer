@@ -217,17 +217,21 @@
   color: var(--checkout-text-light);
 }
 
-.buyer-avatar {
+.buyer-avatar,
+.buyer-avatar.avatar {
   width: 44px;
   height: 44px;
   border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.buyer-avatar:not(.avatar) {
   display: grid;
   place-items: center;
   font-weight: 800;
   font-size: 1.1rem;
   background: linear-gradient(135deg, var(--checkout-primary), #f43f5e);
   color: white;
-  flex-shrink: 0;
 }
 
 .buyer-name {

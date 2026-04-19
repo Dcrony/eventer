@@ -9,7 +9,6 @@ import {
   ExternalLink,
   QrCode,
   Clock,
-  User,
   AlertCircle,
   PlusCircle,
 } from "lucide-react";
@@ -17,7 +16,8 @@ import { Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
 import { PORT_URL } from "../utils/config";
-import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import { getEventImageUrl } from "../utils/eventHelpers";
+import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
 import CreateEvent from "./CreateEvent";
 
@@ -194,17 +194,7 @@ export default function MyTickets() {
                           }
                         }}
                       >
-                        {getProfileImageUrl(event.createdBy) ? (
-                          <img
-                            src={getProfileImageUrl(event.createdBy)}
-                            alt={event.createdBy.username}
-                            className="creator-avatar"
-                          />
-                        ) : (
-                          <div className="avatar-fallback">
-                            <User size={14} />
-                          </div>
-                        )}
+                        <UserAvatar user={event.createdBy} className="creator-avatar" />
                         <span className="creator-name">
                           by {event.createdBy?.username || "Organizer"}
                         </span>

@@ -28,7 +28,8 @@ import {
 import io from "socket.io-client";
 import Peer from "simple-peer";
 import API from "../api/axios";
-import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import { getEventImageUrl } from "../utils/eventHelpers";
+import { UserAvatar } from "../components/ui/avatar";
 import "./CSS/LiveStream.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -565,17 +566,10 @@ export default function LiveStream() {
                                     }
                                 }}
                             >
-                                {event.createdBy?.profilePic ? (
-                                    <img
-                                        src={getProfileImageUrl(event.createdBy) || "/default-avatar.png"}
-                                        alt=""
-                                        className="creator-avatar-large"
-                                    />
-                                ) : (
-                                    <div className="creator-avatar-large placeholder">
-                                        {event.createdBy?.username?.charAt(0) || "U"}
-                                    </div>
-                                )}
+                                <UserAvatar
+                                    user={event.createdBy}
+                                    className="creator-avatar-large"
+                                />
                                 <div className="creator-details">
                                     <h4>{event.createdBy?.username || "Organizer"}</h4>
                                     <p className="follower-count">1.2K followers</p>
@@ -675,17 +669,7 @@ export default function LiveStream() {
                                                     }
                                                 }}
                                             >
-                                                {t.buyer?.profilePic ? (
-                                                    <img
-                                                        src={getProfileImageUrl(t.buyer) || "/default-avatar.png"}
-                                                        alt=""
-                                                        className="host-attendee-avatar"
-                                                    />
-                                                ) : (
-                                                    <div className="host-attendee-avatar host-attendee-avatar-fallback">
-                                                        {t.buyer?.username?.charAt(0) || "?"}
-                                                    </div>
-                                                )}
+                                                <UserAvatar user={t.buyer} className="host-attendee-avatar" />
                                                 <div className="host-attendee-info">
                                                     <span className="host-attendee-name">
                                                         {t.buyer?.username || "Guest"}

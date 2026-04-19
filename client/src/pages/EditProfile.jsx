@@ -6,6 +6,7 @@ import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import { validateImageFile } from "../utils/imageUpload";
 import "./CSS/EditProfile.css";
 import { useToast } from "../components/ui/toast";
+import Avatar from "../components/ui/avatar";
 
 const BIO_MAX = 500;
 
@@ -214,8 +215,7 @@ export default function EditProfile() {
 
   const profileId = user?.id ?? user?._id ?? "";
   const coverSrc = coverPreview || getCoverImageUrl(user) || "/cover.jpg";
-  const profileSrc =
-    profilePreview || getProfileImageUrl(user) || "/default-avatar.png";
+  const profileSrc = profilePreview || getProfileImageUrl(user) || null;
 
   return (
     <div className="editprofile-page">
@@ -264,7 +264,11 @@ export default function EditProfile() {
           </label>
 
           <div className="profile-pic-wrapper">
-            <img src={profileSrc} alt="" className="profile-pic" />
+            <Avatar
+              src={profileSrc}
+              name={formData.name || formData.username || "User"}
+              className="profile-pic"
+            />
             <label className="profile-upload">
               {uploadingProfile ? (
                 <>

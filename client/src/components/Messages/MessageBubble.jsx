@@ -1,5 +1,5 @@
 import { Check, CheckCheck } from "lucide-react";
-import { PORT_URL } from "../../utils/config";
+import { UserAvatar } from "../ui/avatar";
 
 export default function MessageBubble({ message, isMe }) {
   const formatTime = (date) => {
@@ -20,20 +20,7 @@ export default function MessageBubble({ message, isMe }) {
     <div className={`message-wrapper ${isMe ? "message-wrapper-me" : "message-wrapper-them"}`}>
       {!isMe ? (
         <div className="message-avatar">
-          {message.sender?.profilePic ? (
-            <img
-              src={
-                message.sender.profilePic.startsWith("http")
-                  ? message.sender.profilePic
-                  : `${PORT_URL}/uploads/profile_pic/${message.sender.profilePic}`
-              }
-              alt={message.sender.name}
-            />
-          ) : (
-            <div className="avatar-fallback-small">
-              {message.sender?.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-          )}
+          <UserAvatar user={message.sender} className="avatar-message" />
         </div>
       ) : null}
 

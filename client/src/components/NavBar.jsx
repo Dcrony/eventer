@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
 import NotificationBell from "./NotificationBell";
+import Avatar from "./ui/avatar";
 import { getProfileImageUrl } from "../utils/eventHelpers";
 import "./css/Navbar.css";
 
@@ -45,9 +46,9 @@ export default function NavBar() {
           </div>
 
           <div className="profile-dropdown group">
-            <img
-              src={getProfileImageUrl(user) || "/default-avatar.png"}
-              alt="Profile"
+            <Avatar
+              src={getProfileImageUrl(user)}
+              name={user.username || user.name || "User"}
               className="nav-profile-pic"
             />
             <div className="dropdown-menu">

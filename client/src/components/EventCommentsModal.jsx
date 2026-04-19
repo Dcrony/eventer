@@ -1,7 +1,8 @@
-import { Send, UserCircle2 } from "lucide-react";
+import { Send } from "lucide-react";
 import { startTransition, useEffect, useOptimistic, useState } from "react";
 import API from "../api/axios";
-import { getProfileImageUrl, formatRelativeTime } from "../utils/eventHelpers";
+import { formatRelativeTime } from "../utils/eventHelpers";
+import { UserAvatar } from "./ui/avatar";
 import Modal from "./ui/modal";
 import Button from "./ui/button";
 import { useToast } from "./ui/toast";
@@ -113,11 +114,7 @@ export default function EventCommentsModal({
           {optimisticComments.map((comment) => (
             <article key={comment._id} className="event-comment-item">
               <div className="event-comment-avatar">
-                {getProfileImageUrl(comment.user) ? (
-                  <img src={getProfileImageUrl(comment.user)} alt={comment.user?.username || "User"} />
-                ) : (
-                  <UserCircle2 size={26} />
-                )}
+                <UserAvatar user={comment.user} className="event-comment-avatar-img" />
               </div>
               <div className="event-comment-body">
                 <div className="event-comment-meta">
