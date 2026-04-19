@@ -50,7 +50,7 @@
   box-shadow: 0 0 0 2px var(--nb-bg, #fff);
 }
 
-/* ----- Dropdown: desktop is portaled to body with fixed top/left from JS (see .is-portal-desktop) ----- */
+/* ----- Dropdown: desktop is portaled to body; max-height + flex keeps list scrollable inside viewport ----- */
 .notification-bell-dropdown.is-portal-desktop {
   margin: 0;
   width: 360px;
@@ -60,6 +60,9 @@
   border-radius: 16px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   animation: nb-slideUp 0.2s ease-out;
 }
 
@@ -72,13 +75,20 @@
     margin: 0;
     width: 100vw;
     max-width: 100vw;
+    max-height: 100dvh;
     height: 100dvh;
     border-radius: 0;
     border: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .notification-bell-dropdown.is-mobile .notification-bell-list {
-    max-height: calc(100dvh - 70px);
+    flex: 1;
+    min-height: 0;
+    max-height: none;
   }
 }
 
@@ -102,6 +112,7 @@
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--nb-border, rgba(0, 0, 0, 0.06));
   background: var(--nb-bg, #fff);
+  flex-shrink: 0;
 }
 
 .notification-bell-title-wrap {
@@ -150,11 +161,18 @@
   color: #db2777;
 }
 
-/* ----- List ----- */
+/* ----- List (scroll inside panel; desktop max-height comes from inline JS + flex) ----- */
 .notification-bell-list {
-  max-height: 380px;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.notification-bell-dropdown.is-portal-desktop .notification-bell-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
 }
 
 .notification-bell-list::-webkit-scrollbar {

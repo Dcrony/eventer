@@ -35,7 +35,7 @@ const NotificationBell = () => {
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false,
   );
-  const [desktopPos, setDesktopPos] = useState({ top: 0, left: 0 });
+  const [desktopPos, setDesktopPos] = useState({ top: 0, left: 0, maxHeight: 520 });
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
   const navigate = useNavigate();
@@ -57,13 +57,23 @@ const NotificationBell = () => {
       const r = el.getBoundingClientRect();
       const gap = 10;
       const panelWidth = 360;
+      const pad = 12;
+      const vh = window.innerHeight;
+
       let left = r.right + gap;
-      const top = Math.max(8, r.top);
       const maxLeft = window.innerWidth - panelWidth - 16;
       if (left > maxLeft) {
         left = Math.max(16, r.left - panelWidth - gap);
       }
-      setDesktopPos({ top, left });
+
+      /* Keep entire panel inside the viewport (above OS taskbar / browser chrome) */
+      const maxPanelHeight = Math.min(520, vh - pad * 2);
+      let top = Math.max(pad, r.top);
+      if (top + maxPanelHeight > vh - pad) {
+        top = Math.max(pad, vh - pad - maxPanelHeight);
+      }
+
+      setDesktopPos({ top, left, maxHeight: maxPanelHeight });
     };
 
     place();
@@ -111,6 +121,7 @@ const NotificationBell = () => {
               position: "fixed",
               top: desktopPos.top,
               left: desktopPos.left,
+              maxHeight: desktopPos.maxHeight,
               zIndex: NOTIFICATION_PANEL_Z,
             }
       }
