@@ -12,6 +12,7 @@ import {
   BarChart3,
   HelpCircle,
   ChevronDown,
+  ChevronsRight,
 } from "lucide-react";
 
 import { logout } from "../utils/auth";
@@ -55,8 +56,7 @@ export default function TopNav() {
             {user?.profilePic ? (
               <div className="profile-dropdown">
                         <Avatar src={user?.profilePic} name={user?.name || user?.username} className="avatar-small" />
-                        <span className="user-name">{user?.name || "Account"}</span>
-                        <ChevronDown size={14} className="dropdown-icon" />
+                        <ChevronsRight size={14} className="dropdown-icon" />
                       </div>
             ) : (
               <div className="avatar-placeholder">

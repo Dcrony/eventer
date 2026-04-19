@@ -51,10 +51,6 @@
   color: #666;
 }
 
-.top-nav-more-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
 .top-nav-more-btn:active {
   transform: scale(0.95);
 }
