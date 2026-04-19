@@ -418,6 +418,78 @@ const upgradeMyPlan = async (req, res) => {
   }
 };
 
+const getCreators = async (req, res) => {
+  try {
+    const category = String(req.query.category || "all").toLowerCase();
+    const sort = String(req.query.sort || "trending").toLowerCase();
+    const match = { isDeleted: { $ne: true } };
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "events",
+          localField: "_id",
+          foreignField: "createdBy",
+          as: "events",
+        },
+      },
+      {
+        $addFields: {
+          eventsCount: { $size: "$events" },
+          followersCount: { $size: { $ifNull: ["$followers", []] } },
+        },
+      },
+      {
+        $match: {
+          eventsCount: { $gt: 0 },
+          ...(category !== "all"
+            ? {
+                events: {
+                  $elemMatch: {
+                    category: { $regex: `^${category}$`, $options: "i" },
+                  },
+                },
+              }
+            : {}),
+        },
+      },
+      {
+        $project: {
+          password: 0,
+          verificationCode: 0,
+          resetPasswordToken: 0,
+          subscriptionHistory: 0,
+          emailVerificationToken: 0,
+          resetPasswordExpires: 0,
+          verificationCodeExpires: 0,
+        },
+      },
+      {
+        $sort:
+          sort === "trending"
+            ? { followersCount: -1, eventsCount: -1, createdAt: -1 }
+            : { eventsCount: -1, followersCount: -1, createdAt: -1 },
+      },
+      { $limit: 30 },
+    ];
+
+    const creators = await User.aggregate(pipeline);
+    return res.json(creators);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getFounderProfile = async (req, res) => {
+  return res.json({
+    name: "Ibrahim Abdulmajeed",
+    title: "Founder of TickiSpot",
+    bio: "Creator of TickiSpot, the event + community + creator platform.",
+    portfolioUrl: "https://ibrahimabdulmajeed.dev",
+    organization: "TickiSpot",
+  });
+};
+
 const deactivateAccount = async (req, res) => {
   try {
     if (String(req.params.id) !== String(req.user.id)) {
@@ -451,5 +523,7 @@ module.exports = {
   getUserProfile,
   getPublicProfile,
   upgradeMyPlan,
+  getCreators,
+  getFounderProfile,
   deactivateAccount,
 };
