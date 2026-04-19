@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema(
       required: false,
       unique: false,
     },
+    location: {
+  type: String,
+  default: "Tickispot",
+},
     password: {
       type: String,
       required: false,
@@ -93,6 +97,11 @@ followers: {
   ref: "User",
   default: [],
 },
+favorites: {
+  type: [mongoose.Schema.Types.ObjectId],
+  ref: "Event",
+  default: [],
+},
 
     // ✅ Settings sections
     privacy: {
@@ -101,15 +110,80 @@ followers: {
       searchable: { type: Boolean, default: true },
     },
     notifications: {
+      likes: { type: Boolean, default: true },
+      comments: { type: Boolean, default: true },
+      follows: { type: Boolean, default: true },
+      eventReminders: { type: Boolean, default: true },
       emailAlerts: { type: Boolean, default: true },
       smsAlerts: { type: Boolean, default: false },
       appPush: { type: Boolean, default: true },
       newsletter: { type: Boolean, default: false },
     },
+    security: {
+      twoFactorEnabled: { type: Boolean, default: false },
+      lastPasswordChange: { type: Date, default: null },
+    },
+    eventPreferences: {
+      defaultTicketPrice: { type: Number, default: 0 },
+      eventVisibility: {
+        type: String,
+        enum: ["public", "private"],
+        default: "public",
+      },
+      autoPublishEvents: { type: Boolean, default: false },
+    },
+    integrations: {
+      stripe: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
+      googleCalendar: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
+      zoom: {
+        connected: { type: Boolean, default: false },
+        label: { type: String, default: "Not connected" },
+      },
+    },
     billing: {
       plan: { type: String, default: "Free" },
       nextBillingDate: { type: String, default: "N/A" },
     },
+
+    /** SaaS subscription tier (separate from legacy billing.plan label) */
+    plan: {
+      type: String,
+      enum: ["free", "pro", "business"],
+      default: "free",
+    },
+    /** Total events ever created (incremented on each create) */
+    eventCount: {
+      type: Number,
+      default: 0,
+    },
+    subscriptionHistory: [
+      {
+        plan: {
+          type: String,
+          enum: ["free", "pro", "business"],
+          required: true,
+        },
+        amount: {
+          type: Number,
+          default: 0,
+        },
+        interval: {
+          type: String,
+          enum: ["monthly", "yearly"],
+          default: "monthly",
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     isDeleted: {
     type: Boolean,

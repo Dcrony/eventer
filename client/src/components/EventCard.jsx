@@ -1,5 +1,5 @@
 import { useEffect, useState, startTransition, useOptimistic } from "react";
-import { CalendarDays, MapPin, Ticket, UserCircle2 } from "lucide-react";
+import { CalendarDays, Heart, MapPin, Ticket, UserCircle2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import icon from "../assets/icon.svg";
@@ -20,6 +20,7 @@ import "./css/EventCard.css";
 
 export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
   const [eventState, setEventState] = useState(event);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [optimisticEvent, updateOptimisticEvent] = useOptimistic(eventState, (current, patch) => ({
@@ -109,8 +110,38 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
     setCommentsOpen(true);
   };
 
+  const handleFavorite = (eventClick) => {
+    eventClick.preventDefault();
+    eventClick.stopPropagation();
+    if (favoriteLoading) return;
+
+    handleProtectedAction(() => {
+      const prev = Boolean(eventState.isFavorited);
+      const next = !prev;
+
+      startTransition(async () => {
+        updateOptimisticEvent({ isFavorited: next });
+        try {
+          setFavoriteLoading(true);
+          const { data } = await API.post(`/favorites/${eventState._id}`);
+          const isFavorited = Boolean(data?.isFavorited);
+          syncEvent({ ...eventState, isFavorited });
+          toast.success(isFavorited ? "Added to favorites" : "Removed from favorites");
+        } catch (error) {
+          console.error("Favorite toggle failed:", error);
+          toast.error("Could not update favorites");
+          updateOptimisticEvent({ isFavorited: prev });
+          syncEvent(eventState);
+        } finally {
+          setFavoriteLoading(false);
+        }
+      });
+    });
+  };
+
   const imageUrl = getEventImageUrl(eventState);
   const showPlaceholder = !imageUrl || imageFailed;
+  const favorited = Boolean(optimisticEvent.isFavorited);
 
   return (
     <>
@@ -163,6 +194,16 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 <span>Tickets</span>
                 <strong>{formatEventPrice(eventState)}</strong>
               </div>
+              <button
+                type="button"
+                className={`social-event-favorite ${favorited ? "is-active" : ""}`}
+                onClick={handleFavorite}
+                disabled={favoriteLoading}
+                aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart size={16} />
+                <span>{favorited ? "Saved" : "Favorite"}</span>
+              </button>
 
               <div
                 className="social-event-card-organizer"

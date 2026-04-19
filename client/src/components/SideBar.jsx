@@ -22,6 +22,7 @@ import {
   Bell,
   MessageSquare,
   Banknote,
+  Users,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -78,12 +79,16 @@ export default function Sidebar() {
   { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
   { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
 
-  {
-    label: "Create event",
-    icon: <PlusCircle size={20} />,
-    action: () => setShowCreateEvent(true),
-    primary: true,
-  },
+  ...(canOrganize
+    ? [{
+        label: "Create",
+        icon: <PlusCircle size={20} />,
+        action: () => setShowCreateEvent(true),
+        primary: true,
+      }]
+    : []),
+
+    {to: "/community", label: "Community", icon: <Users size={20} />},
 ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
@@ -173,7 +178,7 @@ export default function Sidebar() {
         {/* Bottom: Notifications first, then Profile, Settings, Logout */}
         <div className="sidebar-bottom">
           <div className="sidebar-bottom-item" data-tooltip="Notifications">
-            <NotificationBell userId={user.id} />
+            <NotificationBell />
           </div>
           <Link
             to={profileUrl}

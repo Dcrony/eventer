@@ -15,13 +15,29 @@ const BUTTON_SIZES = {
 };
 
 const Button = forwardRef(
-  ({ className, variant = "primary", size = "md", type = "button", ...props }, ref) => (
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      type = "button",
+      loading = false,
+      disabled = false,
+      children,
+      ...props
+    },
+    ref,
+  ) => (
     <button
       ref={ref}
       type={type}
       className={cn("ui-button", BUTTON_VARIANTS[variant], BUTTON_SIZES[size], className)}
+      disabled={loading || disabled}
       {...props}
-    />
+    >
+      {loading ? <span className="ui-button-spinner" aria-hidden="true" /> : null}
+      {children}
+    </button>
   ),
 );
 

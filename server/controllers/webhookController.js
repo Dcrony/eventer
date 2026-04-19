@@ -292,8 +292,8 @@ exports.handlePaystackWebhook = async (req, res) => {
 
         // Emit real-time notification if socket.io is available
         const io = req.app.get("io");
-        if (io) {
-          io.to(`user_${finalUserId}`).emit("new_notification", buyerNotification);
+        if (io?.emitToUser) {
+          io.emitToUser(finalUserId, "new_notification", buyerNotification.toJSON());
         }
 
         console.log("✅ Notification created for buyer:", finalUserId);
@@ -314,8 +314,8 @@ exports.handlePaystackWebhook = async (req, res) => {
 
         // Emit real-time notification if socket.io is available
         const io = req.app.get("io");
-        if (io) {
-          io.to(`user_${eventDoc.createdBy}`).emit("new_notification", notification);
+        if (io?.emitToUser) {
+          io.emitToUser(eventDoc.createdBy, "new_notification", notification.toJSON());
         }
 
         console.log("✅ Notification created for organizer:", eventDoc.createdBy);

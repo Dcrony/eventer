@@ -30,8 +30,9 @@
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, border-color 0.2s;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
+
 
 .sidebar.expand {
   width: 15rem;
@@ -119,7 +120,7 @@
   height: 36px;
   border-radius: var(--sidebar-radius-sm);
   border: 1px solid var(--sidebar-border);
-  background: rgba(255, 255, 255, 0.8);
+  background: #f0f0f1;
   color: var(--sidebar-text-muted);
   display: flex;
   align-items: center;
@@ -143,7 +144,7 @@
 /* ----- Main navigation ----- */
 .sidebar-nav {
   flex: 1;
-  padding: 0.75rem 0.5rem 0.5rem;
+  padding: 0.75rem 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -215,7 +216,7 @@
 .sidebar-link.is-active {
   background: var(--sidebar-active-bg);
   border-color: var(--sidebar-active-border);
-  color: var(--sidebar-text);
+  color: #fff;
 }
 
 .sidebar-link.is-active .sidebar-link-icon {

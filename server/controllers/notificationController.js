@@ -1,22 +1,24 @@
 const Notification = require("../models/Notification");
+const { createNotification: createRealtimeNotification } = require("../services/notificationService");
 
-// ✅ Create a new notification
 const createNotification = async (req, res) => {
   try {
-    const { userId, message, type } = req.body;
-    if (!userId || String(userId) !== String(req.user._id)) {
-      return res.status(403).json({ message: "Can only create notifications for your own account" });
+    const { userId, message, type, actionUrl, entityId, entityType, meta } = req.body;
+
+    if (!userId || !message) {
+      return res.status(400).json({ message: "userId and message are required" });
     }
-    const notification = await Notification.create({
-      user: userId,
+
+    const notification = await createRealtimeNotification(req.app, {
+      userId,
+      actorId: req.user._id,
       message,
       type,
+      actionUrl,
+      entityId,
+      entityType,
+      meta,
     });
-
-    const io = req.app.get("io");
-    if (io) {
-      io.emit(`notify_${userId}`, notification);
-    }
 
     res.status(201).json(notification);
   } catch (error) {
@@ -25,7 +27,6 @@ const createNotification = async (req, res) => {
   }
 };
 
-// ✅ Get all notifications for logged-in user
 const getMyNotifications = async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.user._id }).sort({
@@ -37,7 +38,6 @@ const getMyNotifications = async (req, res) => {
   }
 };
 
-// ✅ Mark a single notification as read
 const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
@@ -50,7 +50,7 @@ const markAsRead = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    notification.read = true;
+    notification.isRead = true;
     await notification.save();
 
     res.json({ message: "Marked as read", notification });
@@ -59,17 +59,15 @@ const markAsRead = async (req, res) => {
   }
 };
 
-// ✅ Mark all notifications as read
 const markAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ user: req.user._id }, { read: true });
+    await Notification.updateMany({ user: req.user._id }, { isRead: true });
     res.json({ message: "All notifications marked as read" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// ✅ Delete a notification
 const deleteNotification = async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);

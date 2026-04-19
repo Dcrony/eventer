@@ -17,6 +17,10 @@
   transition: background 0.2s, color 0.2s;
 }
 
+.notification-bell-wrap {
+  position: relative;
+}
+
 .notification-bell-trigger:hover {
   background: var(--nb-hover, rgba(0, 0, 0, 0.04));
   color: var(--nb-text, #1e293b);
@@ -61,6 +65,26 @@
   z-index: 10001;
   overflow: hidden;
   animation: nb-slideUp 0.2s ease-out;
+}
+
+@media (max-width: 768px) {
+  .notification-bell-dropdown.is-mobile {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    margin: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+    border: 0;
+    z-index: 10020;
+  }
+
+  .notification-bell-dropdown.is-mobile .notification-bell-list {
+    max-height: calc(100dvh - 70px);
+  }
 }
 
 @keyframes nb-slideUp {

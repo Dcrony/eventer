@@ -5,12 +5,14 @@ import { ArrowLeft, Camera, ImageIcon } from "lucide-react";
 import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import { validateImageFile } from "../utils/imageUpload";
 import "./CSS/EditProfile.css";
+import { useToast } from "../components/ui/toast";
 
 const BIO_MAX = 500;
 
 export default function EditProfile() {
   const navigate = useNavigate();
 
+  const toast = useToast();
   const [user, setUser] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -25,10 +27,13 @@ export default function EditProfile() {
   const [coverPreview, setCoverPreview] = useState(null);
 
   const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    bio: "",
-  });
+  name: "",
+  username: "",
+  bio: "",
+  location: "",
+  email: "",
+  phone: "",
+});
 
   const setProfileBlobPreview = useCallback((blobUrl) => {
     if (profileBlobRef.current) URL.revokeObjectURL(profileBlobRef.current);
@@ -58,6 +63,9 @@ export default function EditProfile() {
           name: res.data.name || "",
           username: res.data.username || "",
           bio: res.data.bio || "",
+          location: res.data.location || "",
+          email: res.data.email || "",
+          phone: res.data.phone || "",
         });
         setLoadError(null);
       } catch (err) {
@@ -166,15 +174,16 @@ export default function EditProfile() {
     setFeedback({ type: "", text: "" });
     try {
       await API.put("/users/edit", formData);
-      setFeedback({ type: "success", text: "Profile saved. Redirecting…" });
+      toast.success("Profile updated successfully");
       const id = user?.id ?? user?._id ?? "";
-      setTimeout(() => navigate(`/users/${id}`), 600);
+      navigate(`/users/${id}`);
     } catch (err) {
       console.error("Error updating profile:", err);
       setFeedback({
         type: "error",
         text: err.response?.data?.message || "Update failed. Please try again.",
       });
+      toast.error("Update failed. Please try again");
     } finally {
       setSaving(false);
     }
@@ -317,6 +326,39 @@ export default function EditProfile() {
             placeholder="A short line about you…"
             rows={4}
             maxLength={BIO_MAX}
+          />
+
+          <label htmlFor="edit-location">Location</label>
+          <input
+            id="edit-location"
+            type="text"
+            name="location"
+            value={formData.location}
+            onChange={handleChange}
+            placeholder="e.g. Lagos, Nigeria"
+            autoComplete="address-level1"
+          />
+
+          <label htmlFor="edit-email">Email</label>
+          <input
+            id="edit-email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
+
+          <label htmlFor="edit-phone">Phone</label>
+          <input
+            id="edit-phone"
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="Phone number"
+            autoComplete="tel"
           />
 
           <button

@@ -1,5 +1,11 @@
 const Message = require("../models/Message");
 const User = require("../models/User");
+const {
+  PRIVATE_MESSAGE_POPULATE,
+  buildConversationRoom,
+  createPrivateMessage,
+  normalizePrivateMessage,
+} = require("../services/messageService");
 
 const sendMessage = async (req, res) => {
   try {
@@ -10,7 +16,7 @@ const sendMessage = async (req, res) => {
       return res.status(400).json({ msg: "All fields required" });
     }
 
-    if (senderId === receiverId) {
+    if (String(senderId) === String(receiverId)) {
       return res.status(400).json({ msg: "You can't message yourself" });
     }
 
@@ -19,21 +25,24 @@ const sendMessage = async (req, res) => {
       return res.status(404).json({ msg: "Receiver not found" });
     }
 
-    // Create private message
-    const message = await Message.create({
-      messageType: 'private',
-      sender: senderId,
-      receiver: receiverId,
-      text: text,
-      seen: false,
+    const savedMessage = await createPrivateMessage({
+      senderId,
+      receiverId,
+      text: String(text).trim(),
     });
 
-    // Populate the message before sending response
-    const populatedMessage = await Message.findById(message._id)
-      .populate("sender", "name profilePic email")
-      .populate("receiver", "name profilePic email");
+    const io = req.app.get("io");
+    if (io?.emitToUser) {
+      const conversationId = buildConversationRoom(senderId, receiverId);
+      io.to(conversationId).emit("receive_message", savedMessage);
+      io.emitToUser(receiverId, "conversation_update", {
+        type: "message",
+        conversationId,
+        message: savedMessage,
+      });
+    }
 
-    res.status(201).json(populatedMessage);
+    res.status(201).json(savedMessage);
   } catch (err) {
     console.error("Send message error:", err);
     res.status(500).json({ msg: err.message });
@@ -50,17 +59,16 @@ const getMessages = async (req, res) => {
     }
 
     const messages = await Message.find({
-      messageType: 'private',
+      messageType: "private",
       $or: [
         { sender: currentUserId, receiver: otherUserId },
         { sender: otherUserId, receiver: currentUserId },
       ],
     })
       .sort({ createdAt: 1 })
-      .populate("sender", "name profilePic email")
-      .populate("receiver", "name profilePic email");
+      .populate(PRIVATE_MESSAGE_POPULATE);
 
-    res.json(messages);
+    res.json(messages.map(normalizePrivateMessage));
   } catch (err) {
     console.error("Get messages error:", err);
     res.status(500).json({ msg: err.message });
@@ -71,14 +79,12 @@ const getConversations = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Get all private messages where user is either sender or receiver
     const messages = await Message.find({
-      messageType: 'private',
+      messageType: "private",
       $or: [{ sender: userId }, { receiver: userId }],
     })
       .sort({ createdAt: -1 })
-      .populate("sender", "name profilePic email")
-      .populate("receiver", "name profilePic email");
+      .populate(PRIVATE_MESSAGE_POPULATE);
 
     if (!messages.length) {
       return res.json([]);
@@ -87,24 +93,20 @@ const getConversations = async (req, res) => {
     const conversationsMap = new Map();
 
     messages.forEach((msg) => {
-      // Determine the other user in the conversation
-      const otherUser = msg.sender._id.toString() === userId 
-        ? msg.receiver 
-        : msg.sender;
+      const otherUser = msg.sender._id.toString() === userId ? msg.receiver : msg.sender;
 
       if (!otherUser || !otherUser._id) {
-        console.warn("Invalid message found:", msg._id);
         return;
       }
 
       const otherUserId = otherUser._id.toString();
 
-      // If we haven't seen this conversation yet, add it
       if (!conversationsMap.has(otherUserId)) {
         conversationsMap.set(otherUserId, {
           user: {
             id: otherUser._id,
             name: otherUser.name || "Unknown User",
+            username: otherUser.username,
             profilePic: otherUser.profilePic || null,
             email: otherUser.email,
           },
@@ -119,16 +121,14 @@ const getConversations = async (req, res) => {
         });
       }
 
-      // Count unread messages (messages where current user is receiver and message is not seen)
       if (!msg.seen && msg.receiver._id.toString() === userId) {
-        const conversation = conversationsMap.get(otherUserId);
-        conversation.unreadCount++;
+        conversationsMap.get(otherUserId).unreadCount += 1;
       }
     });
 
-    // Convert map to array and sort by last message date
-    const conversations = Array.from(conversationsMap.values())
-      .sort((a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt));
+    const conversations = Array.from(conversationsMap.values()).sort(
+      (a, b) => new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt),
+    );
 
     res.json(conversations);
   } catch (err) {
@@ -147,26 +147,33 @@ const markMessagesAsRead = async (req, res) => {
     }
 
     const result = await Message.updateMany(
-      { 
-        messageType: 'private',
-        sender: otherUserId, 
-        receiver: userId, 
-        seen: false 
+      {
+        messageType: "private",
+        sender: otherUserId,
+        receiver: userId,
+        seen: false,
       },
-      { seen: true }
+      { seen: true },
     );
 
-    res.json({ 
+    const io = req.app.get("io");
+    if (io?.emitToUser) {
+      io.emitToUser(otherUserId, "conversation_update", {
+        type: "read_receipt",
+        conversationId: buildConversationRoom(userId, otherUserId),
+        readerId: userId,
+      });
+    }
+
+    res.json({
       msg: "Messages marked as read",
-      updatedCount: result.modifiedCount 
+      updatedCount: result.modifiedCount,
     });
   } catch (err) {
     console.error("Mark messages as read error:", err);
     res.status(500).json({ msg: err.message });
   }
 };
-
-// ===================== EVENT LIVE CHAT FUNCTIONS =====================
 
 const sendEventMessage = async (req, res) => {
   try {
@@ -183,11 +190,11 @@ const sendEventMessage = async (req, res) => {
     }
 
     const eventMessage = await Message.create({
-      messageType: 'event',
-      eventId: eventId,
-      userId: userId,
+      messageType: "event",
+      eventId,
+      userId,
       username: user.username || user.name,
-      message: message,
+      message,
     });
 
     const populatedMessage = await Message.findById(eventMessage._id)
@@ -210,8 +217,8 @@ const getEventMessages = async (req, res) => {
     }
 
     const messages = await Message.find({
-      messageType: 'event',
-      eventId: eventId,
+      messageType: "event",
+      eventId,
     })
       .sort({ createdAt: 1 })
       .populate("userId", "name username profilePic")

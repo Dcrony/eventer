@@ -1,14 +1,18 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { getCurrentUser, isAuthenticated } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 export default function AdminRoute({ children }) {
   const location = useLocation();
+  const { user, isAuthenticated, isBootstrapping } = useAuth();
 
-  if (!isAuthenticated()) {
+  if (isBootstrapping) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const user = getCurrentUser();
   const isAdmin = user?.role === "admin" || user?.isAdmin === true;
 
   if (!isAdmin) {

@@ -1,33 +1,30 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Phone, Info, MoreVertical } from "lucide-react";
+import { ArrowLeft, Send, Smile } from "lucide-react";
 import MessageBubble from "./MessageBubble";
-import socket from "../../socket";
 import API from "../../api/axios";
 import useProfileNavigation from "../../hooks/useProfileNavigation";
+import { useSocket } from "../../hooks/useSocket";
 import { getProfileImageUrl } from "../../utils/eventHelpers";
-import { isMessageFromMe } from "../../utils/messaging";
 
-export default function ChatWindow({ currentUser, selectedUser, peerOnline = false }) {
+export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
-  const [typing, setTyping] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [online, setOnline] = useState(false);
   const { toProfile } = useProfileNavigation();
+  const { socket, isConnected } = useSocket();
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const currentUserId = currentUser?._id || currentUser?.id;
 
-  const myUserId = currentUser?.id ?? currentUser?._id;
-
-  // Fetch messages when selectedUser changes
   useEffect(() => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUserId || !selectedUser) return;
 
     const fetchMessages = async () => {
       try {
         setLoading(true);
         const res = await API.get(`/messages/${selectedUser._id}`);
-        // Ensure messages have consistent structure
         const formattedMessages = res.data.map((msg) => ({
           ...msg,
           senderId: msg.sender?._id ?? msg.sender,
@@ -35,10 +32,9 @@ export default function ChatWindow({ currentUser, selectedUser, peerOnline = fal
           text: msg.text,
           createdAt: msg.createdAt,
           seen: msg.seen,
+          temp: false,
         }));
         setMessages(formattedMessages);
-
-        // Mark messages as read
         await API.put(`/messages/read/${selectedUser._id}`);
       } catch (err) {
         console.error("Failed to fetch messages:", err);
@@ -48,174 +44,199 @@ export default function ChatWindow({ currentUser, selectedUser, peerOnline = fal
     };
 
     fetchMessages();
-  }, [currentUser, selectedUser]);
+  }, [currentUserId, selectedUser]);
 
-  // Socket listeners
   useEffect(() => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUserId || !selectedUser || !socket) return;
 
-    // Join room for private chat
-    const room = [myUserId, selectedUser._id].sort().join("-");
-    socket.emit("joinChat", room);
-
-    socket.on("receiveMessage", (data) => {
-      if (!data?.senderId || !myUserId) return;
-      const from = String(data.senderId);
-      const other = String(selectedUser._id);
-      const me = String(myUserId);
-      if (from !== other && from !== me) return;
-      setMessages((prev) => [...prev, data]);
-      if (from === other) {
-        API.put(`/messages/read/${selectedUser._id}`).catch(console.error);
+    socket.emit("join_conversation", { participantId: selectedUser._id }, (response) => {
+      if (response?.ok) {
+        setOnline(Boolean(response.online));
       }
     });
 
-    socket.on("typing", (payload) => {
-      const senderId = payload && typeof payload === "object" ? payload.senderId : payload;
-      if (String(senderId) === String(selectedUser._id)) setIsTyping(true);
+    socket.emit("check_presence", { userId: selectedUser._id }, (response) => {
+      if (response?.ok) {
+        setOnline(Boolean(response.online));
+      }
     });
 
-    socket.on("stopTyping", (payload) => {
-      const senderId = payload && typeof payload === "object" ? payload.senderId : payload;
-      if (String(senderId) === String(selectedUser._id)) setIsTyping(false);
-    });
+    const handleReceiveMessage = (data) => {
+      const isCurrentConversation =
+        (data.senderId === selectedUser._id && data.receiverId === currentUserId) ||
+        (data.senderId === currentUserId && data.receiverId === selectedUser._id);
+
+      if (isCurrentConversation) {
+        setMessages((prev) => {
+          const existingIndex = prev.findIndex(
+            (message) =>
+              message._id === data._id ||
+              (data.clientMessageId && message._id === data.clientMessageId) ||
+              (data.clientMessageId && message.clientMessageId === data.clientMessageId),
+          );
+
+          if (existingIndex >= 0) {
+            return prev.map((message, index) => (index === existingIndex ? { ...data, temp: false } : message));
+          }
+
+          return [...prev, { ...data, temp: false }];
+        });
+
+        if (data.senderId === selectedUser._id) {
+          API.put(`/messages/read/${selectedUser._id}`).catch(console.error);
+        }
+      }
+    };
+
+    const handleTyping = ({ senderId }) => {
+      if (senderId === selectedUser._id) {
+        setIsTyping(true);
+      }
+    };
+
+    const handleStopTyping = ({ senderId }) => {
+      if (senderId === selectedUser._id) {
+        setIsTyping(false);
+      }
+    };
+
+    const handleConversationUpdate = (payload) => {
+      if (payload?.type === "read_receipt" && payload.readerId === selectedUser._id) {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.senderId === currentUserId ? { ...message, seen: true, temp: false } : message,
+          ),
+        );
+      }
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("typing_start", handleTyping);
+    socket.on("typing_stop", handleStopTyping);
+    socket.on("conversation_update", handleConversationUpdate);
 
     return () => {
-      socket.off("receiveMessage");
-      socket.off("typing");
-      socket.off("stopTyping");
-      socket.emit("leaveChat", room);
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("typing_start", handleTyping);
+      socket.off("typing_stop", handleStopTyping);
+      socket.off("conversation_update", handleConversationUpdate);
+      socket.emit("leave_conversation", { participantId: selectedUser._id });
     };
-  }, [currentUser, selectedUser, myUserId]);
+  }, [currentUserId, selectedUser, socket]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!text.trim() || !currentUser || !selectedUser || !myUserId) return;
+    if (!text.trim() || !currentUserId || !selectedUser || !socket) return;
 
-    const tempId = Date.now();
-    const msg = {
+    const nextText = text.trim();
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
       _id: tempId,
-      senderId: myUserId,
+      clientMessageId: tempId,
+      senderId: currentUserId,
       receiverId: selectedUser._id,
-      text: text.trim(),
+      text: nextText,
       createdAt: new Date().toISOString(),
       seen: false,
       temp: true,
     };
 
-    // Optimistically add message
-    setMessages((prev) => [...prev, msg]);
+    setMessages((prev) => [...prev, optimisticMessage]);
     setText("");
 
-    // Emit socket message
-    socket.emit("sendMessage", {
-      senderId: myUserId,
-      receiverId: selectedUser._id,
-      text: text.trim(),
-    });
-
-    try {
-      const res = await API.post("/messages", {
+    socket.emit(
+      "send_message",
+      {
         receiverId: selectedUser._id,
-        text: text.trim(),
-      });
-      
-      // Replace temp message with real one
-      setMessages((prev) => 
-        prev.map(m => m._id === tempId ? res.data : m)
-      );
-    } catch (err) {
-      console.error("Failed to send message:", err);
-      // Remove failed message or mark as error
-      setMessages((prev) => prev.filter(m => m._id !== tempId));
-    }
+        text: nextText,
+        clientMessageId: tempId,
+      },
+      (response) => {
+        if (!response?.ok) {
+          console.error("Failed to send message:", response?.error);
+          setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
+          return;
+        }
+
+        setMessages((prev) =>
+          prev.map((msg) => (msg._id === tempId ? { ...response.message, temp: false } : msg)),
+        );
+      },
+    );
   };
 
-  const handleTyping = () => {
-    if (!currentUser || !selectedUser || !myUserId) return;
+  const handleTypingEmit = () => {
+    if (!currentUserId || !selectedUser || !socket) return;
 
-    socket.emit("typing", {
-      senderId: myUserId,
+    socket.emit("typing_start", {
       receiverId: selectedUser._id,
     });
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("stopTyping", {
-        senderId: myUserId,
+      socket.emit("typing_stop", {
         receiverId: selectedUser._id,
       });
     }, 1000);
   };
 
-  // If user data isn't ready, show a placeholder
   if (!selectedUser) {
     return (
       <div className="chat-window-empty">
-        <svg className="chat-empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
         <h3>Select a conversation</h3>
         <p>Choose someone to start chatting with</p>
       </div>
     );
   }
 
+  const avatarSrc = getProfileImageUrl(selectedUser);
+
   return (
     <div className="chat-window">
-      {/* Chat Header */}
       <div className="chat-window-header">
+        {isMobile ? (
+          <button type="button" className="chat-back-button" onClick={onBack} aria-label="Back to conversations">
+            <ArrowLeft size={18} />
+          </button>
+        ) : null}
+
         <div
           className="chat-header-user"
           role="button"
           tabIndex={0}
           onClick={() => toProfile(selectedUser)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
               toProfile(selectedUser);
             }
           }}
         >
           <div className="chat-header-avatar">
-            {getProfileImageUrl(selectedUser) ? (
-              <img
-                src={getProfileImageUrl(selectedUser)}
-                alt={selectedUser.username || selectedUser.name}
-                className="avatar-img"
-              />
+            {avatarSrc ? (
+              <img src={avatarSrc} alt={selectedUser.username || selectedUser.name} className="avatar-img" />
             ) : (
               <div className="avatar-fallback">
-                {selectedUser.name?.charAt(0)?.toUpperCase() || selectedUser.username?.charAt(0)?.toUpperCase() || "U"}
+                {selectedUser.name?.charAt(0)?.toUpperCase() ||
+                  selectedUser.username?.charAt(0)?.toUpperCase() ||
+                  "U"}
               </div>
             )}
-            <span className={`online-indicator ${peerOnline ? "online" : "offline"}`}></span>
+            <span className={`online-indicator ${online ? "online" : "offline"}`}></span>
           </div>
+
           <div className="chat-header-info">
             <h3 className="chat-header-name">{selectedUser.name || selectedUser.username}</h3>
             <p className="chat-header-status">
-              {peerOnline ? "Online" : "Offline"}
+              {online ? "Online now" : `@${selectedUser.username || "user"}`}
             </p>
           </div>
         </div>
-        <div className="chat-header-actions">
-          <button className="chat-header-btn" title="Call">
-            <Phone size={20} />
-          </button>
-          <button className="chat-header-btn" title="Info">
-            <Info size={20} />
-          </button>
-          <button className="chat-header-btn" title="More">
-            <MoreVertical size={20} />
-          </button>
-        </div>
       </div>
 
-      {/* Messages Area */}
       <div className="chat-window-messages">
         <div className="messages">
           {loading ? (
@@ -225,21 +246,20 @@ export default function ChatWindow({ currentUser, selectedUser, peerOnline = fal
             </div>
           ) : messages.length === 0 ? (
             <div className="chat-no-messages">
-              <div className="chat-no-messages-icon">💬</div>
-              <p>No messages yet. Start the conversation!</p>
+              <div className="chat-no-messages-icon">...</div>
+              <p>No messages yet. Start the conversation.</p>
               <span>Say hello to {selectedUser.name || selectedUser.username}</span>
             </div>
           ) : (
             <>
-              {messages.map((msg, i) => (
+              {messages.map((msg, index) => (
                 <MessageBubble
-                  key={msg._id || i}
+                  key={msg._id || index}
                   message={msg}
-                  isMe={isMessageFromMe(msg, currentUser)}
-                  currentUser={currentUser}
+                  isMe={msg.senderId === currentUserId || msg.sender?._id === currentUserId}
                 />
               ))}
-              {isTyping && (
+              {isTyping ? (
                 <div className="typing-indicator">
                   <div className="typing-bubble">
                     <span></span>
@@ -248,39 +268,41 @@ export default function ChatWindow({ currentUser, selectedUser, peerOnline = fal
                   </div>
                   <span className="typing-text">{selectedUser.name} is typing...</span>
                 </div>
-              )}
+              ) : null}
             </>
           )}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Chat Input Area */}
       <div className="chat-input-area">
         <div className="chat-input">
+          <button type="button" className="chat-input-icon" aria-label="Emoji picker">
+            <Smile size={18} />
+          </button>
           <input
             value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              handleTyping();
+            onChange={(event) => {
+              setText(event.target.value);
+              handleTypingEmit();
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
                 handleSend();
               }
             }}
-            placeholder="Type a message... (Enter to send)"
-            disabled={!currentUser || !selectedUser}
+            placeholder="Type a message"
+            disabled={!currentUserId || !selectedUser || !isConnected}
             className="chat-input-field"
           />
           <button
             onClick={handleSend}
-            disabled={!text.trim() || !currentUser || !selectedUser}
+            disabled={!text.trim() || !currentUserId || !selectedUser}
             className="chat-send-btn"
             title="Send message"
           >
-            <Send size={20} />
+            <Send size={18} />
           </button>
         </div>
       </div>

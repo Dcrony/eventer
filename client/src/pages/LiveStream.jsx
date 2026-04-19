@@ -127,7 +127,13 @@ export default function LiveStream() {
                 setIsBroadcaster(isOwner);
 
                 // 2. Initialize Socket Connection
-                socketRef.current = io(SOCKET_URL);
+                socketRef.current = io(SOCKET_URL, {
+                    auth: {
+                        token: localStorage.getItem("token"),
+                    },
+                    transports: ["websocket", "polling"],
+                    withCredentials: true,
+                });
                 socketRef.current.emit("joinRoom", eventId);
 
                 if (isOwner) {

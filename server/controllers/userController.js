@@ -2,7 +2,6 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const Event = require("../models/Event");
-const Notification = require("../models/Notification");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const {
@@ -10,6 +9,7 @@ const {
   uploadImageBuffer,
   destroyCloudinaryImage,
 } = require("../utils/cloudinaryMedia");
+const { createNotification } = require("../services/notificationService");
 
 const buildProfileStats = (user, createdEvents = []) => ({
   followers: Array.isArray(user.followers) ? user.followers.length : 0,
@@ -27,6 +27,27 @@ const buildProfileStats = (user, createdEvents = []) => ({
   totalShares: createdEvents.reduce((sum, event) => sum + Number(event.shareCount || 0), 0),
 });
 
+const buildProfileEventPayload = (event, currentUserId, extras = {}) => {
+  const data = event.toObject ? event.toObject() : event;
+  const likes = Array.isArray(data.likes) ? data.likes : [];
+  const likeIds = likes.map((like) => String(like?._id || like));
+
+  const payload = {
+    ...data,
+    likeCount: likeIds.length,
+    commentCount: Array.isArray(data.comments) ? data.comments.length : 0,
+    viewCount: Number(data.viewCount || 0),
+    shareCount: Number(data.shareCount || 0),
+    isLiked: currentUserId ? likeIds.includes(String(currentUserId)) : false,
+  };
+
+  if (typeof extras.isFavorited === "boolean") {
+    payload.isFavorited = extras.isFavorited;
+  }
+
+  return payload;
+};
+
 const formatDate = (date) => {
   if (!date) return "No date";
   return new Date(date).toLocaleString("en-US", {
@@ -42,16 +63,26 @@ const formatDate = (date) => {
 
 const getMyProfile = async (req, res) => {
   try {
-    if (!req.user?.id) {
+    const uid = req.user._id || req.user.id;
+    if (!uid) {
       return res.status(400).json({ message: "User ID not found in request" });
     }
 
-    const user = await User.findById(req.user.id).select("-password");
+    const user = await User.findById(uid).select("-password").populate({
+      path: "favorites",
+      populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+    });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const userId = req.user.id;
+    const userId = uid;
     const tickets = await Ticket.find({ buyer: userId }).populate("event").exec();
-    const createdEvents = await Event.find({ createdBy: userId }).exec();
+    const createdEvents = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .exec();
+    const likedEvents = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 })
+      .exec();
 
     res.json({
       ...user.toObject(),
@@ -64,10 +95,19 @@ const getMyProfile = async (req, res) => {
             date: formatDate(ticket.event.date),
           },
         })),
-      createdEvents: createdEvents.map((event) => ({
-        ...event.toObject(),
-        date: formatDate(event.date),
-      })),
+      createdEvents: createdEvents.map((event) =>
+        buildProfileEventPayload(
+          {
+            ...event.toObject(),
+            date: formatDate(event.date),
+          },
+          userId,
+        ),
+      ),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, userId)),
+      savedEvents: (user.favorites || []).map((event) =>
+        buildProfileEventPayload(event, userId, { isFavorited: true }),
+      ),
       stats: buildProfileStats(user, createdEvents),
       isOwner: true,
       isFollowing: false,
@@ -83,13 +123,14 @@ const updateMyProfile = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const { name, username, email, phone, bio, currentPassword, newPassword } = req.body;
+    const { name, username, email, phone, bio, location, currentPassword, newPassword } = req.body;
 
     if (name) user.name = name;
     if (username) user.username = username;
     if (email) user.email = email;
     if (phone) user.phone = phone;
     if (bio) user.bio = bio;
+    if (location) user.location = location;
 
     if (currentPassword && newPassword) {
       if (!user.password) {
@@ -280,17 +321,15 @@ const toggleFollow = async (req, res) => {
     } else {
       currentUser.following.push(targetUserId);
       targetUser.followers.push(currentUserId);
-
-      const notification = await Notification.create({
-        user: targetUserId,
+      await createNotification(req.app, {
+        userId: targetUserId,
+        actorId: currentUserId,
+        type: "follow",
         message: `${currentUser.name} started following you`,
-        type: "custom",
+        actionUrl: `/users/${currentUserId}`,
+        entityId: currentUserId,
+        entityType: "user",
       });
-
-      const io = req.app.get("io");
-      if (io) {
-        io.emit(`notify_${targetUserId}`, notification);
-      }
     }
 
     await currentUser.save();
@@ -306,28 +345,47 @@ const toggleFollow = async (req, res) => {
 const getUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    const currentUserId = req.user.id;
+    const currentUserId = req.user._id || req.user.id;
 
     const user = await User.findById(userId)
       .select("-password")
-      .populate("followers", "_id name profilePic")
-      .populate("following", "_id name profilePic");
+      .populate({
+        path: "favorites",
+        populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+      })
+      .populate("followers", "_id name username profilePic")
+      .populate("following", "_id name username profilePic");
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-    const createdEvents = await Event.find({ createdBy: userId });
+    const createdEvents = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified");
+    const likedEvents = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 });
     const isOwner = String(currentUserId) === String(userId);
     const isFollowing = user.followers.some(
       (follower) => follower._id.toString() === String(currentUserId),
     );
 
+    const base = user.toObject();
+    if (!isOwner) {
+      delete base.favorites;
+    }
+
     res.json({
-      ...user.toObject(),
+      ...base,
       tickets,
-      createdEvents,
+      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      savedEvents: isOwner
+        ? (user.favorites || []).map((event) =>
+            buildProfileEventPayload(event, currentUserId, { isFavorited: true }),
+          )
+        : [],
       stats: buildProfileStats(user, createdEvents),
       isOwner,
       isFollowing,
@@ -335,6 +393,146 @@ const getUserProfile = async (req, res) => {
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
+};
+
+const getPublicProfile = async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(identifier);
+    const user = await User.findOne(isObjectId ? { _id: identifier } : { username: identifier })
+      .select("-password")
+      .populate({
+        path: "favorites",
+        populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+      })
+      .populate("followers", "_id name username profilePic")
+      .populate("following", "_id name username profilePic");
+
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    const createdEvents = await Event.find({ createdBy: user._id })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 });
+    const likedEvents = await Event.find({ likes: user._id })
+      .populate("createdBy", "name username profilePic role billing isVerified")
+      .sort({ createdAt: -1 });
+
+    const pub = user.toObject();
+    delete pub.favorites;
+
+    return res.json({
+      ...pub,
+      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, null)),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, null)),
+      savedEvents: [],
+      stats: buildProfileStats(user, createdEvents),
+      isOwner: false,
+      isFollowing: false,
+      isPublic: true,
+    });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+
+const upgradeMyPlan = async (req, res) => {
+  try {
+    const allowed = ["free", "pro", "business"];
+    const nextPlan = String(req.body.plan || "").toLowerCase();
+    if (!allowed.includes(nextPlan)) {
+      return res.status(400).json({ message: "Invalid plan" });
+    }
+
+    const user = await User.findById(req.user._id || req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.plan = nextPlan;
+    await user.save();
+
+    const updated = user.toObject();
+    delete updated.password;
+
+    return res.json({
+      message: "Plan updated",
+      plan: user.plan,
+      user: updated,
+    });
+  } catch (err) {
+    console.error("upgradeMyPlan error", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getCreators = async (req, res) => {
+  try {
+    const category = String(req.query.category || "all").toLowerCase();
+    const sort = String(req.query.sort || "trending").toLowerCase();
+    const match = { isDeleted: { $ne: true } };
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "events",
+          localField: "_id",
+          foreignField: "createdBy",
+          as: "events",
+        },
+      },
+      {
+        $addFields: {
+          eventsCount: { $size: "$events" },
+          followersCount: { $size: { $ifNull: ["$followers", []] } },
+        },
+      },
+      {
+        $match: {
+          eventsCount: { $gt: 0 },
+          ...(category !== "all"
+            ? {
+                events: {
+                  $elemMatch: {
+                    category: { $regex: `^${category}$`, $options: "i" },
+                  },
+                },
+              }
+            : {}),
+        },
+      },
+      {
+        $project: {
+          password: 0,
+          verificationCode: 0,
+          resetPasswordToken: 0,
+          subscriptionHistory: 0,
+          emailVerificationToken: 0,
+          resetPasswordExpires: 0,
+          verificationCodeExpires: 0,
+        },
+      },
+      {
+        $sort:
+          sort === "trending"
+            ? { followersCount: -1, eventsCount: -1, createdAt: -1 }
+            : { eventsCount: -1, followersCount: -1, createdAt: -1 },
+      },
+      { $limit: 30 },
+    ];
+
+    const creators = await User.aggregate(pipeline);
+    return res.json(creators);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getFounderProfile = async (req, res) => {
+  return res.json({
+    name: "Ibrahim Abdulmajeed",
+    title: "Founder of TickiSpot",
+    bio: "Creator of TickiSpot, the event + community + creator platform.",
+    portfolioUrl: "https://ibrahimabdulmajeed.dev",
+    organization: "TickiSpot",
+  });
 };
 
 const deactivateAccount = async (req, res) => {
@@ -368,5 +566,9 @@ module.exports = {
   getMyEvents,
   toggleFollow,
   getUserProfile,
+  getPublicProfile,
+  upgradeMyPlan,
+  getCreators,
+  getFounderProfile,
   deactivateAccount,
 };
