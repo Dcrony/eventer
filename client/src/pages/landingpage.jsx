@@ -746,9 +746,6 @@ export default function LandingPage() {
           <div className="footer-footer">
             <p>
               Built by Ibrahim Abdulmajeed and Team -{" "}
-              <a href="https://dcrony.verel.app" target="_blank" rel="noreferrer">
-                Portfolio
-              </a>{" "}
               - <Link to="/founder">Founder profile</Link>
             </p>
           </div>
