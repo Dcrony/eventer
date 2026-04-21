@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
+
+import SEO from "../public/SEO"
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -130,55 +132,8 @@ function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Helmet>
-        <title>TickiSpot - Discover & Manage Events</title>
-        <meta
-          name="description"
-          content="Created by Ibrahim Abdulmajeed, founder of TickiSpot"
-        />
-        <meta
-          name="keywords"
-          content="events, ticketing, Ibrahim Abdulmajeed, TickiSpot"
-        />
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "Person",
-                name: "Ibrahim Abdulmajeed",
-                jobTitle: "Founder",
-                worksFor: { "@type": "Organization", name: "TickiSpot" },
-                url: "https://dcrony.vercel.app",
-              },
-              {
-                "@type": "Person",
-                name: "OLarenwaju Oluwashinnayomi",
-                jobTitle: "Co-Founder",
-                worksFor: { "@type": "Organization", name: "TickiSpot" },
-                url: "",
-              },
-              {
-                "@type": "Organization",
-                name: "TickiSpot",
-                url: "https://tickispot.com" || "https://tickispot.vercel.app",
-                founder: {
-                  "@type": "Person",
-                  name: "Ibrahim Abdulmajeed",
-                },
-                coFounder: {
-                  "@type": "Person",
-                  name: "OLarenwaju Oluwashinnayomi",
-                },
-                foundingDate: "2024-01-01",
-                description:
-                  "TickiSpot is an all-in-one event management and ticketing platform designed to empower creators and organizers. With features like customizable event pages, secure ticketing, real-time analytics, and seamless integrations, TickiSpot makes it easy to create, promote, and manage events of all sizes. Whether you're hosting a small workshop or a large conference, TickiSpot provides the tools you need to succeed.",
-                logo: "https://tickispot.com/logo.png",
-              },
-            ],
-          })}
-        </script>
-      </Helmet>
+      <SEO/>
+      
       {/* Show Sidebar on Desktop, MobileBottomNav and TopNav on Mobile */}
       {!hideNavAndSidebar && (
         <>
