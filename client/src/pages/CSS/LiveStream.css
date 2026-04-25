@@ -1,22 +1,22 @@
 /* ===============================
-   LIVE STREAM PAGE — Premium UI
+   LIVE STREAM PAGE — Premium SaaS UI
    =============================== */
 
 :root {
-  --stream-bg: #0f172a;
-  --stream-bg-soft: #1e293b;
-  --stream-sidebar: #0f172a;
-  --stream-sidebar-border: rgba(255, 255, 255, 0.06);
+  --stream-bg: #f8fafc;
+  --stream-bg-soft: #ffffff;
+  --stream-sidebar: #ffffff;
+  --stream-sidebar-border: rgba(0, 0, 0, 0.06);
   --stream-accent: #ec4899;
   --stream-accent-hover: #db2777;
   --stream-accent-glow: rgba(236, 72, 153, 0.25);
-  --stream-text: #f8fafc;
-  --stream-text-soft: #e2e8f0;
-  --stream-muted: #94a3b8;
-  --stream-muted-dark: #64748b;
-  --stream-glass: rgba(255, 255, 255, 0.04);
-  --stream-glass-hover: rgba(255, 255, 255, 0.08);
-  --stream-card: rgba(30, 41, 59, 0.6);
+  --stream-text: #0f172a;
+  --stream-text-soft: #1e293b;
+  --stream-muted: #64748b;
+  --stream-muted-dark: #475569;
+  --stream-glass: rgba(255, 255, 255, 0.6);
+  --stream-glass-hover: rgba(255, 255, 255, 0.9);
+  --stream-card: rgba(255, 255, 255, 0.8);
   --stream-red: #ef4444;
   --stream-red-glow: rgba(239, 68, 68, 0.35);
 }
@@ -32,12 +32,7 @@
   transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.live-stream-container.dark {
-  --stream-bg: #0f172a;
-  --stream-sidebar: #0f172a;
-}
-
-/* ----- Loading & Not Found (no Tailwind dependency) ----- */
+/* ----- Loading & Not Found ----- */
 .live-stream-loading,
 .live-stream-notfound {
   display: flex;
@@ -54,7 +49,7 @@
 .live-stream-loading-spinner {
   width: 3rem;
   height: 3rem;
-  border: 3px solid var(--stream-glass);
+  border: 3px solid var(--stream-sidebar-border);
   border-top-color: var(--stream-accent);
   border-radius: 50%;
   animation: stream-spin 0.8s linear infinite;
@@ -158,15 +153,15 @@
 }
 
 .stream-role-pill.host {
-  background: rgba(16, 185, 129, 0.2);
-  color: #a7f3d0;
-  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .stream-role-pill.viewer {
-  background: rgba(59, 130, 246, 0.2);
-  color: #bfdbfe;
-  border-color: rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.35);
 }
 
 .stream-device-status {
@@ -188,30 +183,32 @@
 }
 
 .device-chip.ok {
-  background: rgba(16, 185, 129, 0.2);
-  color: #a7f3d0;
-  border: 1px solid rgba(16, 185, 129, 0.42);
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .device-chip.off {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fecaca;
-  border: 1px solid rgba(239, 68, 68, 0.42);
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
 .device-retry-btn {
-  border: 1px solid rgba(255, 255, 255, 0.26);
-  background: rgba(2, 6, 23, 0.66);
-  color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--stream-text);
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 999px;
   padding: 0.35rem 0.7rem;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .device-retry-btn:hover {
-  background: rgba(30, 41, 59, 0.92);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 /* Empty state: no stream URL / waiting for broadcaster */
@@ -223,7 +220,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
   color: var(--stream-text);
 }
 
@@ -289,14 +286,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(248, 250, 252, 0.9);
   color: var(--stream-text);
 }
 
 .stream-waiting-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid var(--stream-glass);
+  border: 3px solid var(--stream-sidebar-border);
   border-top-color: var(--stream-accent);
   border-radius: 50%;
   animation: stream-spin 0.8s linear infinite;
@@ -503,7 +500,7 @@
 }
 
 .stream-start-camera-btn:hover {
-  background: #4f46e6;
+  background: var(--stream-accent-hover);
   transform: translateY(-1px);
 }
 
@@ -583,7 +580,7 @@
 
 .btn-stream.btn-share:hover {
   background: var(--stream-glass-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 0, 0, 0.12);
 }
 
 .btn-stream.btn-flag {
@@ -736,8 +733,8 @@
 .chat-community-note {
   margin-top: auto;
   padding: 0.75rem 1rem;
-  background: rgba(236, 72, 153, 0.08);
-  border: 1px solid rgba(236, 72, 153, 0.2);
+  background: rgba(236, 72, 153, 0.06);
+  border: 1px solid rgba(236, 72, 153, 0.15);
   border-radius: 10px;
   font-size: 0.8125rem;
   color: var(--stream-muted);
@@ -842,7 +839,7 @@
 }
 
 .host-panel-tab.active {
-  background: rgba(236, 72, 153, 0.15);
+  background: rgba(236, 72, 153, 0.12);
   color: var(--stream-accent);
 }
 
@@ -1040,7 +1037,7 @@
 .host-end-stream-modal {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1055,6 +1052,7 @@
   padding: 1.5rem;
   max-width: 320px;
   width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .host-end-stream-modal-inner h3 {

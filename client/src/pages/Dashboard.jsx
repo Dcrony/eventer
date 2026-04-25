@@ -411,114 +411,115 @@ export default function Dashboard() {
               <div className="events-grid">
                 {events.map((event) => (
                   <div key={event._id} className="event-card">
-                    {getEventImageUrl(event) && (
-                      <div className="event-card-header">
-  <div />
-  {/* menu goes here */}
+  {/* 🔥 MENU (always top right) */}
+  <div className="event-menu-wrapper">
+    <button
+      className="menu-trigger"
+      onClick={(e) => {
+        e.stopPropagation();
+        setOpenMenuId(openMenuId === event._id ? null : event._id);
+      }}
+    >
+      <MoreVertical size={18} />
+    </button>
+
+    {openMenuId === event._id && (
+      <div
+        className="event-menu"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => {
+            toggleLive(event._id, event.liveStream?.isLive);
+            setOpenMenuId(null);
+          }}
+          className="menu-item primary"
+        >
+          {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
+        </button>
+
+        <button
+          onClick={() => {
+            handleEditClick(event._id);
+            setOpenMenuId(null);
+          }}
+          className="menu-item"
+        >
+          Edit
+        </button>
+
+        <Link
+          to={`/events/${event._id}/analytics`}
+          className="menu-item"
+          onClick={() => setOpenMenuId(null)}
+        >
+          Analytics
+        </Link>
+
+        <div className="menu-divider" />
+
+        <button
+          onClick={() => {
+            handleDelete(event._id);
+            setOpenMenuId(null);
+          }}
+          className="menu-item danger"
+        >
+          Delete
+        </button>
+      </div>
+    )}
+  </div>
+
+  {/* ✅ IMAGE */}
+  {getEventImageUrl(event) && (
+    <img
+      src={getEventImageUrl(event)}
+      alt={event.title}
+      className="event-cover"
+    />
+  )}
+
+  {/* ✅ BODY */}
+  <div className="event-body">
+    <div className="event-title-row">
+      <div className="event-title">{event.title}</div>
+      {event.liveStream?.isLive && (
+        <span className="event-badge-live">LIVE</span>
+      )}
+    </div>
+
+    <div className="event-meta">
+      {event.description || "No description provided."}
+    </div>
+
+    <div className="event-meta-grid">
+      <div className="event-meta-item">
+        <Calendar size={14} className="meta-icon" />
+        <span>
+          {new Date(event.startDate).toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}{" "}
+          • {event.startTime}
+        </span>
+      </div>
+
+      <div className="event-meta-item">
+        <MapPin size={14} className="meta-icon" />
+        <span>{event.location}</span>
+      </div>
+
+      <div className="event-meta-item">
+        <Users size={14} className="meta-icon" />
+        <span>
+          {event.ticketsSold}/{event.totalTickets} tickets sold
+        </span>
+      </div>
+    </div>
+  </div>
 </div>
-                      <img
-                        src={getEventImageUrl(event)}
-                        alt={event.title}
-                        className="event-cover"
-                      />
-                    )}
-
-                    <div className="event-body">
-                      <div className="event-title-row">
-                        <div className="event-title">{event.title}</div>
-                        {event.liveStream?.isLive && (
-                          <span className="event-badge-live">LIVE</span>
-                        )}
-                      </div>
-
-                      <div className="event-meta">
-                        {event.description || "No description provided."}
-                      </div>
-                      <div className="event-meta-grid">
-                        <div className="event-meta-item">
-                          <Calendar size={14} className="meta-icon" />
-                          <span>
-                            {new Date(event.startDate).toLocaleDateString(
-                              "en-US",
-                              {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                              },
-                            )}{" "}
-                            • {event.startTime}
-                          </span>
-                        </div>
-                        <div className="event-meta-item">
-                          <MapPin size={14} className="meta-icon" />
-                          <span>{event.location}</span>
-                        </div>
-                        <div className="event-meta-item">
-                          <Users size={14} className="meta-icon" />
-                          <span>
-                            {event.ticketsSold}/{event.totalTickets} tickets
-                            sold
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-
-                    <div className="event-menu-wrapper">
-                      <button
-                        className="menu-trigger"
-                        onClick={() =>
-                          setOpenMenuId(openMenuId === event._id ? null : event._id)
-                        }
-                      >
-                        <MoreVertical size={18} />
-                      </button>
-
-                      {openMenuId === event._id && (
-                        <div className="event-menu">
-                          <button
-                            onClick={() => {
-                              toggleLive(event._id, event.liveStream?.isLive);
-                              setOpenMenuId(null);
-                            }}
-                            className="menu-item primary"
-                          >
-                            {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              handleEditClick(event._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="menu-item"
-                          >
-                            Edit
-                          </button>
-
-                          <Link
-                            to={`/events/${event._id}/analytics`}
-                            className="menu-item"
-                            onClick={() => setOpenMenuId(null)}
-                          >
-                            Analytics
-                          </Link>
-
-                          <div className="menu-divider" />
-
-                          <button
-                            onClick={() => {
-                              handleDelete(event._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="menu-item danger"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 ))}
               </div>
             )}
