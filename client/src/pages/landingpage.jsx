@@ -745,7 +745,7 @@ export default function LandingPage() {
           </div>
           <div className="footer-footer">
             <p>
-              Built by Ibrahim Abdulmajeed and Team -{" "}
+              Built by TickiSpot Teams -{" "}
               - <Link to="/founder">Founder profile</Link>
             </p>
           </div>

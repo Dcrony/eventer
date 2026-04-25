@@ -19,15 +19,15 @@ import {
 import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
+import { MoreVertical } from "lucide-react";
 
-const PORT_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export default function Dashboard() {
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
- 
+
 
   // 🟢 For Modal Control
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -39,6 +39,8 @@ export default function Dashboard() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+
 
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
@@ -47,7 +49,7 @@ export default function Dashboard() {
     bankCode: "",
   });
 
-   const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const user = useMemo(() => getCurrentUser(), []);
 
@@ -89,22 +91,22 @@ export default function Dashboard() {
   }, [token, user]);
 
   useEffect(() => {
-  API.get("/banks").then((res) => {
-    setBanks(res.data);
-  });
-}, []);
+    API.get("/banks").then((res) => {
+      setBanks(res.data);
+    });
+  }, []);
 
-// ✅ FIX: Remove duplicate banks based on bank code
-const uniqueBanks = useMemo(() => {
-  const seen = new Set();
-  return banks.filter(bank => {
-    if (seen.has(bank.code)) return false;
-    seen.add(bank.code);
-    return true;
-  });
-}, [banks]);
+  // ✅ FIX: Remove duplicate banks based on bank code
+  const uniqueBanks = useMemo(() => {
+    const seen = new Set();
+    return banks.filter(bank => {
+      if (seen.has(bank.code)) return false;
+      seen.add(bank.code);
+      return true;
+    });
+  }, [banks]);
 
-const handleWithdraw = async () => {
+  const handleWithdraw = async () => {
     if (!withdrawAmount || withdrawAmount <= 0) {
       return alert("Enter valid amount");
     }
@@ -159,9 +161,9 @@ const handleWithdraw = async () => {
         events.map((ev) =>
           ev._id === id
             ? {
-                ...ev,
-                liveStream: { ...ev.liveStream, isLive: !currentStatus },
-              }
+              ...ev,
+              liveStream: { ...ev.liveStream, isLive: !currentStatus },
+            }
             : ev,
         ),
       );
@@ -410,6 +412,10 @@ const handleWithdraw = async () => {
                 {events.map((event) => (
                   <div key={event._id} className="event-card">
                     {getEventImageUrl(event) && (
+                      <div className="event-card-header">
+  <div />
+  {/* menu goes here */}
+</div>
                       <img
                         src={getEventImageUrl(event)}
                         alt={event.title}
@@ -457,33 +463,60 @@ const handleWithdraw = async () => {
                       </div>
                     </div>
 
-                    <div className="event-actions">
+
+                    <div className="event-menu-wrapper">
                       <button
+                        className="menu-trigger"
                         onClick={() =>
-                          toggleLive(event._id, event.liveStream?.isLive)
+                          setOpenMenuId(openMenuId === event._id ? null : event._id)
                         }
-                        className={`pill-btn ${event.liveStream?.isLive ? "pill-btn-danger" : "pill-btn-primary"}`}
                       >
-                        {event.liveStream?.isLive ? "Stop live" : "Go live"}
+                        <MoreVertical size={18} />
                       </button>
-                      <button
-                        onClick={() => handleEditClick(event._id)}
-                        className="pill-btn pill-btn-primary"
-                      >
-                        Edit
-                      </button>
-                      <Link
-                        to={`/events/${event._id}/analytics`}
-                        className="pill-btn pill-btn-primary"
-                      >
-                        Analytics
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(event._id)}
-                        className="pill-btn"
-                      >
-                        Delete
-                      </button>
+
+                      {openMenuId === event._id && (
+                        <div className="event-menu">
+                          <button
+                            onClick={() => {
+                              toggleLive(event._id, event.liveStream?.isLive);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item primary"
+                          >
+                            {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              handleEditClick(event._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item"
+                          >
+                            Edit
+                          </button>
+
+                          <Link
+                            to={`/events/${event._id}/analytics`}
+                            className="menu-item"
+                            onClick={() => setOpenMenuId(null)}
+                          >
+                            Analytics
+                          </Link>
+
+                          <div className="menu-divider" />
+
+                          <button
+                            onClick={() => {
+                              handleDelete(event._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item danger"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -508,8 +541,8 @@ const handleWithdraw = async () => {
         <div className="modal-overlay">
           <div className="withdraw-modal">
             <button className="close-btn" onClick={() => setShowWithdrawModal(false)}>
-        ✕
-      </button>
+              ✕
+            </button>
             <h3>Request Withdrawal</h3>
 
             <div className="withdraw-balance">

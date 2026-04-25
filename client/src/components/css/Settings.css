@@ -1,6 +1,12 @@
 .settings-shell {
-  min-height: 100vh;
-  padding: 1.5rem;
+   min-height: 100vh;
+  margin-left: 10px;
+  padding-top: 2rem;
+  padding-left: var(--sidebar-width);
+  padding-right: 2rem;
+  padding-bottom: 4rem;
+  transition: padding-left 0.3s ease, background-color 0.3s ease;
+  position: relative;
 }
 
 .settings-layout {

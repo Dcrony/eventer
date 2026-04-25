@@ -616,6 +616,7 @@
 }
 
 .event-card {
+  position: relative;
   background: #ffffff;
   border-radius: 24px;
   border: 1px solid rgba(0, 0, 0, 0.05);
@@ -630,6 +631,92 @@
   transform: translateY(-8px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border-color: rgba(236, 72, 153, 0.2);
+}
+
+.event-menu-wrapper {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+}
+
+.menu-trigger {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 10px;
+  padding: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: 0.2s ease;
+}
+
+.menu-trigger:hover {
+  background: #f1f5f9;
+  transform: scale(1.05);
+}
+
+.event-menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  width: 180px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  padding: 8px;
+  animation: fadeSlide 0.2s ease;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #334155;
+  transition: 0.2s ease;
+}
+
+.menu-item:hover {
+  background: #f1f5f9;
+}
+
+.menu-item.primary {
+  color: #ec4899;
+}
+
+.menu-item.primary:hover {
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.menu-item.danger {
+  color: #ef4444;
+}
+
+.menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.menu-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 6px 0;
 }
 
 .event-cover {
