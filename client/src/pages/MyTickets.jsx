@@ -26,8 +26,6 @@ import "./CSS/MyTickets.css";
 
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
-  const [showChat, setShowChat] = useState(false);
-  const [activeEventId, setActiveEventId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all"); // all, upcoming, past
   const [showCreateEvent, setShowCreateEvent] = useState(false);
@@ -39,11 +37,6 @@ export default function MyTickets() {
       .then((res) => setTickets(res.data))
       .catch((err) => console.error(err));
   }, []);
-
-  const handleJoinChat = (eventId) => {
-    setActiveEventId(eventId);
-    setShowChat(true);
-  };
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
@@ -251,8 +244,10 @@ export default function MyTickets() {
                         <div className="detail-split-cell">
                           <span className="detail-label">Paid</span>
                           <div className="detail-row-main detail-price">
-                            ₦{(ticket.amount ?? 0).toLocaleString("en-NG")}
-                          </div>
+  {ticket.isFree || ticket.amount === 0
+    ? "Free"
+    : `₦${(ticket.amount ?? 0).toLocaleString("en-NG")}`}
+</div>
                         </div>
                       </div>
                     </div>

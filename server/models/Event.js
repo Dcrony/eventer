@@ -74,6 +74,10 @@ const eventSchema = new mongoose.Schema({
       price: { type: Number, default: 0 },
     },
   ],
+  isFree: {
+    type: Boolean,
+    default: false,
+  },
   isFreeEvent: {
     type: Boolean,
     default: false,
@@ -130,6 +134,18 @@ const eventSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+eventSchema.pre("validate", function syncFreeFlags(next) {
+  const isMarkedFree = this.isFree === true || this.isFreeEvent === true;
+  this.isFree = isMarkedFree;
+  this.isFreeEvent = isMarkedFree;
+
+  if (isMarkedFree) {
+    this.pricing = [{ type: "Free", price: 0 }];
+  }
+
+  next();
 });
 
 module.exports = mongoose.model("Event", eventSchema);
