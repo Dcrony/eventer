@@ -209,7 +209,7 @@ body::-webkit-scrollbar-thumb {
   max-height: min(88vh, 900px);
   overflow: auto;
   border-radius: var(--radius-xl);
-  background: #111827;
+  background: #f0f0f0;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-lg);
 }
@@ -239,7 +239,7 @@ body::-webkit-scrollbar-thumb {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #1f2937;
+  background: #ffffff;
   color: #9ca3af;
 }
 

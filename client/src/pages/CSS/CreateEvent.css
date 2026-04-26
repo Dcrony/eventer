@@ -320,6 +320,11 @@ form .field-label {
 }
 
 .pricing-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 0.85rem;
 }
 
@@ -334,6 +339,43 @@ form .field-label {
   margin: 0.3rem 0 0;
   color: #64748b;
   font-size: 0.84rem;
+}
+
+.free-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #dbe3f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.free-toggle input {
+  accent-color: #ec4899;
+}
+
+.pricing-free-state {
+  padding: 1rem;
+  border: 1px dashed #f472b6;
+  border-radius: 0.82rem;
+  background: linear-gradient(180deg, #fff7fb, #fff1f6);
+  color: #831843;
+}
+
+.pricing-free-state strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.pricing-free-state p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
 
 .pricing-ticket-card {

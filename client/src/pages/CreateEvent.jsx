@@ -31,6 +31,7 @@ const eventTypes = [
 export default function CreateEvent({ isOpen, onClose }) {
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [isFreeEvent, setIsFreeEvent] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -55,7 +56,6 @@ export default function CreateEvent({ isOpen, onClose }) {
   const [imagePreview, setImagePreview] = useState(null);
   const navigate = useNavigate();
 
-  // Disable scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
     return () => (document.body.style.overflow = "auto");
@@ -91,11 +91,19 @@ export default function CreateEvent({ isOpen, onClose }) {
     e.preventDefault();
     try {
       setSubmitting(true);
+
       const formData = new FormData();
+
       Object.entries(form).forEach(([key, value]) => {
-        if (key === "pricing") formData.append(key, JSON.stringify(value));
-        else formData.append(key, value);
+        if (key === "pricing") {
+          formData.append("pricing", JSON.stringify(isFreeEvent ? [] : value));
+        } else {
+          formData.append(key, value);
+        }
       });
+
+      formData.append("isFree", isFreeEvent);
+
       if (imageFile) formData.append("image", imageFile);
 
       await API.post("/events/create", formData);
@@ -128,12 +136,11 @@ export default function CreateEvent({ isOpen, onClose }) {
       <div className="create-event-container">
         <div className="form-wrapper">
           <button className="close-btn" onClick={onClose}>
-            ✕
+            x
           </button>
 
-          <h2 className="form-title">🎉 Create New Event</h2>
+          <h2 className="form-title">Create New Event</h2>
 
-          {/* Event Type Selection */}
           <div className="event-type-selection">
             {eventTypes.map((type) => (
               <button
@@ -142,8 +149,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 onClick={() =>
                   setForm((prev) => ({ ...prev, eventType: type.name }))
                 }
-                className={`event-type-btn ${form.eventType === type.name ? "active" : ""
-                  }`}
+                className={`event-type-btn ${form.eventType === type.name ? "active" : ""}`}
               >
                 <div className="flex justify-between align-center">
                   <div className="icon">{type.icon}</div>
@@ -170,7 +176,7 @@ export default function CreateEvent({ isOpen, onClose }) {
               className="input-field"
               onChange={handleChange}
               required
-            ></textarea>
+            />
 
             <input
               name="category"
@@ -180,7 +186,6 @@ export default function CreateEvent({ isOpen, onClose }) {
               required
             />
 
-            {/* Date and Time */}
             <div className="date-time-row">
               <div>
                 <label className="field-label">Start Date</label>
@@ -232,31 +237,49 @@ export default function CreateEvent({ isOpen, onClose }) {
               required
             />
 
-            {/* Pricing */}
             <div className="form-pricing-section">
               <div className="pricing-section-head">
-                <h3>Ticket setup</h3>
-                <p>Define each ticket tier and how much each seat costs.</p>
-              </div>
-              {form.pricing.map((item, index) => (
-                <div key={index} className="pricing-ticket-card">
-                  <div className="pricing-ticket-copy">
-                    <span className="pricing-ticket-name">{item.type}</span>
-                    <small className="pricing-ticket-meta">Price per attendee ticket</small>
-                  </div>
-                  <div className="pricing-ticket-input-wrap">
-                    <span className="pricing-ticket-currency">₦</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="0.00"
-                      className="input-field pricing-input-field"
-                      value={item.price}
-                      onChange={(e) => handlePricingChange(index, e.target.value)}
-                    />
-                  </div>
+                <div>
+                  <h3>Ticket setup</h3>
+                  <p>Define ticket pricing or make this event free.</p>
                 </div>
-              ))}
+
+                <label className="free-toggle">
+                  <input
+                    type="checkbox"
+                    checked={isFreeEvent}
+                    onChange={(e) => setIsFreeEvent(e.target.checked)}
+                  />
+                  <span>Free Event</span>
+                </label>
+              </div>
+
+              {!isFreeEvent ? (
+                form.pricing.map((item, index) => (
+                  <div key={index} className="pricing-ticket-card">
+                    <div className="pricing-ticket-copy">
+                      <span className="pricing-ticket-name">{item.type}</span>
+                      <small className="pricing-ticket-meta">Price per attendee ticket</small>
+                    </div>
+                    <div className="pricing-ticket-input-wrap">
+                      <span className="pricing-ticket-currency">N</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0.00"
+                        className="input-field pricing-input-field"
+                        value={item.price}
+                        onChange={(e) => handlePricingChange(index, e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="pricing-free-state">
+                  <strong>Free admission enabled</strong>
+                  <p>Pricing is hidden and attendees will be able to reserve tickets without payment.</p>
+                </div>
+              )}
             </div>
 
             <div className="ticket-capacity-card">
@@ -306,7 +329,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                     className="image-preview"
                   />
                 ) : (
-                  <span>📸 Upload an event image</span>
+                  <span>Upload an event image</span>
                 )}
                 <input
                   type="file"
@@ -317,12 +340,11 @@ export default function CreateEvent({ isOpen, onClose }) {
             </div>
 
             <button type="submit" className="submit-btn" disabled={submitting}>
-              🚀 Create Event
+              Create Event
             </button>
           </form>
         </div>
 
-        {/* Info Sidebar */}
         <div className="info-sidebar">
           <img src={icon} alt="Create event" />
           <h2>Create your event</h2>

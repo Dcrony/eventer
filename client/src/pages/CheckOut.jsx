@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
+import { useToast } from "../components/ui/toast";
 import { useMemo, useState } from "react";
 import {
   Calendar,
@@ -21,6 +22,7 @@ import "./CSS/checkout.css";
 export default function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const { event, quantity, user, ticketType, price } = state || {};
 
@@ -58,6 +60,18 @@ export default function Checkout() {
   const handleConfirmPayment = async () => {
     setLoading(true);
     try {
+      if (event?.isFreeEvent) {
+        await API.post("/tickets/create", {
+          eventId: event._id,
+          quantity,
+          ticketType: selectedPricing?.type || ticketType || "Free",
+          isFree: true,
+        });
+        toast.success("Ticket reserved successfully");
+        navigate("/my-tickets");
+        return;
+      }
+
       const res = await API.post("/payment/initiate", {
         email: user.email,
         amount: lineTotal,
@@ -74,11 +88,11 @@ export default function Checkout() {
       if (url) {
         window.location.href = url;
       } else {
-        alert("Failed to initiate payment");
+        toast.error("Failed to initiate payment");
       }
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Payment failed. Try again.");
+      toast.error(err.response?.data?.message || "Payment failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -94,6 +108,15 @@ export default function Checkout() {
   };
 
   const eventImg = getEventImageUrl(event);
+  const topTrustCopy = event?.isFreeEvent
+    ? "Instant ticket reservation"
+    : "Secure payment via Paystack";
+  const heroCopy = event?.isFreeEvent
+    ? "Review your ticket details and reserve your spot instantly."
+    : "Review your tickets and pay securely. You’ll get a confirmation by email.";
+  const ctaCopy = event?.isFreeEvent
+    ? "Reserve Free Ticket"
+    : `Pay ₦${lineTotal.toLocaleString()}`;
 
   return (
     <div className="dashboard-page checkout-page">
@@ -111,7 +134,7 @@ export default function Checkout() {
           </button>
           <div className="checkout-top-trust">
             <ShieldCheck size={16} />
-            <span>Secure payment via Paystack</span>
+            <span>{topTrustCopy}</span>
           </div>
         </nav>
 
@@ -121,9 +144,7 @@ export default function Checkout() {
             Checkout
           </div>
           <h1 className="checkout-hero-title">Complete your order</h1>
-          <p className="checkout-hero-sub">
-            Review your tickets and pay securely. You’ll get a confirmation by email.
-          </p>
+          <p className="checkout-hero-sub">{heroCopy}</p>
         </header>
 
         <div className="checkout-layout">
@@ -275,12 +296,12 @@ export default function Checkout() {
                   {loading ? (
                     <>
                       <span className="spinner-small" aria-hidden />
-                      Processing…
+                      Processing...
                     </>
                   ) : (
                     <>
                       <Lock size={20} strokeWidth={2} />
-                      Pay ₦{lineTotal.toLocaleString()}
+                      {ctaCopy}
                     </>
                   )}
                 </button>
@@ -289,7 +310,7 @@ export default function Checkout() {
               <div className="trust-badges">
                 <div className="trust-badge">
                   <ShieldCheck size={16} />
-                  Encrypted checkout
+                  {event?.isFreeEvent ? "Instant confirmation" : "Encrypted checkout"}
                 </div>
                 <div className="trust-badge">
                   <Ticket size={16} />

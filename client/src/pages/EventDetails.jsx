@@ -19,6 +19,7 @@ import EventCommentsModal from "../components/EventCommentsModal";
 import EventEngagementBar from "../components/EventEngagementBar";
 import VerifiedBadge from "../components/ui/verified-badge";
 import { UserAvatar } from "../components/ui/avatar";
+import { useToast } from "../components/ui/toast";
 import useShareLink from "../hooks/useShareLink";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
@@ -35,6 +36,7 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const shareLink = useShareLink();
   const { toProfile } = useProfileNavigation();
+  const toast = useToast();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -49,7 +51,7 @@ export default function EventDetail() {
         setLoading(true);
         const { data } = await API.get(`/events/${eventId}`);
         setEvent(data);
-        setSelectedTicketType(data.pricing?.[0] || null);
+        setSelectedTicketType(data.pricing?.[0] || (data.isFreeEvent ? { type: "Free", price: 0 } : null));
       } catch (error) {
         console.error("Failed to fetch event:", error);
       } finally {
@@ -91,6 +93,11 @@ export default function EventDetail() {
       return;
     }
 
+    if (event?.isFreeEvent) {
+      reserveFreeTicket();
+      return;
+    }
+
     if (!selectedTicketType) return;
 
     navigate(`/checkout/${event._id}`, {
@@ -102,6 +109,34 @@ export default function EventDetail() {
         user,
       },
     });
+  };
+
+  const reserveFreeTicket = async () => {
+    try {
+      await API.post("/tickets/create", {
+        eventId: event._id,
+        quantity,
+        ticketType: selectedTicketType?.type || "Free",
+        isFree: true,
+        price: 0,
+        amount: 0,
+      });
+
+      toast.success("Ticket reserved successfully");
+      setEvent((current) =>
+        current
+          ? {
+              ...current,
+              ticketsSold: Number(current.ticketsSold || 0) + quantity,
+              totalTickets: Math.max(0, Number(current.totalTickets || 0) - quantity),
+            }
+          : current,
+      );
+      navigate("/my-tickets");
+    } catch (error) {
+      console.error("Failed to reserve free ticket:", error);
+      toast.error(error.response?.data?.message || "Failed to reserve ticket");
+    }
   };
 
   const handleLike = async () => {
