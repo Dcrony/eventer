@@ -36,9 +36,7 @@ export default function Dashboard() {
   const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawLoading, setWithdrawLoading] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState(null);
+    const [openMenuId, setOpenMenuId] = useState(null);
 
 
   
