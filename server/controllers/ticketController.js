@@ -1,5 +1,10 @@
 const Ticket = require("../models/Ticket");
+const Event = require("../models/Event");
 const mongoose = require("mongoose");
+const QRCode = require("qrcode");
+const fs = require("fs");
+const path = require("path");
+const { recordTicketPurchaseMetrics } = require("./eventController");
 
 exports.getMyTickets = async (req, res) => {
   try {
@@ -20,6 +25,73 @@ exports.getMyTickets = async (req, res) => {
   } catch (err) {
     console.error("Error fetching user tickets:", err);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.createTicket = async (req, res) => {
+  try {
+    const { eventId, ticketType, quantity = 1, isFree } = req.body;
+    const parsedQuantity = Math.max(1, Number(quantity) || 1);
+
+    if (!eventId) {
+      return res.status(400).json({ message: "Event ID is required" });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (!event.isFreeEvent || !(isFree === true || isFree === "true")) {
+      return res.status(400).json({ message: "This endpoint only supports free events" });
+    }
+
+    if (Number(event.totalTickets || 0) < parsedQuantity) {
+      return res.status(400).json({ message: "Not enough tickets available" });
+    }
+
+    const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
+    const resolvedTicketType = String(ticketType || "Free").trim() || "Free";
+
+    const ticket = new Ticket({
+      buyer: req.user.id,
+      event: event._id,
+      quantity: parsedQuantity,
+      ticketType: resolvedTicketType,
+      price: 0,
+      amount: 0,
+      amountPaid: 0,
+      paymentStatus: "free",
+      isFree: true,
+      reference,
+    });
+
+    await ticket.save();
+
+    event.ticketsSold = Number(event.ticketsSold || 0) + parsedQuantity;
+    event.totalTickets = Number(event.totalTickets || 0) - parsedQuantity;
+    recordTicketPurchaseMetrics(event, parsedQuantity, 0);
+    await event.save();
+
+    const qrDir = path.join(__dirname, "../uploads/qrcodes");
+    if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
+
+    const frontendUrl = process.env.FRONTEND_URL || "";
+    const qrData = `${frontendUrl}/validate/${ticket._id}`;
+    const qrFileName = `${ticket._id}.png`;
+    const qrPath = path.join(qrDir, qrFileName);
+    await QRCode.toFile(qrPath, qrData);
+
+    ticket.qrCode = `qrcodes/${qrFileName}`;
+    await ticket.save();
+
+    return res.status(201).json({
+      message: "Ticket reserved successfully",
+      ticket,
+    });
+  } catch (err) {
+    console.error("Error creating free ticket:", err);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 

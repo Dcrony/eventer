@@ -176,6 +176,9 @@ exports.verifyPayment = async (req, res) => {
         quantity,
         price: ticketPrice,
         amount: ticketPrice * quantity,
+        amountPaid: ticketPrice * quantity,
+        paymentStatus: "paid",
+        isFree: false,
         reference,
         ticketType: pricingType,
       });

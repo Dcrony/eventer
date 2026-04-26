@@ -100,6 +100,7 @@ exports.createEvent = async (req, res) => {
       streamType,
       streamURL,
     } = req.body;
+    const isFree = req.body.isFree === "true" || req.body.isFree === true;
 
     let parsedPricing = [];
     if (pricing != null && pricing !== "") {
@@ -130,7 +131,8 @@ exports.createEvent = async (req, res) => {
       endTime,
       location,
       image: imagePath,
-      pricing: parsedPricing,
+      pricing: isFree ? [] : parsedPricing,
+      isFreeEvent: isFree,
       totalTickets,
       eventType,
       liveStream: {

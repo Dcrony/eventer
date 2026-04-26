@@ -58,7 +58,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Phone number already in use" });
     }
 
-    const role = "user";
+    const role = "organizer";
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);

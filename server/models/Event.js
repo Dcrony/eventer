@@ -74,6 +74,10 @@ const eventSchema = new mongoose.Schema({
       price: { type: Number, default: 0 },
     },
   ],
+  isFreeEvent: {
+    type: Boolean,
+    default: false,
+  },
 
   totalTickets: Number,
   ticketsSold: {

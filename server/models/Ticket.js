@@ -27,6 +27,19 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  amountPaid: {
+    type: Number,
+    default: 0,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["paid", "free"],
+    default: "paid",
+  },
+  isFree: {
+    type: Boolean,
+    default: false,
+  },
   reference: {
     type: String,
     required: true,
