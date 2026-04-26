@@ -15,26 +15,31 @@ const ticketSchema = new mongoose.Schema({
     type: Number,
     default: 1,
   },
-   ticketType: {               
+  ticketType: {
     type: String,
-    required: true,           // e.g. "Regular", "VIP"
-  },
-  price: { // Price per ticket
-    type: Number,
     required: true,
+    trim: true,
+    default: "Free",
   },
-  amount: { // Total amount paid
+  price: {
     type: Number,
-    required: true,
+    default: 0,
+    min: 0,
+  },
+  amount: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
   amountPaid: {
     type: Number,
     default: 0,
+    min: 0,
   },
   paymentStatus: {
     type: String,
     enum: ["paid", "free"],
-    default: "paid",
+    default: "free",
   },
   isFree: {
     type: Boolean,
@@ -42,8 +47,9 @@ const ticketSchema = new mongoose.Schema({
   },
   reference: {
     type: String,
-    required: true,
     unique: true,
+    sparse: true,
+    trim: true,
   },
   qrCode: {
     type: String,
@@ -59,6 +65,20 @@ const ticketSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+ticketSchema.pre("validate", function normalizeTicketForValidation(next) {
+  if (this.isFree) {
+    this.price = 0;
+    this.amount = 0;
+    this.amountPaid = 0;
+    this.paymentStatus = "free";
+    this.ticketType = String(this.ticketType || "Free").trim() || "Free";
+  } else {
+    this.paymentStatus = "paid";
+  }
+
+  next();
 });
 
 module.exports = mongoose.model("Ticket", ticketSchema);
