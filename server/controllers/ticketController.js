@@ -42,16 +42,43 @@ exports.createTicket = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    if (!event.isFreeEvent || !(isFree === true || isFree === "true")) {
+    const requestedFreeTicket = isFree === true || isFree === "true";
+    if (!event.isFreeEvent) {
+      if (requestedFreeTicket) {
+        return res.status(400).json({ message: "Paid events require payment before ticket creation" });
+      }
+
       return res.status(400).json({ message: "This endpoint only supports free events" });
     }
 
-    if (Number(event.totalTickets || 0) < parsedQuantity) {
+    if (!requestedFreeTicket) {
+      return res.status(400).json({ message: "Free ticket request must be marked as free" });
+    }
+
+    const remainingTickets = Number(event.totalTickets || 0);
+    if (remainingTickets <= 0) {
+      return res.status(400).json({ message: "Event is sold out" });
+    }
+
+    if (remainingTickets < parsedQuantity) {
       return res.status(400).json({ message: "Not enough tickets available" });
     }
 
     const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
-    const resolvedTicketType = String(ticketType || "Free").trim() || "Free";
+    const normalizedRequestedType = String(ticketType || "").trim();
+    const eventPricing = Array.isArray(event.pricing) ? event.pricing : [];
+    const matchingFreeTier = normalizedRequestedType
+      ? eventPricing.find((pricing) => pricing.type === normalizedRequestedType)
+      : null;
+    if (normalizedRequestedType && eventPricing.length > 0 && !matchingFreeTier) {
+      return res.status(400).json({ message: "Invalid ticket type for this event" });
+    }
+
+    const resolvedTicketType =
+      matchingFreeTier?.type ||
+      normalizedRequestedType ||
+      eventPricing[0]?.type ||
+      "Free";
 
     const ticket = new Ticket({
       buyer: req.user.id,
@@ -69,7 +96,7 @@ exports.createTicket = async (req, res) => {
     await ticket.save();
 
     event.ticketsSold = Number(event.ticketsSold || 0) + parsedQuantity;
-    event.totalTickets = Number(event.totalTickets || 0) - parsedQuantity;
+    event.totalTickets = Math.max(0, remainingTickets - parsedQuantity);
     recordTicketPurchaseMetrics(event, parsedQuantity, 0);
     await event.save();
 
