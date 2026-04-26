@@ -118,8 +118,6 @@ export default function EventDetail() {
         quantity,
         ticketType: selectedTicketType?.type || "Free",
         isFree: true,
-        price: 0,
-        amount: 0,
       });
 
       toast.success("Ticket reserved successfully");
@@ -400,9 +398,13 @@ export default function EventDetail() {
                   </div>
                 </div>
 
-                <Button className="event-detail-buy-button" onClick={handleBuy}>
+                <Button
+                  className="event-detail-buy-button"
+                  onClick={handleBuy}
+                  disabled={remainingTickets <= 0}
+                >
                   <Ticket size={18} />
-                  Get tickets
+                  {remainingTickets > 0 ? "Get tickets" : "Sold out"}
                 </Button>
 
                 <div className="event-detail-support-points">
