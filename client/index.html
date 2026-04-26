@@ -1,38 +1,57 @@
 <!doctype html>
 <html lang="en">
-  <head>
 
-    <meta name="google-site-verification" content="QwmGLPYnSStxAmW37fSorfIJYzovYHEKAvRcVUq5x0k" />
+<head>
 
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./src/assets/icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TickiSpot</title>
+  <meta name="google-site-verification" content="QwmGLPYnSStxAmW37fSorfIJYzovYHEKAvRcVUq5x0k" />
 
-      <!-- Manifest -->
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="./src/assets/icon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TickiSpot</title>
+
+  <!-- Manifest -->
   <link rel="manifest" href="/manifest.json" />
-  <link rel="manifest" href="/manifest.webmanifest"/>
+  <link rel="manifest" href="/manifest.webmanifest" />
 
-  <meta name="description" content="Ibrahim Abdulmajeed (Dcrony) - Full-Stack Web Developer specializing in MERN stack, React, Node.js, and modern web applications." />
-  
-  <!-- Open Graph Fallback -->
+  <!-- SEO -->
+  <meta name="description"
+    content="TickiSpot is an all-in-one event management and ticketing platform. Create events, sell tickets, host live sessions, and manage your audience seamlessly." />
+
+  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://tickispot.vercel.app" />
-  <meta property="og:title" content="Tickispot" />
-  <meta property="og:description" content="Ibrahim Abdulmajeed - Full-Stack Web Developer with 3+ years experience in MERN stack." />
-  <meta property="og:image" content="https://tickispot.vercel.app/og-image.jpg" />
-  
-  <!-- Twitter Fallback -->
+  <meta property="og:title" content="TickiSpot - Event Ticketing & Management Platform" />
+  <meta property="og:description"
+    content="Create, manage, and monetize events with TickiSpot. From ticket sales to live streaming, everything in one platform." />
+  <meta property="og:image" content="https://tickispot.vercel.app/sea.png" />
+
+  <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TickiSpot" />
+  <meta name="twitter:description" content="The smarter way to create, manage, and scale your events online." />
+  <meta name="twitter:image" content="https://tickispot.vercel.app/sea.png" />
   <meta name="twitter:creator" content="@tickispot" />
 
-  
-  
-  
 
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "TickiSpot",
+  "url": "https://tickispot.vercel.app",
+  "logo": "https://tickispot.vercel.app/icon.svg",
+  "sameAs": [
+    "https://x.com/tickispot"
+  ],
+  "description": "TickiSpot is an event ticketing and management platform that helps organizers create, manage, and monetize events across Nigeria and beyond."
+}
+</script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>
