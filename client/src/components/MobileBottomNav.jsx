@@ -1,24 +1,43 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutDashboard, PlusCircle, Ticket, MessageCircle, LineChart, Bell } from "lucide-react";
-import "./css/mobileNav.css";
+import { Home, Plus, Ticket, LayoutDashboard, LineChart, MessageCircle } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { getCurrentUser } from "../utils/auth";
-import { useEffect, useState } from "react";
 import CreateEvent from "../pages/CreateEvent";
+import "./css/mobileNav.css";
 
 export default function MobileBottomNav() {
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  
+  // Scroll visibility state
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (currentUser) setUser(currentUser);
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // If scrolling down and scrolled more than 10px, hide
+      if (currentScrollY > lastScrollY.current && currentScrollY > 10) {
+        setIsVisible(false);
+      } 
+      // If scrolling up, show
+      else {
+        setIsVisible(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Don't show mobile nav if user is not logged in
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const isAdmin = user?.role === "admin" || user?.isAdmin === true;
   const isOrganizer = user?.role === "organizer" || user?.isOrganizer === true;
@@ -26,54 +45,48 @@ export default function MobileBottomNav() {
 
   const navItems = [
     ...(canOrganize
-      ? [{ to: "/dashboard", icon: <LayoutDashboard size={22} />, label: "Dashboard" }]
+      ? [{ to: "/dashboard", icon: <LayoutDashboard size={24} /> }]
       : []),
-    { to: "/events", icon: <Home size={22} />, label: "Events" },
-    { to: "/my-tickets", icon: <Ticket size={22} />, label: "Tickets" },
-    { to: "/analytics", icon: <LineChart size={22} />, label: "Analytics" },
-    { to: "/notifications", icon: <Bell size={22} />, label: "Notifications" },
-    { to: "/messages", icon: <MessageCircle size={22} />, label: "Messages" },
+    { to: "/events", icon: <Home size={24} /> },
+    { to: "/my-tickets", icon: <Ticket size={24} /> },
+    { to: "/analytics", icon: <LineChart size={24} /> },
+    { to: "/messages", icon: <MessageCircle size={24} /> },
   ];
 
-  // Create button component (positioned outside the main nav)
-  const CreateButton = () => (
-    <button
-      onClick={() => setShowCreateEvent(true)}
-      className="mobile-create-btn"
-      aria-label="Create event"
-    >
-      <PlusCircle size={28} />
-    </button>
-  );
-
   return (
-    <>
-      {/* Floating Create Button - Positioned on the left side like X/Twitter */}
-      <CreateButton />
+    <div className={`mobile-nav-wrapper ${isVisible ? "nav-visible" : "nav-hidden"}`}>
+      {/* Floating Create Button */}
+      <button 
+        className="x-fab-btn" 
+        onClick={() => setShowCreateEvent(true)}
+        aria-label="Create New"
+      >
+        <Plus size={28} strokeWidth={2.5} />
+      </button>
 
-      {/* Bottom Navigation Bar */}
-      <div className="mobile-nav">
+      {/* Bottom Bar */}
+      <nav className="x-bottom-bar">
         {navItems.map((item) => {
           const isActive = location.pathname === item.to;
-
           return (
-            <Link
-              key={item.label}
-              to={item.to}
-              className={`mobile-nav-item ${isActive ? "active" : ""}`}
+            <Link 
+              key={item.to} 
+              to={item.to} 
+              className={`x-nav-item ${isActive ? "active" : ""}`}
             >
-              {item.icon}
-              <span>{item.label}</span>
+              <div className="icon-container">
+                {item.icon}
+                {item.to === "/notifications" && <span className="x-badge" />}
+              </div>
             </Link>
           );
         })}
-      </div>
+      </nav>
 
-      {/* Create Event Modal */}
       <CreateEvent
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
-    </>
+    </div>
   );
 }

@@ -69,6 +69,47 @@ const eventPopulateOptions = [
   { path: "comments.user", select: "name username profilePic billing" },
 ];
 
+const DEFAULT_FREE_PRICING = [{ type: "Free", price: 0 }];
+
+const parseBooleanFlag = (value) => value === true || value === "true";
+
+const normalizePricingInput = (pricing) => {
+  if (pricing == null || pricing === "") return [];
+
+  let parsedPricing = pricing;
+  if (typeof pricing === "string") {
+    parsedPricing = JSON.parse(pricing);
+  }
+
+  if (!Array.isArray(parsedPricing)) {
+    throw new Error("Invalid pricing data.");
+  }
+
+  return parsedPricing
+    .map((tier) => ({
+      type: String(tier?.type || "").trim(),
+      price: Number(tier?.price || 0),
+    }))
+    .filter((tier) => tier.type);
+};
+
+const resolveEventPricing = (pricing, isFree) => {
+  if (isFree) {
+    return DEFAULT_FREE_PRICING;
+  }
+
+  const normalizedPricing = normalizePricingInput(pricing);
+  if (!normalizedPricing.length) {
+    throw new Error("At least one pricing tier is required for paid events.");
+  }
+
+  if (!normalizedPricing.some((tier) => Number(tier.price) > 0)) {
+    throw new Error("At least one pricing tier must be greater than 0 for paid events.");
+  }
+
+  return normalizedPricing;
+};
+
 const getEventByIdForOwner = async (eventId, userId, allowAdmin = false, userRole = "user") => {
   const event = await Event.findById(eventId);
   if (!event) return { error: { status: 404, message: "Event not found" } };
@@ -100,16 +141,13 @@ exports.createEvent = async (req, res) => {
       streamType,
       streamURL,
     } = req.body;
-    const isFree = req.body.isFree === "true" || req.body.isFree === true;
+    const isFree = parseBooleanFlag(req.body.isFree) || parseBooleanFlag(req.body.isFreeEvent);
 
-    let parsedPricing = [];
-    if (pricing != null && pricing !== "") {
-      try {
-        parsedPricing = typeof pricing === "string" ? JSON.parse(pricing) : pricing;
-        if (!Array.isArray(parsedPricing)) parsedPricing = [];
-      } catch {
-        return res.status(400).json({ message: "Invalid pricing data." });
-      }
+    let resolvedPricing = DEFAULT_FREE_PRICING;
+    try {
+      resolvedPricing = resolveEventPricing(pricing, isFree);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
     }
 
     let imagePath = null;
@@ -131,7 +169,8 @@ exports.createEvent = async (req, res) => {
       endTime,
       location,
       image: imagePath,
-      pricing: isFree ? [] : parsedPricing,
+      pricing: resolvedPricing,
+      isFree,
       isFreeEvent: isFree,
       totalTickets,
       eventType,
@@ -248,14 +287,15 @@ exports.updateEvent = async (req, res) => {
 
     const event = lookup.event;
     const updates = { ...req.body };
+    const isFree = parseBooleanFlag(updates.isFree) || parseBooleanFlag(updates.isFreeEvent);
 
-    if (updates.pricing) {
-      try {
-        updates.pricing = JSON.parse(updates.pricing);
-      } catch {
-        // Ignore if already parsed.
-      }
+    try {
+      updates.pricing = resolveEventPricing(updates.pricing, isFree);
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
     }
+    updates.isFree = isFree;
+    updates.isFreeEvent = isFree;
 
     if (req.file) {
       if (!isConfigured()) {

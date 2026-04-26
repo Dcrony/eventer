@@ -43,7 +43,8 @@ exports.createTicket = async (req, res) => {
     }
 
     const requestedFreeTicket = isFree === true || isFree === "true";
-    if (!event.isFreeEvent) {
+    const eventIsFree = event.isFree === true || event.isFreeEvent === true;
+    if (!eventIsFree) {
       if (requestedFreeTicket) {
         return res.status(400).json({ message: "Paid events require payment before ticket creation" });
       }

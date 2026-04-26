@@ -48,176 +48,102 @@ export default function TopNav() {
     setIsMenuOpen(false);
   };
 
-
   return (
     <>
-      {/* TOP BAR */}
-      <div className="top-nav">
+      <header className="top-nav">
         <div className="top-nav-container">
-          {/* Avatar button */}
-          <div
-            className="top-nav-more-btn"
-            onClick={() => setIsMenuOpen(true)}
-          >
-              <Avatar src={user ? getProfileImageUrl(user) : null} name={user?.name || user?.username || "Account"} className="avatar-small" />
-              <ChevronsRight size={14} className="dropdown-icon" />
-          </div>
+          
 
           <Link to="/" className="top-nav-logo">
             <span className="logo-text">TickiSpot</span>
           </Link>
 
-          <NotificationBell />
+          <div className="top-nav-actions">
+            <Link to="/notifications" className="nav-icon-btn" aria-label="Notifications">
+              <Bell size={22} />
+            </Link>
+
+            <button 
+            className="top-nav-profile-trigger" 
+            onClick={() => setIsMenuOpen(true)}
+            aria-label="Open Menu"
+          >
+            <Avatar 
+              src={user ? getProfileImageUrl(user) : null} 
+              name={user?.name || "User"} 
+              className="avatar-mini" 
+            />
+          </button>
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* SLIDE MENU */}
-      <div className={`slide-menu ${isMenuOpen ? "open" : ""}`}>
-        {/* HEADER */}
+      <aside className={`slide-menu ${isMenuOpen ? "open" : ""}`}>
         <div className="slide-menu-header">
-          <div className="slide-menu-header-content">
-            <h3>Menu</h3>
-            <button type="button" onClick={closeMenu}>
-              <X size={24} />
-            </button>
+          <div className="header-top">
+            <span className="menu-title">Account</span>
+            <button className="close-btn" onClick={closeMenu}><X size={22} /></button>
           </div>
 
-          {/* USER PROFILE CLICK */}
           {user && (
-            <div className="slide-menu-user clickable" onClick={goToProfile}>
-              <div className="slide-menu-avatar">
-                <Avatar src={getProfileImageUrl(user)} name={user.name || user.username} />
-              </div>
-
-              <div className="slide-menu-user-info">
+            <div className="user-profile-card" onClick={goToProfile}>
+              <Avatar src={getProfileImageUrl(user)} name={user.name} className="avatar-large" />
+              <div className="user-details">
                 <h4>{user.name}</h4>
                 <p>@{user.username}</p>
               </div>
-
-              <ChevronRight size={16} />
+              <ChevronRight size={18} className="fade-icon" />
             </div>
           )}
         </div>
 
-        {/* CONTENT */}
-        <div className="slide-menu-content">
+        <div className="slide-menu-scrollable">
+          <nav className="slide-menu-section">
+            <label>My Activity</label>
+            <MenuLink to="/my-tickets" icon={<Ticket size={20} />} label="My Tickets" onClick={closeMenu} />
+            <MenuLink to="/favorites" icon={<Heart size={20} />} label="Favorites" onClick={closeMenu} />
+            <MenuLink to="/events" icon={<Calendar size={20} />} label="Events" onClick={closeMenu} />
+          </nav>
 
-          {/* CORE */}
-          <div className="slide-menu-section">
-            <h4>My Activity</h4>
-
-            <Link to="/my-tickets" className="slide-menu-item" onClick={closeMenu}>
-              <Ticket size={18} />
-              <span>My Tickets</span>
-              <ChevronRight size={16} />
-            </Link>
-
-            <Link to="/favorites" className="slide-menu-item" onClick={closeMenu}>
-              <Heart size={18} />
-              <span>Favorites</span>
-              <ChevronRight size={16} />
-            </Link>
-
-            <Link to="/notifications" className="slide-menu-item" onClick={closeMenu}>
-              <Bell size={18} />
-              <span>Notifications</span>
-              <ChevronRight size={16} />
-            </Link>
-
-            <Link to="/events" className="slide-menu-item" onClick={closeMenu}>
-              <Calendar size={18} />
-              <span>Events</span>
-              <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          {/* ACCOUNT */}
-          <div className="slide-menu-section">
-            <h4>Account</h4>
-
-            <Link to="/settings" className="slide-menu-item" onClick={closeMenu}>
-              <Settings size={18} />
-              <span>Settings</span>
-              <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          {/* CREATOR */}
           {(isOrganizer || isAdmin) && (
-            <div className="slide-menu-section">
-              <h4>Creator</h4>
-
+            <nav className="slide-menu-section">
+              <label>Creator Tools</label>
               {isOrganizer && (
                 <>
-                  <Link to="/dashboard" className="slide-menu-item" onClick={closeMenu}>
-                    <BarChart3 size={18} />
-                    <span>Dashboard</span>
-                    <ChevronRight size={16} />
-                  </Link>
-                  <Link to="/earnings" className="slide-menu-item" onClick={closeMenu}>
-                    <Banknote size={18} />
-                    <span>Earnings</span>
-                    <ChevronRight size={16} className="menu-arrow" />
-                  </Link>
-                  <Link to="/create-event" className="slide-menu-item" onClick={closeMenu}>
-                    <Calendar size={18} />
-                    <span>Create Event</span>
-                    <ChevronRight size={16} />
-                  </Link>
-
-                  <Link to="/analytics" className="slide-menu-item" onClick={closeMenu}>
-                    <BarChart3 size={18} />
-                    <span>Analytics</span>
-                    <ChevronRight size={16} />
-                  </Link>
+                  <MenuLink to="/dashboard" icon={<BarChart3 size={20} />} label="Dashboard" onClick={closeMenu} />
+                  <MenuLink to="/earnings" icon={<Banknote size={20} />} label="Earnings" onClick={closeMenu} />
                 </>
               )}
-
               {isAdmin && (
-                <>
-                  <Link to="/admin/users" className="slide-menu-item" onClick={closeMenu}>
-                    <Users size={18} />
-                    <span>User Management</span>
-                    <ChevronRight size={16} className="menu-arrow" />
-                  </Link>
-                  <Link to="/admin/withdrawals" className="slide-menu-item" onClick={closeMenu}>
-                    <DollarSign size={18} />
-                    <span>Withdrawals</span>
-                    <ChevronRight size={16} className="menu-arrow" />
-                  </Link>
-                </>
+                <MenuLink to="/admin/users" icon={<Users size={20} />} label="Admin Panel" onClick={closeMenu} />
               )}
-            </div>
+            </nav>
           )}
 
-          {/* SUPPORT */}
-          <div className="slide-menu-section">
-            <h4>Support</h4>
-
-            <Link to="/help" className="slide-menu-item" onClick={closeMenu}>
-              <HelpCircle size={18} />
-              <span>Help</span>
-              <ChevronRight size={16} />
-            </Link>
-          </div>
-
-          {/* LOGOUT */}
-          <div className="slide-menu-section">
-            <button type="button" onClick={handleLogout} className="slide-menu-item logout">
-              <LogOut size={18} />
-              <span>Logout</span>
+          <nav className="slide-menu-section">
+            <label>Preferences</label>
+            <MenuLink to="/settings" icon={<Settings size={20} />} label="Settings" onClick={closeMenu} />
+            <MenuLink to="/help" icon={<HelpCircle size={20} />} label="Help Center" onClick={closeMenu} />
+            <button className="menu-item-btn logout" onClick={handleLogout}>
+              <LogOut size={20} />
+              <span>Sign Out</span>
             </button>
-          </div>
+          </nav>
         </div>
-      </div>
+      </aside>
 
-      {/* OVERLAY */}
-      {isMenuOpen && (
-        <div
-          className="slide-menu-overlay"
-          onClick={closeMenu}
-        />
-      )}
+      {isMenuOpen && <div className="menu-overlay" onClick={closeMenu} />}
     </>
+  );
+}
+
+function MenuLink({ to, icon, label, onClick }) {
+  return (
+    <Link to={to} className="menu-item-btn" onClick={onClick}>
+      {icon}
+      <span>{label}</span>
+      <ChevronRight size={14} className="arrow" />
+    </Link>
   );
 }

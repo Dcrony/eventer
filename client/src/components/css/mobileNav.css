@@ -1,253 +1,121 @@
-.mobile-nav {
+/* Container to ensure everything stays together */
+.mobile-nav-wrapper {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
+}
+
+/* Hide everything by sliding it down */
+/* .nav-hidden {
+  transform: translateY(100px);
+} */
+
+/* Show everything */
+/* .nav-visible {
+  transform: translateY(0);
+} */
+
+.x-bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  width: 100%;
-  height: 70px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  height: 54px; /* X uses a slimmer bar */
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-top: 1px solid #eff3f4; /* Very subtle X-style border */
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 998;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.mobile-nav-item {
+.x-nav-item {
   flex: 1;
-  text-decoration: none;
-  color: #666;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #0f1419; /* X default black */
+  text-decoration: none;
+  transition: opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.x-nav-item svg {
+  stroke-width: 1.5px;
+  transition: transform 0.1s ease;
+}
+
+.x-nav-item.active svg {
+  stroke-width: 2.5px; /* Makes the active icon "bold" */
+  color: #000;
+}
+
+.x-nav-item:active svg {
+  transform: scale(0.85);
+}
+
+.icon-container {
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  padding: 8px 0;
-  border-radius: 8px;
 }
 
-.mobile-nav-item svg {
-  transition: transform 0.2s ease;
+/* The red notification dot from X */
+.x-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  background: #f43f5e;
+  border-radius: 50%;
+  border: 2px solid #fff;
 }
 
-.mobile-nav-item:active svg {
-  transform: scale(0.95);
-}
-
-.mobile-nav-item.active {
-  color: #ec4899;
-}
-
-.mobile-nav-item.active svg {
-  stroke-width: 2.5;
-}
-
-.mobile-nav-item span {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.3px;
-}
-
-/* Floating Create Button - Positioned like X/Twitter's post button */
-.mobile-create-btn {
+/* Floating Action Button - The "X" Post Button style */
+.x-fab-btn {
   position: fixed;
-  bottom: 85px;
-  left: 20px;
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  right: 16px;
   width: 56px;
   height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  color: white;
   border: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
   box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: fadeInUp 0.3s ease-out;
+  z-index: 1000; /* Ensure it is above the bar */
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.x-fab-btn:active {
+  transform: scale(0.92);
+  filter: brightness(1.1);
 }
 
-.mobile-create-btn svg {
-  color: white;
-  transition: transform 0.2s ease;
-}
-
-.mobile-create-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
-}
-
-.mobile-create-btn:active {
-  transform: scale(0.95);
-}
-
-/* Tooltip for create button */
-.mobile-create-btn::before {
-  content: "Create";
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
+/* On X, the button usually stays slightly visible or slides further */
+.nav-hidden .x-fab-btn {
+  transform: translateY(20px) scale(0.8);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
-  margin-bottom: 8px;
-  font-weight: 500;
 }
 
-.mobile-create-btn:hover::before {
-  opacity: 1;
-}
-
-/* Adjust for users with bottom safe area (iPhone X and up) */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .mobile-nav {
-    padding-bottom: env(safe-area-inset-bottom);
-    height: calc(70px + env(safe-area-inset-bottom));
-  }
-  
-  .mobile-create-btn {
-    bottom: calc(85px + env(safe-area-inset-bottom));
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .mobile-nav {
-    height: 60px;
-  }
-  
-  .mobile-nav-item {
-    font-size: 9px;
-    gap: 3px;
-  }
-  
-  .mobile-nav-item svg {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .mobile-create-btn {
-    width: 48px;
-    height: 48px;
-    bottom: 75px;
-    left: 16px;
-  }
-  
-  .mobile-create-btn svg {
-    width: 24px;
-    height: 24px;
-  }
-}
-
-/* If you want the create button on the right side instead (uncomment below) */
-
-.mobile-create-btn {
-  left: auto;
-  right: 20px;
-}
-
-@media (max-width: 480px) {
-  .mobile-create-btn {
-    right: 16px;
-  }
-}
-
-
-/* Animation for page transitions */
-.mobile-nav-item {
-  position: relative;
-}
-
-.mobile-nav-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 3px;
-  background: linear-gradient(90deg, #ec4899, #f43f5e);
-  border-radius: 2px;
-}
-
-/* Badge for messages (unread count) */
-.mobile-nav-item {
-  position: relative;
-}
-
-.message-badge {
-  position: absolute;
-  top: 2px;
-  right: 50%;
-  transform: translateX(12px);
-  min-width: 18px;
-  height: 18px;
-  background: #ec4899;
-  color: white;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* Optional: Add ripple effect on click */
-.mobile-nav-item:active,
-.mobile-create-btn:active {
-  transform: scale(0.96);
-}
-
-/* Improve touch targets */
-.mobile-nav-item,
-.mobile-create-btn {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* For tablets and larger screens, maybe hide mobile nav */
+/* Visibility fix: Ensure these only show on mobile */
 @media (min-width: 769px) {
-  .mobile-nav,
-  .mobile-create-btn {
-    display: none;
-  }
-  
-  /* Add padding for mobile-only elements */
-  .app-content {
-    padding-bottom: 0 !important;
+  .mobile-nav-wrapper {
+    display: none !important;
   }
 }
 
-/* Main content padding for mobile */
-@media (max-width: 768px) {
-  .app-content {
-    padding-bottom: 70px;
-  }
+/* Content adjustment so bottom bar doesn't cover your app content */
+body {
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
 }

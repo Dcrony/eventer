@@ -25,6 +25,7 @@ export default function Checkout() {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const { event, quantity, user, ticketType, price } = state || {};
+  const isFreeEvent = event?.isFreeEvent || event?.isFree;
 
   const [selectedPricing, setSelectedPricing] = useState(
     event?.pricing?.find((p) => p.type === ticketType) || null
@@ -60,7 +61,7 @@ export default function Checkout() {
   const handleConfirmPayment = async () => {
     setLoading(true);
     try {
-      if (event?.isFreeEvent) {
+      if (isFreeEvent) {
         await API.post("/tickets/create", {
           eventId: event._id,
           quantity,
@@ -108,13 +109,13 @@ export default function Checkout() {
   };
 
   const eventImg = getEventImageUrl(event);
-  const topTrustCopy = event?.isFreeEvent
+  const topTrustCopy = isFreeEvent
     ? "Instant ticket reservation"
     : "Secure payment via Paystack";
-  const heroCopy = event?.isFreeEvent
+  const heroCopy = isFreeEvent
     ? "Review your ticket details and reserve your spot instantly."
     : "Review your tickets and pay securely. You’ll get a confirmation by email.";
-  const ctaCopy = event?.isFreeEvent
+  const ctaCopy = isFreeEvent
     ? "Reserve Free Ticket"
     : `Pay ₦${lineTotal.toLocaleString()}`;
 
@@ -310,7 +311,7 @@ export default function Checkout() {
               <div className="trust-badges">
                 <div className="trust-badge">
                   <ShieldCheck size={16} />
-                  {event?.isFreeEvent ? "Instant confirmation" : "Encrypted checkout"}
+                  {isFreeEvent ? "Instant confirmation" : "Encrypted checkout"}
                 </div>
                 <div className="trust-badge">
                   <Ticket size={16} />

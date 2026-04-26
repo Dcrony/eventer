@@ -44,6 +44,7 @@ export default function EventDetail() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isEventFree = event?.isFreeEvent || event?.isFree;
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -51,7 +52,7 @@ export default function EventDetail() {
         setLoading(true);
         const { data } = await API.get(`/events/${eventId}`);
         setEvent(data);
-        setSelectedTicketType(data.pricing?.[0] || (data.isFreeEvent ? { type: "Free", price: 0 } : null));
+        setSelectedTicketType(data.pricing?.[0] || ((data.isFreeEvent || data.isFree) ? { type: "Free", price: 0 } : null));
       } catch (error) {
         console.error("Failed to fetch event:", error);
       } finally {
@@ -93,7 +94,7 @@ export default function EventDetail() {
       return;
     }
 
-    if (event?.isFreeEvent) {
+    if (isEventFree) {
       reserveFreeTicket();
       return;
     }
