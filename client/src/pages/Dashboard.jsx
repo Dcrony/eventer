@@ -38,16 +38,10 @@ export default function Dashboard() {
   const [transactions, setTransactions] = useState([]);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
 
 
-  const [bankDetails, setBankDetails] = useState({
-    bankName: "",
-    accountNumber: "",
-    accountName: "",
-    bankCode: "",
-  });
+  
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -96,60 +90,7 @@ export default function Dashboard() {
     });
   }, []);
 
-  // ✅ FIX: Remove duplicate banks based on bank code
-  const uniqueBanks = useMemo(() => {
-    const seen = new Set();
-    return banks.filter(bank => {
-      if (seen.has(bank.code)) return false;
-      seen.add(bank.code);
-      return true;
-    });
-  }, [banks]);
-
-  const handleWithdraw = async () => {
-    if (!withdrawAmount || withdrawAmount <= 0) {
-      return alert("Enter valid amount");
-    }
-
-    if (
-      !bankDetails.bankCode ||
-      !bankDetails.accountNumber ||
-      !bankDetails.accountName
-    ) {
-      return alert("Complete bank details");
-    }
-
-    try {
-      setWithdrawLoading(true);
-
-      await API.post(
-        "/organizer/withdraw",
-        {
-          amount: Number(withdrawAmount),
-          paymentMethod: "bank",
-          bankDetails,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      alert("Withdrawal submitted ✅");
-      setShowWithdrawModal(false);
-      setWithdrawAmount("");
-
-      const res = await API.get("/organizer/transactions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setTransactions(res.data);
-    } catch (err) {
-      alert(err.response?.data?.message || "Withdrawal failed");
-    } finally {
-      setWithdrawLoading(false);
-    }
-  };
-
+  
   // 🟢 Toggle Live Event
   const toggleLive = async (id, currentStatus) => {
     try {
@@ -237,12 +178,7 @@ export default function Dashboard() {
             >
               Create event <PlusCircle size={18} />
             </button>
-            <button
-              className="dash-btn dash-btn-primary"
-              onClick={() => setShowWithdrawModal(true)}
-            >
-              Withdraw Funds
-            </button>
+            
           </div>
         </div>
 
@@ -538,83 +474,7 @@ export default function Dashboard() {
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
-      {showWithdrawModal && (
-        <div className="modal-overlay">
-          <div className="withdraw-modal">
-            <button className="close-btn" onClick={() => setShowWithdrawModal(false)}>
-              ✕
-            </button>
-            <h3>Request Withdrawal</h3>
-
-            <div className="withdraw-balance">
-              Available Balance: ₦{formatNumber(stats?.availableBalance || 0)}
-            </div>
-
-            <input
-              type="number"
-              placeholder="Enter amount"
-              value={withdrawAmount}
-              onChange={(e) => setWithdrawAmount(e.target.value)}
-            />
-
-            <label>Payment Method</label>
-            {/* ✅ FIX: Use uniqueBanks instead of banks and ensure unique keys */}
-            <select
-              value={bankDetails.bankCode}
-              onChange={(e) => {
-                const selected = uniqueBanks.find(
-                  (b) => b.code === e.target.value
-                );
-
-                if (selected) {
-                  setBankDetails({
-                    ...bankDetails,
-                    bankCode: selected.code,
-                    bankName: selected.name,
-                  });
-                }
-              }}
-            >
-              <option value="">Select Bank</option>
-              {uniqueBanks.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.name}
-                </option>
-              ))}
-            </select>
-
-            <input
-              placeholder="Account Number"
-              value={bankDetails.accountNumber}
-              onChange={(e) =>
-                setBankDetails({
-                  ...bankDetails,
-                  accountNumber: e.target.value,
-                })
-              }
-            />
-
-            <input
-              placeholder="Account Name"
-              value={bankDetails.accountName}
-              onChange={(e) =>
-                setBankDetails({
-                  ...bankDetails,
-                  accountName: e.target.value,
-                })
-              }
-            />
-
-
-            <div className="modal-actions">
-              <div></div>
-              <button onClick={handleWithdraw} disabled={withdrawLoading}>
-                {withdrawLoading ? "Processing..." : "Submit Request"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     
     </div>
   );
 }
