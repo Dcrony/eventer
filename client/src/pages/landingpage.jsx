@@ -29,7 +29,7 @@ import {
   Globe,
   Mic2,
   Wrench,
-  Linkedin,
+  Facebook,
   Instagram,
 } from "lucide-react";
 
@@ -695,15 +695,15 @@ export default function LandingPage() {
                   <XLogo size={17} />
                 </a>
                 <a
-                  href="https://www.linkedin.com/company/tickispot"
+                  href="https://www.facebook.com/share/1ArixBJeTq/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="TickiSpot on LinkedIn"
+                  aria-label="TickiSpot on Facebook"
                 >
-                  <Linkedin size={18} strokeWidth={1.75} aria-hidden={true} />
+                  <Facebook size={18} strokeWidth={1.75} aria-hidden={true} />
                 </a>
                 <a
-                  href="https://www.instagram.com/tickispot"
+                  href="https://www.instagram.com/tickispot?igsh=a2oyMzIyandnb2J2"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="TickiSpot on Instagram"
