@@ -20,5 +20,30 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const message = error.response?.data?.message;
+    const hadToken = Boolean(localStorage.getItem("token"));
+
+    if (status === 401 && hadToken) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    if (status === 403 && /deactivated/i.test(String(message || ""))) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/";
+    }
+
+    return Promise.reject(error);
+  },
+);
+
 export default API;
 

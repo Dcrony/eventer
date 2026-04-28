@@ -38,7 +38,7 @@ const SETTINGS_TABS = [
 ];
 
 const DEFAULT_STATE = {
-  account: { name: "", username: "", email: "", phone: "", bio: "" },
+  account: { name: "", username: "", email: "", phone: "", bio: "", currentPassword: "" },
   privacy: { showProfile: true, showActivity: false, searchable: true },
   notifications: {
     likes: true,
@@ -59,7 +59,37 @@ const DEFAULT_STATE = {
     eventVisibility: "public",
     autoPublishEvents: false,
   },
+  billing: {
+    plan: "free",
+    cycle: "monthly",
+  },
 };
+
+const buildFormStateFromUser = (userData) => ({
+  account: {
+    name: userData?.name || "",
+    username: userData?.username || "",
+    email: userData?.email || "",
+    phone: userData?.phone || "",
+    bio: userData?.bio || "",
+    currentPassword: "",
+  },
+  privacy: { ...DEFAULT_STATE.privacy, ...userData?.privacy },
+  notifications: { ...DEFAULT_STATE.notifications, ...userData?.notifications },
+  security: {
+    ...DEFAULT_STATE.security,
+    twoFactorEnabled: Boolean(userData?.security?.twoFactorEnabled),
+  },
+  eventPreferences: {
+    ...DEFAULT_STATE.eventPreferences,
+    ...userData?.eventPreferences,
+  },
+  billing: {
+    ...DEFAULT_STATE.billing,
+    plan: userData?.plan || "free",
+    cycle: userData?.billing?.cycle || "monthly",
+  },
+});
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("account");
@@ -81,25 +111,7 @@ export default function Settings() {
 
         const userData = res.data?.user || res.data;
         setUser(userData);
-        setFormState({
-          account: {
-            name: userData?.name || "",
-            username: userData?.username || "",
-            email: userData?.email || "",
-            phone: userData?.phone || "",
-            bio: userData?.bio || "",
-          },
-          privacy: { ...DEFAULT_STATE.privacy, ...userData?.privacy },
-          notifications: { ...DEFAULT_STATE.notifications, ...userData?.notifications },
-          security: {
-            ...DEFAULT_STATE.security,
-            twoFactorEnabled: Boolean(userData?.security?.twoFactorEnabled),
-          },
-          eventPreferences: {
-            ...DEFAULT_STATE.eventPreferences,
-            ...userData?.eventPreferences,
-          },
-        });
+        setFormState(buildFormStateFromUser(userData));
       } catch (error) {
         console.error("Failed to fetch settings:", error);
         toast.error("Could not load your settings");
@@ -156,6 +168,7 @@ export default function Settings() {
       if (nextUser) {
         setUser(nextUser);
         localStorage.setItem("user", JSON.stringify(nextUser));
+        setFormState(buildFormStateFromUser(nextUser));
       }
       toast.success(successMessage);
     } catch (error) {
@@ -201,14 +214,6 @@ export default function Settings() {
       "security",
       async () => {
         const { data } = await API.put("/settings/security", formState.security);
-        setFormState((current) => ({
-          ...current,
-          security: {
-            ...current.security,
-            currentPassword: "",
-            newPassword: "",
-          },
-        }));
         return data.user;
       },
       "Security settings updated",
@@ -224,6 +229,23 @@ export default function Settings() {
       "Event preferences updated",
     );
 
+  const saveBilling = () =>
+    withSaving(
+      "billing",
+      async () => {
+        const { data } = await API.post("/billing/initialize", {
+          plan: formState.billing.plan,
+          interval: formState.billing.cycle,
+        });
+        if (data?.authorization_url) {
+          window.location.href = data.authorization_url;
+          return null;
+        }
+        return data.user;
+      },
+      "Billing initialized",
+    );
+
   const deactivateAccount = async () => {
     if (!user?._id && !user?.id) return;
 
@@ -232,24 +254,115 @@ export default function Settings() {
     );
     if (!confirmed) return;
 
+    const currentPassword = window.prompt("Enter your current password to deactivate your account.");
+    if (currentPassword === null) return;
+
     try {
-      await API.put(`/users/profile/${user._id || user.id}/deactivate`, {});
+      await API.post("/settings/deactivate", { currentPassword: currentPassword || "" });
       toast.success("Account deactivated");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/";
     } catch (error) {
       console.error("Failed to deactivate account:", error);
-      toast.error("Could not deactivate your account");
+      toast.error(error.response?.data?.message || "Could not deactivate your account");
     }
   };
 
-  const logoutEverywhere = () => {
-    toast.info("Multi-device logout is queued for the next auth update.");
+  const logoutEverywhere = async () => {
+    const currentPassword = window.prompt("Enter your current password to log out all devices.");
+    if (currentPassword === null) return;
+
+    try {
+      await API.post("/settings/logout-all", { currentPassword });
+      toast.success("All active sessions have been logged out");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Failed to log out all devices:", error);
+      toast.error(error.response?.data?.message || "Could not log out all devices");
+    }
   };
 
-  const exportData = () => {
-    toast.info("Data export will be available soon.");
+  const exportData = async () => {
+    try {
+      const response = await API.get("/settings/export", { responseType: "blob" });
+      const blob = new Blob([response.data], { type: "application/json" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `tickispot-settings-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Your account data export is ready");
+    } catch (error) {
+      console.error("Failed to export data:", error);
+      toast.error(error.response?.data?.message || "Could not export account data");
+    }
+  };
+
+  const handleIntegrationAction = async (integrationKey) => {
+    const currentlyConnected = Boolean(user?.integrations?.[integrationKey]?.connected);
+
+    if (currentlyConnected) {
+      return withSaving(
+        `integration-${integrationKey}`,
+        async () => {
+          const { data } = await API.put(`/settings/integrations/${integrationKey}`, { connected: false });
+          return data.user;
+        },
+        "Integration disconnected",
+      );
+    }
+
+    try {
+      setSavingState((current) => ({ ...current, [`integration-${integrationKey}`]: true }));
+      const { data } = await API.get(`/settings/integrations/${integrationKey}/auth-url`);
+      const popup = window.open(data.authUrl, "tickispot-oauth", "width=640,height=720");
+      if (!popup) {
+        toast.error("Please allow popups to connect this app.");
+        return;
+      }
+
+      await new Promise((resolve) => {
+        const handleMessage = async (event) => {
+          if (event.data?.source !== "tickispot-integration") return;
+          window.removeEventListener("message", handleMessage);
+          if (event.data?.status === "success") {
+            try {
+              const refresh = await API.get("/settings/me");
+              const nextUser = refresh.data?.user || refresh.data;
+              setUser(nextUser);
+              setFormState(buildFormStateFromUser(nextUser));
+              localStorage.setItem("user", JSON.stringify(nextUser));
+            } catch (error) {
+              console.error("Failed to refresh settings after OAuth:", error);
+            }
+            toast.success(event.data?.message || "Integration connected");
+          } else {
+            toast.error(event.data?.message || "Integration failed");
+          }
+          resolve();
+        };
+
+        window.addEventListener("message", handleMessage);
+        const timer = window.setInterval(() => {
+          if (popup.closed) {
+            window.clearInterval(timer);
+            window.removeEventListener("message", handleMessage);
+            resolve();
+          }
+        }, 500);
+      });
+    } catch (error) {
+      console.error("Integration action failed:", error);
+      toast.error(error.response?.data?.message || "Could not update integration");
+    } finally {
+      setSavingState((current) => ({ ...current, [`integration-${integrationKey}`]: false }));
+    }
   };
 
   const renderTabContent = () => {
@@ -292,6 +405,15 @@ export default function Settings() {
                 <label className="settings-field">
                   <span>Phone</span>
                   <input value={formState.account.phone} onChange={(event) => updateSection("account", "phone", event.target.value)} />
+                </label>
+                <label className="settings-field">
+                  <span>Current password</span>
+                  <input
+                    type="password"
+                    placeholder="Required only for sensitive changes"
+                    value={formState.account.currentPassword}
+                    onChange={(event) => updateSection("account", "currentPassword", event.target.value)}
+                  />
                 </label>
                 <label className="settings-field settings-field-full">
                   <span>Bio</span>
@@ -423,17 +545,48 @@ export default function Settings() {
         );
       case "billing":
         return (
-          <SettingsCard title="Billing" description="View your current plan and the payment rails attached to your account." icon={<CreditCard size={18} />}>
+          <SettingsCard
+            title="Billing"
+            description="View your current plan and manage the billing tier attached to your account."
+            icon={<CreditCard size={18} />}
+            action={
+              <button type="button" className="settings-primary-button" onClick={saveBilling} disabled={savingState.billing}>
+                <Save size={16} />
+                {savingState.billing ? "Saving..." : "Save billing"}
+              </button>
+            }
+          >
             <div className="settings-billing-hero">
               <div>
                 <span className="settings-chip">Current plan</span>
                 <h3>{user?.billing?.plan || "Free"}</h3>
-                <p>Next billing date: {user?.billing?.nextBillingDate || "N/A"}</p>
+                <p>
+                  Next billing date:{" "}
+                  {user?.billing?.nextBillingDate
+                    ? new Date(user.billing.nextBillingDate).toLocaleDateString()
+                    : "N/A"}
+                </p>
               </div>
-              <button type="button" className="settings-primary-button" onClick={() => toast.info("Billing upgrades are coming soon.")}>
-                Upgrade plan
-              </button>
             </div>
+            <SettingsSection title="Plan selection" description="Choose the workspace tier that fits your needs.">
+              <div className="settings-form-grid">
+                <label className="settings-field">
+                  <span>Workspace plan</span>
+                  <select value={formState.billing.plan} onChange={(event) => updateSection("billing", "plan", event.target.value)}>
+                    <option value="free">Free</option>
+                    <option value="pro">Pro</option>
+                    <option value="business">Business</option>
+                  </select>
+                </label>
+                <label className="settings-field">
+                  <span>Billing cycle</span>
+                  <select value={formState.billing.cycle} onChange={(event) => updateSection("billing", "cycle", event.target.value)}>
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                </label>
+              </div>
+            </SettingsSection>
             <SettingsSection title="Payment method" description="Manage how TickiSpot charges your workspace.">
               <div className="settings-info-list">
                 <div className="settings-info-row">
@@ -455,8 +608,17 @@ export default function Settings() {
                     <p>{integration.description}</p>
                     <span className="settings-integration-status">{integration.status}</span>
                   </div>
-                  <button type="button" className="settings-secondary-button" onClick={() => toast.info(`${integration.name} integration is coming soon.`)}>
-                    View status
+                  <button
+                    type="button"
+                    className="settings-secondary-button"
+                    onClick={() => handleIntegrationAction(integration.key)}
+                    disabled={savingState[`integration-${integration.key}`]}
+                  >
+                    {savingState[`integration-${integration.key}`]
+                      ? "Saving..."
+                      : user?.integrations?.[integration.key]?.connected
+                        ? "Disconnect"
+                        : "Connect"}
                   </button>
                 </div>
               ))}

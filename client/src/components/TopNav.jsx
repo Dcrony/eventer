@@ -116,7 +116,10 @@ export default function TopNav() {
                 </>
               )}
               {isAdmin && (
-                <MenuLink to="/admin/users" icon={<Users size={20} />} label="Admin Panel" onClick={closeMenu} />
+                <>
+                  <MenuLink to="/admin/users" icon={<Users size={20} />} label="Admin Panel" onClick={closeMenu} />
+                  <MenuLink to="/earnings" icon={<Banknote size={20} />} label="Earnings" onClick={closeMenu} />
+                </>
               )}
             </nav>
           )}

@@ -156,7 +156,7 @@ export default function Register() {
             </p>
           </div>
         </aside>
-        <div className="form-auth-column">
+      <div className="form-auth-column">
       <div className="form-container">
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", textDecoration: "none", color: "inherit", marginBottom: "1rem" }}>
