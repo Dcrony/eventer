@@ -1,11 +1,10 @@
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
-import "./CSS/landing.css";
-import { useEffect, useState } from "react";
+import { CheckCircle2, ArrowRight, Zap, ShieldCheck, Building2, History, CreditCard, LayoutGrid } from "lucide-react";
 import { getBillingHistory, getCurrentPlan, initializeBilling } from "../services/api/billing";
 import { useToast } from "../components/ui/toast";
 import Badge from "../components/ui/badge";
-import { Tabs, TabButton } from "../components/ui/tabs";
+import "./CSS/landing.css";
 
 const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
 
@@ -15,238 +14,247 @@ export default function Pricing() {
   const [currentPlan, setCurrentPlan] = useState("free");
   const [billingState, setBillingState] = useState(null);
   const [history, setHistory] = useState([]);
-  const [tab, setTab] = useState("plans");
+  const [activeTab, setActiveTab] = useState("plans");
   const [upgradingPlan, setUpgradingPlan] = useState("");
 
   useEffect(() => {
-    const load = async () => {
+    const loadData = async () => {
       try {
-        const [planRes, historyRes] = await Promise.all([getCurrentPlan(), getBillingHistory()]);
-        setCurrentPlan(String(planRes.data.plan || "free"));
+        const [planRes, historyRes] = await Promise.all([
+          getCurrentPlan(),
+          getBillingHistory(),
+        ]);
+        setCurrentPlan(String(planRes.data.plan || "free").toLowerCase());
         setBillingState(planRes.data);
         setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-      } catch {
-        // Public users can still view plans without auth.
+      } catch (err) {
+        // Silent catch for unauthenticated landing page view
       }
     };
-    load();
+    loadData();
   }, []);
 
   const plans = [
     {
+      id: "free",
       name: "Free",
-      price: "₦0",
-      yearlyPrice: "₦0",
-      period: "/month",
+      icon: <Zap size={20} />,
+      description: "For small local meetups and social gatherings.",
+      price: { monthly: 0, yearly: 0 },
       features: [
         "Up to 2 events per month",
-        "Standard visibility on discovery",
+        "Standard visibility",
         "Core ticketing & QR check-in",
-        "No analytics dashboard",
-        "Community support & help center",
-        "Secure payments via Paystack",
+        "Community support",
       ],
-      cta: { to: "/register", label: "Get started" },
+      cta: "Get Started",
       highlight: false,
     },
     {
+      id: "pro",
       name: "Pro",
-      price: "₦4,999",
-      yearlyPrice: "₦49,990",
-      period: "/month",
+      icon: <ShieldCheck size={20} />,
+      description: "For professional organizers who need scale.",
       badge: "Most Popular",
+      price: { monthly: 4999, yearly: 49990 },
       features: [
         "Unlimited events",
         "Full analytics dashboard",
-        "Featured listings in discovery",
+        "Featured discovery listings",
         "Live streaming embeds",
-        "Advanced attendee insights",
-        "Custom branding on event pages",
         "Priority support",
       ],
-      cta: { to: "/login", label: "Upgrade to Pro" },
+      cta: "Upgrade to Pro",
       highlight: true,
     },
     {
+      id: "business",
       name: "Business",
-      price: "Custom",
-      yearlyPrice: "Custom",
-      period: "",
+      icon: <Building2 size={20} />,
+      description: "Custom tools for large-scale production.",
+      price: { monthly: "Custom", yearly: "Custom" },
       features: [
         "Everything in Pro",
-        "Priority promotion & placement",
-        "Advanced analytics & exports",
-        "Custom branding & white-label options",
+        "White-label branding",
         "Dedicated success manager",
-        "Custom contracts & invoicing",
+        "Custom contracts",
+        "Advanced API access",
       ],
-      cta: { to: "/contact", label: "Talk to sales" },
+      cta: "Contact Sales",
       highlight: false,
     },
   ];
 
-  const handleUpgrade = async (planName) => {
-    const normalized = planName.toLowerCase();
-    if (normalized === "business") {
-      toast.info("Business billing is custom. Please contact sales.");
+  const handleUpgrade = async (planId) => {
+    if (planId === "business") {
+      toast.info("Please contact our sales team for Business onboarding.");
       return;
     }
 
     try {
-      setUpgradingPlan(normalized);
-      const response = await initializeBilling({ plan: normalized, interval: billingCycle });
-      const authUrl = response.data?.authorization_url;
-
-      if (!authUrl) {
-        toast.error("No payment link returned");
-        return;
+      setUpgradingPlan(planId);
+      const response = await initializeBilling({ plan: planId, interval: billingCycle });
+      
+      if (response.data?.authorization_url) {
+        window.location.href = response.data.authorization_url;
+      } else {
+        toast.error("Unable to generate payment link.");
       }
-
-      window.location.href = authUrl;
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login to upgrade your plan");
+      toast.error(error.response?.data?.message || "Please login to upgrade your plan.");
     } finally {
       setUpgradingPlan("");
     }
   };
 
-  const nextBillingDate = billingState?.subscription?.nextBillingDate || billingState?.billing?.nextBillingDate;
-
   return (
-    <div className="landing-page">
-      <div className="grid-background" aria-hidden="true" />
-      <section className="pricing-section">
-        <div className="pricing-section-inner">
-          <div className="section-header animate-in">
-            <h1 className="section-title">
-              <span className="title-box title-box-border">Simple</span>
-              <span className="title-box title-box-filled">Pricing</span>
-            </h1>
-            <p className="section-subtitle">
-              Choose the plan that fits your needs. Transparent pricing, no surprise fees.
-            </p>
-            <div className="mt-3 flex gap-2 justify-center">
-              <Tabs>
-                <TabButton active={billingCycle === "monthly"} onClick={() => setBillingCycle("monthly")}>
-                  Monthly
-                </TabButton>
-                <TabButton active={billingCycle === "yearly"} onClick={() => setBillingCycle("yearly")}>
-                  Yearly
-                </TabButton>
-              </Tabs>
-            </div>
-            <div className="mt-3 flex gap-2 justify-center">
-              <Tabs>
-                <TabButton active={tab === "plans"} onClick={() => setTab("plans")}>
-                  Plans
-                </TabButton>
-                <TabButton active={tab === "billing"} onClick={() => setTab("billing")}>
-                  Billing
-                </TabButton>
-                <TabButton active={tab === "history"} onClick={() => setTab("history")}>
-                  Subscription History
-                </TabButton>
-              </Tabs>
-            </div>
+    <div className="pricing-page-container">
+      {/* Visual Background Elements */}
+      <div className="pricing-bg-gradient" />
+      
+      <div className="pricing-content">
+        <header className="pricing-header">
+          <div className="badge-wrapper">
+            <Badge className="pricing-top-tag">Flexible Pricing</Badge>
+          </div>
+          <h1 className="pricing-title">
+            Simple plans for <span className="text-gradient">every creator.</span>
+          </h1>
+          <p className="pricing-subtitle">
+            No hidden fees. Switch plans or cancel your subscription at any time.
+          </p>
+
+          {/* SaaS Billing Toggle */}
+          <div className="billing-switcher">
+            <span className={billingCycle === "monthly" ? "active" : ""}>Monthly</span>
+            <button 
+              className={`toggle-pill ${billingCycle}`}
+              onClick={() => setBillingCycle(b => b === "monthly" ? "yearly" : "monthly")}
+            >
+              <div className="toggle-knob" />
+            </button>
+            <span className={billingCycle === "yearly" ? "active" : ""}>
+              Yearly <span className="discount-tag">Save 17%</span>
+            </span>
           </div>
 
-          {tab === "plans" ? (
-            <div className="pricing-card-grid">
-              {plans.map((plan, index) => {
-                const normalized = plan.name.toLowerCase();
-                const isCurrentPlan = currentPlan === normalized;
-                const isUpgrading = upgradingPlan === normalized;
-                const displayPrice = billingCycle === "yearly" ? plan.yearlyPrice : plan.price;
-                const displayPeriod =
-                  plan.name === "Pro" ? (billingCycle === "yearly" ? "/year" : "/month") : plan.period;
+          {/* Sub-Navigation Tabs */}
+          <nav className="pricing-tabs">
+            <button className={activeTab === "plans" ? "active" : ""} onClick={() => setActiveTab("plans")}>
+              <LayoutGrid size={16} /> Plans
+            </button>
+            <button className={activeTab === "billing" ? "active" : ""} onClick={() => setActiveTab("billing")}>
+              <CreditCard size={16} /> Billing
+            </button>
+            <button className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}>
+              <History size={16} /> History
+            </button>
+          </nav>
+        </header>
 
-                return (
-                  <div
-                    key={index}
-                    className={`pricing-card ${plan.highlight ? "pricing-card--featured" : ""}`}
-                  >
-                    {plan.badge && <span className="pricing-card-badge">{plan.badge}</span>}
-                    <div className="pricing-card-body">
-                      <h3 className="pricing-card-title">{plan.name}</h3>
-                      {isCurrentPlan ? <Badge className="ml-2">Active</Badge> : null}
-                      <div className="pricing-card-price-row">
-                        <span className="pricing-card-price">{displayPrice}</span>
-                        {displayPeriod ? <span className="pricing-card-period">{displayPeriod}</span> : null}
-                      </div>
-                      <ul className="pricing-feature-list">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="pricing-feature-item">
-                            <CheckCircle2 className="pricing-feature-icon" size={18} aria-hidden="true" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+        {activeTab === "plans" && (
+          <div className="pricing-grid">
+            {plans.map((plan) => {
+              const isCurrent = currentPlan === plan.id;
+              const isProcessing = upgradingPlan === plan.id;
+              const priceValue = billingCycle === "yearly" ? plan.price.yearly : plan.price.monthly;
+
+              return (
+                <div key={plan.id} className={`pricing-card ${plan.highlight ? "featured" : ""}`}>
+                  {plan.badge && <div className="card-popular-tag">{plan.badge}</div>}
+                  
+                  <div className="card-top">
+                    <div className="card-icon">{plan.icon}</div>
+                    <h3 className="card-name">{plan.name}</h3>
+                    <p className="card-desc">{plan.description}</p>
+                    
+                    <div className="card-price">
+                      {typeof priceValue === "number" ? (
+                        <>
+                          <span className="currency">₦</span>
+                          <span className="amount">{priceValue.toLocaleString()}</span>
+                          <span className="period">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
+                        </>
+                      ) : (
+                        <span className="amount-custom">Custom</span>
+                      )}
                     </div>
-                    <Link
-                      to={plan.cta?.to || "/register"}
-                      className={`btn ${plan.highlight ? "btn-primary" : "btn-outline"} pricing-card-cta`}
-                      onClick={(event) => {
-                        if (isCurrentPlan) {
-                          event.preventDefault();
-                          return;
-                        }
-                        if (plan.name === "Pro") {
-                          event.preventDefault();
-                          handleUpgrade(plan.name);
-                        }
-                      }}
-                      aria-disabled={isUpgrading}
-                      style={isUpgrading ? { pointerEvents: "none", opacity: 0.7 } : undefined}
-                    >
-                      {isUpgrading
-                        ? "Redirecting..."
-                        : isCurrentPlan
-                          ? "Current Plan"
-                          : plan.cta?.label || `Choose ${plan.name}`}
-                    </Link>
                   </div>
-                );
-              })}
-            </div>
-          ) : null}
 
-          {tab === "billing" ? (
-            <div className="dash-card">
-              <div className="dash-card-body">
-                <h3>Current Billing</h3>
-                <p className="muted mt-1">Current plan: {billingState?.billing?.plan || "Free"}</p>
-                <p className="muted mt-1">
-                  Payment status: {billingState?.subscription?.status || billingState?.billing?.billingStatus || "inactive"}
-                </p>
-                <p className="muted mt-1">
-                  Billing cycle: {billingState?.subscription?.interval || billingState?.billing?.cycle || "monthly"}
-                </p>
-                <p className="muted mt-1">
-                  Next billing date: {nextBillingDate ? new Date(nextBillingDate).toLocaleDateString() : "N/A"}
-                </p>
+                  <ul className="card-features">
+                    {plan.features.map((feature, i) => (
+                      <li key={i}><CheckCircle2 size={18} /> {feature}</li>
+                    ))}
+                  </ul>
+
+                  <button
+                    className={`card-button ${plan.highlight ? "btn-primary" : "btn-secondary"}`}
+                    disabled={isCurrent || isProcessing}
+                    onClick={() => handleUpgrade(plan.id)}
+                  >
+                    {isProcessing ? "Processing..." : isCurrent ? "Active Plan" : plan.cta}
+                    {!isCurrent && !isProcessing && <ArrowRight size={16} />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === "billing" && (
+          <div className="info-card-container">
+            <div className="info-card">
+              <h3>Subscription Details</h3>
+              <div className="info-row">
+                <span>Current Plan</span>
+                <strong>{billingState?.billing?.plan || "Free"}</strong>
+              </div>
+              <div className="info-row">
+                <span>Status</span>
+                <Badge variant={billingState?.subscription?.status === "active" ? "success" : "neutral"}>
+                  {billingState?.subscription?.status || "Inactive"}
+                </Badge>
+              </div>
+              <div className="info-row">
+                <span>Next Invoice</span>
+                <strong>{billingState?.subscription?.nextBillingDate ? new Date(billingState.subscription.nextBillingDate).toLocaleDateString() : "N/A"}</strong>
               </div>
             </div>
-          ) : null}
+          </div>
+        )}
 
-          {tab === "history" ? (
-            <div className="dash-card">
-              <div className="dash-card-body">
-                <h3>Subscription History</h3>
-                {history.length ? (
-                  history.map((item, i) => (
-                    <p key={`${item.reference || item.createdAt}-${i}`}>
-                      {item.plan} - {item.interval} - {formatMoney(item.amount)} - {item.status} -{" "}
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </p>
-                  ))
-                ) : (
-                  <p className="muted">No records yet.</p>
-                )}
-              </div>
+        {activeTab === "history" && (
+          <div className="info-card-container">
+            <div className="info-card">
+              <h3>Payment History</h3>
+              {history.length > 0 ? (
+                <table className="history-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Plan</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((item, i) => (
+                      <tr key={i}>
+                        <td>{new Date(item.createdAt).toLocaleDateString()}</td>
+                        <td>{item.plan} ({item.interval})</td>
+                        <td>{formatMoney(item.amount)}</td>
+                        <td><span className={`status-dot ${item.status}`}>{item.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="empty-text">No transaction history found.</p>
+              )}
             </div>
-          ) : null}
-        </div>
-      </section>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
