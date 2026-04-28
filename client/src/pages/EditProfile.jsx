@@ -262,6 +262,7 @@ export default function EditProfile() {
               disabled={uploadingCover || uploadingProfile}
             />
           </label>
+        </div>
 
           <div className="profile-pic-wrapper">
             <Avatar
@@ -289,7 +290,6 @@ export default function EditProfile() {
               />
             </label>
           </div>
-        </div>
 
         <form className="editprofile-form" onSubmit={handleSubmit}>
           <h2 className="editprofile-form-title">Details</h2>

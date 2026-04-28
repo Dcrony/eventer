@@ -3,7 +3,7 @@
   color: var(--text-color);
   background: transparent;
   position: relative;
-  padding: 1.5rem 1.25rem 3rem;
+  padding: 1.5rem ;
   padding-left: calc(var(--sidebar-width, 4rem) + 1.25rem);
 }
 
@@ -98,7 +98,7 @@
   height: 220px;
   width: 100%;
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: hidden; 
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
 }
@@ -143,9 +143,11 @@
 }
 
 .profile-pic-wrapper {
-  position: absolute;
-  bottom: -2.75rem;
-  left: 1.5rem;
+  position: relative; /* Changed from absolute to relative */
+  margin-top: -3.5rem; /* Pulls the profile pic up over the cover */
+  margin-left: 1.5rem;
+  z-index: 10; /* Ensures it sits on top of everything */
+  display: inline-block; /* Wraps tightly around the avatar */
 }
 
 .profile-pic,
@@ -193,7 +195,7 @@
 }
 
 .editprofile-form {
-  margin-top: 3.5rem;
+  margin-top: 1rem; /* Reduced from 3.5rem because the wrapper now takes up space */
   max-width: 100%;
   background: var(--card-bg);
   padding: 2rem;
@@ -325,9 +327,9 @@
   }
 
   .profile-pic-wrapper {
-    left: 1rem;
-    bottom: -2.25rem;
-  }
+    margin-top: -3rem;
+    margin-left: 1rem;
+}
 
   .profile-pic {
     width: 96px;
