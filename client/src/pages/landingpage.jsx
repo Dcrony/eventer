@@ -31,7 +31,6 @@ import {
   Wrench,
   Facebook,
   Instagram,
-  TikTok,
 } from "lucide-react";
 
 function XLogo({ size = 18 }) {
@@ -709,7 +708,7 @@ export default function LandingPage() {
                   rel="noopener noreferrer"
                   aria-label="TickiSpot on TikTok"
                 >
-                  <TikTok size={18} strokeWidth={1.75} aria-hidden={true} />
+                  <Globe size={18} strokeWidth={1.75} aria-hidden={true} />
                 </a>
                 <a
                   href="https://www.instagram.com/tickispot?igsh=a2oyMzIyandnb2J2"
