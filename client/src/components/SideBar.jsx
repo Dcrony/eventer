@@ -19,9 +19,9 @@ import {
   ChevronRight,
   User,
   LogOut,
-  Bell,
   MessageSquare,
   Banknote,
+  DollarSign,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -63,6 +63,8 @@ export default function Sidebar() {
 
   const canOrganize = isAdmin || isOranizer;
 
+  const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
+
   const menuItems = [
   ...(canOrganize
     ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
@@ -85,6 +87,10 @@ export default function Sidebar() {
         action: () => setShowCreateEvent(true),
         primary: true,
       }]
+    : []),
+    
+...(isFreeUser 
+    ? [{ to: "/pricing", label: "Premium", icon: <DollarSign size={20} /> }] 
     : []),
 
 ];

@@ -48,6 +48,8 @@ export default function TopNav() {
     setIsMenuOpen(false);
   };
 
+  const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
+
   return (
     <>
       <header className="top-nav">
@@ -104,7 +106,11 @@ export default function TopNav() {
             <MenuLink to="/my-tickets" icon={<Ticket size={20} />} label="My Tickets" onClick={closeMenu} />
             <MenuLink to="/favorites" icon={<Heart size={20} />} label="Favorites" onClick={closeMenu} />
             <MenuLink to="/events" icon={<Calendar size={20} />} label="Events" onClick={closeMenu} />
+            {isFreeUser && (
+    <MenuLink to="/pricing" icon={<DollarSign size={20} />} label="Premium" onClick={closeMenu} />
+  )}
           </nav>
+
 
           {(isOrganizer || isAdmin) && (
             <nav className="slide-menu-section">
