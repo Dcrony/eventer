@@ -122,6 +122,7 @@ favorites: {
     security: {
       twoFactorEnabled: { type: Boolean, default: false },
       lastPasswordChange: { type: Date, default: null },
+      sessionVersion: { type: Number, default: 0 },
     },
     eventPreferences: {
       defaultTicketPrice: { type: Number, default: 0 },
@@ -136,19 +137,71 @@ favorites: {
       stripe: {
         connected: { type: Boolean, default: false },
         label: { type: String, default: "Not connected" },
+        accountId: { type: String, default: "" },
+        accountEmail: { type: String, default: "" },
+        connectedAt: { type: Date, default: null },
       },
       googleCalendar: {
         connected: { type: Boolean, default: false },
         label: { type: String, default: "Not connected" },
+        accessToken: { type: String, default: "" },
+        refreshToken: { type: String, default: "" },
+        scope: { type: String, default: "" },
+        expiryDate: { type: Date, default: null },
+        calendarEmail: { type: String, default: "" },
+        connectedAt: { type: Date, default: null },
       },
       zoom: {
         connected: { type: Boolean, default: false },
         label: { type: String, default: "Not connected" },
+        accessToken: { type: String, default: "" },
+        refreshToken: { type: String, default: "" },
+        scope: { type: String, default: "" },
+        expiryDate: { type: Date, default: null },
+        accountId: { type: String, default: "" },
+        accountEmail: { type: String, default: "" },
+        connectedAt: { type: Date, default: null },
       },
     },
     billing: {
       plan: { type: String, default: "Free" },
-      nextBillingDate: { type: String, default: "N/A" },
+      cycle: {
+        type: String,
+        enum: ["monthly", "yearly"],
+        default: "monthly",
+      },
+      nextBillingDate: { type: Date, default: null },
+      paystackCustomerCode: { type: String, default: "" },
+      lastPaymentReference: { type: String, default: "" },
+      billingStatus: {
+        type: String,
+        enum: ["inactive", "active", "pending"],
+        default: "inactive",
+      },
+    },
+    subscription: {
+      status: {
+        type: String,
+        enum: ["active", "cancelled", "expired", "pending", "inactive"],
+        default: "inactive",
+      },
+      interval: {
+        type: String,
+        enum: ["monthly", "yearly"],
+        default: "monthly",
+      },
+      nextBillingDate: {
+        type: Date,
+        default: null,
+      },
+      paystackCustomerId: {
+        type: String,
+        default: "",
+      },
+      paystackSubscriptionCode: {
+        type: String,
+        default: "",
+      },
     },
 
     /** SaaS subscription tier (separate from legacy billing.plan label) */
@@ -177,6 +230,15 @@ favorites: {
           type: String,
           enum: ["monthly", "yearly"],
           default: "monthly",
+        },
+        status: {
+          type: String,
+          enum: ["pending", "success", "failed", "cancelled"],
+          default: "success",
+        },
+        reference: {
+          type: String,
+          default: "",
         },
         changedAt: {
           type: Date,

@@ -11,6 +11,13 @@ const Notification = require("../models/Notification");
 const sendEmail = require("../utils/email");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
+const {
+  normalizePlan,
+  normalizeInterval,
+  getPlanAmount,
+  syncUserBillingState,
+  upsertBillingHistory,
+} = require("../services/billingService");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -42,6 +49,46 @@ exports.handlePaystackWebhook = async (req, res) => {
     */
     if (event.event === "charge.success") {
       const reference = event.data.reference;
+      const data = event.data;
+      const metadata = data.metadata || {};
+
+      if (metadata.type === "subscription_upgrade") {
+        const user = await User.findById(metadata.userId);
+        if (!user) {
+          console.error("❌ Subscription webhook user not found:", metadata.userId);
+          return res.sendStatus(200);
+        }
+
+        const normalizedPlan = normalizePlan(metadata.plan);
+        const normalizedInterval = normalizeInterval(metadata.interval);
+        const amount = getPlanAmount(normalizedPlan, normalizedInterval) || data.amount / 100;
+
+        await syncUserBillingState({
+          user,
+          plan: normalizedPlan,
+          interval: normalizedInterval,
+          status: "active",
+          reference,
+          customerCode: data.customer?.customer_code || "",
+          subscriptionCode: data.subscription?.subscription_code || "",
+          effectiveDate: new Date(data.paid_at || Date.now()),
+        });
+
+        await upsertBillingHistory({
+          userId: user._id,
+          plan: normalizedPlan,
+          amount,
+          interval: normalizedInterval,
+          status: "success",
+          reference,
+          paystackCustomerId: data.customer?.customer_code || "",
+          paystackSubscriptionCode: data.subscription?.subscription_code || "",
+          metadata,
+        });
+
+        console.log("✅ Subscription payment processed for reference:", reference);
+        return res.sendStatus(200);
+      }
 
       // Check if ticket already created to prevent duplicates
       const existingTicket = await Ticket.findOne({ reference });
@@ -50,7 +97,6 @@ exports.handlePaystackWebhook = async (req, res) => {
         return res.sendStatus(200);
       }
 
-      const data = event.data;
       let { eventId, userId, quantity, price, pricingType } = data.metadata;
 
       // Convert quantity and price
@@ -415,6 +461,95 @@ exports.handlePaystackWebhook = async (req, res) => {
       }
 
       console.log("✅ Ticket created via webhook for reference:", reference);
+    }
+
+    if (event.event === "subscription.create") {
+      const subscriptionData = event.data || {};
+      const customerCode = subscriptionData.customer?.customer_code;
+      const customerEmail = subscriptionData.customer?.email;
+      const user = customerCode
+        ? await User.findOne({ "subscription.paystackCustomerId": customerCode })
+        : await User.findOne({ email: customerEmail });
+
+      if (!user) {
+        console.log("⚠️ Subscription create user not found");
+        return res.sendStatus(200);
+      }
+
+      user.subscription = {
+        ...user.subscription?.toObject?.(),
+        status: subscriptionData.status === "active" ? "active" : "pending",
+        interval: normalizeInterval(subscriptionData.plan?.interval || user.subscription?.interval),
+        nextBillingDate: subscriptionData.next_payment_date
+          ? new Date(subscriptionData.next_payment_date)
+          : user.subscription?.nextBillingDate || null,
+        paystackCustomerId: customerCode || user.subscription?.paystackCustomerId || "",
+        paystackSubscriptionCode:
+          subscriptionData.subscription_code || user.subscription?.paystackSubscriptionCode || "",
+      };
+      user.billing = {
+        ...user.billing?.toObject?.(),
+        paystackCustomerCode: customerCode || user.billing?.paystackCustomerCode || "",
+        billingStatus: subscriptionData.status === "active" ? "active" : "pending",
+        nextBillingDate: subscriptionData.next_payment_date
+          ? new Date(subscriptionData.next_payment_date)
+          : user.billing?.nextBillingDate || null,
+      };
+      await user.save();
+
+      console.log("✅ Subscription created:", subscriptionData.subscription_code);
+      return res.sendStatus(200);
+    }
+
+    if (event.event === "invoice.payment_success") {
+      const invoiceData = event.data || {};
+      const customerCode = invoiceData.customer?.customer_code;
+      const customerEmail = invoiceData.customer?.email;
+      const user = customerCode
+        ? await User.findOne({ "subscription.paystackCustomerId": customerCode })
+        : await User.findOne({ email: customerEmail });
+
+      if (!user) {
+        console.log("⚠️ Invoice payment user not found");
+        return res.sendStatus(200);
+      }
+
+      const interval = normalizeInterval(
+        invoiceData.subscription?.plan?.interval ||
+          invoiceData.plan?.interval ||
+          user.subscription?.interval,
+      );
+      const plan = normalizePlan(user.plan || "pro");
+      const amount = Number(invoiceData.amount || 0) / 100 || getPlanAmount(plan, interval) || 0;
+      const reference = invoiceData.reference || `INV-${user._id}-${Date.now()}`;
+
+      await syncUserBillingState({
+        user,
+        plan,
+        interval,
+        status: "active",
+        reference,
+        customerCode: customerCode || "",
+        subscriptionCode:
+          invoiceData.subscription?.subscription_code || user.subscription?.paystackSubscriptionCode || "",
+        effectiveDate: new Date(invoiceData.paid_at || Date.now()),
+      });
+
+      await upsertBillingHistory({
+        userId: user._id,
+        plan,
+        amount,
+        interval,
+        status: "success",
+        reference,
+        paystackCustomerId: customerCode || "",
+        paystackSubscriptionCode:
+          invoiceData.subscription?.subscription_code || user.subscription?.paystackSubscriptionCode || "",
+        metadata: { type: "invoice.payment_success", invoice: invoiceData.invoice_code || "" },
+      });
+
+      console.log("✅ Subscription invoice recorded:", reference);
+      return res.sendStatus(200);
     }
 
     /*

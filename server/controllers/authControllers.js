@@ -9,6 +9,21 @@ const { otpEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+const signAuthToken = (user) =>
+  jwt.sign(
+    {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      isAdmin: user.role === "admin",
+      isOrganizer: user.role === "organizer",
+      sv: Number(user.security?.sessionVersion || 0),
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
 const buildAuthUserPayload = (user) => {
   if (!user) return null;
   const id = user._id || user.id;
@@ -151,18 +166,7 @@ exports.login = async (req, res) => {
     }
 
     // Create JWT
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === "admin",
-        isOrganizer: user.role === "organizer",
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = signAuthToken(user);
 
     // ✅ Return success
     res.status(200).json({
@@ -323,18 +327,7 @@ exports.firebaseLogin = async (req, res) => {
       return res.status(500).json({ message: "Server configuration error" });
     }
 
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === "admin",
-        isOrganizer: user.role === "organizer",
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = signAuthToken(user);
 
     res.status(200).json({
       message: "Login successful",
@@ -454,18 +447,7 @@ exports.firebaseSync = async (req, res) => {
       }
 
       // ✅ USER ALREADY VERIFIED - Return JWT
-      const token = jwt.sign(
-        {
-          id: user._id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          isAdmin: user.role === "admin",
-          isOrganizer: user.role === "organizer",
-        },
-        JWT_SECRET,
-        { expiresIn: "7d" }
-      );
+      const token = signAuthToken(user);
 
       return res.status(200).json({
         message: "User verified. Login successful.",
@@ -529,18 +511,7 @@ exports.verifyEmailOtp = async (req, res) => {
     await user.save();
 
     // Create JWT
-    const token = jwt.sign(
-      {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isAdmin: user.role === "admin",
-        isOrganizer: user.role === "organizer",
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = signAuthToken(user);
 
     res.status(200).json({
       message: "Email verified successfully! ✅",
