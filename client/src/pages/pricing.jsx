@@ -42,7 +42,7 @@ export default function Pricing() {
       description: "For small local meetups and social gatherings.",
       price: { monthly: 0, yearly: 0 },
       features: [
-        "Up to 2 events per month",
+        "Unlimited events",
         "Standard visibility",
         "Core ticketing & QR check-in",
         "Community support",

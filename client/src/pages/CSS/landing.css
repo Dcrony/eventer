@@ -597,6 +597,8 @@ html {
 }
 
 .section-header {
+  display: block;
+  justify-content: center;
   text-align: center;
   margin-bottom: 3rem;
 }
@@ -641,10 +643,10 @@ html {
 }
 
 .title-box-filled {
-  background: #0f172a;
+  background: #ec4899;
   color: #ffffff;
   border-radius: 12px;
-  border: 2px solid #0f172a;
+  border: 2px solid #ec4899;
 }
 
 .title-box-filled:hover {
@@ -1804,7 +1806,7 @@ html {
 
 .search-input-expanded {
   flex: 1;
-  padding: 1.05rem 0.75rem;
+  padding: 1.05rem 3rem;
   border: none;
   background: transparent;
   font-size: 1.0625rem;
@@ -1814,7 +1816,6 @@ html {
 }
 
 .search-input-expanded::placeholder {
-  padding-left: 2rem;
   color: #999;
 }
 
@@ -2310,10 +2311,16 @@ html {
 .pricing-page-container {
   position: relative;
   min-height: 100vh;
-  padding: 100px 20px;
   overflow: hidden;
   background-color: #fff;
   font-family: 'Inter', -apple-system, sans-serif;
+  margin-left: 10px;
+  padding-top: 6rem;
+  padding-left: var(--sidebar-width);
+  padding-right: 2rem;
+  padding-bottom: 4rem;
+  transition: padding-left 0.3s ease, background-color 0.3s ease;
+  position: relative;
 }
 
 .pricing-bg-gradient {

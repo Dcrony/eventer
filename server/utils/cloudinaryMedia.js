@@ -13,7 +13,7 @@ const IMAGE_MIMES = new Set([
 
 function isConfigured() {
   return Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_CLOUD_NAME &&
       process.env.CLOUDINARY_API_KEY &&
       process.env.CLOUDINARY_API_SECRET,
   );
