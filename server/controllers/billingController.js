@@ -13,8 +13,8 @@ const {
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const BACKEND_URL = process.env.BACKEND_URL;
 
 const getVerifyCallbackUrl = (reference) =>
   `${BACKEND_URL}/api/billing/redirect/${encodeURIComponent(reference)}`;
