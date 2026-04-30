@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getBillingHistory, getCurrentPlan, initializeBilling } from "../services/api/billing";
+import { getBillingHistory, getCurrentPlan, initializeBilling, verifyBilling } from "../services/api/billing";
 import { useToast } from "../components/ui/toast";
 
 const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
@@ -14,30 +14,39 @@ export default function Billing() {
   const [upgrading, setUpgrading] = useState(false);
   const [interval, setInterval] = useState("monthly");
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const [planRes, historyRes] = await Promise.all([getCurrentPlan(), getBillingHistory()]);
-        setBilling(planRes.data);
-        setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-        if (planRes.data?.subscription?.interval) {
-          setInterval(planRes.data.subscription.interval);
-        }
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Could not load billing details");
-      } finally {
-        setLoading(false);
+  const loadBilling = async () => {
+    try {
+      setLoading(true);
+      const [planRes, historyRes] = await Promise.all([getCurrentPlan(), getBillingHistory()]);
+      setBilling(planRes.data);
+      setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
+      if (planRes.data?.subscription?.interval) {
+        setInterval(planRes.data.subscription.interval);
       }
-    };
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not load billing details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    load();
+  useEffect(() => {
+    loadBilling();
   }, [toast]);
 
   useEffect(() => {
     const status = searchParams.get("status");
-    if (status === "success") {
-      toast.success("Subscription payment verified successfully");
+    const reference = searchParams.get("reference");
+
+    if (status === "success" && reference) {
+      verifyBilling(reference)
+        .then(() => {
+          toast.success("Subscription payment verified successfully");
+          loadBilling();
+        })
+        .catch((error) => {
+          toast.error(error.response?.data?.message || "Failed to verify payment");
+        });
     } else if (status === "failed") {
       toast.error("Subscription payment failed");
     }
@@ -104,9 +113,9 @@ export default function Billing() {
               type="button"
               className="btn btn-primary mt-3"
               onClick={handleUpgrade}
-              disabled={upgrading || currentPlan === "business"}
+              disabled={upgrading || currentPlan === "business" || (currentPlan === "pro" && paymentStatus === "active")}
             >
-              {upgrading ? "Redirecting..." : currentPlan === "pro" ? "Renew Pro" : "Upgrade to Pro"}
+              {upgrading ? "Redirecting..." : (currentPlan === "pro" && paymentStatus === "active") ? "Active Plan" : currentPlan === "pro" ? "Renew Pro" : "Upgrade to Pro"}
             </button>
           </div>
         </div>
