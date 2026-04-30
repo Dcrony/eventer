@@ -95,6 +95,16 @@ exports.initializeBilling = async (req, res) => {
     const user = await resolveAuthenticatedUser(req);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    if (
+      user.plan === normalizedPlan &&
+      user.subscription?.status === "active" &&
+      user.billing?.billingStatus === "active"
+    ) {
+      return res.status(400).json({
+        message: `You already have an active ${normalizedPlan} subscription.`,
+      });
+    }
+
     const amount = getPlanAmount(normalizedPlan, normalizedInterval);
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "This plan cannot be billed automatically" });
@@ -139,24 +149,8 @@ exports.initializeBilling = async (req, res) => {
       },
     );
 
-    user.subscription = {
-      ...user.subscription?.toObject?.(),
-      status: "pending",
-      interval: normalizedInterval,
-      nextBillingDate: null,
-      paystackCustomerId: user.subscription?.paystackCustomerId || "",
-      paystackSubscriptionCode: user.subscription?.paystackSubscriptionCode || "",
-    };
-    user.billing = {
-      ...user.billing?.toObject?.(),
-      plan: normalizedPlan === "free" ? "Free" : normalizedPlan[0].toUpperCase() + normalizedPlan.slice(1),
-      cycle: normalizedInterval,
-      nextBillingDate: null,
-      lastPaymentReference: reference,
-      billingStatus: "pending",
-      paystackCustomerCode: user.billing?.paystackCustomerCode || "",
-    };
-    await user.save();
+    // DO NOT update user.plan or subscription status here - wait for webhook confirmation
+    // Only save the pending BillingHistory
 
     return res.json({
       message: "Billing initialized",
@@ -173,7 +167,7 @@ exports.initializeBilling = async (req, res) => {
 
 exports.verifyBilling = async (req, res) => {
   try {
-    const reference = String(req.params.reference || "").trim();
+    const reference = String(req.params.reference || req.query.reference || "").trim();
     if (!reference) {
       return res.status(400).json({ message: "Missing payment reference" });
     }
@@ -197,6 +191,44 @@ exports.verifyBilling = async (req, res) => {
     const metadata = data.metadata || {};
     if (metadata.type !== "subscription_upgrade") {
       return res.status(400).json({ message: "Reference does not belong to a billing transaction" });
+    }
+
+    // Check if already processed
+    const existingHistory = await BillingHistory.findOne({ reference });
+    if (existingHistory && existingHistory.status === "success") {
+      const user = await User.findById(metadata.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const normalizedPlan = normalizePlan(metadata.plan);
+      const normalizedInterval = normalizeInterval(metadata.interval);
+      const needsSync =
+        user.plan !== normalizedPlan ||
+        user.subscription?.status !== "active" ||
+        user.billing?.billingStatus !== "active" ||
+        String(user.subscription?.interval) !== normalizedInterval;
+
+      if (needsSync) {
+        await syncUserBillingState({
+          user,
+          plan: normalizedPlan,
+          interval: normalizedInterval,
+          status: "active",
+          reference,
+          customerCode: data.customer?.customer_code || "",
+          subscriptionCode: data.subscription?.subscription_code || "",
+          effectiveDate: new Date(data.paid_at || Date.now()),
+        });
+      }
+
+      return res.json({
+        message: "Billing already verified",
+        user: sanitizeUser(user),
+        billing: user.billing,
+        subscription: user.subscription,
+        nextBillingDate: user.subscription?.nextBillingDate,
+      });
     }
 
     if (data.status !== "success") {
@@ -272,7 +304,9 @@ exports.handleBillingRedirect = async (req, res) => {
     try {
       await axios.get(verifyUrl);
       return res.redirect(`${FRONTEND_URL}/billing?status=success&reference=${encodeURIComponent(reference)}`);
-    } catch {
+    } catch (err) {
+      console.error("VERIFY ERROR:", err.response?.data || err.message);
+
       return res.redirect(`${FRONTEND_URL}/billing?status=failed&reference=${encodeURIComponent(reference)}`);
     }
   } catch {
