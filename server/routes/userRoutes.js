@@ -26,7 +26,8 @@ const router = express.Router();
 // Profile routes
 router.put("/edit", authMiddleware, updateMyProfile);
 router.get("/me", authMiddleware, getMyProfile);
-router.patch("/me/plan", authMiddleware, upgradeMyPlan);
+// Direct plan upgrades are disabled for security. Use billing initialize flow instead.
+// router.patch("/me/plan", authMiddleware, upgradeMyPlan);
 router.get("/creators", getCreators);
 router.get("/founder/profile", getFounderProfile);
 
