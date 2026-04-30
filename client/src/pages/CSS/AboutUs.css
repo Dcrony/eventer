@@ -11,14 +11,9 @@
 
 
 .static-page {
-  max-width: 800px;
-  margin: 3rem auto;
   padding: 3rem 2rem;
   line-height: 1.8;
   color: var(--text-color);
-  background: var(--bg-card);
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px var(--shadow-card);
 }
 
 .static-page h1 {

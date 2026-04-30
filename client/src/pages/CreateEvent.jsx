@@ -6,6 +6,7 @@ import "./CSS/CreateEvent.css";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg";
 import { validateImageFile } from "../utils/imageUpload";
+import TickiAIGenerator from "../components/TickiAiGenerator";
 
 const eventTypes = [
   {
@@ -159,6 +160,11 @@ export default function CreateEvent({ isOpen, onClose }) {
               </button>
             ))}
           </div>
+          <TickiAIGenerator 
+  onGenerate={(eventData) => {
+    console.log("Generated:", eventData);
+  }} 
+/>
 
           <form onSubmit={handleSubmit}>
             <input
