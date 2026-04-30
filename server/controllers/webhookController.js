@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const axios = require("axios");
 const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
@@ -7,6 +8,7 @@ const Transaction = require("../models/Transaction");
 const Ticket = require("../models/Ticket");
 const Event = require("../models/Event");
 const User = require("../models/User");
+const BillingHistory = require("../models/BillingHistory");
 const Notification = require("../models/Notification");
 const sendEmail = require("../utils/email");
 const { recordTicketPurchaseMetrics } = require("./eventController");
@@ -53,6 +55,33 @@ exports.handlePaystackWebhook = async (req, res) => {
       const metadata = data.metadata || {};
 
       if (metadata.type === "subscription_upgrade") {
+        // Check for idempotency - if already processed, ignore
+        const existingHistory = await BillingHistory.findOne({ reference });
+        if (existingHistory && existingHistory.status === "success") {
+          console.log("⚠️ Subscription payment already processed for reference:", reference);
+          return res.sendStatus(200);
+        }
+
+        // Verify transaction with Paystack API
+        try {
+          const verifyResponse = await axios.get(
+            `https://api.paystack.co/transaction/verify/${reference}`,
+            {
+              headers: {
+                Authorization: `Bearer ${secret}`,
+              },
+            },
+          );
+          const verifiedData = verifyResponse.data?.data;
+          if (!verifiedData || verifiedData.status !== "success") {
+            console.error("❌ Paystack verification failed for reference:", reference);
+            return res.sendStatus(200);
+          }
+        } catch (verifyError) {
+          console.error("❌ Error verifying transaction with Paystack:", verifyError.message);
+          return res.sendStatus(200);
+        }
+
         const user = await User.findById(metadata.userId);
         if (!user) {
           console.error("❌ Subscription webhook user not found:", metadata.userId);
