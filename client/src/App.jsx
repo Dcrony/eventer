@@ -109,31 +109,10 @@ function Layout() {
     };
   }, []);
 
-  const handleUpgradeToPro = async () => {
-    try {
-      const { data } = await API.patch("/users/me/plan", { plan: "pro" });
-      const token = localStorage.getItem("token");
-      const prev = getCurrentUser();
-      if (prev && token) {
-        login(
-          {
-            ...prev,
-            plan: data.plan,
-            eventCount: data.user?.eventCount ?? prev.eventCount,
-          },
-          token,
-        );
-      }
-      toast.success("You’re on Pro — enjoy unlimited events and analytics.");
-    } catch {
-      toast.error("Could not complete upgrade. Try again.");
-    }
-  };
-
   return (
     <div className="flex flex-col min-h-screen">
-      <SEO/>
-      
+      <SEO />
+
       {/* Show Sidebar on Desktop, MobileBottomNav and TopNav on Mobile */}
       {!hideNavAndSidebar && (
         <>
@@ -147,10 +126,10 @@ function Layout() {
           )}
         </>
       )}
-      
+
       <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
 
-   
+
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/events" element={<Home />} />
@@ -339,7 +318,7 @@ function Layout() {
             }
           />
           <Route path="/user/:username" element={<Profile />} />
-          <Route path="/features" element={<FeaturesPage/>} />
+          <Route path="/features" element={<FeaturesPage />} />
           <Route path="/founder" element={<FounderProfile />} />
           <Route
             path="/billing"
@@ -364,7 +343,6 @@ function Layout() {
       <UpgradeExperienceModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
-        onSelectPro={handleUpgradeToPro}
       />
     </div>
   );
