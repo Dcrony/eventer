@@ -25,12 +25,8 @@ const { buildSocketServer } = require("./socket");
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const DEFAULT_ALLOWED_ORIGINS = [
   FRONTEND_URL,
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-  "http://localhost:4173",
-  "http://127.0.0.1:4173",
+  "http://localhost:5173",,
   "https://tickispot.vercel.app",
-  "https://tickispot.pxxl.click",
 ];
 
 const EXTRA_ORIGINS = process.env.ALLOWED_ORIGINS
