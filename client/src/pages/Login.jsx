@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
 import {
   sanitizeEmail,
@@ -125,7 +125,7 @@ export default function Login() {
   };
 
   return (
-    <div className="form-page">
+    <div className="form-page auth-page">
       <div className="form-grid-background" aria-hidden="true" />
       <div className="form-layout">
         <aside className="form-brand-panel" aria-hidden="true">
@@ -133,31 +133,35 @@ export default function Login() {
           <span className="form-brand-float form-brand-float--2" />
           <div className="form-brand-inner">
             <img src={icon} className="tickispot-icon" alt="" />
-            <h2 className="form-brand-headline">TickiSpot</h2>
+            <h2 className="form-brand-headline">Welcome back to your command center</h2>
             <p className="form-brand-tagline">
-              Host events, sell tickets, and stream live — all in one place for
-              modern organizers.
+              Everything you need to run smooth events and increase ticket sales
+              is one sign-in away.
             </p>
+            <div className="auth-benefits">
+              <p>
+                <CheckCircle2 size={14} />
+                Live sales and payout visibility
+              </p>
+              <p>
+                <CheckCircle2 size={14} />
+                QR check-in and attendee control
+              </p>
+              <p>
+                <CheckCircle2 size={14} />
+                Stream, message, and analytics in one workflow
+              </p>
+            </div>
           </div>
         </aside>
         <div className="form-auth-column">
       <div className="form-container">
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <Link
-            to="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              textDecoration: "none",
-              color: "inherit",
-              marginBottom: "1rem",
-            }}
-          >
+        <div className="form-intro">
+          <Link to="/" className="form-home-link">
             <img src={icon} className="tickispot-icon" alt="TickiSpot home" />
           </Link>
           <h1 className="form-title">Welcome Back</h1>
-          <p className="form-subtitle">Sign in to your account to continue</p>
+          <p className="form-subtitle">Sign in to manage events, tickets, and attendees.</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -192,7 +196,7 @@ export default function Login() {
             {errors.password && (
               <span className="form-error">{errors.password}</span>
             )}
-            <div style={{ textAlign: "right", marginTop: "0.5rem" }}>
+            <div className="form-inline-row">
               <Link to="/forgot-password" className="form-link">
                 Forgot password?
               </Link>
@@ -202,13 +206,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="form-btn"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-            }}
+            className="form-btn form-btn-main"
           >
             {loading ? (
               "Signing in..."
@@ -221,18 +219,11 @@ export default function Login() {
           </button>
         </form>
 
-        <div style={{ textAlign: "center", margin: "1rem 0" }}>
+        <div className="form-provider-row">
           <button
             type="button"
             onClick={handleGoogleLogin}
             className="form-btn form-btn-google"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              width: "100%",
-            }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -250,6 +241,9 @@ export default function Login() {
             Sign up
           </Link>
         </div>
+        <p className="auth-legal-note">
+          By continuing, you agree to TickiSpot&apos;s terms and privacy policy.
+        </p>
       </div>
         </div>
       </div>
