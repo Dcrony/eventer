@@ -436,31 +436,10 @@ const getPublicProfile = async (req, res) => {
 };
 
 const upgradeMyPlan = async (req, res) => {
-  try {
-    const allowed = ["free", "pro", "business"];
-    const nextPlan = String(req.body.plan || "").toLowerCase();
-    if (!allowed.includes(nextPlan)) {
-      return res.status(400).json({ message: "Invalid plan" });
-    }
-
-    const user = await User.findById(req.user._id || req.user.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.plan = nextPlan;
-    await user.save();
-
-    const updated = user.toObject();
-    delete updated.password;
-
-    return res.json({
-      message: "Plan updated",
-      plan: user.plan,
-      user: updated,
-    });
-  } catch (err) {
-    console.error("upgradeMyPlan error", err);
-    return res.status(500).json({ message: "Server error" });
-  }
+  return res.status(403).json({
+    message:
+      "Direct plan updates are disabled. Please use the billing flow at /api/billing/initialize.",
+  });
 };
 
 const getCreators = async (req, res) => {
