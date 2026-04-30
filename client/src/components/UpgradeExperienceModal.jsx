@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
 import { Link } from "react-router-dom";
 import Button from "./ui/button";
+import { initializeBilling } from "../services/api/billing";
+import { useToast } from "./ui/toast";
+import { useState } from "react";
 
 const PLANS = [
   {
@@ -24,8 +27,27 @@ const PLANS = [
   },
 ];
 
-export default function UpgradeExperienceModal({ open, onClose, onSelectPro }) {
+export default function UpgradeExperienceModal({ open, onClose }) {
+  const toast = useToast();
+  const [processing, setProcessing] = useState(false);
+
   if (!open) return null;
+
+  const handleUpgrade = async () => {
+    try {
+      setProcessing(true);
+      const response = await initializeBilling({ plan: "pro", interval: "monthly" });
+      if (response.data?.authorization_url) {
+        window.location.href = response.data.authorization_url;
+      } else {
+        toast.error("Unable to generate payment link.");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Please login to upgrade your plan.");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <div className="ui-modal-overlay" role="presentation">
@@ -69,12 +91,10 @@ export default function UpgradeExperienceModal({ open, onClose, onSelectPro }) {
               Maybe later
             </Button>
             <Button
-              onClick={() => {
-                onSelectPro?.();
-                onClose();
-              }}
+              onClick={handleUpgrade}
+              disabled={processing}
             >
-              Upgrade Now
+              {processing ? "Processing..." : "Upgrade Now"}
             </Button>
             <Link to="/pricing" className="upgrade-pricing-link" onClick={onClose}>
               Compare all plans →
