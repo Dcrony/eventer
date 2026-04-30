@@ -46,6 +46,7 @@ export default function FeaturesPage() {
 <p className="text-sm text-muted-foreground mt-2">
   Built for creators, organizers, and modern event businesses.
 </p>
+<p>
               Everything organizers need to sell tickets, run the door, and
               keep schedules on track—designed to match TickiSpot&apos;s
               workflow.
