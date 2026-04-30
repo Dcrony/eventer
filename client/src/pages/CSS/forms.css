@@ -48,7 +48,7 @@
   width: 100%;
   min-height: 100vh;
   margin: 0 auto;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
 }
 
 .form-brand-panel {
@@ -57,16 +57,17 @@
   align-items: center;
   justify-content: center;
   padding: 3rem 2.5rem;
-  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 48%, #312e81 100%);
+  background: linear-gradient(165deg, #ffffff 0%, #fdf2f8 48%, #f8fafc 100%);
   overflow: hidden;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .form-brand-panel::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.25), transparent 45%),
-    radial-gradient(circle at 85% 70%, rgba(59, 130, 246, 0.2), transparent 42%);
+  background: radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.18), transparent 45%),
+    radial-gradient(circle at 85% 70%, rgba(59, 130, 246, 0.1), transparent 42%);
   pointer-events: none;
 }
 
@@ -75,7 +76,7 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(236, 72, 153, 0.12);
+  background: rgba(236, 72, 153, 0.1);
   filter: blur(40px);
   top: 10%;
   right: -40px;
@@ -85,7 +86,7 @@
 .form-brand-float--2 {
   width: 140px;
   height: 140px;
-  background: rgba(59, 130, 246, 0.15);
+  background: rgba(59, 130, 246, 0.08);
   bottom: 15%;
   left: -30px;
   top: auto;
@@ -120,7 +121,7 @@
 .form-brand-headline {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: #0f172a;
   margin: 0 0 0.75rem;
   letter-spacing: -0.03em;
   line-height: 1.2;
@@ -129,7 +130,7 @@
 .form-brand-tagline {
   font-size: 1rem;
   font-weight: 400;
-  color: rgba(248, 250, 252, 0.78);
+  color: #475569;
   line-height: 1.65;
   margin: 0;
 }
@@ -139,7 +140,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 2rem;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
 }
 
@@ -166,11 +167,43 @@
   z-index: 1;
   width: 100%;
   max-width: 440px;
-  /* background: #ffffff; */
-  /* border: 1px solid rgba(15, 23, 42, 0.08); */
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 20px;
-  /* box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04); */
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+  padding: 2rem 1.75rem;
   animation: fadeInUp 0.6s ease-out;
+}
+
+.form-intro {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.form-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 1rem;
+}
+
+.form-inline-row {
+  text-align: right;
+  margin-top: 0.5rem;
+}
+
+.form-provider-row {
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.form-btn-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 @keyframes fadeInUp {
@@ -350,6 +383,11 @@
   border: 1px solid #dadce0 !important;
   font-weight: 600 !important;
   box-shadow: 0 1px 2px rgba(60, 64, 67, 0.25), 0 0 0 rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
 }
 
 .form-btn-google:hover {
@@ -581,5 +619,168 @@
 
   .form-subtitle {
     font-size: 0.95rem;
+  }
+}
+
+/* ===============================
+   AUTH PAGE REDESIGN
+=============================== */
+
+.auth-page {
+  padding: 1.2rem;
+}
+
+.auth-page .form-layout {
+  width: min(1120px, 100%);
+  min-height: min(760px, calc(100vh - 2.4rem));
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.auth-page .form-brand-panel {
+  padding: 3.2rem 2.8rem;
+}
+
+.auth-page .form-brand-inner {
+  max-width: 420px;
+}
+
+.auth-page .form-brand-headline {
+  font-size: clamp(1.8rem, 3vw, 2.35rem);
+  letter-spacing: -0.03em;
+}
+
+.auth-page .form-brand-tagline {
+  margin-top: 0.9rem;
+  font-size: 1rem;
+}
+
+.auth-benefits {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-benefits p {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #1e293b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.auth-benefits svg {
+  color: #be185d;
+  flex-shrink: 0;
+}
+
+.auth-page .form-auth-column {
+  padding: 2rem;
+}
+
+.auth-page .form-container {
+  max-width: 460px;
+  padding: 2rem;
+  border-radius: 22px;
+}
+
+.auth-page .form-title {
+  font-size: clamp(1.7rem, 3vw, 2.1rem);
+}
+
+.auth-page .form-subtitle {
+  margin-bottom: 0;
+  color: #64748b;
+}
+
+.auth-page .form-group {
+  margin-bottom: 1.05rem;
+}
+
+.auth-page .form-input,
+.auth-page .form-textarea,
+.auth-page .form-select {
+  border-radius: 12px;
+  background-color: #fff !important;
+}
+
+.auth-page .form-btn {
+  border-radius: 12px;
+}
+
+.auth-page .form-footer {
+  margin-top: 1.45rem;
+}
+
+.auth-legal-note {
+  margin: 0.8rem 0 0;
+  text-align: center;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+@media (max-width: 980px) {
+  .auth-page .form-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .auth-page .form-brand-panel {
+    display: block;
+    padding: 1.25rem 1.2rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .auth-page .form-brand-headline {
+    font-size: 1.3rem;
+  }
+
+  .auth-page .form-brand-tagline {
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .auth-page .auth-benefits {
+    grid-template-columns: 1fr;
+    margin-top: 0.9rem;
+  }
+
+  .auth-page .auth-benefits p {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-page {
+    padding: 0.65rem;
+  }
+
+  .auth-page .form-layout {
+    min-height: calc(100vh - 1.3rem);
+    border-radius: 18px;
+  }
+
+  .auth-page .form-brand-panel {
+    display: none;
+  }
+
+  .auth-page .form-auth-column {
+    padding: 0.85rem;
+  }
+
+  .auth-page .form-container {
+    padding: 1.2rem 1rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  }
+
+  .auth-legal-note {
+    font-size: 0.7rem;
   }
 }

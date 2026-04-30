@@ -35,7 +35,7 @@ import TermsOfService from "./pages/TermsOfService";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
-import LandingPage from "./pages/landingpage";
+import LandingPage from "./pages/LandingPageV2";
 import Pricing from "./pages/pricing";
 import { useEffect, useState } from "react";
 import AdminWithdrwal from "./pages/AdminWithdrawals";

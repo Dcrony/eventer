@@ -40,6 +40,13 @@ export default function FeaturesPage() {
               <span className="title-box title-box-filled">features</span>
             </h1>
             <p className="section-subtitle mx-auto mt-4 max-w-xl">
+  TickiSpot gives you everything you need to create, manage, and scale events —
+  from ticket sales to live streaming and real-time analytics.
+</p>
+<p className="text-sm text-muted-foreground mt-2">
+  Built for creators, organizers, and modern event businesses.
+</p>
+<p>
               Everything organizers need to sell tickets, run the door, and
               keep schedules on track—designed to match TickiSpot&apos;s
               workflow.

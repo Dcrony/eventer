@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
 import { login } from "../utils/auth";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import PasswordInput from "../components/PasswordInput";
 import {
   sanitizeFullName,
@@ -141,7 +141,7 @@ export default function Register() {
   };
 
   return (
-    <div className="form-page">
+    <div className="form-page auth-page">
       <div className="form-grid-background" aria-hidden="true" />
       <div className="form-layout">
         <aside className="form-brand-panel" aria-hidden="true">
@@ -149,22 +149,36 @@ export default function Register() {
           <span className="form-brand-float form-brand-float--2" />
           <div className="form-brand-inner">
             <img src={icon} className="tickispot-icon" alt="" />
-            <h2 className="form-brand-headline">TickiSpot</h2>
+            <h2 className="form-brand-headline">Build events people remember</h2>
             <p className="form-brand-tagline">
-              Create your account and start selling tickets in minutes — with
-              secure payments and real-time insights.
+              Create your account and launch polished event pages with secure
+              checkout and real-time audience insight.
             </p>
+            <div className="auth-benefits">
+              <p>
+                <CheckCircle2 size={14} />
+                Go live in under 10 minutes
+              </p>
+              <p>
+                <CheckCircle2 size={14} />
+                Ticketing, payments, and check-in included
+              </p>
+              <p>
+                <CheckCircle2 size={14} />
+                Built for creators, campuses, and brands
+              </p>
+            </div>
           </div>
         </aside>
       <div className="form-auth-column">
       <div className="form-container">
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", textDecoration: "none", color: "inherit", marginBottom: "1rem" }}>
+        <div className="form-intro">
+          <Link to="/" className="form-home-link">
             <img src={icon} className="tickispot-icon" alt="TickiSpot home" />
           </Link>
           <h1 className="form-title">Create Account</h1>
           <p className="form-subtitle">
-            Add your name, username, contact details, and password to get started.
+            Add your details once and start creating events right away.
           </p>
         </div>
 
@@ -280,8 +294,7 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="form-btn"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+            className="form-btn form-btn-main"
           >
             {loading ? "Creating Account..." : (
               <>
@@ -292,18 +305,11 @@ export default function Register() {
           </button>
         </form>
 
-        <div style={{ textAlign: "center", margin: "1rem 0" }}>
+        <div className="form-provider-row">
           <button
             type="button"
             onClick={handleGoogleSignup}
             className="form-btn form-btn-google"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "0.5rem",
-    width: "100%",
-  }}
 >
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -321,6 +327,9 @@ export default function Register() {
             Sign in
           </Link>
         </div>
+        <p className="auth-legal-note">
+          By creating an account, you agree to TickiSpot&apos;s terms and privacy policy.
+        </p>
       </div>
         </div>
       </div>

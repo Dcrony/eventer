@@ -336,6 +336,9 @@ exports.firebaseLogin = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ FIREBASE LOGIN ERROR:", error);
+    if (error?.code === "FIREBASE_ADMIN_NOT_CONFIGURED") {
+      return res.status(503).json({ message: error.message });
+    }
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -457,6 +460,9 @@ exports.firebaseSync = async (req, res) => {
     }
   } catch (error) {
     console.error("❌ FIREBASE SYNC ERROR:", error);
+    if (error?.code === "FIREBASE_ADMIN_NOT_CONFIGURED") {
+      return res.status(503).json({ message: error.message });
+    }
     res.status(500).json({ message: "Server error during Firebase sync" });
   }
 };
