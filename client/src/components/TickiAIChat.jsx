@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../api/axios";
+import "./css/TickiAI.css";
 
 const QUICK_PROMPTS = {
     organizer: [
@@ -132,181 +133,81 @@ export default function TickiAIChat({ event, user, initialRole = "organizer" || 
     };
 
     return (
-        <section
-            className="ticki-ai-chat"
-            style={{
-                width: "100%",
-                maxWidth: "560px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "24px",
-                background: "#ffffff",
-                boxShadow: "0 16px 48px rgba(15, 23, 42, 0.08)",
-                overflow: "hidden",
-            }}
+        <section className="ticki-ai-chat">
+  {/* HEADER */}
+  <div className="ticki-ai-header">
+    <div>
+      <p className="ticki-ai-badge">TickiAI</p>
+      <h2>
+        {role === "organizer" ? "Organizer Assistant" : "Event Concierge"}
+      </h2>
+    </div>
+
+    <button onClick={clearConversation} className="ticki-ai-reset">
+      Reset
+    </button>
+  </div>
+
+  {/* ROLE SWITCH */}
+  <div className="ticki-ai-role-switch">
+    {["organizer", "user"].map((option) => (
+      <button
+        key={option}
+        onClick={() => setRole(option)}
+        className={role === option ? "active" : ""}
+      >
+        {option === "organizer" ? "Organizer" : "User"}
+      </button>
+    ))}
+  </div>
+
+  {/* QUICK PROMPTS */}
+  <div className="ticki-ai-prompts">
+    {QUICK_PROMPTS[role].map((prompt) => (
+      <button key={prompt} onClick={() => sendMessage(prompt)}>
+        {prompt}
+      </button>
+    ))}
+  </div>
+
+  {/* CHAT BODY */}
+  <div className="ticki-ai-body">
+    {messages.length === 0 ? (
+      <p className="ticki-ai-empty">{SYSTEM_MESSAGE[role]}</p>
+    ) : (
+      messages.map((message) => (
+        <div
+          key={message.id}
+          className={`ticki-ai-msg ${message.sender}`}
         >
-            <div
-                className="ticki-ai-chat-header"
-                style={{ padding: "20px", borderBottom: "1px solid #f3f4f6", display: "flex", flexDirection: "column", gap: "16px" }}
-            >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                    <div>
-                        <p style={{ margin: 0, fontSize: "14px", color: "#6366f1", fontWeight: 700 }}>TickiAI</p>
-                        <h2 style={{ margin: "8px 0 0", fontSize: "20px", lineHeight: "1.2", color: "#111827" }}>
-                            {role === "organizer" ? "Organizer Assistant" : "User Concierge"}
-                        </h2>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={clearConversation}
-                        style={{
-                            border: "1px solid #d1d5db",
-                            borderRadius: "999px",
-                            background: "#f9fafb",
-                            color: "#374151",
-                            padding: "10px 16px",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                        }}
-                    >
-                        Reset
-                    </button>
-                </div>
+          {message.text}
+        </div>
+      ))
+    )}
 
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    {(["organizer", "user"]).map((option) => (
-                        <button
-                            key={option}
-                            type="button"
-                            onClick={() => setRole(option)}
-                            style={{
-                                borderRadius: "999px",
-                                border: option === role ? "1px solid #4338ca" : "1px solid #d1d5db",
-                                background: option === role ? "#eef2ff" : "#ffffff",
-                                color: option === role ? "#312e81" : "#374151",
-                                padding: "10px 18px",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                            }}
-                        >
-                            {option === "organizer" ? "Organizer" : "User"}
-                        </button>
-                    ))}
-                </div>
+    {loading && <p className="ticki-ai-loading">TickiAI is thinking…</p>}
+    {error && <p className="ticki-ai-error">{error}</p>}
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                    {QUICK_PROMPTS[role].map((prompt) => (
-                        <button
-                            type="button"
-                            key={prompt}
-                            onClick={() => sendMessage(prompt)}
-                            style={{
-                                borderRadius: "999px",
-                                border: "1px solid #e5e7eb",
-                                background: "#f9fafb",
-                                color: "#111827",
-                                padding: "10px 14px",
-                                cursor: "pointer",
-                                fontSize: "13px",
-                            }}
-                        >
-                            {prompt}
-                        </button>
-                    ))}
-                </div>
-            </div>
+    <div ref={scrollRef} />
+  </div>
 
-            <div
-                className="ticki-ai-chat-body"
-                style={{
-                    minHeight: "320px",
-                    maxHeight: "520px",
-                    overflowY: "auto",
-                    padding: "20px",
-                    background: "#f8fafc",
-                }}
-            >
-                {messages.length === 0 ? (
-                    <div style={{ color: "#6b7280", fontSize: "15px", lineHeight: "1.7" }}>
-                        {SYSTEM_MESSAGE[role]}
-                    </div>
-                ) : (
-                    messages.map((message) => (
-                        <div
-                            key={message.id}
-                            style={{
-                                marginBottom: "16px",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: message.sender === "assistant" ? "flex-start" : "flex-end",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    maxWidth: "95%",
-                                    padding: "16px",
-                                    borderRadius: "20px",
-                                    background: message.sender === "assistant" ? "#ffffff" : "#4338ca",
-                                    color: message.sender === "assistant" ? "#111827" : "#ffffff",
-                                    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
-                                    whiteSpace: "pre-wrap",
-                                    lineHeight: "1.6",
-                                }}
-                            >
-                                {message.text}
-                            </div>
-                        </div>
-                    ))
-                )}
-                {loading && (
-                    <div style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>TickiAI is composing a response…</div>
-                )}
-                {error && (
-                    <div style={{ marginTop: "12px", color: "#b91c1c", fontSize: "14px" }}>{error}</div>
-                )}
-                <div ref={scrollRef} />
-            </div>
+  {/* INPUT */}
+  <form onSubmit={handleSubmit} className="ticki-ai-footer">
+    <input
+      value={input}
+      onChange={(e) => setInput(e.target.value)}
+      placeholder={
+        role === "organizer"
+          ? "Ask about pricing, growth..."
+          : "Ask about events..."
+      }
+      disabled={loading}
+    />
 
-            <form
-                className="ticki-ai-chat-footer"
-                onSubmit={handleSubmit}
-                style={{ display: "flex", gap: "12px", padding: "20px", borderTop: "1px solid #f3f4f6", background: "#ffffff" }}
-            >
-                <label htmlFor="ticki-ai-input" style={{ display: "none" }}>
-                    Ask TickiAI
-                </label>
-                <input
-                    id="ticki-ai-input"
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    placeholder={role === "organizer" ? "Ask your business assistant…" : "Ask your event concierge…"}
-                    style={{
-                        flexGrow: 1,
-                        minHeight: "48px",
-                        borderRadius: "16px",
-                        border: "1px solid #d1d5db",
-                        padding: "0 16px",
-                        color: "#111827",
-                        fontSize: "15px",
-                    }}
-                    disabled={loading}
-                />
-                <button
-                    type="submit"
-                    disabled={loading || !input.trim()}
-                    style={{
-                        borderRadius: "16px",
-                        border: "none",
-                        background: "#4338ca",
-                        color: "#ffffff",
-                        padding: "0 22px",
-                        fontWeight: 700,
-                        cursor: loading ? "not-allowed" : "pointer",
-                        minHeight: "48px",
-                    }}
-                >
-                    {loading ? "Waiting…" : "Send"}
-                </button>
-            </form>
-        </section>
+    <button disabled={loading || !input.trim()}>
+      {loading ? "..." : "Send"}
+    </button>
+  </form>
+</section>
     );
 }
