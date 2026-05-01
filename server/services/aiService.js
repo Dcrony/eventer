@@ -10,10 +10,7 @@ const User = require("../models/User");
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL =
-  process.env.AI_MODE === "fast"
-    ? "llama-3.1-8b-instant"
-    : "llama-3.1-70b-versatile";
+const GROQ_MODEL = "llama-3.1-8b-instant";
 
 const sanitizeText = (value) => {
   if (value == null) return "";
@@ -301,7 +298,7 @@ const createAIResponse = async ({ role, message, context = {} }) => {
     return {
       role: safeRole,
       answer,
-      model: OPENAI_MODEL,
+      model: GROQ_MODEL,
       context: {
         event: contextPayload.event ? { id: contextPayload.event._id || null, title: contextPayload.event.title } : null,
         user: contextPayload.user ? { id: contextPayload.user._id || null, name: contextPayload.user.name || null, role: contextPayload.user.role || null } : null,
