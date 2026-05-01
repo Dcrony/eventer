@@ -111,6 +111,9 @@ exports.initializeBilling = async (req, res) => {
     }
 
     const reference = createSubscriptionReference(user._id);
+
+    // const paystackRef = response.data.data.reference;
+
     const metadata = {
       type: "subscription_upgrade",
       userId: String(user._id),
@@ -138,6 +141,7 @@ exports.initializeBilling = async (req, res) => {
       {
         email: user.email,
         amount: amount * 100,
+        reference,
         callback_url: getVerifyCallbackUrl(reference),
         metadata,
       },
