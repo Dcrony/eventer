@@ -521,29 +521,6 @@ form .field-label {
   }
 }
 
-/* Dark Mode */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* ✅ Scroll Styling */
 .form-wrapper::-webkit-scrollbar {
   width: 5px; /* width of scrollbar */
@@ -567,5 +544,103 @@ form .field-label {
 
 /* 🌙 Dark Mode Scrollbar */
 
+
+
+/* Update the main container to handle the toggle */
+.create-event-container {
+  display: grid;
+  grid-template-columns: 2.5fr 1.2fr; /* Adjusted ratio */
+  background: #ffffff;
+  border-radius: 1.5rem;
+  max-width: 1100px; /* Slightly wider to fit AI */
+  width: 95%;
+  height: 90vh; /* Fixed height for better scrolling */
+  overflow: hidden;
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+/* Right Panel Wrapper */
+.right-panel {
+  background: #f3f4f6;
+  border-left: 1px solid #e5e7eb;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* AI Magic Button Styling */
+.ai-magic-btn {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid #ec4899;
+  background: rgb(236, 72, 153, 0.05); 
+  color: #ec4899;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ai-magic-btn:hover {
+  background: #7c3aed;
+  color: white;
+}
+
+.ai-magic-btn.active {
+  background: #1e293b;
+  border-color: #1e293b;
+  color: white;
+}
+
+/* AI Sidebar Specifics */
+.ai-sidebar-content {
+  padding: 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.ai-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ai-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.2rem;
+}
+
+.ai-header p {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+/* Smooth fade for content switch */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 900px) {
+  .create-event-container {
+    grid-template-columns: 1fr; /* Stack on small screens */
+    height: auto;
+    max-height: 95vh;
+  }
+  
+  .right-panel {
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
+    min-height: 300px;
+  }
+}
 
 
