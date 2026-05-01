@@ -7,6 +7,8 @@ import EventCardSkeleton from "../components/EventCardSkeleton";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
+import TickiAIChat from "../components/TickiAIChat";
+
 
 const EVENT_FILTER_CHIPS = [
   { id: "all", label: "All" },
@@ -20,6 +22,8 @@ const EVENT_FILTER_CHIPS = [
 
 const applyFilters = (items, searchTerm, filter, sortBy) => {
   const lowerSearch = searchTerm.trim().toLowerCase();
+  
+
 
   let nextItems = [...items].filter((event) => {
     const matchesSearch =
@@ -60,6 +64,16 @@ export default function Home() {
   const [filterVisual, setFilterVisual] = useState("all");
   const [sortVisual, setSortVisual] = useState("newest");
   const { toProfile } = useProfileNavigation();
+  const [showAIGen, setShowAIGen] = useState(false);
+    
+      const handleAIGeneration = (aiData) => {
+      setFormData((prev) => ({
+        ...prev,
+        ...aiData, 
+      }));
+      setShowAIGen(false); 
+    };
+
 
   const demoEvents = useDemoEvents(events, error && !useDemoData);
 
@@ -102,6 +116,28 @@ export default function Home() {
 
   return (
     <div className="dashboard-page">
+      {/* ✅ TickiAI Floating Action Button & Sidebar Modal */}
+  <div className="tickiai-wrapper">
+    {showAIGen && (
+      
+        <div className="tickiai-modal">
+          <TickiAIChat onGenerate={handleAIGeneration} />
+        </div>
+     
+    )}
+
+    <button 
+      onClick={() => setShowAIGen(!showAIGen)}
+      className={`tickiai-floating-btn ${showAIGen ? 'active' : ''}`}
+      title={showAIGen ? "Close Chat" : "Chat with TickiAI"}
+    >
+      {showAIGen ? (
+        <span className="close-icon">✕</span> 
+      ) : (
+        <span className="ai-icon">✨</span>
+      )}
+    </button>
+  </div>
       <div className="dashboard-container">
         <div className="events-page-intro">
           <div className="dashboard-title">Discover events</div>

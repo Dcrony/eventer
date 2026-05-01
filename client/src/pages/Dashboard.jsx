@@ -20,7 +20,6 @@ import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { MoreVertical } from "lucide-react";
-import TickiAIChat from "../components/TickiAIChat";
 
 
 export default function Dashboard() {
@@ -28,15 +27,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-    const [showAIGen, setShowAIGen] = useState(false);
-  
-    const handleAIGeneration = (aiData) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...aiData, 
-    }));
-    setShowAIGen(false); 
-  };
+    
 
 
   // 🟢 For Modal Control
@@ -221,20 +212,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-         {/* AI Trigger Toggle */}
-              <button 
-                onClick={() => setShowAIGen(!showAIGen)}
-                className="ai-magic-btn"
-              >
-                {showAIGen ? "Close AI Assistant" : "✨ Generate with TickiAI"}
-              </button>
-        
-              {showAIGen && (
-                <div className="ai-overlay">
-                  <TickiAIChat onGenerate={handleAIGeneration} />[cite: 27]
-                </div>
-              )}
 
         {/* 📊 Stats */}
         {!loading && !error && stats && (

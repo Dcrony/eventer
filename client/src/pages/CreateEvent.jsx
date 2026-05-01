@@ -54,13 +54,36 @@ export default function CreateEvent({ isOpen, onClose }) {
     totalTickets: "",
   });
 
-  const handleAIGeneration = (aiData) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...aiData, // Overwrites empty fields with AI suggestions
-    }));
-    setShowAIGen(false); // Close the AI panel after success
-  };
+const handleAIGeneration = (aiData) => {
+  setForm((prev) => ({
+    ...prev,
+    title: aiData.title || prev.title,
+    description: aiData.description || prev.description,
+    category: aiData.category || prev.category,
+    location: aiData.location || prev.location,
+    // Map AI 'date' to both start and end dates
+    startDate: aiData.date || prev.startDate,
+    endDate: aiData.date || prev.endDate,
+    // Map AI 'time' to start time
+    startTime: aiData.time || prev.startTime,
+    // Map AI 'capacity' to totalTickets
+    totalTickets: aiData.capacity || prev.totalTickets,
+    // Map AI 'ticketPrice' to your pricing array
+    pricing: prev.pricing.map((tier) => ({
+      ...tier,
+      price: tier.type === "Regular" ? aiData.ticketPrice : tier.price
+    }))
+  }));
+  
+  // Set free event toggle if price is 0
+  if (aiData.ticketPrice === 0) {
+    setIsFreeEvent(true);
+  } else {
+    setIsFreeEvent(false);
+  }
+
+  setShowAIGen(false);
+};
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -143,7 +166,7 @@ export default function CreateEvent({ isOpen, onClose }) {
         if (e.target.classList.contains("create-event-overlay")) onClose();
       }}
     >
-      <div className="create-event-container">
+      <div className={`create-event-container ${showAIGen ? "ai-active" : ""}`}>
         <div className="form-wrapper">
           <button className="close-btn" onClick={onClose}>
             x
@@ -169,23 +192,26 @@ export default function CreateEvent({ isOpen, onClose }) {
               </button>
             ))}
           </div>
-          {/* AI Trigger Toggle */}
-      <button 
-        onClick={() => setShowAIGen(!showAIGen)}
-        className="ai-magic-btn"
-      >
-        {showAIGen ? "Close AI Assistant" : "✨ Generate with TickiAI"}
-      </button>
+
+      {/* AI Toggle Button - Now styled as a prominent action */}
+        <button 
+          type="button"
+          onClick={() => setShowAIGen(!showAIGen)}
+          className={`ai-magic-btn ${showAIGen ? 'active' : ''}`}
+        >
+          {showAIGen ? "✨ Close AI Assistant" : "✨ Generate with TickiAI"}
+        </button>
 
       {showAIGen && (
         <div className="ai-overlay">
-          <TickiAIGenerator onGenerate={handleAIGeneration} />[cite: 27]
+          <TickiAIGenerator onGenerate={handleAIGeneration} />
         </div>
       )}
 
           <form onSubmit={handleSubmit}>
             <input
               name="title"
+              value={form.title}
               placeholder="Event Name"
               className="input-field"
               onChange={handleChange}
@@ -194,6 +220,7 @@ export default function CreateEvent({ isOpen, onClose }) {
 
             <textarea
               name="description"
+              value={form.description}
               placeholder="Event Description"
               rows="4"
               className="input-field"
@@ -203,6 +230,7 @@ export default function CreateEvent({ isOpen, onClose }) {
 
             <input
               name="category"
+              value={form.category}
               placeholder="Category (e.g. Tech, Music, Business)"
               className="input-field"
               onChange={handleChange}
@@ -214,6 +242,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">Start Date</label>
                 <input
                   type="date"
+                  value={form.date}
                   name="startDate"
                   className="input-field"
                   onChange={handleChange}
@@ -224,6 +253,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">Start Time</label>
                 <input
                   type="time"
+                  value={form.time}
                   name="startTime"
                   className="input-field"
                   onChange={handleChange}
@@ -234,6 +264,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">End Date</label>
                 <input
                   type="date"
+                  value={form.date}
                   name="endDate"
                   className="input-field"
                   onChange={handleChange}
@@ -244,6 +275,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">End Time</label>
                 <input
                   type="time"
+                  value={form.time}
                   name="endTime"
                   className="input-field"
                   onChange={handleChange}
@@ -254,6 +286,7 @@ export default function CreateEvent({ isOpen, onClose }) {
 
             <input
               name="location"
+              value={form.location}
               placeholder="Event Location"
               className="input-field"
               onChange={handleChange}
@@ -312,6 +345,7 @@ export default function CreateEvent({ isOpen, onClose }) {
               </p>
               <input
                 name="totalTickets"
+                value={form.totalTickets}
                 type="number"
                 min="1"
                 placeholder="e.g. 500"
