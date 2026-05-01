@@ -4,9 +4,16 @@ const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo-16k";
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+// const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+// const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-3.5-turbo-16k";
+// const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL =
+  process.env.AI_MODE === "fast"
+    ? "llama-3.1-8b-instant"
+    : "llama-3.1-70b-versatile";
 
 const sanitizeText = (value) => {
   if (value == null) return "";
@@ -244,8 +251,8 @@ const buildUserPrompt = (message, context) => {
 }; 
 
 const createAIResponse = async ({ role, message, context = {} }) => {
-  if (!OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY environment variable.");
+  if (!GROQ_API_KEY) {
+    throw new Error("Missing GROQ_API_KEY environment variable.");
   }
 
   const safeRole = role === "organizer" ? "organizer" : "user";
@@ -260,21 +267,35 @@ const createAIResponse = async ({ role, message, context = {} }) => {
 
   try {
     const response = await axios.post(
-      OPENAI_URL,
-      {
-        model: OPENAI_MODEL,
-        messages,
-        temperature: 0.7,
-        max_tokens: 700,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 30000,
-      },
-    );
+       GROQ_URL,
+  {
+    model: GROQ_MODEL,
+    messages,
+    temperature: 0.7,
+    max_tokens: 700,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+    //   OPENAI_URL,
+    //   {
+    //     model: OPENAI_MODEL,
+    //     messages,
+    //     temperature: 0.7,
+    //     max_tokens: 700,
+    //   },
+    //   {
+    //     headers: {
+    //       Authorization: `Bearer ${OPENAI_API_KEY}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //     timeout: 30000,
+    //   },
+    // );
 
     const answer = String(response.data?.choices?.[0]?.message?.content || "").trim();
     return {
@@ -297,8 +318,8 @@ const createAIResponse = async ({ role, message, context = {} }) => {
 };
 
 const generateEventFromPrompt = async ({ prompt }) => {
-  if (!OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY environment variable.");
+  if (!GROQ_API_KEY) {
+    throw new Error("Missing GROQ_API_KEY environment variable.");
   }
 
   const safePrompt = sanitizeText(prompt);
@@ -346,21 +367,36 @@ const generateEventFromPrompt = async ({ prompt }) => {
 
   try {
     const response = await axios.post(
-      OPENAI_URL,
-      {
-        model: OPENAI_MODEL,
-        messages,
-        temperature: 0.7,
-        max_tokens: 500,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 30000,
-      },
-    );
+      GROQ_URL,
+  {
+    model: GROQ_MODEL,
+    messages,
+    temperature: 0.7,
+    max_tokens: 700,
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+  }
+);
+
+    //   OPENAI_URL,
+    //   {
+    //     model: OPENAI_MODEL,
+    //     messages,
+    //     temperature: 0.7,
+    //     max_tokens: 500,
+    //   },
+    //   {
+    //     headers: {
+    //       Authorization: `Bearer ${OPENAI_API_KEY}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //     timeout: 30000,
+    //   },
+    // );
 
     const rawText = String(response.data?.choices?.[0]?.message?.content || "").trim();
 
@@ -389,7 +425,37 @@ const generateEventFromPrompt = async ({ prompt }) => {
       time: sanitizeText(parsed.time || "14:00"),
     };
 
-    return { success: true, event: eventData };
+   const transformedEvent = {
+  title: eventData.title,
+  description: eventData.description,
+  category: eventData.category,
+
+  location: eventData.location,
+
+  startDate: eventData.date ? new Date(eventData.date) : null,
+  startTime: eventData.time || "14:00",
+
+  totalTickets: eventData.capacity || 100,
+
+  pricing: [
+    {
+      type: eventData.ticketPrice > 0 ? "Regular" : "Free",
+      price: eventData.ticketPrice || 0,
+    },
+  ],
+
+  isFree: eventData.ticketPrice === 0,
+  isFreeEvent: eventData.ticketPrice === 0,
+
+  eventType:
+    eventData.location?.toLowerCase() === "virtual"
+      ? "Virtual"
+      : "In-person",
+
+  tags: eventData.tags || [],
+};
+
+return { success: true, event: transformedEvent };
   } catch (error) {
     const messageOverride = error.response?.data?.error?.message || error.message || "Event generation failed.";
     const statusCode = error.response?.status || 502;
