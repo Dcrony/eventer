@@ -33,6 +33,7 @@ export default function CreateEvent({ isOpen, onClose }) {
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [isFreeEvent, setIsFreeEvent] = useState(false);
+  const [showAIGen, setShowAIGen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -52,6 +53,14 @@ export default function CreateEvent({ isOpen, onClose }) {
     ],
     totalTickets: "",
   });
+
+  const handleAIGeneration = (aiData) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...aiData, // Overwrites empty fields with AI suggestions
+    }));
+    setShowAIGen(false); // Close the AI panel after success
+  };
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -160,11 +169,19 @@ export default function CreateEvent({ isOpen, onClose }) {
               </button>
             ))}
           </div>
-          <TickiAIGenerator 
-  onGenerate={(eventData) => {
-    console.log("Generated:", eventData);
-  }} 
-/>
+          {/* AI Trigger Toggle */}
+      <button 
+        onClick={() => setShowAIGen(!showAIGen)}
+        className="ai-magic-btn"
+      >
+        {showAIGen ? "Close AI Assistant" : "✨ Generate with TickiAI"}
+      </button>
+
+      {showAIGen && (
+        <div className="ai-overlay">
+          <TickiAIGenerator onGenerate={handleAIGeneration} />[cite: 27]
+        </div>
+      )}
 
           <form onSubmit={handleSubmit}>
             <input
