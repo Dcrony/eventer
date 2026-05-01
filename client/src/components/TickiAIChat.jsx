@@ -57,7 +57,7 @@ const buildContextPayload = (event, user) => {
 
 const makeMessageId = () => `tickiai-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export default function TickiAIChat({ event, user, initialRole = "user" }) {
+export default function TickiAIChat({ event, user, initialRole = "organizer" || "user" }) {
     const storageKey = "tickiAI.chat.history";
     const [role, setRole] = useState(initialRole);
     const [messages, setMessages] = useState(() => {
