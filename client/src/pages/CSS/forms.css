@@ -594,8 +594,8 @@
   }
 
   .form-auth-column {
-    /* padding: 2rem 1rem 3rem; */
     background: transparent;
+
   }
 }
 
@@ -758,7 +758,7 @@
 
 @media (max-width: 640px) {
   .auth-page {
-    padding: 0.65rem;
+    padding: 0;
   }
 
   .auth-page .form-layout {
@@ -771,7 +771,9 @@
   }
 
   .auth-page .form-auth-column {
-    padding: 0.85rem;
+    background-color: transparent;
+    padding: 0;
+    backdrop-filter: none;
   }
 
   .auth-page .form-container {

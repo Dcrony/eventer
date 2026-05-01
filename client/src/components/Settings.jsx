@@ -25,6 +25,7 @@ import {
   Trash2,
   User2,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const SETTINGS_TABS = [
   { id: "account", label: "Account", icon: <User2 size={18} /> },
@@ -566,6 +567,9 @@ export default function Settings() {
                     ? new Date(user.billing.nextBillingDate).toLocaleDateString()
                     : "N/A"}
                 </p>
+                <button className="settings-secondary-button">
+                  <Link to="/billing">Manage billing</Link>
+                </button>
               </div>
             </div>
             <SettingsSection title="Plan selection" description="Choose the workspace tier that fits your needs.">
