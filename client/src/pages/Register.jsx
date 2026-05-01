@@ -328,7 +328,8 @@ export default function Register() {
           </Link>
         </div>
         <p className="auth-legal-note">
-          By creating an account, you agree to TickiSpot&apos;s terms and privacy policy.
+          By creating an account, you agree to TickiSpot&apos;s - <Link to="/terms"> Terms</Link> and 
+              <Link to="/privacy"> Privacy policy</Link> .
         </p>
       </div>
         </div>

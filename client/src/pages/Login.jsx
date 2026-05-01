@@ -242,7 +242,9 @@ export default function Login() {
           </Link>
         </div>
         <p className="auth-legal-note">
-          By continuing, you agree to TickiSpot&apos;s terms and privacy policy.
+          By continuing, you agree to TickiSpot&apos;s -
+              <Link to="/terms"> Terms</Link> and 
+              <Link to="/privacy"> Privacy</Link> policy.
         </p>
       </div>
         </div>
