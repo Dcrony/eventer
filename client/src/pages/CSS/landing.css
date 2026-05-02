@@ -2836,8 +2836,6 @@ html {
 .history-table th { text-align: left; padding: 12px; color: var(--saas-slate-400); font-weight: 500; font-size: 14px; }
 .history-table td { padding: 12px; border-top: 1px solid #f1f5f9; font-size: 14px; }
 
-.status-dot.success { color: #16a34a; }
-.status-dot.failed { color: #dc2626; }
 
 .pricing-card.featured {
   border-color: var(--saas-pink);
