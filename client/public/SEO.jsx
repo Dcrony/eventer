@@ -6,7 +6,7 @@ const SEO = ({
   description = "TickiSpot is a modern event ticketing and management platform built for creators and organizers. Sell tickets, manage events, track sales, and host live experiences effortlessly.",
   keywords = "event ticketing Nigeria, event management platform, sell event tickets online, event software Nigeria, ticketing system, event booking platform, TickiSpot",
   image = "https://tickispot.com/sea.png",
-  url = "https://tickispot.com" || "https://tickispot.vercel.app",
+  url = "https://tickispot.com",
 }) => {
   return (
     <Helmet>
@@ -40,7 +40,7 @@ const SEO = ({
               "@type": "Organization",
               "name": "TickiSpot",
               "url": "https://tickispot.com",
-              "logo": "https://tickispot.com/icon.svgg",
+              "logo": "https://tickispot.com/icon.svg",
               "foundingDate": "2024",
               "description":
                 "TickiSpot is an all-in-one event ticketing and management platform that helps organizers create, promote, and manage events with ease.",
@@ -67,7 +67,7 @@ const SEO = ({
               "url": "https://tickispot.com",
               "potentialAction": {
                 "@type": "SearchAction",
-                "target": "https://tickispot.com/search?q={search_term_string}",
+                "target": "https://tickispot.com/search?query={search_term_string}",
                 "query-input": "required name=search_term_string"
               }
             },
