@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 
 const SEO = ({
   title = "TickiSpot – Event Ticketing & Management Platform in Nigeria",
-  description = "Sell tickets online in Lagos, Abuja & across Nigeria. TickiSpot helps you create events, manage attendees, and grow your audience.",
+  description = "Best platform to sell concert tickets in Lagos and across Nigeria. TickiSpot helps you manage events, track sales, and grow your audience."
   keywords = "sell concert tickets Lagos, event ticketing Nigeria, event management platform Nigeria, ticketing system Lagos, TickiSpot",
   image = "https://tickispot.com/sea.png",
   url = "https://tickispot.com",
