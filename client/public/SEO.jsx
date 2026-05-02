@@ -3,35 +3,36 @@ import { Helmet } from "react-helmet-async";
 
 const SEO = ({
   title = "TickiSpot – Event Ticketing & Management Platform in Nigeria",
-  description = "TickiSpot is a modern event ticketing and management platform built for creators and organizers. Sell tickets, manage events, track sales, and host live experiences effortlessly.",
-  keywords = "event ticketing Nigeria, event management platform, sell event tickets online, event software Nigeria, ticketing system, event booking platform, TickiSpot",
+  description = "Sell tickets online in Lagos, Abuja & across Nigeria. TickiSpot helps you create events, manage attendees, and grow your audience.",
+  keywords = "sell concert tickets Lagos, event ticketing Nigeria, event management platform Nigeria, ticketing system Lagos, TickiSpot",
   image = "https://tickispot.com/sea.png",
-  url = "https://tickispot.com" || "https://tickispot.vercel.app",
+  url = "https://tickispot.com",
+  type = "website",
 }) => {
   return (
     <Helmet>
-      {/* Basic SEO */}
+      {/* ✅ Basic SEO */}
       <title>{title}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href={url} />
 
-      {/* Open Graph */}
-      <meta property="og:type" content="website" />
+      {/* ✅ Open Graph */}
+      <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content="TickiSpot" />
 
-      {/* Twitter */}
+      {/* ✅ Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
 
-      {/* 🔥 STRUCTURED DATA (IMPORTANT FOR SEO RANKING) */}
+      {/* ✅ STRUCTURED DATA */}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
@@ -40,22 +41,10 @@ const SEO = ({
               "@type": "Organization",
               "name": "TickiSpot",
               "url": "https://tickispot.com",
-              "logo": "https://tickispot.com/icon.svgg",
+              "logo": "https://tickispot.com/icon.svg", // ✅ FIXED
               "foundingDate": "2024",
               "description":
-                "TickiSpot is an all-in-one event ticketing and management platform that helps organizers create, promote, and manage events with ease.",
-              "founders": [
-                {
-                  "@type": "Person",
-                  "name": "Ibrahim Abdulmajeed",
-                  "jobTitle": "Founder"
-                },
-                {
-                  "@type": "Person",
-                  "name": "OLarenwaju Oluwashinnayomi",
-                  "jobTitle": "Co-Founder"
-                }
-              ],
+                "Event ticketing platform for concerts, corporate events, and creators in Nigeria.",
               "sameAs": [
                 "https://x.com/codewithdcrony",
                 "https://linkedin.com/in/ibrahim-abdulmajeed"
@@ -80,10 +69,6 @@ const SEO = ({
                 "@type": "Offer",
                 "price": "0",
                 "priceCurrency": "NGN"
-              },
-              "creator": {
-                "@type": "Organization",
-                "name": "TickiSpot"
               }
             }
           ]
