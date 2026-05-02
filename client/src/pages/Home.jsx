@@ -7,46 +7,6 @@ import EventCardSkeleton from "../components/EventCardSkeleton";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
-import SEO from "../public/SEO"
-
-
-
-
-<SEO
-  title={`${event.title} | Buy Tickets on TickiSpot`}
-  description={event.description}
-  url={`https://tickispot.com/events/${event.slug}`}
-/>
-
-<script type="application/ld+json">
-{JSON.stringify({
-  "@context": "https://schema.org",
-  "@type": "Event",
-  "name": event.title,
-  "startDate": event.date,
-  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-  "eventStatus": "https://schema.org/EventScheduled",
-  "location": {
-    "@type": "Place",
-    "name": event.venue,
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Lagos",
-      "addressCountry": "NG"
-    }
-  },
-  "image": [event.image],
-  "description": event.description,
-  "offers": {
-    "@type": "Offer",
-    "url": `https://tickispot.com/events/${event.slug}`,
-    "price": event.price,
-    "priceCurrency": "NGN",
-    "availability": "https://schema.org/InStock"
-  }
-})}
-</script>
-
 
 
 
