@@ -5,6 +5,14 @@ const QRCode = require("qrcode");
 const fs = require("fs");
 const path = require("path");
 const { recordTicketPurchaseMetrics } = require("./eventController");
+const User = require("../models/User");
+const { sendEmail } = require("../utils/email");
+const {
+  ticketPurchaseEmail,
+  organizerTicketAlertEmail,
+} = require("../utils/emailTemplates");
+
+
 
 exports.getMyTickets = async (req, res) => {
   try {
@@ -96,6 +104,7 @@ exports.createTicket = async (req, res) => {
 
     await ticket.save();
 
+
     event.ticketsSold = Number(event.ticketsSold || 0) + parsedQuantity;
     event.totalTickets = Math.max(0, remainingTickets - parsedQuantity);
     recordTicketPurchaseMetrics(event, parsedQuantity, 0);
@@ -110,8 +119,49 @@ exports.createTicket = async (req, res) => {
     const qrPath = path.join(qrDir, qrFileName);
     await QRCode.toFile(qrPath, qrData);
 
+
+
     ticket.qrCode = `qrcodes/${qrFileName}`;
     await ticket.save();
+
+    const fileToBase64 = (filePath) => {
+  const file = fs.readFileSync(filePath);
+  return file.toString("base64");
+};
+
+    // 🟢 GET USERS
+const buyer = await User.findById(req.user.id).select("name email");
+const organizer = await User.findById(event.createdBy).select("name email");
+
+const qrBase64 = fileToBase64(qrFullPath);
+// 🟢 SEND EMAIL TO BUYER
+if (buyer?.email) {
+  sendEmail({
+    to: buyer.email,
+    subject: "🎟️ Your Ticket Purchase is Confirmed",
+    html: ticketPurchaseEmail(buyer.name, event.title, parsedQuantity),
+     attachments: [
+    {
+      filename: "ticket-qr.png",
+      content: qrBase64, // ✅ correct for Resend
+    },
+  ],
+  }).catch(console.error);
+}
+
+// 🟢 SEND EMAIL TO ORGANIZER
+if (organizer?.email) {
+  sendEmail({
+    to: organizer.email,
+    subject: "🎉 New Ticket Purchase on your Event",
+    html: organizerTicketAlertEmail(
+      organizer.name,
+      event.title,
+      buyer?.name || "Someone",
+      parsedQuantity
+    ),
+  }).catch(console.error);
+}
 
     return res.status(201).json({
       message: "Ticket reserved successfully",
