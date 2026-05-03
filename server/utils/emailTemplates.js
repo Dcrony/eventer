@@ -104,3 +104,29 @@ exports.organizerTicketAlertEmail = (organizerName, eventTitle, buyerName, quant
     <small>TickiSpot System Notification</small>
   </div>
 `;
+
+exports.billingSuccessEmail = (name, plan, amount, interval, reference) => `
+  <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px;">
+    
+    <h2 style="color:#16a34a;">🎉 Payment Successful!</h2>
+    
+    <p>Hi <strong>${name}</strong>,</p>
+    
+    <p>Your subscription has been successfully activated.</p>
+
+    <div style="background:#f9fafb; padding:15px; border-radius:8px; margin:20px 0;">
+      <p><strong>Plan:</strong> ${plan.toUpperCase()}</p>
+      <p><strong>Billing:</strong> ${interval}</p>
+      <p><strong>Amount Paid:</strong> ₦${amount}</p>
+      <p><strong>Reference:</strong> ${reference}</p>
+    </div>
+
+    <p>You now have access to premium features on <strong>TickiSpot</strong>.</p>
+
+    <p>Thank you for trusting us 🚀</p>
+
+    <p style="margin-top:20px;">
+      — <strong>TickiSpot Team</strong>
+    </p>
+  </div>
+`;

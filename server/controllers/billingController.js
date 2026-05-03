@@ -10,6 +10,8 @@ const {
   syncUserBillingState,
   upsertBillingHistory,
 } = require("../services/billingService");
+const sendEmail = require("../utils/email");
+const { billingSuccessEmail } = require("../utils/emailTemplates");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -225,6 +227,19 @@ exports.verifyBilling = async (req, res) => {
           effectiveDate: new Date(data.paid_at || Date.now()),
         });
       }
+
+      // ✅ SEND EMAIL (non-blocking)
+sendEmail({
+  to: updatedUser.email,
+  subject: "Your TickiSpot Subscription is Active 🎉",
+  html: billingSuccessEmail(
+    updatedUser.name || "User",
+    normalizedPlan,
+    amount,
+    normalizedInterval,
+    reference
+  ),
+}).catch(err => console.error("Billing email failed:", err));
 
       return res.json({
         message: "Billing already verified",
