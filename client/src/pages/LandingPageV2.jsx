@@ -182,9 +182,6 @@ export default function LandingPageV2() {
             <Link to="/events" className="lp2-nav-link">
               Explore Events
             </Link>
-            <Link to="/create" className="lp2-nav-link">
-              Create Event
-            </Link>
             <Link to="/pricing" className="lp2-nav-link">
               Pricing
             </Link>

@@ -59,6 +59,7 @@ import { AuthProvider } from "./context/AuthContext";
 import FounderProfile from "./pages/FounderProfile";
 import Billing from "./pages/Billing";
 import DiscoverCreators from "./pages/DiscoverCreators";
+import CreateEvent from "./pages/CreateEvent";
 
 function Layout() {
   const location = useLocation();
@@ -138,6 +139,16 @@ function Layout() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify-otp" element={<VerifyEmailOtp />} />
+
+          <Route
+            path="/create"
+            element={
+              <ProtectedRoute>
+                <CreateEvent/>
+              </ProtectedRoute>
+            }
+          />
+          
           <Route
             path="/my-tickets"
             element={

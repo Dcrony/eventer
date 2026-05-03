@@ -478,3 +478,48 @@
     width: 100%;
   }
 }
+
+.settings-support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.settings-contact-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.settings-contact-card:hover {
+  border-color: #ec4899;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(236, 72, 153, 0.1);
+}
+
+.settings-support-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-link {
+  padding: 1rem 1.25rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.settings-link:hover {
+  background: #ec4899;
+  color: white;
+}

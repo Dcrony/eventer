@@ -16,6 +16,7 @@ import {
   Lock,
   LogOut,
   Mail,
+  MailCheck,
   MapPin,
   Save,
   Search,
@@ -35,6 +36,7 @@ const SETTINGS_TABS = [
   { id: "events", label: "Event Preferences", icon: <Ticket size={18} /> },
   { id: "billing", label: "Billing", icon: <CreditCard size={18} /> },
   { id: "apps", label: "Connected Apps", icon: <LinkIcon size={18} /> },
+  { id: "support", label: "Support", icon: <MailCheck size={18} /> },
   { id: "danger", label: "Danger Zone", icon: <AlertTriangle size={18} /> },
 ];
 
@@ -629,6 +631,56 @@ export default function Settings() {
             </div>
           </SettingsCard>
         );
+        case "support":
+  return (
+    <SettingsCard
+      title="Support & Contact"
+      description="Need help? We're here for you."
+      icon={<Mail size={18} />}
+    >
+      <SettingsSection 
+        title="Get in Touch" 
+        description="Reach out to our team anytime."
+      >
+        <div className="settings-support-grid">
+          {/* Email Support */}
+          <a href="mailto:support@tickispot.com" className="settings-contact-card">
+            <Mail size={28} />
+            <div>
+              <strong>Email Us</strong>
+              <p>support@tickispot.com</p>
+              <span>Usually reply within 24 hours</span>
+            </div>
+          </a>
+
+          {/* WhatsApp Support */}
+          <a 
+            href="https://wa.me/2349056911562" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="settings-contact-card"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.485-.888-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.52-.075-.149-.669-1.612-.917-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.372-.01-.572-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            </svg>
+            <div>
+              <strong>Chat on WhatsApp</strong>
+              <p>Fastest way to get help</p>
+              <span>Available 9AM - 6PM</span>
+            </div>
+          </a>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection title="Help Resources" description="Quick answers and guides.">
+        <div className="settings-support-links">
+          <a href="/help" className="settings-link">📖 Help Center</a>
+          <a href="/faq" className="settings-link">❓ Frequently Asked Questions</a>
+          <a href="/contact" className="settings-link">📍 Contact Form</a>
+        </div>
+      </SettingsSection>
+    </SettingsCard>
+  );
       case "danger":
         return (
           <SettingsCard title="Danger Zone" description="High-impact actions that affect your account across the product." icon={<AlertTriangle size={18} />} tone="danger">
