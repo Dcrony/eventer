@@ -42,7 +42,7 @@ const SEO = ({
               "name": "TickiSpot",
               "url": "https://tickispot.com",
               "logo": "https://tickispot.com/icon.svg",
-              "foundingDate": "2024",
+              "foundingDate": "2025",
               "description":
                 "Event ticketing platform for concerts, corporate events, and creators in Nigeria.",
               "sameAs": [
