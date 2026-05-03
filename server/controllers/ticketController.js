@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const User = require("../models/User");
-const { sendEmail } = require("../utils/email");
+const sendEmail = require("../utils/email");
 const {
   ticketPurchaseEmail,
   organizerTicketAlertEmail,
@@ -125,43 +125,57 @@ exports.createTicket = async (req, res) => {
     await ticket.save();
 
     const fileToBase64 = (filePath) => {
-  const file = fs.readFileSync(filePath);
-  return file.toString("base64");
-};
+      const file = fs.readFileSync(filePath);
+      return file.toString("base64");
+    };
+
+    const qrBase64 = fileToBase64(qrPath);
 
     // 🟢 GET USERS
-const buyer = await User.findById(req.user.id).select("name email");
-const organizer = await User.findById(event.createdBy).select("name email");
+    const buyer = await User.findById(req.user.id).select("name email");
+    const organizer = await User.findById(event.createdBy).select("name email");
 
-const qrBase64 = fileToBase64(qrFullPath);
-// 🟢 SEND EMAIL TO BUYER
-if (buyer?.email) {
-  sendEmail({
-    to: buyer.email,
-    subject: "🎟️ Your Ticket Purchase is Confirmed",
-    html: ticketPurchaseEmail(buyer.name, event.title, parsedQuantity),
-     attachments: [
-    {
-      filename: "ticket-qr.png",
-      content: qrBase64, // ✅ correct for Resend
-    },
-  ],
-  }).catch(console.error);
-}
+    // 🟢 SEND EMAIL TO BUYER
+    if (buyer?.email) {
+      try {
+        await sendEmail({
+          to: buyer.email,
+          subject: "🎟️ Your Ticket is Confirmed",
+          html: ticketPurchaseEmail(
+            buyer.name || "Guest",
+            event.title,
+            parsedQuantity
+          ),
+          attachments: [
+            {
+              filename: "ticket-qr.png",
+              content: qrBase64,
+              cid: "ticketqr", // matches HTML
+            },
+          ],
+        });
+      } catch (err) {
+        console.error("Buyer email failed:", err.message);
+      }
+    }
 
-// 🟢 SEND EMAIL TO ORGANIZER
-if (organizer?.email) {
-  sendEmail({
-    to: organizer.email,
-    subject: "🎉 New Ticket Purchase on your Event",
-    html: organizerTicketAlertEmail(
-      organizer.name,
-      event.title,
-      buyer?.name || "Someone",
-      parsedQuantity
-    ),
-  }).catch(console.error);
-}
+    // 🟢 SEND EMAIL TO ORGANIZER
+    if (organizer?.email) {
+      try {
+        await sendEmail({
+          to: organizer.email,
+          subject: "🎉 New Ticket Reserved",
+          html: organizerTicketAlertEmail(
+            organizer.name || "Organizer",
+            event.title,
+            buyer?.name || "Someone",
+            parsedQuantity
+          ),
+        });
+      } catch (err) {
+        console.error("Organizer email failed:", err.message);
+      }
+    }
 
     return res.status(201).json({
       message: "Ticket reserved successfully",

@@ -1,6 +1,6 @@
 const axios = require("axios");
 const { donationSuccessEmail } = require("../utils/emailTemplates");
-const { sendEmail } = require("../utils/email");
+const sendEmail = require("../utils/email");
 const Donation = require("../models/Donation");
 
 
