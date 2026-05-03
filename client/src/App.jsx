@@ -331,7 +331,7 @@ function Layout() {
           <Route path="/about" element={<AboutUs />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/pricing" element={<Pricing />} />
-          <Route path="/donate" element={<Donation />} />
+          <Route path="/donation" element={<Donation />} />
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/docs" element={<Documentation />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
