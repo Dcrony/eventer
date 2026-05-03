@@ -22,7 +22,6 @@ import {
   MessageSquare,
   Banknote,
   DollarSign,
-  MessageCircle,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -68,11 +67,10 @@ export default function Sidebar() {
       : []),
     { to: "/events", label: "Events", icon: <Calendar size={20} /> },
     { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
-    { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
-    ...(canOrganize
-      ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
+    ...(isFreeUser
+      ? [{ to: "/pricing", label: "Premium", icon: <DollarSign size={20} /> }]
       : []),
-    
+
     ...(canOrganize
       ? [{
           label: "Create",
@@ -80,13 +78,17 @@ export default function Sidebar() {
           action: () => setShowCreateEvent(true),
           primary: true,
         }]
+      : []),  
+    { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
+    ...(canOrganize
+      ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
       : []),
-    { to: "/messages", label: "Messages", icon: <MessageCircle size={20} />, component: MessageIndicator },
+    
+    
+    { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
     { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
     
-    ...(isFreeUser
-      ? [{ to: "/pricing", label: "Premium", icon: <DollarSign size={20} /> }]
-      : []),
+    
   ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;

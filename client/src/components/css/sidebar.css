@@ -1,9 +1,9 @@
 .sidebar {
   /* Colors preserved from your theme */
   --sidebar-bg: rgba(255, 255, 255, 0.96);
-  --sidebar-border: rgba(0, 0, 0, 0.06);
-  --sidebar-text: #0a0a0a;
-  --sidebar-text-muted: #64748b;
+  --sidebar-border: rgba(0, 0, 0, 0.199);
+  --sidebar-text: #050505;
+  --sidebar-text-muted: #393b3d;
   --sidebar-hover: rgba(0, 0, 0, 0.04);
   --sidebar-active-bg: rgba(236, 72, 153, 0.1);
   --sidebar-active-border: rgba(236, 72, 153, 0.25);
@@ -45,6 +45,12 @@
   padding: 1rem 0;
 }
 
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 /* ----- CONTENT SECTION (Scrollable) ----- */
 .sidebar-content {
   flex: 1; /* Takes up all available middle space */
@@ -54,7 +60,7 @@
   
   /* Custom Scrollbar Logic */
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  scrollbar-color: var(--sidebar-border) transparent;
 }
 
 .sidebar-content:hover {
