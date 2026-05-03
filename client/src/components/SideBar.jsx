@@ -143,12 +143,6 @@ export default function Sidebar() {
                 </Link>
               );
             })}
-          </nav>
-        </div>
-
-        {/* FOOTER: Fixed */}
-        <div className="sidebar-bottom">
-          <div className="sidebar-bottom-nav">
             <div className="sidebar-link notification-wrapper">
                <NotificationBell />
                {expand && <span className="sidebar-link-text">Notifications</span>}
@@ -168,8 +162,10 @@ export default function Sidebar() {
               <span className="sidebar-link-icon"><LogOut size={20} /></span>
               {expand && <span className="sidebar-link-text">Logout</span>}
             </button>
-          </div>
+          </nav>
         </div>
+
+       
       </aside>
 
       <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />

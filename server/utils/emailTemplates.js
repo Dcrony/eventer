@@ -130,3 +130,4 @@ exports.billingSuccessEmail = (name, plan, amount, interval, reference) => `
     </p>
   </div>
 `;
+
