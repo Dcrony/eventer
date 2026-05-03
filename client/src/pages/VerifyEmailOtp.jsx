@@ -14,18 +14,10 @@ const VerifyEmailOtp = () => {
   const [success, setSuccess] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
   const [resendLoading, setResendLoading] = useState(false);
-  const [displayedCode, setDisplayedCode] = useState("");
 
   const email = location.state?.email || localStorage.getItem("verifyEmail");
 
-  useEffect(() => {
-    const fromNav = location.state?.verificationCode;
-    const fromStore = sessionStorage.getItem(PENDING_CODE_KEY);
-    const code = fromNav ?? fromStore ?? "";
-    setDisplayedCode(code);
-    if (fromNav) sessionStorage.setItem(PENDING_CODE_KEY, fromNav);
-  }, [location.state?.verificationCode, location.key]);
-
+ 
   useEffect(() => {
     if (timeLeft <= 0) return;
 
@@ -125,17 +117,7 @@ const VerifyEmailOtp = () => {
     setResendLoading(true);
 
     try {
-      const { data } = await API.post("/auth/resend-otp", { email });
-
-      if (data.verificationCode) {
-        setDisplayedCode(data.verificationCode);
-        sessionStorage.setItem(PENDING_CODE_KEY, data.verificationCode);
-      }
-
-      setSuccess(
-        data.verificationCode
-          ? "✅ New code generated — copy it below."
-          : "✅ New code sent to your email."
+      setSuccess( "✅ New code sent to your email."
       );
       setTimeLeft(600);
       setOtp(["", "", "", "", "", ""]);
@@ -149,16 +131,7 @@ const VerifyEmailOtp = () => {
     }
   };
 
-  const copyCode = async () => {
-    if (!displayedCode) return;
-    try {
-      await navigator.clipboard.writeText(displayedCode);
-      setSuccess("✅ Code copied");
-      setTimeout(() => setSuccess(""), 2000);
-    } catch {
-      setError("Could not copy — select the code and copy manually.");
-    }
-  };
+ 
 
   if (!email) {
     return (
@@ -190,43 +163,7 @@ const VerifyEmailOtp = () => {
             <strong>{email}</strong>
           </p>
         </div>
-
-        {displayedCode ? (
-          <div
-            style={{
-              padding: "1rem 1.25rem",
-              marginBottom: "1.25rem",
-              backgroundColor: "#f0fdf4",
-              border: "1px solid #86efac",
-              borderRadius: "8px",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ margin: "0 0 0.5rem", fontSize: "0.9rem", color: "#166534" }}>
-              Your verification code (copy and paste into the boxes below)
-            </p>
-            <div
-              style={{
-                fontFamily: "ui-monospace, monospace",
-                fontSize: "1.5rem",
-                fontWeight: 700,
-                letterSpacing: "0.2em",
-                color: "#0f172a",
-                userSelect: "all",
-              }}
-            >
-              {displayedCode}
-            </div>
-            <button
-              type="button"
-              onClick={copyCode}
-              className="form-button"
-              style={{ marginTop: "0.75rem", maxWidth: "200px" }}
-            >
-              Copy code
-            </button>
-          </div>
-        ) : (
+        
           <p
             style={{
               textAlign: "center",
@@ -238,7 +175,6 @@ const VerifyEmailOtp = () => {
             If email delivery is configured, check your inbox for the code. You can also
             use &quot;Get new code&quot; below.
           </p>
-        )}
 
         <div
           style={{
