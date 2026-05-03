@@ -6,6 +6,7 @@ const sendEmail = require("../utils/email");
 const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
 const { verifyIdToken } = require("../utils/firebaseAdmin");
 const { otpEmail } = require("../utils/emailTemplates");
+const { welcomeSuccessEmail } = require("../utils/emailTemplates");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -511,10 +512,17 @@ exports.verifyEmailOtp = async (req, res) => {
     }
 
     // ✅ OTP VALID - Mark as verified
-    user.isVerified = true;
-    user.verificationCode = undefined;
-    user.verificationCodeExpires = undefined;
-    await user.save();
+user.isVerified = true;
+user.verificationCode = undefined;
+user.verificationCodeExpires = undefined;
+await user.save();
+
+// ✅ SEND WELCOME EMAIL (non-blocking)
+sendEmail({
+  to: user.email,
+  subject: "🎉 Welcome to TickiSpot!",
+  html: welcomeSuccessEmail(user.name),
+}).catch(err => console.error("Welcome email failed:", err));
 
     // Create JWT
     const token = signAuthToken(user);
