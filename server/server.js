@@ -20,13 +20,14 @@ const favoriteRoutes = require("./routes/favoriteRoutes");
 const postRoutes = require("./routes/postRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const billingRoutes = require("./routes/billingRoutes");
+const donationRoutes = require("./routes/donationRoutes");
 const { buildSocketServer } = require("./socket");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const DEFAULT_ALLOWED_ORIGINS = [
   FRONTEND_URL,
-  "http://localhost:5173",,
-  "https://tickispot.vercel.app",
+  "http://localhost:5173",
+  "https://tickispot.com",
 ];
 
 const EXTRA_ORIGINS = process.env.ALLOWED_ORIGINS
@@ -77,6 +78,7 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/donations", donationRoutes);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
