@@ -8,6 +8,8 @@ import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 
+
+
 const EVENT_FILTER_CHIPS = [
   { id: "all", label: "All" },
   { id: "music", label: "Music" },
