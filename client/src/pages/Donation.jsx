@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { X } from "lucide-react"; // Optional: for a close icon
 import API from "../api/axios";
 import "./CSS/landing.css";
 
@@ -14,7 +15,7 @@ export default function Donation() {
   });
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState(null); // 'success', 'error', or null
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     const statusParam = searchParams.get('status');
@@ -30,7 +31,7 @@ export default function Donation() {
     } else if (statusParam === 'failed') {
       setStatus({
         type: 'error',
-        message: 'Payment failed. Please try again or contact support if the issue persists.'
+        message: 'Payment failed. Please try again.'
       });
       setShowForm(true);
     }
@@ -45,78 +46,35 @@ export default function Donation() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Clear preset selection if custom amount is being entered
-    if (name === 'amount') {
-      setSelectedPreset(null);
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'amount') setSelectedPreset(null);
   };
 
   const handlePresetSelect = (amount) => {
     setSelectedPreset(amount);
-    setFormData(prev => ({
-      ...prev,
-      amount: amount.toString()
-    }));
-  };
-
-  const validateForm = () => {
-    if (!formData.name.trim()) return "Full name is required";
-    if (!formData.email.trim()) return "Email address is required";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) return "Please enter a valid email address";
-    if (!formData.amount || parseFloat(formData.amount) <= 0) return "Please enter a valid donation amount";
-    return null;
+    setFormData(prev => ({ ...prev, amount: amount.toString() }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const validationError = validateForm();
-    if (validationError) {
-      setStatus({ type: 'error', message: validationError });
-      return;
-    }
-
     setIsLoading(true);
-    setStatus(null);
-
     try {
       const response = await API.post('/donations', {
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        amount: parseFloat(formData.amount),
-        message: formData.message.trim()
+        ...formData,
+        amount: parseFloat(formData.amount)
       });
-
       if (response.data.success) {
-        // Redirect to Paystack payment page
         window.location.href = response.data.authorization_url;
-      } else {
-        setStatus({ type: 'error', message: 'Failed to initiate donation. Please try again.' });
       }
     } catch (error) {
-      console.error('Donation error:', error);
-      setStatus({
-        type: 'error',
-        message: error.response?.data?.message || 'An error occurred. Please try again.'
-      });
+      setStatus({ type: 'error', message: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      email: "",
-      amount: "",
-      message: ""
-    });
-    setSelectedPreset(null);
+  const closeModal = () => {
+    setShowForm(false);
     setStatus(null);
   };
 
@@ -124,382 +82,83 @@ export default function Donation() {
     <div className="landing-page">
       <div className="grid-background"></div>
 
-      <div
-        className="page-container"
-        style={{
-          paddingTop: "120px",
-          paddingBottom: "80px",
-          maxWidth: "1200px",
-          margin: "0 auto",
-          paddingLeft: "20px",
-          paddingRight: "20px",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
+      <div className="page-container" style={{ paddingTop: "120px", textAlign: "center" }}>
         <div className="section-header animate-in">
           <h1 className="section-title">
             <span className="title-box title-box-border">Support</span>
             <span className="title-box title-box-filled">Our Mission</span>
           </h1>
           <p className="section-subtitle">
-            TickiSpot is built to empower event creators. Your support helps us
-            improve, innovate, and keep the platform accessible to everyone.
+            Your support helps us improve, innovate, and keep the platform accessible.
           </p>
         </div>
 
-        {!showForm ? (
-          <div style={{ textAlign: "center", marginTop: "40px" }}>
-            {status?.type === 'success' ? (
-              <div
-                className="feature-card animate-in"
-                style={{
-                  maxWidth: "600px",
-                  margin: "0 auto",
-                  backgroundColor: "#d1fae5",
-                  borderColor: "#a7f3d0"
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <div style={{
-                    fontSize: "3rem",
-                    marginBottom: "16px",
-                    color: "#059669"
-                  }}>
-                    ✅
-                  </div>
-                  <h3 style={{
-                    fontSize: "1.5rem",
-                    fontWeight: "700",
-                    marginBottom: "8px",
-                    color: "#065f46"
-                  }}>
-                    Donation Successful!
-                  </h3>
-                  <p style={{
-                    color: "#047857",
-                    fontSize: "1rem",
-                    marginBottom: "16px"
-                  }}>
-                    {status.message}
-                  </p>
-                  {status.reference && (
-                    <p style={{
-                      fontSize: "0.9rem",
-                      color: "#065f46",
-                      fontFamily: "monospace",
-                      backgroundColor: "#ecfdf5",
-                      padding: "8px 12px",
-                      borderRadius: "4px",
-                      display: "inline-block"
-                    }}>
-                      Reference: {status.reference}
-                    </p>
-                  )}
-                  <div style={{ marginTop: "24px" }}>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => {
-                        setStatus(null);
-                        setShowForm(true);
-                      }}
-                      style={{ marginRight: "12px" }}
-                    >
-                      Make Another Donation
-                    </button>
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => window.location.href = '/'}
-                    >
-                      Back to Home
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <button
-                className="btn btn-primary"
-                onClick={() => setShowForm(true)}
-                style={{ fontSize: "1.1rem", padding: "1rem 2rem" }}
-              >
-                Donate Now
-              </button>
-            )}
+        {/* Success Message outside Modal */}
+        {status?.type === 'success' ? (
+          <div className="success-banner">
+             <p>✅ {status.message}</p>
+             <button className="btn btn-primary" onClick={() => setShowForm(true)}>Donate Again</button>
           </div>
         ) : (
-          <div
-            className="feature-card animate-in"
-            style={{
-              maxWidth: "600px",
-              margin: "40px auto 0",
-              transition: "all 0.3s ease"
-            }}
-          >
-            <div style={{ marginBottom: "24px" }}>
-              <h3 style={{
-                fontSize: "1.5rem",
-                fontWeight: "700",
-                marginBottom: "8px",
-                color: "#102038"
-              }}>
-                Make a Donation
-              </h3>
-              <p style={{
-                color: "#607089",
-                fontSize: "0.95rem",
-                marginBottom: "0"
-              }}>
-                Your contribution helps us build a better platform for event creators.
-              </p>
+          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginTop: "30px" }}>
+            Donate Now
+          </button>
+        )}
+      </div>
+
+      {/* --- PURE CSS MODAL SECTION --- */}
+      {showForm && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content animate-pop" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={closeModal}>&times;</button>
+            
+            <div className="modal-header">
+              <h3>Make a Donation</h3>
+              <p>Your contribution helps us build a better platform.</p>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* Full Name */}
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: "600",
-                  color: "#102038"
-                }}>
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid #ddd",
-                    fontSize: "16px",
-                    transition: "border-color 0.2s ease",
-                    outline: "none"
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = "#ec4899"}
-                  onBlur={(e) => e.target.style.borderColor = "#ddd"}
-                />
+            <form onSubmit={handleSubmit} className="donation-form">
+              <div className="input-group">
+                <label>Full Name *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
               </div>
 
-              {/* Email Address */}
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: "600",
-                  color: "#102038"
-                }}>
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid #ddd",
-                    fontSize: "16px",
-                    transition: "border-color 0.2s ease",
-                    outline: "none"
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = "#ec4899"}
-                  onBlur={(e) => e.target.style.borderColor = "#ddd"}
-                />
+              <div className="input-group">
+                <label>Email Address *</label>
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} required />
               </div>
 
-              {/* Donation Amount */}
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "12px",
-                  fontWeight: "600",
-                  color: "#102038"
-                }}>
-                  Donation Amount *
-                </label>
-
-                {/* Preset Amounts */}
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
-                  gap: "8px",
-                  marginBottom: "16px"
-                }}>
+              <div className="input-group">
+                <label>Donation Amount (₦) *</label>
+                <div className="preset-grid">
                   {presetAmounts.map((preset) => (
                     <button
                       key={preset.value}
                       type="button"
+                      className={selectedPreset === preset.value ? "preset-btn active" : "preset-btn"}
                       onClick={() => handlePresetSelect(preset.value)}
-                      style={{
-                        padding: "12px",
-                        borderRadius: "8px",
-                        border: selectedPreset === preset.value ? "2px solid #ec4899" : "1px solid #ddd",
-                        background: selectedPreset === preset.value ? "#fce7f3" : "#ffffff",
-                        color: selectedPreset === preset.value ? "#be185d" : "#102038",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        fontSize: "14px"
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedPreset !== preset.value) {
-                          e.target.style.borderColor = "#ec4899";
-                          e.target.style.backgroundColor = "#fce7f3";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedPreset !== preset.value) {
-                          e.target.style.borderColor = "#ddd";
-                          e.target.style.backgroundColor = "#ffffff";
-                        }
-                      }}
                     >
                       {preset.label}
                     </button>
                   ))}
                 </div>
-
-                {/* Custom Amount */}
-                <div>
-                  <label style={{
-                    display: "block",
-                    marginBottom: "8px",
-                    fontSize: "0.9rem",
-                    color: "#607089",
-                    fontWeight: "500"
-                  }}>
-                    Or enter custom amount (₦)
-                  </label>
-                  <input
-                    type="number"
-                    name="amount"
-                    placeholder="Enter amount"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    min="1"
-                    step="0.01"
-                    style={{
-                      width: "100%",
-                      padding: "12px 16px",
-                      borderRadius: "8px",
-                      border: "1px solid #ddd",
-                      fontSize: "16px",
-                      transition: "border-color 0.2s ease",
-                      outline: "none"
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#ec4899"}
-                    onBlur={(e) => e.target.style.borderColor = "#ddd"}
-                  />
-                </div>
+                <input type="number" name="amount" placeholder="Custom amount" value={formData.amount} onChange={handleInputChange} className="custom-amount-input" />
               </div>
 
-              {/* Optional Message */}
-              <div>
-                <label style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: "600",
-                  color: "#102038"
-                }}>
-                  Message (Optional)
-                </label>
-                <textarea
-                  name="message"
-                  placeholder="Leave a message of support..."
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  rows={3}
-                  maxLength={200}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    border: "1px solid #ddd",
-                    fontSize: "16px",
-                    resize: "vertical",
-                    transition: "border-color 0.2s ease",
-                    outline: "none"
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = "#ec4899"}
-                  onBlur={(e) => e.target.style.borderColor = "#ddd"}
-                />
-                <div style={{
-                  fontSize: "0.8rem",
-                  color: "#8b99ad",
-                  textAlign: "right",
-                  marginTop: "4px"
-                }}>
-                  {formData.message.length}/200
-                </div>
+              <div className="input-group">
+                <label>Message (Optional)</label>
+                <textarea name="message" value={formData.message} onChange={handleInputChange} rows={2} maxLength={200} />
               </div>
 
-              {/* Status Messages */}
-              {status && (
-                <div style={{
-                  padding: "12px 16px",
-                  borderRadius: "8px",
-                  backgroundColor: status.type === 'error' ? '#fee2e2' : '#d1fae5',
-                  border: `1px solid ${status.type === 'error' ? '#fecaca' : '#a7f3d0'}`,
-                  color: status.type === 'error' ? '#dc2626' : '#059669'
-                }}>
-                  {status.message}
-                </div>
-              )}
+              {status?.type === 'error' && <div className="error-msg">{status.message}</div>}
 
-              {/* Trust Text */}
-              <div style={{
-                textAlign: "center",
-                fontSize: "0.85rem",
-                color: "#8b99ad",
-                marginBottom: "8px"
-              }}>
-                🔒 Secure payments powered by Paystack
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isLoading}
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  opacity: isLoading ? 0.7 : 1,
-                  cursor: isLoading ? "not-allowed" : "pointer"
-                }}
-              >
+              <button type="submit" className="btn btn-primary full-width" disabled={isLoading}>
                 {isLoading ? "Processing..." : "Continue to Payment"}
-              </button>
-
-              {/* Back Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowForm(false);
-                  resetForm();
-                }}
-                className="btn btn-outline"
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  marginTop: "8px"
-                }}
-              >
-                Back
               </button>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
