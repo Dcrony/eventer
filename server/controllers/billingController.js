@@ -239,8 +239,19 @@ sendEmail({
     normalizedInterval,
     reference
   ),
+
 }).catch(err => console.error("Billing email failed:", err));
 
+sendEmail({
+  to: "no-reply@tickispot.com",
+  subject: "💰 New Subscription Payment",
+  html: `
+    <h3>New Billing Payment</h3>
+    <p>User: ${updatedUser.email}</p>
+    <p>Plan: ${normalizedPlan}</p>
+    <p>Amount: ₦${amount}</p>
+  `
+});
       return res.json({
         message: "Billing already verified",
         user: sanitizeUser(user),
