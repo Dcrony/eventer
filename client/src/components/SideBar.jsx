@@ -5,7 +5,7 @@ import CreateEvent from "../pages/CreateEvent";
 import NotificationBell from "./NotificationBell";
 import MessageIndicator from "./MessageIndicator";
 import "./css/sidebar.css";
-import icon from "../assets/icon.svg"
+import icon from "../assets/icon.svg";
 
 import {
   LayoutDashboard,
@@ -22,14 +22,14 @@ import {
   MessageSquare,
   Banknote,
   DollarSign,
+  MessageCircle,
 } from "lucide-react";
 
 export default function Sidebar() {
   const [user, setUser] = useState(null);
   const [expand, setexpand] = useState(false);
   const location = useLocation();
-  const [showCreateEvent, setShowCreateEvent] = useState(false); 
-  
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -45,11 +45,10 @@ export default function Sidebar() {
     localStorage.setItem("sidebarexpand", expand);
   }, [expand]);
 
-  // Keep shell padding in sync with sidebar width
   useEffect(() => {
     document.documentElement.style.setProperty(
       "--sidebar-width",
-      expand ? "15rem" : "4rem"
+      expand ? "15rem" : "5rem"
     );
     return () => {
       document.documentElement.style.removeProperty("--sidebar-width");
@@ -60,40 +59,35 @@ export default function Sidebar() {
 
   const isAdmin = user?.role === "admin" || user?.isAdmin === true;
   const isOranizer = user?.role === "organizer" || user?.isOrganizer === true;
-
   const canOrganize = isAdmin || isOranizer;
-
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
 
   const menuItems = [
-  ...(canOrganize
-    ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
-    : []),
-
-  { to: "/events", label: "Event", icon: <Calendar size={20} /> },
-
-  { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
-  { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
-  ...(canOrganize
-    ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
-    : []),
-  { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
-  { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
-
-  ...(canOrganize
-    ? [{
-        label: "Create",
-        icon: <PlusCircle size={20} />,
-        action: () => setShowCreateEvent(true),
-        primary: true,
-      }]
-    : []),
+    ...(canOrganize
+      ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
+      : []),
+    { to: "/events", label: "Events", icon: <Calendar size={20} /> },
+    { to: "/my-tickets", label: "My Tickets", icon: <Ticket size={20} /> },
+    { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
+    ...(canOrganize
+      ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
+      : []),
     
-...(isFreeUser 
-    ? [{ to: "/pricing", label: "Premium", icon: <DollarSign size={20} /> }] 
-    : []),
-
-];
+    ...(canOrganize
+      ? [{
+          label: "Create",
+          icon: <PlusCircle size={20} />,
+          action: () => setShowCreateEvent(true),
+          primary: true,
+        }]
+      : []),
+    { to: "/messages", label: "Messages", icon: <MessageCircle size={20} />, component: MessageIndicator },
+    { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
+    
+    ...(isFreeUser
+      ? [{ to: "/pricing", label: "Premium", icon: <DollarSign size={20} /> }]
+      : []),
+  ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
 
@@ -105,122 +99,78 @@ export default function Sidebar() {
 
   return (
     <>
-      <div
-        className={`sidebar h-screen transition-all duration-300 ${expand ? "expand" : ""
-          }`}
-      >
+      <aside className={`sidebar ${expand ? "expand" : ""}`}>
+        {/* HEADER: Fixed */}
         <div className="sidebar-top">
-          <Link to="/" className="sidebar-brand" aria-label="TickiSpot home">
-            <span className="sidebar-logo">
-              <img src={icon} alt="" />
-            </span>
+          <Link to="/" className="sidebar-brand">
+            <div className="sidebar-logo">
+              <img src={icon} alt="Logo" />
+            </div>
             {expand && <span className="sidebar-brand-text">TickiSpot</span>}
           </Link>
-
-          <button
-            onClick={() => setexpand(!expand)}
-            className="sidebar-collapse"
-            aria-label={expand ? "Collapse sidebar" : "Expand sidebar"}
-            type="button"
-          >
+          <button onClick={() => setexpand(!expand)} className="sidebar-collapse" aria-label="Toggle Sidebar">
             {expand ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
           </button>
         </div>
 
-        {/* Sidebar Links */}
-        <div className="sidebar-nav">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.to;
+        {/* MIDDLE: Scrollable */}
+        <div className="sidebar-content">
+          <nav className="sidebar-nav">
+            {menuItems.map((item, idx) => {
+              const isActive = location.pathname === item.to;
 
-            if (item.component) {
-              // Special component like MessageIndicator
-              const Component = item.component;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`sidebar-link ${isActive ? "is-active" : ""}`}
-                  data-tooltip={item.label}
-                >
-                  <span className="sidebar-link-icon">
-                    <Component />
-                  </span>
+              if (item.component) {
+                const Component = item.component;
+                return (
+                  <Link key={idx} to={item.to} className={`sidebar-link ${isActive ? "is-active" : ""}`} title={!expand ? item.label : ""}>
+                    <span className="sidebar-link-icon"><Component /></span>
+                    {expand && <span className="sidebar-link-text">{item.label}</span>}
+                  </Link>
+                );
+              }
+
+              return item.action ? (
+                <button key={idx} onClick={item.action} className={`sidebar-link ${item.primary ? "is-primary" : ""}`} title={!expand ? item.label : ""}>
+                  <span className="sidebar-link-icon">{item.icon}</span>
+                  {expand && <span className="sidebar-link-text">{item.label}</span>}
+                </button>
+              ) : (
+                <Link key={idx} to={item.to} className={`sidebar-link ${isActive ? "is-active" : ""}`} title={!expand ? item.label : ""}>
+                  <span className="sidebar-link-icon">{item.icon}</span>
                   {expand && <span className="sidebar-link-text">{item.label}</span>}
                 </Link>
               );
-            }
-
-            return item.action ? (
-              // ✅ Handle buttons like Create (not routes)
-              <button
-                key={item.label}
-                onClick={item.action}
-                className={`sidebar-link ${item.primary ? "is-primary" : ""}`}
-                data-tooltip={item.label}
-                type="button"
-              >
-                <span className="sidebar-link-icon">{item.icon}</span>
-                {expand && <span className="sidebar-link-text">{item.label}</span>}
-              </button>
-            ) : (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`sidebar-link ${isActive ? "is-active" : ""}`}
-                data-tooltip={item.label}
-              >
-                <span className="sidebar-link-icon">{item.icon}</span>
-                {expand && <span className="sidebar-link-text">{item.label}</span>}
-              </Link>
-            );
-          })}
+            })}
+          </nav>
         </div>
 
-        {/* Divider */}
-        <div className="sidebar-divider" />
-
-        {/* Bottom: Notifications first, then Profile, Settings, Logout */}
+        {/* FOOTER: Fixed */}
         <div className="sidebar-bottom">
-          <div className="sidebar-bottom-item" data-tooltip="Notifications">
-            <div className="relative">
-              <NotificationBell />
+          <div className="sidebar-bottom-nav">
+            <div className="sidebar-link notification-wrapper">
+               <NotificationBell />
+               {expand && <span className="sidebar-link-text">Notifications</span>}
             </div>
-          </div>
-          <Link
-            to={profileUrl}
-            className={`sidebar-link ${location.pathname === profileUrl ? "is-active" : ""}`}
-            data-tooltip="Profile"
-          >
-            <span className="sidebar-link-icon"><User size={20} /></span>
-            {expand && <span className="sidebar-link-text">Profile</span>}
-          </Link>
-          <Link
-            to="/settings"
-            className={`sidebar-link ${location.pathname === "/settings" ? "is-active" : ""}`}
-            data-tooltip="Settings"
-          >
-            <span className="sidebar-link-icon"><Settings size={20} /></span>
-            {expand && <span className="sidebar-link-text">Settings</span>}
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="sidebar-link is-logout"
-            data-tooltip="Logout"
-            type="button"
-          >
-            <span className="sidebar-link-icon">
-              <LogOut size={20} />
-            </span>
-            {expand && <span className="sidebar-link-text">Logout</span>}
-          </button>
-        </div>
-      </div>
 
-      {/* ✅ Create Event Modal */}
-      <CreateEvent
-        isOpen={showCreateEvent}
-        onClose={() => setShowCreateEvent(false)}
-      />
+            <Link to={profileUrl} className="sidebar-link" title={!expand ? "Profile" : ""}>
+              <span className="sidebar-link-icon"><User size={20} /></span>
+              {expand && <span className="sidebar-link-text">Profile</span>}
+            </Link>
+
+            <Link to="/settings" className="sidebar-link" title={!expand ? "Settings" : ""}>
+              <span className="sidebar-link-icon"><Settings size={20} /></span>
+              {expand && <span className="sidebar-link-text">Settings</span>}
+            </Link>
+
+            <button onClick={handleLogout} className="sidebar-link is-logout" title={!expand ? "Logout" : ""}>
+              <span className="sidebar-link-icon"><LogOut size={20} /></span>
+              {expand && <span className="sidebar-link-text">Logout</span>}
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
     </>
   );
 }
