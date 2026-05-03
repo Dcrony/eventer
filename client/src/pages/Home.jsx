@@ -8,7 +8,7 @@ import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import SEO from "../../public/SEO";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 
 
 
