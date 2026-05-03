@@ -7,6 +7,7 @@ import EventCardSkeleton from "../components/EventCardSkeleton";
 import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
+import SEO from "../../public/SEO";
 
 
 
@@ -104,6 +105,27 @@ export default function Home() {
 
   return (
     <div className="dashboard-page">
+      <SEO 
+        title="Discover Events | TickiSpot" 
+        description="Browse social-first experiences across music, tech, culture, and community."
+        url="https://tickispot.com/events"
+      />
+
+      {/* Structured Data for the Collection */}
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            "itemListElement": filteredEvents.slice(0, 10).map((event, index) => ({
+              "@type": "ListItem",
+              "position": index + 1,
+              "url": `https://tickispot.com/Eventdetail/${event._id || event.id}`
+            }))
+          })}
+        </script>
+      </Helmet>
+
       <div className="dashboard-container">
         <div className="events-page-intro">
           <div className="dashboard-title">Discover events</div>
