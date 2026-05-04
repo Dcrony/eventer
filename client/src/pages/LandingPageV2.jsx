@@ -244,11 +244,11 @@ export default function LandingPageV2() {
             )}
             <div className="lp2-hero-cta">
               {isLoggedIn ? (
-               
+
                 <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-          Create Event
-          <ArrowRight size={16} />
-        </button>
+                  Create Event
+                  <ArrowRight size={16} />
+                </button>
               ) : (
                 <Link to="/register" className="lp2-btn lp2-btn-primary">
                   Start Free
@@ -406,8 +406,8 @@ export default function LandingPageV2() {
                       <p>No events found for this selection.</p>
                       {isLoggedIn && (
                         <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-          Create Event
-        </button>
+                          Create Event
+                        </button>
                       )}
                     </div>
                   )}
@@ -476,10 +476,10 @@ export default function LandingPageV2() {
           </p>
           <div className="lp2-hero-cta">
             {isLoggedIn ? (
-               <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-          Create Event
-          <ArrowRight size={16} />
-        </button>
+              <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
+                Create Event
+                <ArrowRight size={16} />
+              </button>
             ) : (
               <Link to="/register" className="lp2-btn lp2-btn-primary">
                 Start Free Trial
@@ -550,9 +550,9 @@ export default function LandingPageV2() {
             <div className="lp2-footer-links">
               <h4>Product</h4>
               <Link to="/events">Events</Link>
-               <button onClick={openCreateEvent} className="font=size: 12px" >
-          Create Event
-        </button>
+              <button onClick={openCreateEvent} className="create" >
+                Create Event
+              </button>
               <Link to="/pricing">Pricing</Link>
               <Link to="/docs">Docs</Link>
             </div>

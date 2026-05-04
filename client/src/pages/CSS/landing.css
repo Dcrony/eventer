@@ -2211,6 +2211,14 @@ h3 {
   font-size: 0.87rem;
 }
 
+.lp2-footer-links .create{
+  display: block;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  margin-bottom: 0.3rem;
+}
+
 .lp2-footer-links a {
   display: block;
   text-decoration: none;
@@ -2220,7 +2228,8 @@ h3 {
 }
 
 .lp2-footer-links a:hover,
-.lp2-footer-social a:hover {
+.lp2-footer-social a:hover,
+.lp2-footer-links .create:hover {
   color: #fff;
 }
 
