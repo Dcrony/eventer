@@ -513,3 +513,89 @@
   color: #94a3b8;
   font-weight: 600;
 }
+
+/* ===============================
+   TICKI AI FLOATING CHAT STYLES
+   =============================== */
+
+.tickiai-wrapper {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+/* Floating Button */
+.tickiai-floating-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(236, 72, 153, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.tickiai-floating-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 15px 30px rgba(236, 72, 153, 0.5);
+}
+
+.tickiai-floating-btn.active {
+  background: #1e293b; /* Darker color when open to signify "Cancel/Close" */
+  transform: rotate(90deg);
+}
+
+/* Vertical Modal on the Right */
+.tickiai-modal {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  bottom: 100px; /* Leave space for the button */
+  width: 380px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1), 0 10px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(50px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+
+.tickiai-close-x {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+  .tickiai-modal {
+    width: calc(100vw - 40px);
+    bottom: 90px;
+  }
+  .tickiai-wrapper {
+    bottom: 1rem;
+    right: 1rem;
+  }
+}

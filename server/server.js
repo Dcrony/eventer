@@ -20,6 +20,7 @@ const favoriteRoutes = require("./routes/favoriteRoutes");
 const postRoutes = require("./routes/postRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const billingRoutes = require("./routes/billingRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 const donationRoutes = require("./routes/donationRoutes");
 const { buildSocketServer } = require("./socket");
 
@@ -78,6 +79,11 @@ app.use("/api/favorites", favoriteRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/ai", (req, res, next) => {
+  console.log("AI route hit:", req.method, req.url);
+  next();
+}, aiRoutes);
+
 app.use("/api/donations", donationRoutes);
 
 app.use((err, req, res, next) => {
