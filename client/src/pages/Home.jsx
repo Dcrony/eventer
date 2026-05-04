@@ -8,6 +8,8 @@ import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import TickiAIChat from "../components/TickiAIChat";
+import usePlanAccess from "../hooks/usePlanAccess";
+import { promptUpgrade } from "../utils/planAccess";
 
 import SEO from "../../public/SEO";
 import { Helmet } from "react-helmet-async";
@@ -60,6 +62,7 @@ const applyFilters = (items, searchTerm, filter, sortBy) => {
 };
 
 export default function Home() {
+  const canUseTickiAI = usePlanAccess("tickiai");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -131,7 +134,13 @@ export default function Home() {
     )}
 
     <button 
-      onClick={() => setShowAIGen(!showAIGen)}
+      onClick={() => {
+        if (!canUseTickiAI) {
+          promptUpgrade("TickiAI");
+          return;
+        }
+        setShowAIGen(!showAIGen);
+      }}
       className={`tickiai-floating-btn ${showAIGen ? 'active' : ''}`}
       title={showAIGen ? "Close Chat" : "Chat with TickiAI"}
     >

@@ -18,6 +18,8 @@ import {
 } from "recharts";
 import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
+import usePlanAccess from "../hooks/usePlanAccess";
+import { promptUpgrade } from "../utils/planAccess";
 import {
   formatCurrency,
   formatEventDate,
@@ -52,6 +54,7 @@ function EventThumb({ event }) {
 
 export default function PlatformAnalytics() {
   const user = getCurrentUser();
+  const canAccessAnalytics = usePlanAccess("analytics");
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,10 +63,15 @@ export default function PlatformAnalytics() {
     user?.role === "organizer" || user?.isOrganizer === true || user?.role === "admin";
 
   useEffect(() => {
+    if (!canAccessAnalytics) {
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       try {
         setLoading(true);
-        const { data } = await API.get("/stats/stats");
+        const { data } = await API.get("/analytics/overview");
         setStats(data);
         setError("");
       } catch (err) {
@@ -73,7 +81,7 @@ export default function PlatformAnalytics() {
       }
     };
     load();
-  }, []);
+  }, [canAccessAnalytics]);
 
   const organizerEvents = stats?.perEventStats || [];
   const attendeePurchases = stats?.attendee?.recentPurchases || [];
@@ -186,10 +194,24 @@ export default function PlatformAnalytics() {
           </p>
         </header>
 
-        {loading ? <div className="glass-panel analytics-state">Loading analytics…</div> : null}
-        {!loading && error ? <div className="glass-panel analytics-state is-error">{error}</div> : null}
+        {!canAccessAnalytics ? (
+          <div className="glass-panel analytics-state">
+            <h3>Upgrade to Pro to unlock advanced analytics</h3>
+            <p>Charts, revenue insights, and per-event performance are available during trial and on Pro.</p>
+            <button
+              type="button"
+              className="analytics-btn analytics-btn--primary"
+              onClick={() => promptUpgrade("analytics")}
+            >
+              Upgrade to Pro
+            </button>
+          </div>
+        ) : null}
 
-        {!loading && !error && stats ? (
+        {loading ? <div className="glass-panel analytics-state">Loading analytics…</div> : null}
+        {canAccessAnalytics && !loading && error ? <div className="glass-panel analytics-state is-error">{error}</div> : null}
+
+        {canAccessAnalytics && !loading && !error && stats ? (
           <>
             <section className="analytics-section">
               <h2 className="analytics-section-title">

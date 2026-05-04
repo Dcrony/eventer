@@ -20,6 +20,8 @@ import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { MoreVertical } from "lucide-react";
+import usePlanAccess from "../hooks/usePlanAccess";
+import { promptUpgrade } from "../utils/planAccess";
 
 
 export default function Dashboard() {
@@ -38,6 +40,8 @@ export default function Dashboard() {
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
     const [openMenuId, setOpenMenuId] = useState(null);
+  const canAccessAnalytics = usePlanAccess("analytics");
+  const canAccessLiveStreaming = usePlanAccess("live_stream");
 
 
   
@@ -92,6 +96,11 @@ export default function Dashboard() {
   
   // 🟢 Toggle Live Event
   const toggleLive = async (id, currentStatus) => {
+    if (!canAccessLiveStreaming) {
+      promptUpgrade("live streaming");
+      return;
+    }
+
     try {
       await API.patch("/events/toggle-live", {
         eventId: id,
@@ -383,13 +392,26 @@ export default function Dashboard() {
           Edit
         </button>
 
-        <Link
-          to={`/events/${event._id}/analytics`}
-          className="menu-item"
-          onClick={() => setOpenMenuId(null)}
-        >
-          Analytics
-        </Link>
+        {canAccessAnalytics ? (
+          <Link
+            to={`/events/${event._id}/analytics`}
+            className="menu-item"
+            onClick={() => setOpenMenuId(null)}
+          >
+            Analytics
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => {
+              setOpenMenuId(null);
+              promptUpgrade("analytics");
+            }}
+          >
+            Analytics
+          </button>
+        )}
 
         <div className="menu-divider" />
 

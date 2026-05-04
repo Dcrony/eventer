@@ -7,6 +7,8 @@ import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg";
 import { validateImageFile } from "../utils/imageUpload";
 import TickiAIGenerator from "../components/TickiAiGenerator";
+import usePlanAccess from "../hooks/usePlanAccess";
+import { promptUpgrade } from "../utils/planAccess";
 
 const eventTypes = [
   {
@@ -31,6 +33,7 @@ const eventTypes = [
 
 export default function CreateEvent({ isOpen, onClose }) {
   const toast = useToast();
+  const canUseTickiAI = usePlanAccess("tickiai");
   const [submitting, setSubmitting] = useState(false);
   const [isFreeEvent, setIsFreeEvent] = useState(false);
   const [showAIGen, setShowAIGen] = useState(false);
@@ -196,7 +199,13 @@ const handleAIGeneration = (aiData) => {
       {/* AI Toggle Button - Now styled as a prominent action */}
         <button 
           type="button"
-          onClick={() => setShowAIGen(!showAIGen)}
+          onClick={() => {
+            if (!canUseTickiAI) {
+              promptUpgrade("TickiAI");
+              return;
+            }
+            setShowAIGen(!showAIGen);
+          }}
           className={`ai-magic-btn ${showAIGen ? 'active' : ''}`}
         >
           {showAIGen ? "✨ Close AI Assistant" : "✨ Generate with TickiAI"}

@@ -1,237 +1,174 @@
-import React, { useEffect, useState } from "react";
-import { CheckCircle2, ArrowRight, Zap, ShieldCheck, Building2, History, CreditCard, LayoutGrid } from "lucide-react";
-import { getBillingHistory, getCurrentPlan, initializeBilling } from "../services/api/billing";
+import { Check, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getCurrentPlan, initializeBilling } from "../services/api/billing";
 import { useToast } from "../components/ui/toast";
-import Badge from "../components/ui/badge"; // Ensure this matches your Badge component path
-// import "./CSS/pricing.css"; // Ensure this file contains the CSS provided below
+import { useAuth } from "../context/AuthContext";
+import { getTrialDaysRemaining, isTrialActive, normalizePlan } from "../utils/planAccess";
+import "./CSS/Pricing.css";
 
-const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
+const FEATURE_ROWS = [
+  ["Create events", "Yes", "Yes"],
+  ["Sell tickets", "Yes", "Yes"],
+  ["Basic dashboard", "Yes", "Yes"],
+  ["Email notifications", "Yes", "Yes"],
+  ["Attendee limits", "Limited", "Expanded"],
+  ["TickiAI", "No", "Yes"],
+  ["Advanced analytics", "No", "Yes"],
+  ["Live streaming", "No", "Yes"],
+  ["Private events", "No", "Yes"],
+  ["Team members and roles", "No", "Yes"],
+  ["Custom branding", "No", "Yes"],
+  ["Priority payouts", "No", "Yes"],
+];
 
 export default function Pricing() {
   const toast = useToast();
-  const [billingCycle, setBillingCycle] = useState("monthly");
+  const { user, isAuthenticated } = useAuth();
   const [currentPlan, setCurrentPlan] = useState("free");
-  const [billingState, setBillingState] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("plans");
-  const [upgradingPlan, setUpgradingPlan] = useState("");
+  const [loadingUpgrade, setLoadingUpgrade] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadPlan = async () => {
+      if (!isAuthenticated) return;
       try {
-        const [planRes, historyRes] = await Promise.all([
-          getCurrentPlan(),
-          getBillingHistory(),
-        ]);
-        setCurrentPlan(String(planRes.data.plan || "free").toLowerCase());
-        setBillingState(planRes.data);
-        setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-      } catch (err) {
-        // Fallback for unauthenticated or loading states
+        const { data } = await getCurrentPlan();
+        setCurrentPlan(normalizePlan(data?.plan || user?.plan));
+      } catch {
+        setCurrentPlan(normalizePlan(user?.plan));
       }
     };
-    loadData();
-  }, []);
 
-  const plans = [
-    {
-      id: "free",
-      name: "Free",
-      icon: <Zap size={20} />,
-      description: "For small local meetups and social gatherings.",
-      price: { monthly: 0, yearly: 0 },
-      features: ["Unlimited events", "Standard visibility", "Core ticketing", "Community support"],
-      cta: "Get Started",
-      highlight: false,
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      icon: <ShieldCheck size={20} />,
-      description: "For professional organizers who need scale.",
-      badge: "Most Popular",
-      price: { monthly: 4999, yearly: 49990 },
-      features: ["Unlimited events", "Full analytics", "Featured discovery", "Priority support"],
-      cta: "Upgrade to Pro",
-      highlight: true,
-    },
-    {
-      id: "business",
-      name: "Business",
-      icon: <Building2 size={20} />,
-      description: "Custom tools for large-scale production.",
-      price: { monthly: "Custom", yearly: "Custom" },
-      features: ["White-label branding", "Success manager", "Custom contracts", "Advanced API"],
-      cta: "Contact Sales",
-      highlight: false,
-    },
-  ];
+    loadPlan();
+  }, [isAuthenticated, user?.plan]);
 
-  const handleUpgrade = async (planId) => {
-    if (planId === "business") {
-      toast.info("Please contact sales for Business onboarding.");
+  const handleUpgrade = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/register";
       return;
     }
 
     try {
-      setUpgradingPlan(planId);
-      const response = await initializeBilling({ plan: planId, interval: billingCycle });
+      setLoadingUpgrade(true);
+      const response = await initializeBilling({ plan: "pro", interval: "monthly" });
       if (response.data?.authorization_url) {
         window.location.href = response.data.authorization_url;
+      } else {
+        toast.error("Could not start the upgrade flow.");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Please login to upgrade.");
+      toast.error(error.response?.data?.message || "Could not start the upgrade flow.");
     } finally {
-      setUpgradingPlan("");
+      setLoadingUpgrade(false);
     }
   };
 
+  const trialDaysRemaining = getTrialDaysRemaining(user);
+  const trialActive = isTrialActive(user);
+
   return (
-    <div className="pricing-page-container">
-      <div className="pricing-bg-gradient" />
-      
-      <div className="pricing-content">
-        <header className="pricing-header">
-          <div className="badge-wrapper">
-            <Badge className="pricing-top-tag">Flexible Pricing</Badge>
+    <div className="pricing-shell">
+      <div className="pricing-hero">
+        <div className="pricing-badge">
+          <Sparkles size={14} />
+          14-day free trial
+        </div>
+        <h1>Simple pricing for growing event organizers</h1>
+        <p>
+          Start on a useful free plan, then unlock TickiAI, streaming, analytics, and private
+          events when you are ready to scale.
+        </p>
+        {trialActive ? (
+          <div className="pricing-status">
+            Your trial is active for {trialDaysRemaining} more day{trialDaysRemaining === 1 ? "" : "s"}.
           </div>
-          <h1 className="pricing-title">
-            Simple plans for <span className="text-gradient">every creator.</span>
-          </h1>
-          <p className="pricing-subtitle">
-            No hidden fees. Switch plans or cancel your subscription at any time.
-          </p>
-
-          <div className="billing-switcher">
-            <span className={billingCycle === "monthly" ? "active" : ""}>Monthly</span>
-            <button 
-              className={`toggle-pill ${billingCycle}`}
-              onClick={() => setBillingCycle(b => b === "monthly" ? "yearly" : "monthly")}
-            >
-              <div className="toggle-knob" />
-            </button>
-            <span className={billingCycle === "yearly" ? "active" : ""}>
-              Yearly <span className="discount-tag">Save 17%</span>
-            </span>
-          </div>
-
-          <nav className="pricing-tabs">
-            <button className={activeTab === "plans" ? "active" : ""} onClick={() => setActiveTab("plans")}>
-              <LayoutGrid size={16} /> Plans
-            </button>
-            <button className={activeTab === "billing" ? "active" : ""} onClick={() => setActiveTab("billing")}>
-              <CreditCard size={16} /> Billing
-            </button>
-            <button className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}>
-              <History size={16} /> History
-            </button>
-          </nav>
-        </header>
-
-        {activeTab === "plans" && (
-          <div className="pricing-grid">
-            {plans.map((plan) => {
-              const isCurrent = currentPlan === plan.id;
-              const isProcessing = upgradingPlan === plan.id;
-              const priceValue = billingCycle === "yearly" ? plan.price.yearly : plan.price.monthly;
-
-              return (
-                <div key={plan.id} className={`pricing-card ${plan.highlight ? "featured" : ""}`}>
-                  {plan.badge && <div className="card-popular-tag">{plan.badge}</div>}
-                  <div className="card-icon">{plan.icon}</div>
-                  <h3 className="card-name">{plan.name}</h3>
-                  <p className="card-desc">{plan.description}</p>
-                  
-                  <div className="card-price">
-                    {typeof priceValue === "number" ? (
-                      <>
-                        <span className="currency">₦</span>
-                        <span className="amount">{priceValue.toLocaleString()}</span>
-                        <span className="period">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
-                      </>
-                    ) : (
-                      <span className="amount-custom">Custom</span>
-                    )}
-                  </div>
-
-                  <ul className="card-features">
-                    {plan.features.map((feature, i) => (
-                      <li key={i}><CheckCircle2 size={18} /> {feature}</li>
-                    ))}
-                  </ul>
-
-                  <button
-                    className={`card-button ${plan.highlight ? "btn-primary" : "btn-secondary"}`}
-                    disabled={isCurrent || isProcessing}
-                    onClick={() => handleUpgrade(plan.id)}
-                  >
-                    {isProcessing ? "Processing..." : isCurrent ? "Active Plan" : plan.cta}
-                    {!isCurrent && !isProcessing && <ArrowRight size={16} />}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {activeTab === "billing" && (
-          <div className="info-card-container">
-            <div className="info-card">
-              <h3>Subscription Details</h3>
-              <div className="info-row">
-                <span>Current Plan</span>
-                <strong className="capitalize">{billingState?.billing?.plan || "Free"}</strong>
-              </div>
-              <div className="info-row">
-                <span>Status</span>
-                <span className={`status-badge ${billingState?.subscription?.status || "inactive"}`}>
-                  {billingState?.subscription?.status || "Inactive"}
-                </span>
-              </div>
-              <div className="info-row">
-                <span>Next Invoice Date</span>
-                <strong>
-                  {billingState?.subscription?.nextBillingDate 
-                    ? new Date(billingState.subscription.nextBillingDate).toLocaleDateString() 
-                    : "Not applicable"}
-                </strong>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === "history" && (
-          <div className="info-card-container">
-            <div className="info-card">
-              <h3>Payment History</h3>
-              {history.length > 0 ? (
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Plan</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((item, i) => (
-                      <tr key={i}>
-                        <td>{new Date(item.createdAt).toLocaleDateString()}</td>
-                        <td className="capitalize">{item.plan}</td>
-                        <td>{formatMoney(item.amount)}</td>
-                        <td><span className={`status-badge ${item.status?.toLowerCase()}`}>{item.status}</span></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="muted text-center py-4">No recent transactions found.</p>
-              )}
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
+
+      <section className="pricing-cards">
+        <article className="pricing-plan-card">
+          <div className="pricing-plan-head">
+            <span className="pricing-plan-label">Free</span>
+            <h2>N0</h2>
+            <p>For early organizers validating demand and running lean events.</p>
+          </div>
+          <ul className="pricing-plan-list">
+            <li><Check size={16} /> Create and publish events</li>
+            <li><Check size={16} /> Sell tickets and send email notifications</li>
+            <li><Check size={16} /> Access the basic dashboard</li>
+            <li><Check size={16} /> Keep using TickiSpot with no card required</li>
+          </ul>
+          <Link className="pricing-secondary-btn" to={isAuthenticated ? "/events" : "/register"}>
+            Start Free Trial
+          </Link>
+        </article>
+
+        <article className="pricing-plan-card pricing-plan-card--featured">
+          <div className="pricing-plan-ribbon">Most popular</div>
+          <div className="pricing-plan-head">
+            <span className="pricing-plan-label">Pro</span>
+            <h2>N4,999<span>/month</span></h2>
+            <p>For production-ready teams that want premium growth tools and deeper control.</p>
+          </div>
+          <ul className="pricing-plan-list">
+            <li><Check size={16} /> TickiAI for event generation and concierge help</li>
+            <li><Check size={16} /> Advanced analytics and revenue insights</li>
+            <li><Check size={16} /> Live streaming, private events, and team roles</li>
+            <li><Check size={16} /> Custom branding and priority payouts</li>
+          </ul>
+          <button
+            type="button"
+            className="pricing-primary-btn"
+            onClick={handleUpgrade}
+            disabled={loadingUpgrade || currentPlan === "pro"}
+          >
+            {currentPlan === "pro" ? "Current Plan" : loadingUpgrade ? "Processing..." : "Upgrade to Pro"}
+          </button>
+        </article>
+      </section>
+
+      <section className="pricing-comparison">
+        <div className="pricing-section-head">
+          <h3>Feature comparison</h3>
+          <p>Everything you need to understand what stays free and what scales with Pro.</p>
+        </div>
+
+        <div className="pricing-table-wrap">
+          <table className="pricing-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Free</th>
+                <th>Pro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FEATURE_ROWS.map(([feature, freeValue, proValue]) => (
+                <tr key={feature}>
+                  <td>{feature}</td>
+                  <td>{freeValue}</td>
+                  <td>{proValue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="pricing-cta">
+        <div>
+          <h3>Start free, upgrade when the workflow proves itself</h3>
+          <p>The trial opens every Pro feature for 14 days, so your team can test before paying.</p>
+        </div>
+        <div className="pricing-cta-actions">
+          <Link className="pricing-secondary-btn" to={isAuthenticated ? "/billing" : "/register"}>
+            {isAuthenticated ? "View Billing" : "Start Free Trial"}
+          </Link>
+          <button type="button" className="pricing-primary-btn" onClick={handleUpgrade} disabled={loadingUpgrade}>
+            Upgrade to Pro
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
