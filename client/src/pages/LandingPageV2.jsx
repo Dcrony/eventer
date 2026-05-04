@@ -569,7 +569,7 @@ export default function LandingPageV2() {
               <h4>Legal</h4>
               <Link to="/privacy">Privacy</Link>
               <Link to="/terms">Terms</Link>
-              <Link to="/donate">Donate</Link>
+              <Link to="/donation">Donate</Link>
             </div>
           </div>
           <div className="lp2-footer-bottom">
