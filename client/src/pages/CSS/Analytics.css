@@ -436,3 +436,81 @@
     padding: 0.45rem 0.4rem 0.2rem;
   }
 }
+
+
+/* Freemium Blur Styles */
+.blurred-metric {
+  position: relative;
+  overflow: hidden;
+}
+
+.blur-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10;
+  border-radius: 16px;
+  text-align: center;
+  padding: 1rem;
+}
+
+.blur-overlay span {
+  font-weight: 700;
+  color: #6b21a8;
+}
+
+.upgrade-link {
+  margin-top: 8px;
+  color: #ec4899;
+  font-weight: 600;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.pro-teaser-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: linear-gradient(135deg, #f3e8ff, #e0f2fe);
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #c4b5fd;
+}
+
+.upgrade-btn {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  border: none;
+  padding: 0.65rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.upgrade-btn.large {
+  padding: 0.85rem 1.8rem;
+  font-size: 1.05rem;
+}
+
+.blurred-charts-container,
+.blurred-table {
+  position: relative;
+  min-height: 420px;
+  border: 2px dashed #e2e8f0;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.center {
+  justify-content: center;
+}

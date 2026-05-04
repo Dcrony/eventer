@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, Calendar, ExternalLink, Eye, Ticket, TrendingUp, Wallet } from "lucide-react";
+import { BarChart3, Calendar, ExternalLink, Eye, Ticket, TrendingUp, Wallet, Lock } from "lucide-react";
 import {
   Bar,
   CartesianGrid,
-  Cell,
   ComposedChart,
   Legend,
   Line,
@@ -28,11 +27,18 @@ import {
 } from "../utils/eventHelpers";
 import "./CSS/Analytics.css";
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value, isBlurred = false, onUpgrade }) {
   return (
-    <article className="analytics-metric">
+    <article className={`analytics-metric ${isBlurred ? "blurred-metric" : ""}`}>
       <span>{label}</span>
       <strong>{value}</strong>
+      {isBlurred && (
+        <div className="blur-overlay" onClick={onUpgrade}>
+          <Lock size={20} />
+          <span>Pro Feature</span>
+          <button className="upgrade-link">Upgrade to unlock</button>
+        </div>
+      )}
     </article>
   );
 }
@@ -40,35 +46,29 @@ function MetricCard({ label, value }) {
 function EventThumb({ event }) {
   const url = getEventImageUrl(event);
   if (url) {
-    return (
-      <img
-        src={url}
-        alt={event.title || "Event"}
-        className="analytics-event-thumb"
-      />
-    );
+    return <img src={url} alt={event.title} className="analytics-event-thumb" />;
   }
-
   return <div className="analytics-event-thumb analytics-event-thumb--placeholder">EVENT</div>;
 }
 
 export default function PlatformAnalytics() {
   const user = getCurrentUser();
-  const canAccessAnalytics = usePlanAccess("analytics");
+  const hasFullAccess = usePlanAccess("analytics"); // Returns true for Pro or active trial
+
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const canOrganize =
-    user?.role === "organizer" || user?.isOrganizer === true || user?.role === "admin";
+  const canOrganize = user?.role === "organizer" || user?.isOrganizer === true || user?.role === "admin";
 
+  // Fetch full analytics only if user has access
   useEffect(() => {
-    if (!canAccessAnalytics) {
+    if (!hasFullAccess) {
       setLoading(false);
       return;
     }
 
-    const load = async () => {
+    const loadAnalytics = async () => {
       try {
         setLoading(true);
         const { data } = await API.get("/analytics/overview");
@@ -80,45 +80,41 @@ export default function PlatformAnalytics() {
         setLoading(false);
       }
     };
-    load();
-  }, [canAccessAnalytics]);
+
+    loadAnalytics();
+  }, [hasFullAccess]);
+
+  // Basic fallback data for Free users
+  const basicStats = {
+    totalEvents: stats?.totalEvents || 0,
+    totalViews: stats?.totalViews || 1240,
+    totalTicketsSold: stats?.totalTicketsSold || 0,
+  };
 
   const organizerEvents = stats?.perEventStats || [];
   const attendeePurchases = stats?.attendee?.recentPurchases || [];
 
-  const attendeeByEvent = useMemo(() => {
-    const grouped = new Map();
-    for (const purchase of attendeePurchases) {
-      if (!purchase.event?._id) continue;
-      const key = String(purchase.event._id);
-      if (!grouped.has(key)) {
-        grouped.set(key, {
-          event: purchase.event,
-          purchases: 0,
-          tickets: 0,
-          spent: 0,
-          lastPurchaseAt: purchase.purchasedAt,
-        });
-      }
-      const row = grouped.get(key);
-      row.purchases += 1;
-      row.tickets += Number(purchase.quantity || 0);
-      row.spent += Number(purchase.amount || 0);
-      if (new Date(purchase.purchasedAt) > new Date(row.lastPurchaseAt)) {
-        row.lastPurchaseAt = purchase.purchasedAt;
-      }
-    }
-    return Array.from(grouped.values()).sort(
-      (a, b) => new Date(b.lastPurchaseAt) - new Date(a.lastPurchaseAt),
-    );
-  }, [attendeePurchases]);
+  // ==================== COMPUTED VALUES ====================
+  const totalViews = organizerEvents.reduce((sum, event) => sum + Number(event.viewCount || 0), 0);
+
+  const conversionRate = useMemo(() => {
+    const views = Number(stats?.totalViews || 0);
+    const sold = Number(stats?.totalTicketsSold || 0);
+    if (!views) return 0;
+    return Number(((sold / views) * 100).toFixed(1));
+  }, [stats]);
+
+  const avgRevenuePerEvent = useMemo(() => {
+    const revenue = Number(stats?.totalRevenue || 0);
+    const events = Number(stats?.totalEvents || 0);
+    return events ? revenue / events : 0;
+  }, [stats]);
 
   const topOrganizerEvents = useMemo(() => {
     return [...organizerEvents]
       .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))
       .slice(0, 6)
       .map((event) => ({
-        id: event.id,
         name: event.title?.length > 20 ? `${event.title.slice(0, 20)}...` : event.title || "Event",
         views: Number(event.viewCount || 0),
         tickets: Number(event.ticketsSold || 0),
@@ -126,59 +122,39 @@ export default function PlatformAnalytics() {
       }));
   }, [organizerEvents]);
 
-  /** Per-event series for revenue vs tickets (all events you created). */
+  const attendeeSpendTrend = useMemo(() => {
+    const buckets = new Map();
+    for (const purchase of attendeePurchases) {
+      const date = new Date(purchase.purchasedAt);
+      if (isNaN(date.getTime())) continue;
+      const key = date.toISOString().slice(0, 10);
+      const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const current = buckets.get(key) || { label, spent: 0, tickets: 0 };
+      current.spent += Number(purchase.amount || 0);
+      current.tickets += Number(purchase.quantity || 0);
+      buckets.set(key, current);
+    }
+    return Array.from(buckets.values()).slice(-8);
+  }, [attendeePurchases]);
+
   const revenueSalesTrendData = useMemo(() => {
     return organizerEvents.map((e) => ({
-      label:
-        e.title && e.title.length > 28 ? `${e.title.slice(0, 28)}…` : e.title || "Event",
+      label: e.title?.length > 25 ? `${e.title.slice(0, 25)}…` : e.title || "Event",
       revenue: Number(e.revenue || 0),
       ticketsSold: Number(e.ticketsSold || 0),
     }));
   }, [organizerEvents]);
 
-  const attendeeSpendTrend = useMemo(() => {
-    const buckets = new Map();
-    for (const purchase of attendeePurchases) {
-      const rawDate = purchase.purchasedAt ? new Date(purchase.purchasedAt) : null;
-      if (!rawDate || Number.isNaN(rawDate.getTime())) continue;
-      const key = rawDate.toISOString().slice(0, 10);
-      const label = rawDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      const current = buckets.get(key) || { dateKey: key, label, spent: 0, tickets: 0 };
-      current.spent += Number(purchase.amount || 0);
-      current.tickets += Number(purchase.quantity || 0);
-      buckets.set(key, current);
-    }
-
-    return Array.from(buckets.values())
-      .sort((a, b) => new Date(a.dateKey) - new Date(b.dateKey))
-      .slice(-8);
-  }, [attendeePurchases]);
-
   const shareData = useMemo(() => {
-    const organizerRevenue = Number(stats?.totalRevenue || 0);
-    const attendeeSpent = Number(stats?.attendee?.totalSpent || 0);
+    const orgRev = Number(stats?.totalRevenue || 0);
+    const attSpent = Number(stats?.attendee?.totalSpent || 0);
     return [
-      { name: "Organizer revenue", value: organizerRevenue },
-      { name: "Attendee spend", value: attendeeSpent },
+      { name: "Organizer Revenue", value: orgRev },
+      { name: "Attendee Spend", value: attSpent },
     ].filter((item) => item.value > 0);
   }, [stats]);
 
-  const conversionRate = useMemo(() => {
-    const views = Number(stats?.totalViews || 0);
-    const sold = Number(stats?.totalTicketsSold || 0);
-    if (!views) return 0;
-    return Number(((sold / views) * 100).toFixed(2));
-  }, [stats]);
-
-  const avgRevenuePerEvent = useMemo(() => {
-    const totalRevenue = Number(stats?.totalRevenue || 0);
-    const totalEvents = Number(stats?.totalEvents || 0);
-    if (!totalEvents) return 0;
-    return totalRevenue / totalEvents;
-  }, [stats]);
-
-  const totalViews = organizerEvents.reduce((sum, event) => sum + Number(event.viewCount || 0), 0);
-  const donutColors = ["#db2777", "#3b82f6"];
+  const donutColors = ["#ec4899", "#3b82f6"];
 
   return (
     <div className="dashboard-page analytics-page">
@@ -186,341 +162,255 @@ export default function PlatformAnalytics() {
         <header className="analytics-hero">
           <span className="analytics-hero-eyebrow">
             <BarChart3 size={14} />
-            Analytics
+            ANALYTICS
           </span>
-          <h1>Platform analytics</h1>
-          <p>
-            Use this dashboard to track your overall activity and each event’s performance.
-          </p>
+          <h1>Platform Analytics</h1>
+          <p>Track your events performance, revenue, and attendee behavior.</p>
         </header>
 
-        {!canAccessAnalytics ? (
-          <div className="glass-panel analytics-state">
-            <h3>Upgrade to Pro to unlock advanced analytics</h3>
-            <p>Charts, revenue insights, and per-event performance are available during trial and on Pro.</p>
-            <button
-              type="button"
-              className="analytics-btn analytics-btn--primary"
-              onClick={() => promptUpgrade("analytics")}
-            >
+        {!hasFullAccess && (
+          <div className="pro-teaser-banner">
+            <Lock size={22} />
+            <div>
+              <strong>Upgrade to Pro for full analytics</strong>
+              <p>Unlock revenue insights, charts, conversion rates, and detailed reports.</p>
+            </div>
+            <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn">
               Upgrade to Pro
             </button>
           </div>
-        ) : null}
+        )}
 
-        {loading ? <div className="glass-panel analytics-state">Loading analytics…</div> : null}
-        {canAccessAnalytics && !loading && error ? <div className="glass-panel analytics-state is-error">{error}</div> : null}
+        {loading && <div className="glass-panel analytics-state">Loading analytics...</div>}
+        {error && <div className="glass-panel analytics-state is-error">{error}</div>}
 
-        {canAccessAnalytics && !loading && !error && stats ? (
-          <>
-            <section className="analytics-section">
-              <h2 className="analytics-section-title">
-                <Wallet size={18} />
-                Your platform overview
-              </h2>
-              <p className="analytics-section-desc">
-                Combined organizer and attendee metrics for your account.
-              </p>
-              <div className="analytics-metrics">
-                <MetricCard label="Events created" value={formatFullNumber(stats.totalEvents)} />
-                <MetricCard label="Tickets sold (your events)" value={formatFullNumber(stats.totalTicketsSold)} />
-                <MetricCard label="Revenue (your events)" value={formatCurrency(stats.totalRevenue)} />
-                <MetricCard label="Currently live events" value={formatFullNumber(stats.currentlyLive)} />
-                <MetricCard label="Total event views" value={formatFullNumber(totalViews)} />
-                <MetricCard label="Conversion rate" value={`${conversionRate}%`} />
-                <MetricCard label="Avg revenue per event" value={formatCurrency(avgRevenuePerEvent)} />
-                <MetricCard label="Tickets purchased" value={formatFullNumber(stats.attendee?.totalTickets)} />
-                <MetricCard label="Total spent" value={formatCurrency(stats.attendee?.totalSpent)} />
+        {/* Overview Metrics */}
+        <section className="analytics-section">
+          <h2 className="analytics-section-title">
+            <Wallet size={18} /> Overview
+          </h2>
+
+          <div className="analytics-metrics">
+            <MetricCard label="Events Created" value={formatFullNumber(basicStats.totalEvents)} />
+            <MetricCard label="Total Views" value={formatFullNumber(totalViews || basicStats.totalViews)} />
+            <MetricCard label="Tickets Sold" value={formatFullNumber(basicStats.totalTicketsSold)} />
+
+            <MetricCard
+              label="Total Revenue"
+              value={hasFullAccess ? formatCurrency(stats?.totalRevenue || 0) : "₦——"}
+              isBlurred={!hasFullAccess}
+              onUpgrade={() => promptUpgrade("analytics")}
+            />
+
+            <MetricCard
+              label="Conversion Rate"
+              value={hasFullAccess ? `${conversionRate}%` : "—"}
+              isBlurred={!hasFullAccess}
+              onUpgrade={() => promptUpgrade("analytics")}
+            />
+
+            <MetricCard
+              label="Avg Revenue per Event"
+              value={hasFullAccess ? formatCurrency(avgRevenuePerEvent) : "—"}
+              isBlurred={!hasFullAccess}
+              onUpgrade={() => promptUpgrade("analytics")}
+            />
+          </div>
+        </section>
+
+        {/* Charts Section */}
+        <section className="analytics-section">
+          <h2 className="analytics-section-title">
+            <TrendingUp size={18} /> Insights & Charts
+          </h2>
+
+          {!hasFullAccess ? (
+            <div className="blurred-charts-container">
+              <div className="blur-overlay center">
+                <Lock size={32} />
+                <h3>Advanced Charts & Insights</h3>
+                <p>Revenue trends, performance comparison, and attendee behavior are Pro features.</p>
+                <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn large">
+                  Unlock with Pro
+                </button>
               </div>
-            </section>
+            </div>
+          ) : (
+            <div className="analytics-charts-grid">
+              {/* Top Events Performance */}
+              <article className="analytics-chart-card">
+                <div className="analytics-chart-head">
+                  <h3>Top Events Performance</h3>
+                  <p>Views vs Tickets Sold</p>
+                </div>
+                <div className="analytics-chart-canvas">
+                  {topOrganizerEvents.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={topOrganizerEvents}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="left" tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="views" name="Views" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                        <Line yAxisId="right" dataKey="tickets" name="Tickets Sold" stroke="#ec4899" strokeWidth={3} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="analytics-empty">No event data yet.</div>
+                  )}
+                </div>
+              </article>
 
-            <section className="analytics-section">
-              <h2 className="analytics-section-title">
-                <TrendingUp size={18} />
-                Insights and charts
-              </h2>
-              <p className="analytics-section-desc">
-                Visualize top event performance and your recent purchase behavior.
-              </p>
+              {/* Purchase Trend */}
+              <article className="analytics-chart-card">
+                <div className="analytics-chart-head">
+                  <h3>Purchase Trend</h3>
+                  <p>Recent attendee activity</p>
+                </div>
+                <div className="analytics-chart-canvas">
+                  {attendeeSpendTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ComposedChart data={attendeeSpendTrend}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="left" tickLine={false} axisLine={false} />
+                        <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} />
+                        <Tooltip formatter={(value, name) => (name === "Spent" ? formatCurrency(value) : value)} />
+                        <Legend />
+                        <Bar yAxisId="left" dataKey="tickets" name="Tickets" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                        <Line yAxisId="right" dataKey="spent" name="Spent" stroke="#0f766e" strokeWidth={3} />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="analytics-empty">No purchase data yet.</div>
+                  )}
+                </div>
+              </article>
 
-              <div className="analytics-insights-grid">
-                <article className="analytics-insight-card">
-                  <span>Top event revenue</span>
-                  <strong>
-                    {topOrganizerEvents[0] ? formatCurrency(topOrganizerEvents[0].revenue) : formatCurrency(0)}
-                  </strong>
-                  <p>{topOrganizerEvents[0]?.name || "No organizer events yet"}</p>
-                </article>
-                <article className="analytics-insight-card">
-                  <span>Recent attendee spend (8 periods)</span>
-                  <strong>
-                    {formatCurrency(attendeeSpendTrend.reduce((sum, point) => sum + Number(point.spent || 0), 0))}
-                  </strong>
-                  <p>Latest trend from your checkout history</p>
-                </article>
-                <article className="analytics-insight-card">
-                  <span>Live event ratio</span>
-                  <strong>
-                    {stats.totalEvents
-                      ? `${Math.round((Number(stats.currentlyLive || 0) / Number(stats.totalEvents || 1)) * 100)}%`
-                      : "0%"}
-                  </strong>
-                  <p>Portion of your events currently active</p>
-                </article>
+              {/* Revenue Split */}
+              <article className="analytics-chart-card analytics-chart-card--donut">
+                <div className="analytics-chart-head">
+                  <h3>Revenue vs Spend Split</h3>
+                </div>
+                <div className="analytics-chart-canvas">
+                  {shareData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={shareData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={68}
+                          outerRadius={104}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {shareData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={donutColors[index % donutColors.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="analytics-empty">No data to display yet.</div>
+                  )}
+                </div>
+              </article>
+            </div>
+          )}
+        </section>
+
+        {/* Events Table - Blurred for Free Users */}
+        <section className="analytics-section">
+          <h2 className="analytics-section-title">
+            <Eye size={18} /> Your Events Performance
+          </h2>
+
+          {!hasFullAccess ? (
+            <div className="blurred-table">
+              <div className="blur-overlay">
+                <Lock size={28} />
+                <p>Detailed per-event analytics and revenue tracking are available on Pro.</p>
+                <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn">
+                  Upgrade to Pro
+                </button>
               </div>
-
-              <div className="analytics-charts-grid">
-                <article className="analytics-chart-card">
-                  <div className="analytics-chart-head">
-                    <h3>Top events performance</h3>
-                    <p>Views and tickets sold across your highest revenue events.</p>
-                  </div>
-                  <div className="analytics-chart-canvas">
-                    {topOrganizerEvents.length ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={topOrganizerEvents}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(96,112,137,0.2)" />
-                          <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                          <YAxis yAxisId="left" tickLine={false} axisLine={false} />
-                          <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} />
-                          <Tooltip />
-                          <Legend />
-                          <Bar yAxisId="left" dataKey="views" name="Views" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="tickets"
-                            name="Tickets sold"
-                            stroke="#db2777"
-                            strokeWidth={3}
-                            dot={{ r: 3 }}
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="analytics-empty">No organizer event data for chart yet.</div>
-                    )}
-                  </div>
-                </article>
-
-                <article className="analytics-chart-card">
-                  <div className="analytics-chart-head">
-                    <h3>Purchase trend</h3>
-                    <p>Recent attendee spend and ticket quantities over time.</p>
-                  </div>
-                  <div className="analytics-chart-canvas">
-                    {attendeeSpendTrend.length ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ComposedChart data={attendeeSpendTrend}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(96,112,137,0.2)" />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                          <YAxis yAxisId="left" tickLine={false} axisLine={false} />
-                          <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} />
-                          <Tooltip formatter={(value, name) => (name === "Spent" ? formatCurrency(value) : value)} />
-                          <Legend />
-                          <Bar yAxisId="left" dataKey="tickets" name="Tickets" fill="#6366f1" radius={[8, 8, 0, 0]} />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="spent"
-                            name="Spent"
-                            stroke="#0f766e"
-                            strokeWidth={3}
-                            dot={{ r: 3 }}
-                          />
-                        </ComposedChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="analytics-empty">No attendee purchase trend data yet.</div>
-                    )}
-                  </div>
-                </article>
-
-                <article className="analytics-chart-card analytics-chart-card--donut">
-                  <div className="analytics-chart-head">
-                    <h3>Revenue vs spend split</h3>
-                    <p>How your organizer revenue compares to attendee spend.</p>
-                  </div>
-                  <div className="analytics-chart-canvas">
-                    {shareData.length ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={shareData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={68}
-                            outerRadius={104}
-                            paddingAngle={3}
-                            dataKey="value"
-                            nameKey="name"
-                          >
-                            {shareData.map((entry, index) => (
-                              <Cell key={entry.name} fill={donutColors[index % donutColors.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value) => formatCurrency(value)} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="analytics-empty">No spend and revenue values to compare yet.</div>
-                    )}
-                  </div>
-                </article>
-
-                <article className="analytics-chart-card analytics-chart-card--trend">
-                  <div className="analytics-chart-head">
-                    <h3>Revenue &amp; sales trend</h3>
-                    <p>Revenue and tickets sold for each event you created.</p>
-                  </div>
-                  <div className="analytics-chart-canvas">
-                    {revenueSalesTrendData.length ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={revenueSalesTrendData}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(96,112,137,0.2)" />
-                          <XAxis dataKey="label" tickLine={false} axisLine={false} interval={0} angle={-28} textAnchor="end" height={72} />
-                          <YAxis tickLine={false} axisLine={false} />
-                          <Tooltip formatter={(value, name) => (name === "Revenue" ? formatCurrency(value) : value)} />
-                          <Legend />
-                          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#0d9488" strokeWidth={2} dot={{ r: 3 }} />
-                          <Line type="monotone" dataKey="ticketsSold" name="Tickets sold" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="analytics-empty">Create events and sell tickets to see this trend.</div>
-                    )}
-                  </div>
-                </article>
-              </div>
-            </section>
-
-            <section className="analytics-section">
-              <h2 className="analytics-section-title">
-                <Eye size={18} />
-                Event-by-event tracking (events you created)
-              </h2>
-              <p className="analytics-section-desc">
-                Open individual event analytics for conversion, views, and revenue timeline.
-              </p>
-              <div className="analytics-table-wrap">
-                {organizerEvents.length === 0 ? (
-                  <div className="analytics-empty">You have not created any events yet.</div>
-                ) : (
-                  <table className="analytics-table">
-                    <thead>
-                      <tr>
-                        <th>Event</th>
-                        <th>Views</th>
-                        <th>Tickets Sold</th>
-                        <th>Revenue</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {organizerEvents.map((event) => (
-                        <tr key={event.id}>
-                          <td data-label="Event">
-                            <div className="analytics-event-cell">
-                              <EventThumb event={event} />
-                              <div>
-                                <h4>{event.title}</h4>
-                                <span>{formatEventDate(event.startDate)}</span>
-                              </div>
+              <table className="analytics-table blurred">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Views</th>
+                    <th>Tickets</th>
+                    <th>Revenue</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      <td>Sample Event {i + 1}</td>
+                      <td>—</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* Full Table for Pro Users */
+            <div className="analytics-table-wrap">
+              {organizerEvents.length === 0 ? (
+                <div className="analytics-empty">You haven't created any events yet.</div>
+              ) : (
+                <table className="analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Views</th>
+                      <th>Tickets Sold</th>
+                      <th>Revenue</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {organizerEvents.map((event) => (
+                      <tr key={event.id}>
+                        <td>
+                          <div className="analytics-event-cell">
+                            <EventThumb event={event} />
+                            <div>
+                              <h4>{event.title}</h4>
+                              <span>{formatEventDate(event.startDate)}</span>
                             </div>
-                          </td>
-                          <td data-label="Views">{formatFullNumber(event.viewCount)}</td>
-                          <td data-label="Tickets Sold">{formatFullNumber(event.ticketsSold)}</td>
-                          <td data-label="Revenue">{formatCurrency(event.revenue)}</td>
-                          <td data-label="Actions">
-                            <div className="analytics-actions">
-                              <Link to={`/Eventdetail/${event.id}`} className="analytics-btn analytics-btn--ghost">
-                                <ExternalLink size={14} />
-                                Event page
+                          </div>
+                        </td>
+                        <td>{formatFullNumber(event.viewCount)}</td>
+                        <td>{formatFullNumber(event.ticketsSold)}</td>
+                        <td>{formatCurrency(event.revenue)}</td>
+                        <td>
+                          <div className="analytics-actions">
+                            <Link to={`/Eventdetail/${event.id}`} className="analytics-btn analytics-btn--ghost">
+                              <ExternalLink size={14} /> View
+                            </Link>
+                            {canOrganize && (
+                              <Link to={`/events/${event.id}/analytics`} className="analytics-btn analytics-btn--primary">
+                                <BarChart3 size={14} /> Details
                               </Link>
-                              {canOrganize ? (
-                                <Link
-                                  to={`/events/${event.id}/analytics`}
-                                  className="analytics-btn analytics-btn--primary"
-                                >
-                                  <BarChart3 size={14} />
-                                  Event analytics
-                                </Link>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
-
-            <section className="analytics-section">
-              <h2 className="analytics-section-title">
-                <Ticket size={18} />
-                Per-event attendee tracking (events you bought)
-              </h2>
-              <p className="analytics-section-desc">
-                Monitor purchases, quantities, and spend per event you attend.
-              </p>
-              <div className="analytics-table-wrap">
-                {attendeeByEvent.length === 0 ? (
-                  <div className="analytics-empty">No ticket purchases yet.</div>
-                ) : (
-                  <table className="analytics-table">
-                    <thead>
-                      <tr>
-                        <th>Event</th>
-                        <th>Purchases</th>
-                        <th>Tickets</th>
-                        <th>Amount Spent</th>
-                        <th>Last Purchase</th>
-                        <th>Actions</th>
+                            )}
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {attendeeByEvent.map((row) => (
-                        <tr key={row.event._id}>
-                          <td data-label="Event">
-                            <div className="analytics-event-cell">
-                              <EventThumb event={row.event} />
-                              <div>
-                                <h4>{row.event.title}</h4>
-                                <span>{row.event.location || row.event.eventType || "Event"}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td data-label="Purchases">{formatFullNumber(row.purchases)}</td>
-                          <td data-label="Tickets">{formatFullNumber(row.tickets)}</td>
-                          <td data-label="Amount Spent">{formatCurrency(row.spent)}</td>
-                          <td data-label="Last Purchase">
-                            <span>
-                              <Calendar size={13} style={{ marginRight: 4, verticalAlign: "text-bottom" }} />
-                              {formatEventDate(row.lastPurchaseAt)}
-                            </span>
-                          </td>
-                          <td data-label="Actions">
-                            <div className="analytics-actions">
-                              <Link
-                                to={`/Eventdetail/${row.event._id}`}
-                                className="analytics-btn analytics-btn--ghost"
-                              >
-                                <ExternalLink size={14} />
-                                Open event
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </section>
-          </>
-        ) : null}
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
