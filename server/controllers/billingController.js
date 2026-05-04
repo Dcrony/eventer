@@ -10,6 +10,11 @@ const {
   syncUserBillingState,
   upsertBillingHistory,
 } = require("../services/billingService");
+const {
+  ensureSubscriptionState,
+  getTrialDaysRemaining,
+  hasProAccess,
+} = require("../services/subscriptionService");
 const sendEmail = require("../utils/email");
 const { billingSuccessEmail } = require("../utils/emailTemplates");
 
@@ -26,13 +31,14 @@ const buildBillingFeatures = (plan) => {
   return {
     events: normalizedPlan === "free" ? "limited" : "unlimited",
     analytics: normalizedPlan === "free" ? "disabled" : "enabled",
-    featuredPlacement: normalizedPlan === "business",
+    tickiai: normalizedPlan !== "free",
+    liveStreaming: normalizedPlan !== "free",
+    privateEvents: normalizedPlan !== "free",
+    teamMembers: normalizedPlan !== "free",
   };
 };
 
-const resolveAuthenticatedUser = async (req) => {
-  return User.findById(req.user?._id || req.user?.id);
-};
+const resolveAuthenticatedUser = async (req) => User.findById(req.user?._id || req.user?.id);
 
 const createSubscriptionReference = (userId) => `BILL-${userId}-${Date.now()}`;
 
@@ -48,23 +54,25 @@ const validateBillableSelection = (plan, interval) => {
     throw new Error("Invalid billing interval");
   }
 
-  if (normalizedPlan === "business") {
-    throw new Error("Business billing is custom. Please contact sales.");
-  }
-
   return { normalizedPlan, normalizedInterval };
 };
 
 exports.getCurrentPlan = async (req, res) => {
   try {
     const user = await User.findById(req.user._id || req.user.id).select(
-      "plan billing subscription"
+      "plan billing subscription trialEndsAt subscriptionStatus",
     );
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    await ensureSubscriptionState(user);
     const plan = normalizePlan(user.plan || "free");
+
     return res.json({
       plan,
+      trialEndsAt: user.trialEndsAt || null,
+      subscriptionStatus: user.subscriptionStatus || "inactive",
+      trialDaysRemaining: getTrialDaysRemaining(user),
+      hasProAccess: hasProAccess(user),
       billing: user.billing || {},
       subscription: user.subscription || {},
       features: buildBillingFeatures(plan),
@@ -77,10 +85,7 @@ exports.getCurrentPlan = async (req, res) => {
 exports.getBillingHistory = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
-    const history = await BillingHistory.find({ userId })
-      .sort({ createdAt: -1 })
-      .lean();
-
+    const history = await BillingHistory.find({ userId }).sort({ createdAt: -1 }).lean();
     return res.json(history);
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
@@ -113,9 +118,6 @@ exports.initializeBilling = async (req, res) => {
     }
 
     const reference = createSubscriptionReference(user._id);
-
-    // const paystackRef = response.data.data.reference;
-
     const metadata = {
       type: "subscription_upgrade",
       userId: String(user._id),
@@ -154,9 +156,6 @@ exports.initializeBilling = async (req, res) => {
         },
       },
     );
-
-    // DO NOT update user.plan or subscription status here - wait for webhook confirmation
-    // Only save the pending BillingHistory
 
     return res.json({
       message: "Billing initialized",
@@ -199,67 +198,9 @@ exports.verifyBilling = async (req, res) => {
       return res.status(400).json({ message: "Reference does not belong to a billing transaction" });
     }
 
-    // Check if already processed
-    const existingHistory = await BillingHistory.findOne({ reference });
-    if (existingHistory && existingHistory.status === "success") {
-      const user = await User.findById(metadata.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const normalizedPlan = normalizePlan(metadata.plan);
-      const normalizedInterval = normalizeInterval(metadata.interval);
-      const needsSync =
-        user.plan !== normalizedPlan ||
-        user.subscription?.status !== "active" ||
-        user.billing?.billingStatus !== "active" ||
-        String(user.subscription?.interval) !== normalizedInterval;
-
-      if (needsSync) {
-        await syncUserBillingState({
-          user,
-          plan: normalizedPlan,
-          interval: normalizedInterval,
-          status: "active",
-          reference,
-          customerCode: data.customer?.customer_code || "",
-          subscriptionCode: data.subscription?.subscription_code || "",
-          effectiveDate: new Date(data.paid_at || Date.now()),
-        });
-      }
-
-      // ✅ SEND EMAIL (non-blocking)
-sendEmail({
-  to: updatedUser.email,
-  subject: "Your TickiSpot Subscription is Active 🎉",
-  html: billingSuccessEmail(
-    updatedUser.name || "User",
-    normalizedPlan,
-    amount,
-    normalizedInterval,
-    reference
-  ),
-
-}).catch(err => console.error("Billing email failed:", err));
-
-sendEmail({
-  to: "no-reply@tickispot.com",
-  subject: "💰 New Subscription Payment",
-  html: `
-    <h3>New Billing Payment</h3>
-    <p>User: ${updatedUser.email}</p>
-    <p>Plan: ${normalizedPlan}</p>
-    <p>Amount: ₦${amount}</p>
-  `
-});
-      return res.json({
-        message: "Billing already verified",
-        user: sanitizeUser(user),
-        billing: user.billing,
-        subscription: user.subscription,
-        nextBillingDate: user.subscription?.nextBillingDate,
-      });
-    }
+    const normalizedPlan = normalizePlan(metadata.plan);
+    const normalizedInterval = normalizeInterval(metadata.interval);
+    const amount = getPlanAmount(normalizedPlan, normalizedInterval);
 
     if (data.status !== "success") {
       await upsertBillingHistory({
@@ -279,10 +220,6 @@ sendEmail({
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    const normalizedPlan = normalizePlan(metadata.plan);
-    const normalizedInterval = normalizeInterval(metadata.interval);
-    const amount = getPlanAmount(normalizedPlan, normalizedInterval);
 
     const { user: updatedUser, nextBillingDate } = await syncUserBillingState({
       user,
@@ -306,6 +243,18 @@ sendEmail({
       paystackSubscriptionCode: data.subscription?.subscription_code || "",
       metadata,
     });
+
+    sendEmail({
+      to: updatedUser.email,
+      subject: "Your TickiSpot Subscription is Active",
+      html: billingSuccessEmail(
+        updatedUser.name || "User",
+        normalizedPlan,
+        amount,
+        normalizedInterval,
+        reference,
+      ),
+    }).catch((err) => console.error("Billing email failed:", err));
 
     return res.json({
       message: "Billing verified successfully",
@@ -333,11 +282,14 @@ exports.handleBillingRedirect = async (req, res) => {
     const verifyUrl = `${BACKEND_URL}/api/billing/verify/${encodeURIComponent(reference)}`;
     try {
       await axios.get(verifyUrl);
-      return res.redirect(`${FRONTEND_URL}/billing?status=success&reference=${encodeURIComponent(reference)}`);
+      return res.redirect(
+        `${FRONTEND_URL}/billing?status=success&reference=${encodeURIComponent(reference)}`,
+      );
     } catch (err) {
       console.error("VERIFY ERROR:", err.response?.data || err.message);
-
-      return res.redirect(`${FRONTEND_URL}/billing?status=failed&reference=${encodeURIComponent(reference)}`);
+      return res.redirect(
+        `${FRONTEND_URL}/billing?status=failed&reference=${encodeURIComponent(reference)}`,
+      );
     }
   } catch {
     return res.redirect(`${FRONTEND_URL}/billing?status=failed`);

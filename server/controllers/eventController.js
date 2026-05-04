@@ -5,6 +5,7 @@ const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const { createNotification } = require("../services/notificationService");
+const { hasProAccess } = require("../services/subscriptionService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
 const {
   isConfigured,
@@ -44,6 +45,9 @@ const enrichComments = (comments = []) =>
         }
       : null,
   }));
+
+const normalizeVisibility = (value) =>
+  String(value || "public").trim().toLowerCase() === "private" ? "private" : "public";
 
 const buildEventPayload = (event, currentUserId) => {
   const data = event.toObject ? event.toObject() : event;
@@ -138,10 +142,19 @@ exports.createEvent = async (req, res) => {
       pricing,
       totalTickets,
       eventType,
+      visibility,
       streamType,
       streamURL,
     } = req.body;
     const isFree = parseBooleanFlag(req.body.isFree) || parseBooleanFlag(req.body.isFreeEvent);
+    const normalizedVisibility = normalizeVisibility(visibility);
+
+    if (normalizedVisibility === "private" && !hasProAccess(req.user)) {
+      return res.status(403).json({
+        code: "PLAN_UPGRADE_REQUIRED",
+        message: "Upgrade to Pro to access this feature",
+      });
+    }
 
     let resolvedPricing = DEFAULT_FREE_PRICING;
     try {
@@ -174,6 +187,7 @@ exports.createEvent = async (req, res) => {
       isFreeEvent: isFree,
       totalTickets,
       eventType,
+      visibility: normalizedVisibility,
       liveStream: {
         isLive: false,
         streamType,
@@ -197,7 +211,14 @@ exports.getAllEvents = async (req, res) => {
   try {
     const { liveOnly } = req.query;
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const filter = liveOnly === "true" ? { "liveStream.isLive": true } : {};
+    const filter = {
+      ...(liveOnly === "true" ? { "liveStream.isLive": true } : {}),
+      $or: [
+        { visibility: { $exists: false } },
+        { visibility: "public" },
+        ...(currentUserId ? [{ createdBy: currentUserId }] : []),
+      ],
+    };
     const events = await Event.find(filter)
       .populate(eventPopulateOptions)
       .sort({ createdAt: -1 });
@@ -215,6 +236,10 @@ exports.getEventById = async (req, res) => {
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
 
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const ownerId = String(event.createdBy?._id || event.createdBy || "");
+    if (normalizeVisibility(event.visibility) === "private" && ownerId !== currentUserId) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     res.status(200).json(buildEventPayload(event, currentUserId));
   } catch (err) {
@@ -260,6 +285,13 @@ exports.toggleLiveStream = async (req, res) => {
   const { eventId, isLive } = req.body;
 
   try {
+    if (!hasProAccess(req.user)) {
+      return res.status(403).json({
+        code: "PLAN_UPGRADE_REQUIRED",
+        message: "Upgrade to Pro to access this feature",
+      });
+    }
+
     const lookup = await getEventByIdForOwner(eventId, req.user.id);
     if (lookup.error) {
       return res.status(lookup.error.status).json({ message: lookup.error.message });
@@ -288,6 +320,14 @@ exports.updateEvent = async (req, res) => {
     const event = lookup.event;
     const updates = { ...req.body };
     const isFree = parseBooleanFlag(updates.isFree) || parseBooleanFlag(updates.isFreeEvent);
+    const normalizedVisibility = normalizeVisibility(updates.visibility || event.visibility);
+
+    if (normalizedVisibility === "private" && !hasProAccess(req.user)) {
+      return res.status(403).json({
+        code: "PLAN_UPGRADE_REQUIRED",
+        message: "Upgrade to Pro to access this feature",
+      });
+    }
 
     try {
       updates.pricing = resolveEventPricing(updates.pricing, isFree);
@@ -296,6 +336,7 @@ exports.updateEvent = async (req, res) => {
     }
     updates.isFree = isFree;
     updates.isFreeEvent = isFree;
+    updates.visibility = normalizedVisibility;
 
     if (req.file) {
       if (!isConfigured()) {

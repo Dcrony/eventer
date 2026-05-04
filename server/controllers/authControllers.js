@@ -7,6 +7,12 @@ const { validateLoginBody, validateRegisterBody } = require("../utils/authValida
 const { verifyIdToken } = require("../utils/firebaseAdmin");
 const { otpEmail } = require("../utils/emailTemplates");
 const { welcomeSuccessEmail } = require("../utils/emailTemplates");
+const {
+  assignTrialToUser,
+  ensureSubscriptionState,
+  getTrialDaysRemaining,
+  isTrialActive,
+} = require("../services/subscriptionService");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -39,6 +45,10 @@ const buildAuthUserPayload = (user) => {
     isOrganizer: user.role === "organizer",
     profilePic: user.profilePic,
     plan: user.plan || "free",
+    trialEndsAt: user.trialEndsAt || null,
+    subscriptionStatus: user.subscriptionStatus || "inactive",
+    hasProAccess: user.plan === "pro" || isTrialActive(user),
+    trialDaysRemaining: getTrialDaysRemaining(user),
     eventCount: typeof user.eventCount === "number" ? user.eventCount : 0,
     isVerified: user.isVerified,
   };
@@ -94,6 +104,7 @@ exports.register = async (req, res) => {
       verificationCode: hashedOtp,
       verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
     });
+    assignTrialToUser(newUser);
 
     await newUser.save();
 
@@ -129,6 +140,7 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
+    await ensureSubscriptionState(user);
 
     if (!user.password) {
       return res.status(403).json({
@@ -148,7 +160,6 @@ exports.login = async (req, res) => {
       user.verificationCode = hashedOtp;
       user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
-
       const emailResult = await sendEmail({
         to: user.email,
         subject: "Your Verification Code - TickiSpot",
@@ -166,6 +177,7 @@ exports.login = async (req, res) => {
       });
     }
 
+    await ensureSubscriptionState(user);
     // Create JWT
     const token = signAuthToken(user);
 
@@ -317,10 +329,12 @@ exports.firebaseLogin = async (req, res) => {
         isVerified: true,
         role: "user",
       });
+      assignTrialToUser(user);
       await user.save();
     } else {
       if (!user.firebaseUid) user.firebaseUid = firebaseUid;
       if (!user.isVerified) user.isVerified = true;
+      await ensureSubscriptionState(user, { save: false });
       await user.save();
     }
 
@@ -451,6 +465,7 @@ exports.firebaseSync = async (req, res) => {
       }
 
       // ✅ USER ALREADY VERIFIED - Return JWT
+      await ensureSubscriptionState(user);
       const token = signAuthToken(user);
 
       return res.status(200).json({
