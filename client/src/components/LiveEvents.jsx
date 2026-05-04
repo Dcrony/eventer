@@ -19,6 +19,8 @@ import GoLiveModal from "./GoLiveModal";
 import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import Avatar from "./ui/avatar";
 import "./css/LiveEvents.css";
+import usePlanAccess from "../hooks/usePlanAccess";
+import { promptUpgrade } from "../utils/planAccess";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 const PORT_URL = API_URL.replace(/\/api\/?$/, "");
@@ -36,6 +38,7 @@ function getViewerCount(event) {
 }
 
 export default function LiveEvent() {
+  const canAccessLiveStreaming = usePlanAccess("live_stream");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -225,7 +228,13 @@ export default function LiveEvent() {
                 ref={goLiveBtnRef}
                 type="button"
                 className="live-go-live-btn"
-                onClick={() => setIsGoLiveOpen(true)}
+                onClick={() => {
+                  if (!canAccessLiveStreaming) {
+                    promptUpgrade("live streaming");
+                    return;
+                  }
+                  setIsGoLiveOpen(true);
+                }}
               >
                 <Video size={18} />
                 Go Live
@@ -343,7 +352,13 @@ export default function LiveEvent() {
                 <button
                   type="button"
                   className="live-empty-cta"
-                  onClick={() => setIsGoLiveOpen(true)}
+                  onClick={() => {
+                    if (!canAccessLiveStreaming) {
+                      promptUpgrade("live streaming");
+                      return;
+                    }
+                    setIsGoLiveOpen(true);
+                  }}
                 >
                   <Sparkles size={18} />
                   Go Live

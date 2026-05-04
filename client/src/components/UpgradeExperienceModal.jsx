@@ -1,37 +1,35 @@
-import { X } from "lucide-react";
+import { Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import Button from "./ui/button";
 import { initializeBilling } from "../services/api/billing";
 import { useToast } from "./ui/toast";
-import { useState } from "react";
 
 const PLANS = [
   {
     name: "Free",
-    price: "₦0",
-    features: ["2 events / month", "Standard visibility", "Core ticketing"],
+    price: "N0",
+    features: ["Create events", "Sell tickets", "Basic dashboard", "Email notifications"],
     highlight: false,
   },
   {
     name: "Pro",
-    price: "₦4,999",
-    badge: "Best value",
-    features: ["Unlimited events", "Full analytics", "Featured listings"],
+    price: "N4,999",
+    badge: "14-day free trial",
+    features: ["TickiAI", "Advanced analytics", "Live streaming", "Private events and team roles"],
     highlight: true,
-  },
-  {
-    name: "Business",
-    price: "Custom",
-    features: ["Priority promotion", "Advanced analytics", "Custom branding"],
-    highlight: false,
   },
 ];
 
-export default function UpgradeExperienceModal({ open, onClose }) {
+export default function UpgradeExperienceModal({ open, onClose, featureName = "" }) {
   const toast = useToast();
   const [processing, setProcessing] = useState(false);
 
   if (!open) return null;
+
+  const featureLabel = featureName
+    ? String(featureName).replace(/[_-]+/g, " ")
+    : "premium features";
 
   const handleUpgrade = async () => {
     try {
@@ -55,10 +53,10 @@ export default function UpgradeExperienceModal({ open, onClose }) {
         <div className="ui-modal-header">
           <div>
             <h2 id="upgrade-modal-title" className="ui-modal-title">
-              Upgrade Your Experience
+              Upgrade to Pro
             </h2>
             <p className="ui-modal-description">
-              Unlock unlimited events, analytics, and growth tools. Pro is the sweet spot for most organizers.
+              Unlock {featureLabel}, keep your workflow moving, and start with a 14-day free trial.
             </p>
           </div>
           <button type="button" className="ui-modal-close" onClick={onClose} aria-label="Close">
@@ -66,7 +64,7 @@ export default function UpgradeExperienceModal({ open, onClose }) {
           </button>
         </div>
         <div className="ui-modal-body upgrade-modal-body">
-          <div className="upgrade-plan-grid">
+          <div className="upgrade-plan-grid upgrade-plan-grid--compact">
             {PLANS.map((plan) => (
               <div
                 key={plan.name}
@@ -79,8 +77,8 @@ export default function UpgradeExperienceModal({ open, onClose }) {
                   {plan.name === "Pro" ? <span className="upgrade-plan-period">/mo</span> : null}
                 </p>
                 <ul>
-                  {plan.features.map((f) => (
-                    <li key={f}>{f}</li>
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
                   ))}
                 </ul>
               </div>
@@ -90,14 +88,12 @@ export default function UpgradeExperienceModal({ open, onClose }) {
             <Button variant="secondary" onClick={onClose}>
               Maybe later
             </Button>
-            <Button
-              onClick={handleUpgrade}
-              disabled={processing}
-            >
+            <Button onClick={handleUpgrade} disabled={processing}>
               {processing ? "Processing..." : "Upgrade Now"}
             </Button>
             <Link to="/pricing" className="upgrade-pricing-link" onClick={onClose}>
-              Compare all plans →
+              <Sparkles size={14} />
+              Compare plans
             </Link>
           </div>
         </div>
