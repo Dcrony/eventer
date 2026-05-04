@@ -1,12 +1,17 @@
 const BillingHistory = require("../models/BillingHistory");
+const { PLAN_TYPES } = require("./subscriptionService");
 
 const PLAN_CONFIG = {
-  free: { monthly: 0, yearly: 0, displayName: "Free" },
-  pro: { monthly: 4999, yearly: 49990, displayName: "Pro" },
-  business: { monthly: null, yearly: null, displayName: "Business" },
+  [PLAN_TYPES.FREE]: { monthly: 0, yearly: 0, displayName: "Free" },
+  [PLAN_TYPES.PRO]: { monthly: 4999, yearly: 49990, displayName: "Pro" },
 };
 
-const normalizePlan = (plan) => String(plan || "").trim().toLowerCase();
+const normalizePlan = (plan) => {
+  const normalized = String(plan || "").trim().toLowerCase();
+  if (normalized === "business") return PLAN_TYPES.PRO;
+  if (normalized === PLAN_TYPES.TRIAL) return PLAN_TYPES.TRIAL;
+  return Object.prototype.hasOwnProperty.call(PLAN_CONFIG, normalized) ? normalized : PLAN_TYPES.FREE;
+};
 
 const normalizeInterval = (interval) => {
   const value = String(interval || "").trim().toLowerCase();
@@ -20,7 +25,10 @@ const getPlanAmount = (plan, interval) => {
   return PLAN_CONFIG[normalizedPlan]?.[normalizedInterval];
 };
 
-const getPlanDisplayName = (plan) => PLAN_CONFIG[normalizePlan(plan)]?.displayName || "Free";
+const getPlanDisplayName = (plan) => {
+  if (normalizePlan(plan) === PLAN_TYPES.TRIAL) return "Trial";
+  return PLAN_CONFIG[normalizePlan(plan)]?.displayName || "Free";
+};
 
 const addBillingCycle = (startDate, interval) => {
   const nextBillingDate = new Date(startDate);
@@ -66,15 +74,18 @@ const syncUserBillingState = async ({
   const normalizedStatus = String(status || "active").toLowerCase();
   const amount = getPlanAmount(normalizedPlan, normalizedInterval) || 0;
   const nextBillingDate =
-    normalizedPlan === "free" || normalizedStatus === "cancelled"
+    normalizedPlan === PLAN_TYPES.FREE || normalizedStatus === "cancelled"
       ? null
       : addBillingCycle(effectiveDate, normalizedInterval);
 
-  user.plan = normalizedPlan || "free";
+  user.plan = normalizedPlan || PLAN_TYPES.FREE;
+  user.subscriptionStatus = normalizedPlan === PLAN_TYPES.PRO ? "active" : "inactive";
+  user.paymentProviderId =
+    customerCode || subscriptionCode || user.paymentProviderId || "";
   user.subscription = {
     ...user.subscription?.toObject?.(),
     status:
-      normalizedPlan === "free"
+      normalizedPlan === PLAN_TYPES.FREE
         ? "inactive"
         : ["active", "cancelled", "expired", "pending", "inactive"].includes(normalizedStatus)
           ? normalizedStatus
@@ -92,7 +103,7 @@ const syncUserBillingState = async ({
     lastPaymentReference: reference || user.billing?.lastPaymentReference || "",
     paystackCustomerCode: customerCode || user.billing?.paystackCustomerCode || "",
     billingStatus:
-      normalizedPlan === "free"
+      normalizedPlan === PLAN_TYPES.FREE
         ? "inactive"
         : normalizedStatus === "pending"
           ? "pending"
@@ -107,7 +118,7 @@ const syncUserBillingState = async ({
       amount,
       interval: normalizedInterval,
       status:
-        normalizedPlan === "free"
+        normalizedPlan === PLAN_TYPES.FREE
           ? "cancelled"
           : normalizedStatus === "active"
             ? "success"
@@ -135,8 +146,8 @@ const upsertBillingHistory = async ({
   paystackCustomerId = "",
   paystackSubscriptionCode = "",
   metadata = {},
-}) => {
-  return BillingHistory.findOneAndUpdate(
+}) =>
+  BillingHistory.findOneAndUpdate(
     { reference },
     {
       userId,
@@ -151,7 +162,6 @@ const upsertBillingHistory = async ({
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
-};
 
 module.exports = {
   PLAN_CONFIG,
