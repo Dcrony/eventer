@@ -22,6 +22,13 @@ const commentRoutes = require("./routes/commentRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const donationRoutes = require("./routes/donationRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const tickiAiRoutes = require("./routes/tickiAiRoutes");
+const liveStreamRoutes = require("./routes/liveStreamRoutes");
+const teamRoutes = require("./routes/teamRoutes");
+const privateEventRoutes = require("./routes/privateEventRoutes");
+const User = require("./models/User");
+const { PLAN_TYPES } = require("./services/subscriptionService");
 const { buildSocketServer } = require("./socket");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -62,6 +69,29 @@ mongoose
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log(err));
 
+const downgradeExpiredTrials = async () => {
+  try {
+    const result = await User.updateMany(
+      {
+        plan: PLAN_TYPES.TRIAL,
+        trialEndsAt: { $lte: new Date() },
+      },
+      {
+        $set: {
+          plan: PLAN_TYPES.FREE,
+          subscriptionStatus: "expired",
+        },
+      },
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`Downgraded ${result.modifiedCount} expired trial account(s).`);
+    }
+  } catch (error) {
+    console.error("Expired trial downgrade job failed:", error);
+  }
+};
+
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads/qrcodes", express.static("uploads/qrcodes"));
 
@@ -83,7 +113,11 @@ app.use("/api/ai", (req, res, next) => {
   console.log("AI route hit:", req.method, req.url);
   next();
 }, aiRoutes);
-
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/tickiai", tickiAiRoutes);
+app.use("/api/live-stream", liveStreamRoutes);
+app.use("/api/team", teamRoutes);
+app.use("/api/private-events", privateEventRoutes);
 app.use("/api/donations", donationRoutes);
 
 app.use((err, req, res, next) => {
@@ -106,4 +140,6 @@ const io = buildSocketServer(server, { allowedOrigins: ALLOWED_ORIGINS });
 app.set("io", io);
 
 const PORT = process.env.PORT || 8080;
+setInterval(downgradeExpiredTrials, 60 * 60 * 1000);
+downgradeExpiredTrials();
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
