@@ -117,6 +117,11 @@ const eventSchema = new mongoose.Schema({
     enum: ["In-person", "Virtual", "Hybrid"],
     default: "In-person",
   },
+  visibility: {
+    type: String,
+    enum: ["public", "private"],
+    default: "public",
+  },
 
   liveStream: {
     isLive: { type: Boolean, default: false },

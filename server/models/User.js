@@ -204,11 +204,28 @@ favorites: {
       },
     },
 
-    /** SaaS subscription tier (separate from legacy billing.plan label) */
+    /** SaaS subscription tier */
     plan: {
       type: String,
-      enum: ["free", "pro", "business"],
+      enum: ["free", "trial", "pro"],
       default: "free",
+      set: (value) => {
+        const normalized = String(value || "").trim().toLowerCase();
+        return normalized === "business" ? "pro" : normalized || "free";
+      },
+    },
+    trialEndsAt: {
+      type: Date,
+      default: null,
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["inactive", "trialing", "active", "cancelled", "expired", "past_due"],
+      default: "inactive",
+    },
+    paymentProviderId: {
+      type: String,
+      default: "",
     },
     /** Total events ever created (incremented on each create) */
     eventCount: {
@@ -219,7 +236,7 @@ favorites: {
       {
         plan: {
           type: String,
-          enum: ["free", "pro", "business"],
+          enum: ["free", "trial", "pro"],
           required: true,
         },
         amount: {
@@ -233,7 +250,7 @@ favorites: {
         },
         status: {
           type: String,
-          enum: ["pending", "success", "failed", "cancelled"],
+          enum: ["pending", "success", "failed", "cancelled", "expired"],
           default: "success",
         },
         reference: {
