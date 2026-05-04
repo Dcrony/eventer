@@ -1,20 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const { handlePaystackWebhook } = require("../controllers/webhookController");
-
 const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET; // Add this to .env
+const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
 
-// POST /api/webhooks/resend
+const SupportTicket = require("../models/SupportTicket"); // ← Adjust path to your model
+const sendEmail = require("../utils/sendEmail"); // your existing sendEmail function
+
 router.post("/webhooks/resend", async (req, res) => {
-  let rawBody = req.rawBody || JSON.stringify(req.body); // Important for verification
+  const rawBody = req.rawBody || JSON.stringify(req.body);
 
   try {
-    // === 1. Verify the webhook signature (SECURITY) ===
+    // Verify webhook signature
     if (WEBHOOK_SECRET) {
-      const event = resend.webhooks.verify({
+      resend.webhooks.verify({
         payload: rawBody,
         headers: {
           "svix-id": req.headers["svix-id"],
@@ -23,62 +24,65 @@ router.post("/webhooks/resend", async (req, res) => {
         },
         secret: WEBHOOK_SECRET,
       });
-
-      console.log("✅ Webhook verified successfully");
-    } else {
-      console.warn("⚠️ No RESEND_WEBHOOK_SECRET set - skipping verification (not recommended in production)");
     }
 
     const event = req.body;
 
-    // === 2. Handle only email.received events ===
     if (event.type === "email.received") {
       const emailData = event.data;
+      const emailId = emailData.email_id;
 
-      const toAddresses = Array.isArray(emailData.to) 
-        ? emailData.to 
-        : [emailData.to];
+      // Fetch FULL email content (body + attachments)
+      const { data: fullEmail } = await resend.emails.receiving.get(emailId);
 
-      // Check for support email
-      const isSupportEmail = toAddresses.some(addr => 
-        addr.includes("support@tickispot.com") || 
-        addr.includes("support@") || 
-        addr.includes("@inbox.tickispot.com")
+      const toAddresses = Array.isArray(emailData.to) ? emailData.to : [emailData.to];
+
+      const isSupportEmail = toAddresses.some(addr =>
+        addr.toLowerCase().includes("support@tickispot.com") ||
+        addr.toLowerCase().includes("@inbox.tickispot.com")
       );
 
       if (isSupportEmail) {
-        console.log("📧 New Support Email Received:", {
+        // === CREATE SUPPORT TICKET ===
+        const ticket = new SupportTicket({
+          ticketId: `TKT-${Date.now().toString().slice(-8)}`,
+          emailId: emailId,
           from: emailData.from,
+          fromName: fullEmail.from?.name || emailData.from,
           subject: emailData.subject,
-          emailId: emailData.email_id
+          message: fullEmail.text || fullEmail.html?.replace(/<[^>]*>/g, "") || "", // plain text fallback
+          html: fullEmail.html,
+          rawEmail: fullEmail,                    // optional: store everything
+          attachments: fullEmail.attachments || [],
+          status: "open",
+          priority: "normal",
+          // Link to existing user if possible
+          // user: existingUser?._id,
         });
 
-        // TODO: Add your logic here
-        // Example:
-        // await createSupportTicket({
-        //   emailId: emailData.email_id,
-        //   from: emailData.from,
-        //   subject: emailData.subject,
-        //   // You can later fetch full content using emailData.email_id
-        // });
+        await ticket.save();
 
-        // Optional: Send notification to admin (your Gmail)
-        // await sendEmail({
-        //   to: "ibrahimabdulmajeed@gmail.com",
-        //   subject: `New Support: ${emailData.subject}`,
-        //   html: `<p>From: ${emailData.from}</p><p>Subject: ${emailData.subject}</p>`
-        // });
+        console.log(`✅ New Support Ticket Created: ${ticket.ticketId} | ${emailData.subject}`);
+
+        // Optional: Notify you (admin)
+        await sendEmail({
+          to: "ibrahimabdulmajeed@gmail.com",
+          subject: `New Support Ticket #${ticket.ticketId} - ${emailData.subject}`,
+          html: `
+            <p><strong>From:</strong> ${emailData.from}</p>
+            <p><strong>Subject:</strong> ${emailData.subject}</p>
+            <p><strong>Ticket ID:</strong> ${ticket.ticketId}</p>
+            <hr>
+            <p>${fullEmail.text || "No plain text content"}</p>
+          `,
+        });
       }
     }
 
-    // Always return 200 OK quickly
     res.sendStatus(200);
-
   } catch (error) {
-    console.error("❌ Webhook verification or processing failed:", error.message);
-    
-    // Still return 200 to avoid Resend retrying endlessly (or use 400 for bad requests)
-    res.sendStatus(200);
+    console.error("Webhook Error:", error.message);
+    res.sendStatus(200); // Always return 200 to stop Resend retries
   }
 });
 
