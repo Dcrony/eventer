@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET;
 
 const SupportTicket = require("../models/Support"); // ← Adjust path to your model
-const sendEmail = require("../utils/sendEmail"); // your existing sendEmail function
+const sendEmail = require("../utils//email"); // your existing sendEmail function
 
 router.post("/webhooks/resend", async (req, res) => {
   const rawBody = req.rawBody || JSON.stringify(req.body);
