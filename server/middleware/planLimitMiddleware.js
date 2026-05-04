@@ -1,20 +1,22 @@
 const Event = require("../models/Event");
 const User = require("../models/User");
+const { ensureSubscriptionState, hasProAccess } = require("../services/subscriptionService");
 
 /**
  * Free plan: max 2 events created per calendar month.
- * Pro / Business / Admin: no limit.
+ * Trial / Pro / Admin: no limit.
  */
 exports.checkPlanLimit = async (req, res, next) => {
   try {
     const userId = req.user._id || req.user.id;
-    const user = await User.findById(userId).select("plan role");
+    const user = await User.findById(userId).select("plan role trialEndsAt subscriptionStatus");
     if (!user) {
       return res.status(401).json({ message: "User not found" });
     }
 
-    const plan = String(user.plan || "free").toLowerCase();
-    if (plan === "pro" || plan === "business" || user.role === "admin") {
+    await ensureSubscriptionState(user);
+
+    if (hasProAccess(user) || user.role === "admin") {
       return next();
     }
 
@@ -41,36 +43,30 @@ exports.checkPlanLimit = async (req, res, next) => {
   }
 };
 
-const rank = {
-  free: 0,
-  pro: 1,
-  business: 2,
-};
-
 exports.checkUserPlan = (feature) => {
   return async (req, res, next) => {
     try {
       const userId = req.user._id || req.user.id;
-      const user = await User.findById(userId).select("plan role");
+      const user = await User.findById(userId).select("plan role trialEndsAt subscriptionStatus");
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
 
       if (user.role === "admin") return next();
 
-      const plan = String(user.plan || "free").toLowerCase();
+      await ensureSubscriptionState(user);
 
-      if (feature === "analytics" && rank[plan] < rank.pro) {
+      if (feature === "analytics" && !hasProAccess(user)) {
         return res.status(403).json({
-          code: "PLAN_LIMIT",
-          message: "Analytics is available on Pro and Business plans.",
+          code: "PLAN_UPGRADE_REQUIRED",
+          message: "Upgrade to Pro to access this feature",
         });
       }
 
-      if (feature === "featured" && rank[plan] < rank.business) {
+      if (feature === "featured" && !hasProAccess(user)) {
         return res.status(403).json({
-          code: "PLAN_LIMIT",
-          message: "Featured placement is available on the Business plan.",
+          code: "PLAN_UPGRADE_REQUIRED",
+          message: "Upgrade to Pro to access this feature",
         });
       }
 

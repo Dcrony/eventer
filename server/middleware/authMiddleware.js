@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { ensureSubscriptionState } = require("../services/subscriptionService");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -38,6 +39,7 @@ exports.authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Session expired. Please log in again." });
     }
 
+    await ensureSubscriptionState(user);
     req.user = user;
     next();
   } catch (err) {
