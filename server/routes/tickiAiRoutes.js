@@ -1,8 +1,8 @@
 const express = require("express");
 const { chatWithAI, generateEvent } = require("../controllers/aiController");
-const { rateLimitByUser } = require("../middleware/rateLimitByUser");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { requirePro } = require("../middleware/requirePro");
+const { rateLimitByUser } = require("../middleware/rateLimitByUser");
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ router.post(
   rateLimitByUser({
     windowMs: 30 * 1000,
     max: 8,
-    keyPrefix: "ai-chat",
+    keyPrefix: "tickiai-chat",
     message: "Too many AI requests. Please wait a moment and try again.",
   }),
   chatWithAI,
@@ -24,7 +24,7 @@ router.post(
   rateLimitByUser({
     windowMs: 60 * 1000,
     max: 10,
-    keyPrefix: "ai-generate-event",
+    keyPrefix: "tickiai-generate-event",
     message: "Too many event generation requests. Please wait before trying again.",
   }),
   generateEvent,
