@@ -5,6 +5,8 @@ import icon from "../assets/icon.svg";
 import EventCard from "../components/EventCard";
 import API from "../api/axios";
 import Avatar from "../components/ui/avatar";
+import { useCreateEvent } from "../context/CreateEventContext";
+
 import {
   TicketCheck,
   Shield,
@@ -47,6 +49,7 @@ export default function LandingPageV2() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const { openCreateEvent } = useCreateEvent();
 
   const categories = [
     { id: "all", name: "All Events", icon: Calendar },
@@ -241,10 +244,11 @@ export default function LandingPageV2() {
             )}
             <div className="lp2-hero-cta">
               {isLoggedIn ? (
-                <Link to="/create" className="lp2-btn lp2-btn-primary">
-                  Create Event
-                  <ArrowRight size={16} />
-                </Link>
+               
+                <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
+          Create Event
+          <ArrowRight size={16} />
+        </button>
               ) : (
                 <Link to="/register" className="lp2-btn lp2-btn-primary">
                   Start Free
@@ -401,9 +405,9 @@ export default function LandingPageV2() {
                     <div className="lp2-empty">
                       <p>No events found for this selection.</p>
                       {isLoggedIn && (
-                        <Link to="/create" className="lp2-btn lp2-btn-primary">
-                          Create Event
-                        </Link>
+                        <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
+          Create Event
+        </button>
                       )}
                     </div>
                   )}
@@ -472,10 +476,10 @@ export default function LandingPageV2() {
           </p>
           <div className="lp2-hero-cta">
             {isLoggedIn ? (
-              <Link to="/create" className="lp2-btn lp2-btn-primary">
-                Create Your Event
-                <ArrowRight size={16} />
-              </Link>
+               <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
+          Create Event
+          <ArrowRight size={16} />
+        </button>
             ) : (
               <Link to="/register" className="lp2-btn lp2-btn-primary">
                 Start Free Trial
@@ -546,7 +550,9 @@ export default function LandingPageV2() {
             <div className="lp2-footer-links">
               <h4>Product</h4>
               <Link to="/events">Events</Link>
-              <Link to="/create">Create</Link>
+               <button onClick={openCreateEvent} className="font=size: 12px" >
+          Create Event
+        </button>
               <Link to="/pricing">Pricing</Link>
               <Link to="/docs">Docs</Link>
             </div>

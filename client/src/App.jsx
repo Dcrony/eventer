@@ -59,7 +59,8 @@ import { AuthProvider } from "./context/AuthContext";
 import FounderProfile from "./pages/FounderProfile";
 import Billing from "./pages/Billing";
 import DiscoverCreators from "./pages/DiscoverCreators";
-import CreateEvent from "./pages/CreateEvent";
+import { CreateEventProvider } from "./context/CreateEventContext";
+import FAQ from "./pages/FAQ";
 
 function Layout() {
   const location = useLocation();
@@ -111,7 +112,7 @@ function Layout() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <SEO/>
+      <SEO />
 
       {/* Show Sidebar on Desktop, MobileBottomNav and TopNav on Mobile */}
       {!hideNavAndSidebar && (
@@ -129,225 +130,221 @@ function Layout() {
 
       <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
 
+        <CreateEventProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/events" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-otp" element={<VerifyEmailOtp />} />
 
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/events" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/verify-otp" element={<VerifyEmailOtp />} />
 
-          <Route
-            path="/create"
-            element={
-              <ProtectedRoute>
-                <CreateEvent/>
-              </ProtectedRoute>
-            }
-          />
-          
-          <Route
-            path="/my-tickets"
-            element={
-              <ProtectedRoute>
-                <MyTickets />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/earnings"
-            element={
-              <OrganizerStaffRoute>
-                <Earnings />
-              </OrganizerStaffRoute>
-            }
-          />
-          <Route
-            path="/admin/withdrawals"
-            element={
-              <AdminRoute>
-                <AdminWithdrwal />
-              </AdminRoute>
-            }
-          />
-          <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
-          <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
-          <Route
-            path="/events/:eventId/analytics"
-            element={
-              <ProtectedRoute>
-                <EventAnalytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analytics"
-            element={
-              <ProtectedRoute>
-                <PlatformAnalytics />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/success"
-            element={
-              <ProtectedRoute>
-                <Success />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/live/events"
-            element={
-              <ProtectedRoute>
-                <LiveEvent />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/live/:eventId"
-            element={
-              <ProtectedRoute>
-                <LiveStream />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/me"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/:userId"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users/:id"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/edit-profile"
-            element={
-              <ProtectedRoute>
-                <EditProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <AdminRoute>
-                <UserManagement />
-              </AdminRoute>
-            }
-          />
-          <Route
-            path="/checkout/:eventId"
-            element={
-              <ProtectedRoute>
-                <Checkout />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/messages"
-            element={
-              <ProtectedRoute>
-                <Messages />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scanner"
-            element={
-              <OrganizerStaffRoute>
-                <TicketScanner />
-              </OrganizerStaffRoute>
-            }
-          />
-          <Route
-            path="/validate/:ticketId"
-            element={
-              <OrganizerStaffRoute>
-                <TicketValidationPage />
-              </OrganizerStaffRoute>
-            }
-          />
-          <Route
-            path="/transactions"
-            element={
-              <ProtectedRoute>
-                <Transactions />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/favorites"
-            element={
-              <ProtectedRoute>
-                <Favorites />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/user/:username" element={<Profile />} />
-          <Route path="/features" element={<FeaturesPage />} />
-          <Route path="/founder" element={<FounderProfile />} />
-          <Route
-            path="/billing"
-            element={
-              <ProtectedRoute>
-                <Billing />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/discover/creators" element={<DiscoverCreators />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/donation" element={<Donation />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/docs" element={<Documentation />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-        </Routes>
+
+            <Route
+              path="/my-tickets"
+              element={
+                <ProtectedRoute>
+                  <MyTickets />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/earnings"
+              element={
+                <OrganizerStaffRoute>
+                  <Earnings />
+                </OrganizerStaffRoute>
+              }
+            />
+            <Route
+              path="/admin/withdrawals"
+              element={
+                <AdminRoute>
+                  <AdminWithdrwal />
+                </AdminRoute>
+              }
+            />
+            <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
+            <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
+            <Route
+              path="/events/:eventId/analytics"
+              element={
+                <ProtectedRoute>
+                  <EventAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <ProtectedRoute>
+                  <PlatformAnalytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/success"
+              element={
+                <ProtectedRoute>
+                  <Success />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/live/events"
+              element={
+                <ProtectedRoute>
+                  <LiveEvent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/live/:eventId"
+              element={
+                <ProtectedRoute>
+                  <LiveStream />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/me"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:userId"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/:id"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/edit-profile"
+              element={
+                <ProtectedRoute>
+                  <EditProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/checkout/:eventId"
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/scanner"
+              element={
+                <OrganizerStaffRoute>
+                  <TicketScanner />
+                </OrganizerStaffRoute>
+              }
+            />
+            <Route
+              path="/validate/:ticketId"
+              element={
+                <OrganizerStaffRoute>
+                  <TicketValidationPage />
+                </OrganizerStaffRoute>
+              }
+            />
+            <Route
+              path="/transactions"
+              element={
+                <ProtectedRoute>
+                  <Transactions />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/favorites"
+              element={
+                <ProtectedRoute>
+                  <Favorites />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/user/:username" element={<Profile />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/founder" element={<FounderProfile />} />
+            <Route
+              path="/billing"
+              element={
+                <ProtectedRoute>
+                  <Billing />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/discover/creators" element={<DiscoverCreators />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/donation" element={<Donation />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/docs" element={<Documentation />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+          </Routes>
+        </CreateEventProvider>
+
       </main>
 
       <UpgradeExperienceModal

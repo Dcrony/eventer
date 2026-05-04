@@ -1,0 +1,157 @@
+.faq-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+}
+
+.faq-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.faq-header h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #1e2937;
+  margin-bottom: 0.8rem;
+}
+
+.faq-header p {
+  font-size: 1.2rem;
+  color: #64748b;
+}
+
+.faq-search {
+  max-width: 700px;
+  margin: 0 auto 3rem;
+}
+
+.faq-search-input {
+  width: 100%;
+  padding: 1.1rem 1.5rem;
+  font-size: 1.1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 9999px;
+  outline: none;
+}
+
+.faq-search-input:focus {
+  border-color: #ec4899;
+  box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 4rem;
+}
+
+.faq-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.faq-item:hover {
+  border-color: #ec4899;
+}
+
+.faq-question {
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-question h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1e2937;
+  margin: 0;
+}
+
+.faq-icon {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ec4899;
+  transition: transform 0.3s ease;
+}
+
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  padding: 0 2rem;
+}
+
+.faq-answer.show {
+  max-height: 300px;
+  padding-bottom: 1.8rem;
+}
+
+.faq-answer p {
+  color: #475569;
+  line-height: 1.7;
+}
+
+.faq-cta {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: white;
+  text-align: center;
+  padding: 3rem 2rem;
+  border-radius: 24px;
+}
+
+.faq-cta h2 {
+  font-size: 2rem;
+  margin-bottom: 0.8rem;
+}
+
+.faq-cta p {
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.faq-cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-primary, .btn-whatsapp {
+  padding: 1rem 2.2rem;
+  border-radius: 9999px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: white;
+  color: #ec4899;
+}
+
+.btn-whatsapp {
+  background: #25D366;
+  color: white;
+}
+
+.btn-primary:hover, .btn-whatsapp:hover {
+  transform: translateY(-4px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .faq-header h1 {
+    font-size: 2.3rem;
+  }
+  
+  .faq-question {
+    padding: 1.3rem 1.5rem;
+  }
+}
