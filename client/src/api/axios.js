@@ -41,6 +41,18 @@ API.interceptors.response.use(
       window.location.href = "/";
     }
 
+    if (
+      status === 403 &&
+      (error.response?.data?.code === "PLAN_UPGRADE_REQUIRED" ||
+        /upgrade to pro/i.test(String(message || "")))
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("planUpgradeRequired", {
+          detail: error.response?.data || {},
+        }),
+      );
+    }
+
     return Promise.reject(error);
   },
 );

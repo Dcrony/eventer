@@ -423,6 +423,10 @@ body::-webkit-scrollbar-thumb {
   gap: 1rem;
 }
 
+.upgrade-plan-grid--compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .upgrade-plan-card {
   position: relative;
   border: 1px solid var(--border-subtle);
@@ -489,9 +493,25 @@ body::-webkit-scrollbar-thumb {
 
 .upgrade-pricing-link {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font-weight: 600;
   color: var(--brand-primary-strong);
   text-decoration: none;
+}
+
+.trial-banner {
+  margin: 1rem auto 0;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.trial-banner a {
+  color: inherit;
 }
 
 .upgrade-pricing-link:hover {

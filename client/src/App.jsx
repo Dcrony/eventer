@@ -53,19 +53,20 @@ import { NotificationsProvider } from "./hooks/useNotifications";
 import FeaturesPage from "./pages/Features";
 import Favorites from "./pages/Favorites";
 import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
-import { getCurrentUser, login } from "./utils/auth";
-import { useToast } from "./components/ui/toast";
-import { AuthProvider } from "./context/AuthContext";
+import { getCurrentUser } from "./utils/auth";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import FounderProfile from "./pages/FounderProfile";
 import Billing from "./pages/Billing";
 import DiscoverCreators from "./pages/DiscoverCreators";
 import { CreateEventProvider } from "./context/CreateEventContext";
 import FAQ from "./pages/FAQ";
+import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
 
 function Layout() {
   const location = useLocation();
-  const toast = useToast();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState("");
+  const { user } = useAuth();
 
   // hide navbar & sidebar on landing page and form pages
   const hideNavAndSidebar =
@@ -99,16 +100,27 @@ function Layout() {
     };
 
     const onLimit = () => {
+      setUpgradeFeature("event limits");
+      setUpgradeOpen(true);
+    };
+
+    const onUpgradeRequired = (event) => {
+      setUpgradeFeature(event.detail?.featureName || "premium features");
       setUpgradeOpen(true);
     };
 
     window.addEventListener("userLogin", onLogin);
     window.addEventListener("planLimitHit", onLimit);
+    window.addEventListener("planUpgradeRequired", onUpgradeRequired);
     return () => {
       window.removeEventListener("userLogin", onLogin);
       window.removeEventListener("planLimitHit", onLimit);
+      window.removeEventListener("planUpgradeRequired", onUpgradeRequired);
     };
   }, []);
+
+  const showTrialBanner = isTrialEndingSoon(user);
+  const trialDaysRemaining = getTrialDaysRemaining(user);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -129,6 +141,12 @@ function Layout() {
       )}
 
       <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
+        {showTrialBanner ? (
+          <div className="trial-banner">
+            Your free trial ends in {trialDaysRemaining} day{trialDaysRemaining === 1 ? "" : "s"}.
+            <a href="/pricing"> Upgrade to Pro</a> to keep TickiAI, analytics, and streaming active.
+          </div>
+        ) : null}
 
         <CreateEventProvider>
           <Routes>
@@ -350,6 +368,7 @@ function Layout() {
       <UpgradeExperienceModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
+        featureName={upgradeFeature}
       />
     </div>
   );
