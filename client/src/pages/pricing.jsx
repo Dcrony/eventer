@@ -4,7 +4,7 @@ import { getCurrentPlan, getBillingHistory, initializeBilling } from "../service
 import { useToast } from "../components/ui/toast";
 import { useAuth } from "../context/AuthContext";
 import { getTrialDaysRemaining, isTrialActive, normalizePlan } from "../utils/planAccess";
-import "./CSS/pricing.css";
+import "./CSS/Pricing.css";
 
 const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
 
