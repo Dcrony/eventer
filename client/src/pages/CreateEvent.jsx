@@ -6,9 +6,8 @@ import "./CSS/CreateEvent.css";
 import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg";
 import { validateImageFile } from "../utils/imageUpload";
-import TickiAIGenerator from "../components/TickiAiGenerator";
+import TickiAIGenerator from "../components/TickiAIGenerator";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import { promptUpgrade } from "../utils/planAccess";
 
 const eventTypes = [
   {
