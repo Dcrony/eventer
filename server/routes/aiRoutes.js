@@ -2,11 +2,11 @@ const express = require("express");
 const { chatWithAI, generateEvent } = require("../controllers/aiController");
 const { rateLimitByUser } = require("../middleware/rateLimitByUser");
 const { authMiddleware } = require("../middleware/authMiddleware");
-const { requirePro } = require("../middleware/requirePro");
+const { requireFeature } = require("../middleware/requirePro");
 
 const router = express.Router();
 
-router.use(authMiddleware, requirePro);
+router.use(authMiddleware, requireFeature("TICKI_AI"));
 
 router.post(
   "/chat",

@@ -3,7 +3,8 @@ const router = express.Router();
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { requireEmailVerification } = require("../middleware/verificationMiddleware");
 const { uploadImageMemory } = require("../middleware/imageUploadMemory");
-const { checkPlanLimit, checkUserPlan } = require("../middleware/planLimitMiddleware");
+const { checkPlanLimit } = require("../middleware/planLimitMiddleware");
+const { requireFeature } = require("../middleware/requirePro");
 const {
   createEvent,
   getAllEvents,
@@ -42,7 +43,7 @@ router.post("/:id/comments", authMiddleware, addEventComment);
 router.post("/:id/like", authMiddleware, toggleEventLike);
 router.post("/:id/share", trackEventShare);
 router.post("/:id/view", trackEventView);
-router.get("/:id/analytics", authMiddleware, checkUserPlan("analytics"), getEventAnalytics);
+router.get("/:id/analytics", authMiddleware, requireFeature("ANALYTICS_ADVANCED"), getEventAnalytics);
 router.put("/update/:eventId", authMiddleware, uploadImageMemory.single("image"), updateEvent);
 router.delete("/delete/:eventId", authMiddleware, deleteEvent);
 
