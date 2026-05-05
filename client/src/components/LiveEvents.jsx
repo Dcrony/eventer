@@ -19,7 +19,7 @@ import GoLiveModal from "./GoLiveModal";
 import { getEventImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import Avatar from "./ui/avatar";
 import "./css/LiveEvents.css";
-import usePlanAccess from "../hooks/usePlanAccess";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -38,7 +38,7 @@ function getViewerCount(event) {
 }
 
 export default function LiveEvent() {
-  const canAccessLiveStreaming = usePlanAccess("live_stream");
+  const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -99,7 +99,7 @@ export default function LiveEvent() {
       if (document.visibilityState === "visible") {
         API.get("/events?liveOnly=true")
           .then((res) => setEvents(res.data || []))
-          .catch(() => {});
+          .catch(() => { });
       }
     }, 50000);
     return () => clearInterval(interval);
@@ -230,7 +230,7 @@ export default function LiveEvent() {
                 className="live-go-live-btn"
                 onClick={() => {
                   if (!canAccessLiveStreaming) {
-                    promptUpgrade("live streaming");
+                    promptUpgradeLive();
                     return;
                   }
                   setIsGoLiveOpen(true);
@@ -354,7 +354,7 @@ export default function LiveEvent() {
                   className="live-empty-cta"
                   onClick={() => {
                     if (!canAccessLiveStreaming) {
-                      promptUpgrade("live streaming");
+                      promptUpgradeLive();
                       return;
                     }
                     setIsGoLiveOpen(true);
