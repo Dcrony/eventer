@@ -1,67 +1,77 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Helmet, HelmetProvider } from "react-helmet-async";
-
-import SEO from "../public/SEO"
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import VerifyEmail from "./pages/VerifyEmail";
-import MyTickets from "./pages/MyTickets";
-import Dashboard from "./pages/Dashboard";
-import Success from "./pages/Success";
-import Sidebar from "./components/SideBar";
-import MobileBottomNav from "./components/MobileBottomNav";
-import LiveEvent from "./components/LiveEvents";
-import Settings from "./components/Settings";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import EventDetail from "./pages/EventDetails";
-import Checkout from "./pages/CheckOut";
-import TicketScanner from "./pages/TicketScanner";
-import TicketValidationPage from "./pages/ValidateTicket";
-import UserManagement from "./pages/UserManagement";
-import LiveStream from "./pages/LiveStream";
-
-import AboutUs from "./pages/AboutUs";
-import Contact from "./pages/Contact";
-import Donation from "./pages/Donation";
-import HelpCenter from "./pages/HelpCenter";
-import Documentation from "./pages/Documentation";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-
+import { lazy, Suspense, useEffect, useState } from "react";
+import SEO from "../public/SEO";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
-import LandingPage from "./pages/LandingPageV2";
-import Pricing from "./pages/pricing";
-import { useEffect, useState } from "react";
-import AdminWithdrwal from "./pages/AdminWithdrawals";
-import Transactions from "./pages/Transactions";
-import Notifications from "./components/NotificationsPage";
-import Messages from "./pages/Messages";
-import VerifyEmailOtp from "./pages/VerifyEmailOtp";
-import TopNav from "./components/TopNav";
-import EventAnalytics from "./pages/EventAnalytics";
-import PlatformAnalytics from "./pages/PlatformAnalytics";
-import Earnings from "./pages/Earnings";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./components/ui/toast";
 import { SocketProvider } from "./hooks/useSocket";
 import { NotificationsProvider } from "./hooks/useNotifications";
-import FeaturesPage from "./pages/Features";
-import Favorites from "./pages/Favorites";
-import UpgradeExperienceModal from "./components/UpgradeExperienceModal";
-import { getCurrentUser } from "./utils/auth";
-import { AuthProvider, useAuth } from "./context/AuthContext";
-import FounderProfile from "./pages/FounderProfile";
-import Billing from "./pages/Billing";
-import DiscoverCreators from "./pages/DiscoverCreators";
 import { CreateEventProvider } from "./context/CreateEventContext";
-import FAQ from "./pages/FAQ";
+import { getCurrentUser } from "./utils/auth";
 import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
 
+// Loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-400">Loading...</p>
+    </div>
+  </div>
+);
+
+// Lazy load all page components
+const Home = lazy(() => import("./pages/Home"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const MyTickets = lazy(() => import("./pages/MyTickets"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Success = lazy(() => import("./pages/Success"));
+const Sidebar = lazy(() => import("./components/SideBar"));
+const MobileBottomNav = lazy(() => import("./components/MobileBottomNav"));
+const LiveEvent = lazy(() => import("./components/LiveEvents"));
+const Settings = lazy(() => import("./components/Settings"));
+const Profile = lazy(() => import("./pages/Profile"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const EventDetail = lazy(() => import("./pages/EventDetails"));
+const Checkout = lazy(() => import("./pages/CheckOut"));
+const TicketScanner = lazy(() => import("./pages/TicketScanner"));
+const TicketValidationPage = lazy(() => import("./pages/ValidateTicket"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const LiveStream = lazy(() => import("./pages/LiveStream"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Donation = lazy(() => import("./pages/Donation"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const Documentation = lazy(() => import("./pages/Documentation"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const LandingPage = lazy(() => import("./pages/LandingPageV2"));
+const Pricing = lazy(() => import("./pages/pricing"));
+const AdminWithdrwal = lazy(() => import("./pages/AdminWithdrawals"));
+const Transactions = lazy(() => import("./pages/Transactions"));
+const Notifications = lazy(() => import("./components/NotificationsPage"));
+const Messages = lazy(() => import("./pages/Messages"));
+const VerifyEmailOtp = lazy(() => import("./pages/VerifyEmailOtp"));
+const TopNav = lazy(() => import("./components/TopNav"));
+const EventAnalytics = lazy(() => import("./pages/EventAnalytics"));
+const PlatformAnalytics = lazy(() => import("./pages/PlatformAnalytics"));
+const Earnings = lazy(() => import("./pages/Earnings"));
+const FeaturesPage = lazy(() => import("./pages/Features"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const UpgradeExperienceModal = lazy(() => import("./components/UpgradeExperienceModal"));
+const FounderProfile = lazy(() => import("./pages/FounderProfile"));
+const Billing = lazy(() => import("./pages/Billing"));
+const DiscoverCreators = lazy(() => import("./pages/DiscoverCreators"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+
+// Layout component with route definitions
 function Layout() {
   const location = useLocation();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -122,23 +132,33 @@ function Layout() {
   const showTrialBanner = isTrialEndingSoon(user);
   const trialDaysRemaining = getTrialDaysRemaining(user);
 
+  // Lazy load sidebar and navigation components only when needed
+  const renderSidebar = () => {
+    if (hideNavAndSidebar) return null;
+    
+    if (isMobile) {
+      return (
+        <>
+          <Suspense fallback={null}>
+            <TopNav />
+            <MobileBottomNav />
+          </Suspense>
+        </>
+      );
+    }
+    
+    return (
+      <Suspense fallback={null}>
+        <Sidebar />
+      </Suspense>
+    );
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <SEO />
 
-      {/* Show Sidebar on Desktop, MobileBottomNav and TopNav on Mobile */}
-      {!hideNavAndSidebar && (
-        <>
-          {isMobile ? (
-            <>
-              <TopNav />
-              <MobileBottomNav />
-            </>
-          ) : (
-            <Sidebar />
-          )}
-        </>
-      )}
+      {renderSidebar()}
 
       <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
         {showTrialBanner ? (
@@ -149,231 +169,237 @@ function Layout() {
         ) : null}
 
         <CreateEventProvider>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/events" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/verify-otp" element={<VerifyEmailOtp />} />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/events" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/verify-otp" element={<VerifyEmailOtp />} />
+              
+              {/* Static Pages */}
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/donation" element={<Donation />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/docs" element={<Documentation />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/founder" element={<FounderProfile />} />
+              <Route path="/discover/creators" element={<DiscoverCreators />} />
+              <Route path="/user/:username" element={<Profile />} />
 
-
-
-            <Route
-              path="/my-tickets"
-              element={
-                <ProtectedRoute>
-                  <MyTickets />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/earnings"
-              element={
-                <OrganizerStaffRoute>
-                  <Earnings />
-                </OrganizerStaffRoute>
-              }
-            />
-            <Route
-              path="/admin/withdrawals"
-              element={
-                <AdminRoute>
-                  <AdminWithdrwal />
-                </AdminRoute>
-              }
-            />
-            <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
-            <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
-            <Route
-              path="/events/:eventId/analytics"
-              element={
-                <ProtectedRoute>
-                  <EventAnalytics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/analytics"
-              element={
-                <ProtectedRoute>
-                  <PlatformAnalytics />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/success"
-              element={
-                <ProtectedRoute>
-                  <Success />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/live/events"
-              element={
-                <ProtectedRoute>
-                  <LiveEvent />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/live/:eventId"
-              element={
-                <ProtectedRoute>
-                  <LiveStream />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/me"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile/:userId"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/:id"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-profile"
-              element={
-                <ProtectedRoute>
-                  <EditProfile />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/users"
-              element={
-                <AdminRoute>
-                  <UserManagement />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/checkout/:eventId"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <ProtectedRoute>
-                  <Messages />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/scanner"
-              element={
-                <OrganizerStaffRoute>
-                  <TicketScanner />
-                </OrganizerStaffRoute>
-              }
-            />
-            <Route
-              path="/validate/:ticketId"
-              element={
-                <OrganizerStaffRoute>
-                  <TicketValidationPage />
-                </OrganizerStaffRoute>
-              }
-            />
-            <Route
-              path="/transactions"
-              element={
-                <ProtectedRoute>
-                  <Transactions />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <Notifications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/favorites"
-              element={
-                <ProtectedRoute>
-                  <Favorites />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/user/:username" element={<Profile />} />
-            <Route path="/features" element={<FeaturesPage />} />
-            <Route path="/founder" element={<FounderProfile />} />
-            <Route
-              path="/billing"
-              element={
-                <ProtectedRoute>
-                  <Billing />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/discover/creators" element={<DiscoverCreators />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/donation" element={<Donation />} />
-            <Route path="/help" element={<HelpCenter />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/docs" element={<Documentation />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-          </Routes>
+              {/* Protected Routes */}
+              <Route
+                path="/my-tickets"
+                element={
+                  <ProtectedRoute>
+                    <MyTickets />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/earnings"
+                element={
+                  <OrganizerStaffRoute>
+                    <Earnings />
+                  </OrganizerStaffRoute>
+                }
+              />
+              <Route
+                path="/admin/withdrawals"
+                element={
+                  <AdminRoute>
+                    <AdminWithdrwal />
+                  </AdminRoute>
+                }
+              />
+              <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
+              <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
+              <Route
+                path="/events/:eventId/analytics"
+                element={
+                  <ProtectedRoute>
+                    <EventAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                element={
+                  <ProtectedRoute>
+                    <PlatformAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/success"
+                element={
+                  <ProtectedRoute>
+                    <Success />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/live/events"
+                element={
+                  <ProtectedRoute>
+                    <LiveEvent />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/live/:eventId"
+                element={
+                  <ProtectedRoute>
+                    <LiveStream />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/me"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/:userId"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users/:id"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-profile"
+                element={
+                  <ProtectedRoute>
+                    <EditProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <AdminRoute>
+                    <UserManagement />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/checkout/:eventId"
+                element={
+                  <ProtectedRoute>
+                    <Checkout />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute>
+                    <Messages />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/scanner"
+                element={
+                  <OrganizerStaffRoute>
+                    <TicketScanner />
+                  </OrganizerStaffRoute>
+                }
+              />
+              <Route
+                path="/validate/:ticketId"
+                element={
+                  <OrganizerStaffRoute>
+                    <TicketValidationPage />
+                  </OrganizerStaffRoute>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <ProtectedRoute>
+                    <Transactions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <Notifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/favorites"
+                element={
+                  <ProtectedRoute>
+                    <Favorites />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/billing"
+                element={
+                  <ProtectedRoute>
+                    <Billing />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
         </CreateEventProvider>
-
       </main>
 
-      <UpgradeExperienceModal
-        open={upgradeOpen}
-        onClose={() => setUpgradeOpen(false)}
-        featureName={upgradeFeature}
-      />
+      <Suspense fallback={null}>
+        <UpgradeExperienceModal
+          open={upgradeOpen}
+          onClose={() => setUpgradeOpen(false)}
+          featureName={upgradeFeature}
+        />
+      </Suspense>
     </div>
   );
 }
 
+// Main App component with providers
 export default function App() {
   return (
     <HelmetProvider>
