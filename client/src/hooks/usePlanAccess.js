@@ -1,7 +1,5 @@
-import { useAuth } from "../context/AuthContext";
-import { canAccessFeature } from "../utils/planAccess";
+import useFeatureAccess from "./useFeatureAccess";
 
 export default function usePlanAccess(featureName) {
-  const { user } = useAuth();
-  return canAccessFeature(user, featureName);
+  return useFeatureAccess(featureName).hasAccess;
 }
