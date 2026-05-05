@@ -171,7 +171,7 @@ export default function Register() {
           </div>
         </aside>
       <div className="form-auth-column">
-      <div className="form-container">
+      <div className="">
         <div className="form-intro">
           <Link to="/" className="form-home-link">
             <img src={icon} className="tickispot-icon" alt="TickiSpot home" />

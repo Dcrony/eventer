@@ -7,7 +7,7 @@ import { Building2, Globe2, MonitorPlay } from "lucide-react";
 import icon from "../assets/icon.svg";
 import { validateImageFile } from "../utils/imageUpload";
 import TickiAIGenerator from "../components/TickiAiGenerator";
-import usePlanAccess from "../hooks/usePlanAccess";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 
 const eventTypes = [
@@ -33,7 +33,7 @@ const eventTypes = [
 
 export default function CreateEvent({ isOpen, onClose }) {
   const toast = useToast();
-  const canUseTickiAI = usePlanAccess("tickiai");
+  const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
   const [submitting, setSubmitting] = useState(false);
   const [isFreeEvent, setIsFreeEvent] = useState(false);
   const [showAIGen, setShowAIGen] = useState(false);
@@ -201,7 +201,7 @@ const handleAIGeneration = (aiData) => {
           type="button"
           onClick={() => {
             if (!canUseTickiAI) {
-              promptUpgrade("TickiAI");
+              promptUpgradeAI();
               return;
             }
             setShowAIGen(!showAIGen);

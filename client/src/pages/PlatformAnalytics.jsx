@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
-import usePlanAccess from "../hooks/usePlanAccess";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 import {
   formatCurrency,
@@ -53,7 +53,7 @@ function EventThumb({ event }) {
 
 export default function PlatformAnalytics() {
   const user = getCurrentUser();
-  const hasFullAccess = usePlanAccess("analytics"); // Returns true for Pro or active trial
+  const { hasAccess: hasFullAccess, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics"); // Returns true for Pro or active trial
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -175,7 +175,7 @@ export default function PlatformAnalytics() {
               <strong>Upgrade to Pro for full analytics</strong>
               <p>Unlock revenue insights, charts, conversion rates, and detailed reports.</p>
             </div>
-            <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn">
+            <button onClick={promptUpgradeAnalytics} className="upgrade-btn">
               Upgrade to Pro
             </button>
           </div>
@@ -199,21 +199,21 @@ export default function PlatformAnalytics() {
               label="Total Revenue"
               value={hasFullAccess ? formatCurrency(stats?.totalRevenue || 0) : "₦——"}
               isBlurred={!hasFullAccess}
-              onUpgrade={() => promptUpgrade("analytics")}
+              onUpgrade={promptUpgradeAnalytics}
             />
 
             <MetricCard
               label="Conversion Rate"
               value={hasFullAccess ? `${conversionRate}%` : "—"}
               isBlurred={!hasFullAccess}
-              onUpgrade={() => promptUpgrade("analytics")}
+              onUpgrade={promptUpgradeAnalytics}
             />
 
             <MetricCard
               label="Avg Revenue per Event"
               value={hasFullAccess ? formatCurrency(avgRevenuePerEvent) : "—"}
               isBlurred={!hasFullAccess}
-              onUpgrade={() => promptUpgrade("analytics")}
+              onUpgrade={promptUpgradeAnalytics}
             />
           </div>
         </section>
@@ -230,7 +230,7 @@ export default function PlatformAnalytics() {
                 <Lock size={32} />
                 <h3>Advanced Charts & Insights</h3>
                 <p>Revenue trends, performance comparison, and attendee behavior are Pro features.</p>
-                <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn large">
+                <button onClick={promptUpgradeAnalytics} className="upgrade-btn large">
                   Unlock with Pro
                 </button>
               </div>
@@ -335,7 +335,7 @@ export default function PlatformAnalytics() {
               <div className="blur-overlay">
                 <Lock size={28} />
                 <p>Detailed per-event analytics and revenue tracking are available on Pro.</p>
-                <button onClick={() => promptUpgrade("analytics")} className="upgrade-btn">
+                <button onClick={promptUpgradeAnalytics} className="upgrade-btn">
                   Upgrade to Pro
                 </button>
               </div>

@@ -8,7 +8,7 @@ import useDemoEvents from "../hooks/useDemoEvents";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import TickiAIChat from "../components/TickiAIChat";
-import usePlanAccess from "../hooks/usePlanAccess";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 
 import SEO from "../../public/SEO";
@@ -28,7 +28,7 @@ const EVENT_FILTER_CHIPS = [
 
 const applyFilters = (items, searchTerm, filter, sortBy) => {
   const lowerSearch = searchTerm.trim().toLowerCase();
-  
+
 
 
   let nextItems = [...items].filter((event) => {
@@ -62,7 +62,7 @@ const applyFilters = (items, searchTerm, filter, sortBy) => {
 };
 
 export default function Home() {
-  const canUseTickiAI = usePlanAccess("tickiai");
+  const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,14 +72,14 @@ export default function Home() {
   const [sortVisual, setSortVisual] = useState("newest");
   const { toProfile } = useProfileNavigation();
   const [showAIGen, setShowAIGen] = useState(false);
-    
-      const handleAIGeneration = (aiData) => {
-      setFormData((prev) => ({
-        ...prev,
-        ...aiData, 
-      }));
-      setShowAIGen(false); 
-    };
+
+  const handleAIGeneration = (aiData) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...aiData,
+    }));
+    setShowAIGen(false);
+  };
 
 
   const demoEvents = useDemoEvents(events, error && !useDemoData);
@@ -124,35 +124,35 @@ export default function Home() {
   return (
     <div className="dashboard-page">
       {/* ✅ TickiAI Floating Action Button & Sidebar Modal */}
-  <div className="tickiai-wrapper">
-    {showAIGen && (
-      
-        <div className="tickiai-modal">
-          <TickiAIChat onGenerate={handleAIGeneration} />
-        </div>
-     
-    )}
+      <div className="tickiai-wrapper">
+        {showAIGen && (
 
-    <button 
-      onClick={() => {
-        if (!canUseTickiAI) {
-          promptUpgrade("TickiAI");
-          return;
-        }
-        setShowAIGen(!showAIGen);
-      }}
-      className={`tickiai-floating-btn ${showAIGen ? 'active' : ''}`}
-      title={showAIGen ? "Close Chat" : "Chat with TickiAI"}
-    >
-      {showAIGen ? (
-        <span className="close-icon">✕</span> 
-      ) : (
-        <span className="ai-icon">✨</span>
-      )}
-    </button>
-  </div>
-      <SEO 
-        title="Discover Events | TickiSpot" 
+          <div className="tickiai-modal">
+            <TickiAIChat onGenerate={handleAIGeneration} />
+          </div>
+
+        )}
+
+        <button
+          onClick={() => {
+            if (!canUseTickiAI) {
+              promptUpgradeAI();
+              return;
+            }
+            setShowAIGen(!showAIGen);
+          }}
+          className={`tickiai-floating-btn ${showAIGen ? 'active' : ''}`}
+          title={showAIGen ? "Close Chat" : "Chat with TickiAI"}
+        >
+          {showAIGen ? (
+            <span className="close-icon">✕</span>
+          ) : (
+            <span className="ai-icon">✨</span>
+          )}
+        </button>
+      </div>
+      <SEO
+        title="Discover Events | TickiSpot"
         description="Browse social-first experiences across music, tech, culture, and community."
         url="https://tickispot.com/events"
       />

@@ -20,7 +20,7 @@ import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { MoreVertical } from "lucide-react";
-import usePlanAccess from "../hooks/usePlanAccess";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 
 
@@ -29,7 +29,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-    
+
 
 
   // 🟢 For Modal Control
@@ -39,12 +39,12 @@ export default function Dashboard() {
   const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
-    const [openMenuId, setOpenMenuId] = useState(null);
-  const canAccessAnalytics = usePlanAccess("analytics");
-  const canAccessLiveStreaming = usePlanAccess("live_stream");
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
+  const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
 
-  
+
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
@@ -93,11 +93,11 @@ export default function Dashboard() {
     });
   }, []);
 
-  
+
   // 🟢 Toggle Live Event
   const toggleLive = async (id, currentStatus) => {
     if (!canAccessLiveStreaming) {
-      promptUpgrade("live streaming");
+      promptUpgradeLive();
       return;
     }
 
@@ -186,7 +186,7 @@ export default function Dashboard() {
             >
               Create event <PlusCircle size={18} />
             </button>
-            
+
           </div>
         </div>
 
@@ -355,128 +355,128 @@ export default function Dashboard() {
               <div className="events-grid">
                 {events.map((event) => (
                   <div key={event._id} className="event-card">
-  {/* 🔥 MENU (always top right) */}
-  <div className="event-menu-wrapper">
-    <button
-      className="menu-trigger"
-      onClick={(e) => {
-        e.stopPropagation();
-        setOpenMenuId(openMenuId === event._id ? null : event._id);
-      }}
-    >
-      <MoreVertical size={18} />
-    </button>
+                    {/* 🔥 MENU (always top right) */}
+                    <div className="event-menu-wrapper">
+                      <button
+                        className="menu-trigger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === event._id ? null : event._id);
+                        }}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
 
-    {openMenuId === event._id && (
-      <div
-        className="event-menu"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={() => {
-            toggleLive(event._id, event.liveStream?.isLive);
-            setOpenMenuId(null);
-          }}
-          className="menu-item primary"
-        >
-          {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
-        </button>
+                      {openMenuId === event._id && (
+                        <div
+                          className="event-menu"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() => {
+                              toggleLive(event._id, event.liveStream?.isLive);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item primary"
+                          >
+                            {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
+                          </button>
 
-        <button
-          onClick={() => {
-            handleEditClick(event._id);
-            setOpenMenuId(null);
-          }}
-          className="menu-item"
-        >
-          Edit
-        </button>
+                          <button
+                            onClick={() => {
+                              handleEditClick(event._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item"
+                          >
+                            Edit
+                          </button>
 
-        {canAccessAnalytics ? (
-          <Link
-            to={`/events/${event._id}/analytics`}
-            className="menu-item"
-            onClick={() => setOpenMenuId(null)}
-          >
-            Analytics
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="menu-item"
-            onClick={() => {
-              setOpenMenuId(null);
-              promptUpgrade("analytics");
-            }}
-          >
-            Analytics
-          </button>
-        )}
+                          {canAccessAnalytics ? (
+                            <Link
+                              to={`/events/${event._id}/analytics`}
+                              className="menu-item"
+                              onClick={() => setOpenMenuId(null)}
+                            >
+                              Analytics
+                            </Link>
+                          ) : (
+                            <button
+                              type="button"
+                              className="menu-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                promptUpgradeAnalytics();
+                              }}
+                            >
+                              Analytics
+                            </button>
+                          )}
 
-        <div className="menu-divider" />
+                          <div className="menu-divider" />
 
-        <button
-          onClick={() => {
-            handleDelete(event._id);
-            setOpenMenuId(null);
-          }}
-          className="menu-item danger"
-        >
-          Delete
-        </button>
-      </div>
-    )}
-  </div>
+                          <button
+                            onClick={() => {
+                              handleDelete(event._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item danger"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-  {/* ✅ IMAGE */}
-  {getEventImageUrl(event) && (
-    <img
-      src={getEventImageUrl(event)}
-      alt={event.title}
-      className="event-cover"
-    />
-  )}
+                    {/* ✅ IMAGE */}
+                    {getEventImageUrl(event) && (
+                      <img
+                        src={getEventImageUrl(event)}
+                        alt={event.title}
+                        className="event-cover"
+                      />
+                    )}
 
-  {/* ✅ BODY */}
-  <div className="event-body">
-    <div className="event-title-row">
-      <div className="event-title">{event.title}</div>
-      {event.liveStream?.isLive && (
-        <span className="event-badge-live">LIVE</span>
-      )}
-    </div>
+                    {/* ✅ BODY */}
+                    <div className="event-body">
+                      <div className="event-title-row">
+                        <div className="event-title">{event.title}</div>
+                        {event.liveStream?.isLive && (
+                          <span className="event-badge-live">LIVE</span>
+                        )}
+                      </div>
 
-    <div className="event-meta">
-      {event.description || "No description provided."}
-    </div>
+                      <div className="event-meta">
+                        {event.description || "No description provided."}
+                      </div>
 
-    <div className="event-meta-grid">
-      <div className="event-meta-item">
-        <Calendar size={14} className="meta-icon" />
-        <span>
-          {new Date(event.startDate).toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })}{" "}
-          • {event.startTime}
-        </span>
-      </div>
+                      <div className="event-meta-grid">
+                        <div className="event-meta-item">
+                          <Calendar size={14} className="meta-icon" />
+                          <span>
+                            {new Date(event.startDate).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
+                            • {event.startTime}
+                          </span>
+                        </div>
 
-      <div className="event-meta-item">
-        <MapPin size={14} className="meta-icon" />
-        <span>{event.location}</span>
-      </div>
+                        <div className="event-meta-item">
+                          <MapPin size={14} className="meta-icon" />
+                          <span>{event.location}</span>
+                        </div>
 
-      <div className="event-meta-item">
-        <Users size={14} className="meta-icon" />
-        <span>
-          {event.ticketsSold}/{event.totalTickets} tickets sold
-        </span>
-      </div>
-    </div>
-  </div>
-</div>
+                        <div className="event-meta-item">
+                          <Users size={14} className="meta-icon" />
+                          <span>
+                            {event.ticketsSold}/{event.totalTickets} tickets sold
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -495,7 +495,7 @@ export default function Dashboard() {
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
-     
+
     </div>
   );
 }
