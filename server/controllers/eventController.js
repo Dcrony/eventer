@@ -5,7 +5,7 @@ const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const { createNotification } = require("../services/notificationService");
-const { hasProAccess } = require("../services/subscriptionService");
+const { hasAccess } = require("../services/featureService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
 const {
   isConfigured,
@@ -149,7 +149,7 @@ exports.createEvent = async (req, res) => {
     const isFree = parseBooleanFlag(req.body.isFree) || parseBooleanFlag(req.body.isFreeEvent);
     const normalizedVisibility = normalizeVisibility(visibility);
 
-    if (normalizedVisibility === "private" && !hasProAccess(req.user)) {
+    if (normalizedVisibility === "private" && !hasAccess(req.user, "PRIVATE_EVENTS")) {
       return res.status(403).json({
         code: "PLAN_UPGRADE_REQUIRED",
         message: "Upgrade to Pro to access this feature",
@@ -285,7 +285,7 @@ exports.toggleLiveStream = async (req, res) => {
   const { eventId, isLive } = req.body;
 
   try {
-    if (!hasProAccess(req.user)) {
+    if (!hasAccess(req.user, "LIVE_STREAM")) {
       return res.status(403).json({
         code: "PLAN_UPGRADE_REQUIRED",
         message: "Upgrade to Pro to access this feature",
@@ -322,7 +322,7 @@ exports.updateEvent = async (req, res) => {
     const isFree = parseBooleanFlag(updates.isFree) || parseBooleanFlag(updates.isFreeEvent);
     const normalizedVisibility = normalizeVisibility(updates.visibility || event.visibility);
 
-    if (normalizedVisibility === "private" && !hasProAccess(req.user)) {
+    if (normalizedVisibility === "private" && !hasAccess(req.user, "PRIVATE_EVENTS")) {
       return res.status(403).json({
         code: "PLAN_UPGRADE_REQUIRED",
         message: "Upgrade to Pro to access this feature",
