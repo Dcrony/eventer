@@ -1,12 +1,10 @@
-const PRO_FEATURES = new Set([
-  "tickiai",
-  "analytics",
-  "live_stream",
-  "team",
-  "private_events",
-  "custom_branding",
-  "priority_payouts",
-]);
+import {
+  FEATURES,
+  resolveFeatureKey,
+  getFeatureLabel,
+} from "./featureFlags";
+
+export { getFeatureLabel } from "./featureFlags";
 
 export const normalizePlan = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
@@ -34,15 +32,18 @@ export const isTrialEndingSoon = (user, thresholdDays = 3) => {
 };
 
 export const canAccessFeature = (user, featureName) => {
-  const feature = String(featureName || "").trim().toLowerCase();
-  if (!feature || !PRO_FEATURES.has(feature)) return true;
-  return hasProAccess(user);
+  const featureKey = resolveFeatureKey(featureName);
+  if (!featureKey || !Object.prototype.hasOwnProperty.call(FEATURES, featureKey)) return true;
+  if (isTrialActive(user)) return true;
+  return FEATURES[featureKey].includes(normalizePlan(user?.plan));
 };
 
 export const promptUpgrade = (featureName) => {
   window.dispatchEvent(
     new CustomEvent("planUpgradeRequired", {
-      detail: { featureName },
+      detail: { featureName: getFeatureLabel(featureName) },
     }),
   );
 };
+
+export const getFeatureLabelFromName = (featureName) => getFeatureLabel(featureName);
