@@ -3,37 +3,42 @@ import { Helmet } from "react-helmet-async";
 
 const SEO = ({
   title = "TickiSpot – Event Ticketing & Management Platform in Nigeria",
-  description = "Best platform to sell concert tickets in Lagos and across Nigeria. TickiSpot helps you manage events, track sales, and grow your audience.",
-  keywords = "sell concert tickets Lagos, event ticketing Nigeria, event management platform Nigeria, ticketing system Lagos, TickiSpot",
-  image = "https://tickispot.com/ticki.jpg",
+  description = "Discover and buy tickets for concerts, conferences, parties and more in Nigeria. Create and manage events effortlessly.",
+  keywords = "event ticketing Nigeria, sell tickets Lagos, event management platform, buy concert tickets Nigeria, TickiSpot",
+  image = "https://tickispot.com/ticki.jpg",   // ← Make sure this image exists and is 1200x630
   url = "https://tickispot.com",
   type = "website",
 }) => {
   return (
     <Helmet>
-      {/* ✅ Basic SEO */}
+      {/* Basic SEO */}
       <title>{title}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
       <meta name="robots" content="index, follow" />
       <link rel="canonical" href={url} />
 
-      {/* ✅ Open Graph */}
+      {/* Open Graph */}
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content="TickiSpot" />
+      <meta property="og:locale" content="en_NG" />
 
-      {/* ✅ Twitter */}
+      {/* Image dimensions for better previews */}
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+
+      {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
 
-      {/* ✅ STRUCTURED DATA */}
-      <script type="application/ld+json">
+      {/* Structured Data */}
+       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
@@ -46,7 +51,7 @@ const SEO = ({
               "description":
                 "Event ticketing platform for concerts, corporate events, and creators in Nigeria.",
               "sameAs": [
-                "https://x.com/codewithdcrony",
+                "https://x.com/tickispot",
                 "https://linkedin.com/in/ibrahim-abdulmajeed"
               ]
             },

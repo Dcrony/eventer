@@ -151,11 +151,11 @@ export default function Home() {
           )}
         </button>
       </div>
-      <SEO
-        title="Discover Events | TickiSpot"
-        description="Browse social-first experiences across music, tech, culture, and community."
-        url="https://tickispot.com/events"
-      />
+      <SEO 
+  title="Discover Events in Nigeria | TickiSpot"
+  description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
+  url="https://tickispot.com"
+/>
 
       {/* Structured Data for the Collection */}
       <Helmet>
