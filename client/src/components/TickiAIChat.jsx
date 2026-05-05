@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import API from "../api/axios";
-import "./css/TickiAI.css";
+import "./cssTickiAi.css";
 
 const QUICK_PROMPTS = {
     organizer: [
