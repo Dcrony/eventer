@@ -107,10 +107,10 @@ export default function Home() {
   return (
     <div className="dashboard-page">
       <SEO 
-        title="Discover Events | TickiSpot" 
-        description="Browse social-first experiences across music, tech, culture, and community."
-        url="https://tickispot.com/events"
-      />
+  title="Discover Events in Nigeria | TickiSpot"
+  description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
+  url="https://tickispot.com"
+/>
 
       {/* Structured Data for the Collection */}
       <Helmet>
