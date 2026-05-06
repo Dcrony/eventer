@@ -22,6 +22,7 @@ import { getEventImageUrl } from "../utils/eventHelpers";
 import { MoreVertical } from "lucide-react";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
+import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
 
 export default function Dashboard() {
@@ -231,6 +232,8 @@ export default function Dashboard() {
           </div>
         )}
 
+        <TrialNotificationBanner />
+
         {/* 📊 Stats */}
         {!loading && !error && stats && (
           <div className="stats-container-grid">
@@ -389,6 +392,7 @@ export default function Dashboard() {
                             className="menu-item primary"
                           >
                             {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
+                            {!canAccessLiveStreaming && " 🔒"}
                           </button>
 
                           <button

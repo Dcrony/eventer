@@ -1,0 +1,63 @@
+.trial-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 0.5px solid;
+  position: relative;
+  margin: 1rem 1.5rem;
+}
+.trial-banner.new-user { background: #E6F1FB; border-color: #85B7EB; }
+.trial-banner.active   { background: #EAF3DE; border-color: #97C459; }
+.trial-banner.warning  { background: #FAEEDA; border-color: #EF9F27; }
+.trial-banner.expired  { background: #FCEBEB; border-color: #F09595; }
+
+.trial-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 15px;
+}
+.new-user .trial-icon { background: #B5D4F4; color: #0C447C; }
+.active   .trial-icon { background: #C0DD97; color: #27500A; }
+.warning  .trial-icon { background: #FAC775; color: #633806; }
+.expired  .trial-icon { background: #F7C1C1; color: #791F1F; }
+
+.trial-text { flex: 1; }
+.trial-title { font-size: 14px; font-weight: 500; margin: 0 0 2px; }
+.new-user .trial-title { color: #0C447C; }
+.active   .trial-title { color: #27500A; }
+.warning  .trial-title { color: #633806; }
+.expired  .trial-title { color: #791F1F; }
+
+.trial-desc { font-size: 13px; margin: 0 0 10px; }
+.new-user .trial-desc { color: #185FA5; }
+.active   .trial-desc { color: #3B6D11; }
+.warning  .trial-desc { color: #854F0B; }
+.expired  .trial-desc { color: #A32D2D; }
+
+.progress-wrap {
+  height: 4px; background: rgba(0,0,0,0.08);
+  border-radius: 99px; margin-bottom: 10px; width: 100%;
+}
+.progress-bar { height: 4px; border-radius: 99px; }
+.active  .progress-bar { background: #639922; }
+.warning .progress-bar { background: #BA7517; }
+
+.trial-actions { display: flex; gap: 8px; align-items: center; }
+.trial-btn {
+  font-size: 12px; padding: 5px 12px;
+  border-radius: 8px; border: none; cursor: pointer; font-weight: 500;
+}
+.new-user .trial-btn.primary { background: #378ADD; color: #fff; }
+.active   .trial-btn.primary { background: #639922; color: #fff; }
+.warning  .trial-btn.primary { background: #BA7517; color: #fff; }
+.expired  .trial-btn.primary { background: #E24B4A; color: #fff; }
+.trial-btn.ghost {
+  background: transparent; color: #888; border: none; padding: 5px 6px;
+}
+.trial-close {
+  position: absolute; top: 10px; right: 10px;
+  background: none; border: none; cursor: pointer;
+  color: #888; font-size: 14px; padding: 2px 6px;
+}

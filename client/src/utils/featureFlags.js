@@ -48,5 +48,7 @@ export const FEATURE_LABELS = {
 
 export const getFeatureLabel = (featureName) => {
   const featureKey = resolveFeatureKey(featureName);
+
+   if (!featureKey || !Object.prototype.hasOwnProperty.call(FEATURES, featureKey)) return false;
   return FEATURE_LABELS[featureKey] || String(featureName || "premium feature").replace(/[_-]+/g, " ");
 };

@@ -1,5 +1,5 @@
 :root {
-  --primary-gradient: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  --primary-gradient: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
   --glass-bg: rgba(255, 255, 255, 0.7);
   --glass-border: rgba(255, 255, 255, 0.3);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -121,7 +121,7 @@
 
 .search-input-wrapper {
   position: relative;
-  flex: 1 1 220px;
+  flex: 1 1 20px;
   min-width: 0;
   max-width: 420px;
 }
