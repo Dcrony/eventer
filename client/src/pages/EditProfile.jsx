@@ -20,6 +20,9 @@ export default function EditProfile() {
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", text: "" });
+  
+  // Track field-specific errors
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const profileBlobRef = useRef(null);
   const coverBlobRef = useRef(null);
@@ -80,6 +83,10 @@ export default function EditProfile() {
     const { name, value } = e.target;
     if (name === "bio" && value.length > BIO_MAX) return;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear field-specific error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
 
   const uploadImageFile = async (file, type) => {
@@ -171,17 +178,33 @@ export default function EditProfile() {
     e.preventDefault();
     setSaving(true);
     setFeedback({ type: "", text: "" });
+    setFieldErrors({}); // Clear previous field errors
+    
     try {
       await API.put("/users/edit", formData);
       toast.success("Profile updated successfully");
       const id = user?.id ?? user?._id ?? "";
       navigate(`/users/${id}`);
     } catch (err) {
-      setFeedback({
-        type: "error",
-        text: err.response?.data?.message || "Update failed. Please try again.",
-      });
-      toast.error("Update failed. Please try again");
+      const errorMessage = err.response?.data?.message || "Update failed. Please try again.";
+      const errorData = err.response?.data;
+      
+      // Check for specific field errors
+      if (errorMessage.toLowerCase().includes("username already taken") || 
+          errorMessage.toLowerCase().includes("username already exists")) {
+        setFieldErrors({ username: "Username already taken. Please choose another one." });
+        toast.error("Username already taken");
+      } else if (errorMessage.toLowerCase().includes("email already in use") ||
+                 errorMessage.toLowerCase().includes("email already exists")) {
+        setFieldErrors({ email: "Email already in use. Please use another email." });
+        toast.error("Email already in use");
+      } else {
+        setFeedback({
+          type: "error",
+          text: errorMessage,
+        });
+        toast.error("Update failed. Please try again");
+      }
     } finally {
       setSaving(false);
     }
@@ -311,7 +334,11 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="username"
             autoComplete="username"
+            className={fieldErrors.username ? "input-error" : ""}
           />
+          {fieldErrors.username && (
+            <div className="field-error-message">{fieldErrors.username}</div>
+          )}
 
           <div className="editprofile-bio-row">
             <label htmlFor="edit-bio">Bio</label>
@@ -349,7 +376,11 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="you@example.com"
             autoComplete="email"
+            className={fieldErrors.email ? "input-error" : ""}
           />
+          {fieldErrors.email && (
+            <div className="field-error-message">{fieldErrors.email}</div>
+          )}
 
           <label htmlFor="edit-phone">Phone</label>
           <input

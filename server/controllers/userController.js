@@ -125,13 +125,48 @@ const updateMyProfile = async (req, res) => {
 
     const { name, username, email, phone, bio, location, currentPassword, newPassword } = req.body;
 
+    // Check for duplicate username (if username is being changed)
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Username already taken. Please choose another one.",
+          field: "username"
+        });
+      }
+      user.username = username;
+    }
+
+    // Check for duplicate email (if email is being changed)
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Email already in use. Please use another email.",
+          field: "email"
+        });
+      }
+      user.email = email;
+    }
+
+    // Check for duplicate phone (if phone is being changed)
+    if (phone && phone !== user.phone) {
+      const existingUser = await User.findOne({ phone });
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Phone number already in use. Please use another number.",
+          field: "phone"
+        });
+      }
+      user.phone = phone;
+    }
+
+    // Update other fields
     if (name) user.name = name;
-    if (username) user.username = username;
-    if (email) user.email = email;
-    if (phone) user.phone = phone;
     if (bio) user.bio = bio;
     if (location) user.location = location;
 
+    // Handle password change
     if (currentPassword && newPassword) {
       if (!user.password) {
         return res.status(400).json({
@@ -156,6 +191,19 @@ const updateMyProfile = async (req, res) => {
     res.json({ message: "Profile updated successfully", user: updatedUser });
   } catch (error) {
     console.error("Profile update error:", error);
+    
+    // Handle MongoDB duplicate key error (as fallback)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const message = field === 'username' 
+        ? "Username already taken. Please choose another one."
+        : field === 'email'
+        ? "Email already in use. Please use another email."
+        : `${field} already exists`;
+      
+      return res.status(400).json({ message, field });
+    }
+    
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -4,7 +4,6 @@
 =============================== */
 
 .messages-page {
-  padding: 1rem 1rem 1.25rem;
   background: linear-gradient(
     165deg,
     color-mix(in srgb, var(--brand-primary) 5%, transparent) 0%,
@@ -12,6 +11,11 @@
     var(--bg-page, #f5f7fb) 100%
   );
   min-height: 100vh;
+  min-height: 100vh;
+  padding-top: 2rem;
+  padding-left: var(--sidebar-width);
+  padding-right: 2rem;
+  padding-bottom: 4rem;
 }
 
 .messages-container {
@@ -828,7 +832,11 @@
 /* ----- Mobile ----- */
 @media (max-width: 768px) {
   .messages-page {
-    padding: 0;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
+    padding-top: 4rem;
+    padding-bottom: 80px;
+    margin-left: 0;
     background: var(--bg-page, #f5f7fb);
   }
 
