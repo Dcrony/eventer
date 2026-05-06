@@ -94,7 +94,7 @@ export default function Profile() {
         const { data } = await API.get(path);
         setProfile(data);
       } catch (error) {
-        console.error("Failed to load profile:", error);
+        // Failed to load profile - will show error state
       }
     };
 
@@ -209,7 +209,7 @@ export default function Profile() {
         },
       }));
     } catch (error) {
-      console.error("Failed to update follow state:", error);
+      // Silently handle follow state update failure
     } finally {
       setFollowPending(false);
     }
@@ -255,7 +255,7 @@ export default function Profile() {
               </div>
 
               <div className="profile-header-actions">
-                                  
+
                 {profile.isOwner ? (
                   <>
                     <Button variant="secondary" onClick={handleShareProfile}>
@@ -305,7 +305,7 @@ export default function Profile() {
                   {formatJoinDate(profile.createdAt)}
                 </span>
               </div>
-              
+
 
               <div className="profile-follow-row">
                 <button type="button" className="profile-follow-stat">
@@ -319,18 +319,18 @@ export default function Profile() {
               </div>
             </div>
             <div className="plan-badge-wrapper">
-  <span className={`plan-badge ${profile.plan}`}>
-    {profile.plan?.toUpperCase()} PLAN
-  </span>
-</div>
-<p className="plan-subtext">
-  {profile.plan === "free" && "Upgrade to unlock more features"}
-  {profile.plan === "pro" && "You have access to pro features"}
-  {profile.plan === "business" && "Full access enabled"}
-</p>
+              <span className={`plan-badge ${profile.plan}`}>
+                {profile.plan?.toUpperCase()} PLAN
+              </span>
+            </div>
+            <p className="plan-subtext">
+              {profile.plan === "free" && "Upgrade to unlock more features"}
+              {profile.plan === "pro" && "You have access to pro features"}
+              {profile.plan === "business" && "Full access enabled"}
+            </p>
           </div>
-          
-    
+
+
         </section>
 
         <section className="profile-content-card">

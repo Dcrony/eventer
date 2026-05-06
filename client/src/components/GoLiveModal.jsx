@@ -30,7 +30,6 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
                     setLoading(false);
                 })
                 .catch((err) => {
-                    console.error(err);
                     setError("Failed to load your events. Please try again.");
                     setLoading(false);
                 });
@@ -81,7 +80,7 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
             onStreamStarted(selectedEventId);
             onClose();
         } catch (err) {
-            console.error(err);
+            // Error going live - show alert to user
             alert("Failed to go live. Please try again.");
         } finally {
             setIsToggling(false);
@@ -131,7 +130,7 @@ export default function GoLiveModal({ isOpen, onClose, onStreamStarted, focusRet
                                     setLoading(true);
                                     API.get("/events/my-events")
                                         .then((res) => { setMyEvents(res.data || []); setLoading(false); })
-                                        .catch((err) => { console.error(err); setError("Failed to load your events."); setLoading(false); });
+                                        .catch((err) => { setError("Failed to load your events."); setLoading(false); });
                                 }}
                             >
                                 Retry

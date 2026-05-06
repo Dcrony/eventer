@@ -53,7 +53,6 @@ export default function EventAnalytics() {
         setAnalytics(data);
         setError("");
       } catch (fetchError) {
-        console.error("Failed to fetch event analytics:", fetchError);
         setError(fetchError.response?.data?.message || "Could not load event analytics");
       } finally {
         setLoading(false);

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { lazy, Suspense, useEffect, useState } from "react";
 import SEO from "../public/SEO";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import OrganizerStaffRoute from "./components/OrganizerStaffRoute";
@@ -135,7 +136,7 @@ function Layout() {
   // Lazy load sidebar and navigation components only when needed
   const renderSidebar = () => {
     if (hideNavAndSidebar) return null;
-    
+
     if (isMobile) {
       return (
         <>
@@ -146,7 +147,7 @@ function Layout() {
         </>
       );
     }
-    
+
     return (
       <Suspense fallback={null}>
         <Sidebar />
@@ -180,7 +181,7 @@ function Layout() {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/verify-otp" element={<VerifyEmailOtp />} />
-              
+
               {/* Static Pages */}
               <Route path="/about" element={<AboutUs />} />
               <Route path="/contact" element={<Contact />} />
@@ -402,18 +403,20 @@ function Layout() {
 // Main App component with providers
 export default function App() {
   return (
-    <HelmetProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <SocketProvider>
-            <NotificationsProvider>
-              <BrowserRouter>
-                <Layout />
-              </BrowserRouter>
-            </NotificationsProvider>
-          </SocketProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </HelmetProvider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <SocketProvider>
+              <NotificationsProvider>
+                <BrowserRouter>
+                  <Layout />
+                </BrowserRouter>
+              </NotificationsProvider>
+            </SocketProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </HelmetProvider>
+    </ErrorBoundary>
   );
 }

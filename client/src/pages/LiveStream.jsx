@@ -104,7 +104,6 @@ export default function LiveStream() {
                 }
             })
             .catch((err) => {
-                console.error("Media error:", err);
                 setMediaError(err?.message || "Camera or microphone access denied.");
             });
     }, []);
@@ -162,7 +161,6 @@ export default function LiveStream() {
                 });
             })
             .catch((err) => {
-                console.error(err);
                 setLoading(false);
             });
 

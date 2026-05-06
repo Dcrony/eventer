@@ -22,10 +22,10 @@ const MessageIndicator = () => {
         setUnreadCount(totalUnread);
       } catch (err) {
         if (err.response?.status === 401) {
-          console.warn("User not authenticated, skipping message fetch");
+          // User not authenticated - silently skip
           return;
         }
-        console.error("Failed to fetch message count:", err.message);
+        // Failed to fetch message count - will show 0
       }
     };
 
@@ -43,7 +43,7 @@ const MessageIndicator = () => {
         const totalUnread = res.data.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
         setUnreadCount(totalUnread);
       } catch (err) {
-        console.error("Failed to refresh message count:", err.message);
+        // Failed to refresh message count - will keep current count
       }
     };
 

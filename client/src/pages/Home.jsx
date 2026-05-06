@@ -99,7 +99,6 @@ export default function Home() {
         setUseDemoData(false);
         setError(null);
       } catch (fetchError) {
-        console.error("Failed to load events:", fetchError);
         setError("Failed to load live events. Showing demo events instead.");
         setUseDemoData(true);
         setEvents([]);
@@ -151,11 +150,11 @@ export default function Home() {
           )}
         </button>
       </div>
-      <SEO 
-  title="Discover Events in Nigeria | TickiSpot"
-  description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
-  url="https://tickispot.com"
-/>
+      <SEO
+        title="Discover Events in Nigeria | TickiSpot"
+        description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
+        url="https://tickispot.com"
+      />
 
       {/* Structured Data for the Collection */}
       <Helmet>

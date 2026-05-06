@@ -68,7 +68,6 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
           const { data } = await API.post(`/events/${eventState._id}/like`);
           syncEvent(data);
         } catch (error) {
-          console.error("Like update failed:", error);
           toast.error("Could not update like");
           syncEvent(eventState);
         }
@@ -99,7 +98,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
         const { data } = await API.post(`/events/${eventState._id}/share`);
         syncEvent(data);
       } catch (error) {
-        console.error("Share tracking failed:", error);
+        // Silently handle share tracking failure
       }
     });
   };
@@ -128,7 +127,6 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
           syncEvent({ ...eventState, isFavorited });
           toast.success(isFavorited ? "Added to favorites" : "Removed from favorites");
         } catch (error) {
-          console.error("Favorite toggle failed:", error);
           toast.error("Could not update favorites");
           updateOptimisticEvent({ isFavorited: prev });
           syncEvent(eventState);

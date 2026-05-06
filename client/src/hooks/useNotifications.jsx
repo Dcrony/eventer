@@ -26,7 +26,7 @@ export function NotificationsProvider({ children }) {
           setNotifications(res.data);
         }
       } catch (err) {
-        console.error("Error fetching notifications:", err);
+        // Error loading notifications - will show empty state
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -65,7 +65,7 @@ export function NotificationsProvider({ children }) {
         prev.map((item) => (item._id === id ? { ...item, isRead: true, read: true } : item)),
       );
     } catch (err) {
-      console.error("Error marking notification as read:", err);
+      // Silently handle mark-as-read failure
     }
   };
 
@@ -74,7 +74,7 @@ export function NotificationsProvider({ children }) {
       await API.put("/notifications/mark-all");
       setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true, read: true })));
     } catch (err) {
-      console.error("Error marking all notifications as read:", err);
+      // Silently handle mark-all-as-read failure
     }
   };
 

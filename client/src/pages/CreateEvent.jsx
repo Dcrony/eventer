@@ -56,36 +56,36 @@ export default function CreateEvent({ isOpen, onClose }) {
     totalTickets: "",
   });
 
-const handleAIGeneration = (aiData) => {
-  setForm((prev) => ({
-    ...prev,
-    title: aiData.title || prev.title,
-    description: aiData.description || prev.description,
-    category: aiData.category || prev.category,
-    location: aiData.location || prev.location,
-    // Map AI 'date' to both start and end dates
-    startDate: aiData.date || prev.startDate,
-    endDate: aiData.date || prev.endDate,
-    // Map AI 'time' to start time
-    startTime: aiData.time || prev.startTime,
-    // Map AI 'capacity' to totalTickets
-    totalTickets: aiData.capacity || prev.totalTickets,
-    // Map AI 'ticketPrice' to your pricing array
-    pricing: prev.pricing.map((tier) => ({
-      ...tier,
-      price: tier.type === "Regular" ? aiData.ticketPrice : tier.price
-    }))
-  }));
-  
-  // Set free event toggle if price is 0
-  if (aiData.ticketPrice === 0) {
-    setIsFreeEvent(true);
-  } else {
-    setIsFreeEvent(false);
-  }
+  const handleAIGeneration = (aiData) => {
+    setForm((prev) => ({
+      ...prev,
+      title: aiData.title || prev.title,
+      description: aiData.description || prev.description,
+      category: aiData.category || prev.category,
+      location: aiData.location || prev.location,
+      // Map AI 'date' to both start and end dates
+      startDate: aiData.date || prev.startDate,
+      endDate: aiData.date || prev.endDate,
+      // Map AI 'time' to start time
+      startTime: aiData.time || prev.startTime,
+      // Map AI 'capacity' to totalTickets
+      totalTickets: aiData.capacity || prev.totalTickets,
+      // Map AI 'ticketPrice' to your pricing array
+      pricing: prev.pricing.map((tier) => ({
+        ...tier,
+        price: tier.type === "Regular" ? aiData.ticketPrice : tier.price
+      }))
+    }));
 
-  setShowAIGen(false);
-};
+    // Set free event toggle if price is 0
+    if (aiData.ticketPrice === 0) {
+      setIsFreeEvent(true);
+    } else {
+      setIsFreeEvent(false);
+    }
+
+    setShowAIGen(false);
+  };
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -147,7 +147,6 @@ const handleAIGeneration = (aiData) => {
       navigate("/events");
       onClose();
     } catch (err) {
-      console.error(err);
       const code = err.response?.data?.code;
       const message = err.response?.data?.message || "Failed to create event";
       if (err.response?.status === 403 && code === "PLAN_LIMIT") {
@@ -195,26 +194,26 @@ const handleAIGeneration = (aiData) => {
             ))}
           </div>
 
-      {/* AI Toggle Button - Now styled as a prominent action */}
-        <button 
-          type="button"
-          onClick={() => {
-            if (!canUseTickiAI) {
-              promptUpgradeAI();
-              return;
-            }
-            setShowAIGen(!showAIGen);
-          }}
-          className={`ai-magic-btn ${showAIGen ? 'active' : ''}`}
-        >
-          {showAIGen ? "✨ Close AI Assistant" : "✨ Generate with TickiAI"}
-        </button>
+          {/* AI Toggle Button - Now styled as a prominent action */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!canUseTickiAI) {
+                promptUpgradeAI();
+                return;
+              }
+              setShowAIGen(!showAIGen);
+            }}
+            className={`ai-magic-btn ${showAIGen ? 'active' : ''}`}
+          >
+            {showAIGen ? "✨ Close AI Assistant" : "✨ Generate with TickiAI"}
+          </button>
 
-      {showAIGen && (
-        <div className="ai-overlay">
-          <TickiAIGenerator onGenerate={handleAIGeneration} />
-        </div>
-      )}
+          {showAIGen && (
+            <div className="ai-overlay">
+              <TickiAIGenerator onGenerate={handleAIGeneration} />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <input

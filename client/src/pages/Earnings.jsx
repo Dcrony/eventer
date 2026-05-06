@@ -46,7 +46,6 @@ export default function Earnings() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
         setError(err.response?.data?.message || "Could not load earnings");
         setLoading(false);
       });
@@ -59,7 +58,7 @@ export default function Earnings() {
   useEffect(() => {
     API.get("/banks")
       .then((res) => setBanks(res.data || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const formatNumber = (num) => {

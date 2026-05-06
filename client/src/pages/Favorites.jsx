@@ -12,7 +12,7 @@ export default function Favorites() {
         const { data } = await API.get("/favorites");
         setEvents(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Failed to load favorites", error);
+        // Failed to load favorites - will show empty state
       } finally {
         setLoading(false);
       }

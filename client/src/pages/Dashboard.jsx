@@ -62,7 +62,11 @@ export default function Dashboard() {
   };
 
   const handleEventUpdated = () => {
-    API.get("/events/my-events").then((res) => setEvents(res.data));
+    API.get("/events/my-events")
+      .then((res) => setEvents(res.data))
+      .catch(() => {
+        setError("Failed to refresh events");
+      });
   };
 
   // 🧩 Fetch dashboard data
@@ -78,19 +82,27 @@ export default function Dashboard() {
       API.get("/organizer/transactions", {
         headers: { Authorization: `Bearer ${token}` },
       }),
-    ]).then(([eventsRes, statsRes, transactionRes]) => {
-      setEvents(eventsRes.data);
-      setStats(statsRes.data);
-      setTransactions(transactionRes.data);
-      setLoading(false);
-
-    });
+    ])
+      .then(([eventsRes, statsRes, transactionRes]) => {
+        setEvents(eventsRes.data || []);
+        setStats(statsRes.data || null);
+        setTransactions(transactionRes.data || []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError("Failed to load dashboard data");
+        setLoading(false);
+      });
   }, [token, user]);
 
   useEffect(() => {
-    API.get("/banks").then((res) => {
-      setBanks(res.data);
-    });
+    API.get("/banks")
+      .then((res) => {
+        setBanks(res.data || []);
+      })
+      .catch(() => {
+        // Silently handle bank fetch failure
+      });
   }, []);
 
 
@@ -121,8 +133,7 @@ export default function Dashboard() {
         navigate(`/live/${id}`);
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to toggle live status");
+      setError("Failed to toggle live status");
     }
   };
 
@@ -138,10 +149,8 @@ export default function Dashboard() {
     try {
       await API.delete(`/events/delete/${id}`);
       setEvents(events.filter((e) => e._id !== id));
-      alert("Event deleted successfully!");
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete event. Please try again.");
+      setError("Failed to delete event. Please try again.");
     }
   };
 

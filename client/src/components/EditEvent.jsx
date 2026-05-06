@@ -119,7 +119,6 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
         setImagePreview(data.image ? getEventImageUrl(data) || "" : null);
         setImageFile(null);
       } catch (error) {
-        console.error(error);
         toast.error("Failed to load event details");
       } finally {
         setLoading(false);
@@ -204,7 +203,6 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
       onEventUpdated();
       onClose();
     } catch (error) {
-      console.error(error);
       toast.error(error.response?.data?.message || "Failed to update event");
     } finally {
       setSubmitting(false);

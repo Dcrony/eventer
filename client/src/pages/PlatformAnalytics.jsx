@@ -4,6 +4,7 @@ import { BarChart3, Calendar, ExternalLink, Eye, Ticket, TrendingUp, Wallet, Loc
 import {
   Bar,
   CartesianGrid,
+  Cell,
   ComposedChart,
   Legend,
   Line,

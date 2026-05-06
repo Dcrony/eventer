@@ -43,7 +43,7 @@ export default function Transactions() {
         });
         setTransactions(res.data);
       } catch (error) {
-        console.error("Error fetching transactions:", error);
+        // Failed to fetch transactions - will show empty state
       } finally {
         setLoading(false);
       }

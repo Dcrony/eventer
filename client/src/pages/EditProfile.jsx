@@ -28,13 +28,13 @@ export default function EditProfile() {
   const [coverPreview, setCoverPreview] = useState(null);
 
   const [formData, setFormData] = useState({
-  name: "",
-  username: "",
-  bio: "",
-  location: "",
-  email: "",
-  phone: "",
-});
+    name: "",
+    username: "",
+    bio: "",
+    location: "",
+    email: "",
+    phone: "",
+  });
 
   const setProfileBlobPreview = useCallback((blobUrl) => {
     if (profileBlobRef.current) URL.revokeObjectURL(profileBlobRef.current);
@@ -70,7 +70,6 @@ export default function EditProfile() {
         });
         setLoadError(null);
       } catch (err) {
-        console.error("Failed to load profile", err);
         setLoadError(err.response?.data?.message || "Could not load your profile.");
       }
     };
@@ -122,7 +121,6 @@ export default function EditProfile() {
       });
       return true;
     } catch (err) {
-      console.error("Upload failed:", err);
       setFeedback({
         type: "error",
         text:
@@ -179,7 +177,6 @@ export default function EditProfile() {
       const id = user?.id ?? user?._id ?? "";
       navigate(`/users/${id}`);
     } catch (err) {
-      console.error("Error updating profile:", err);
       setFeedback({
         type: "error",
         text: err.response?.data?.message || "Update failed. Please try again.",
@@ -264,32 +261,32 @@ export default function EditProfile() {
           </label>
         </div>
 
-          <div className="profile-pic-wrapper">
-            <Avatar
-              src={profileSrc}
-              name={formData.name || formData.username || "User"}
-              className="profile-pic"
+        <div className="profile-pic-wrapper">
+          <Avatar
+            src={profileSrc}
+            name={formData.name || formData.username || "User"}
+            className="profile-pic"
+          />
+          <label className="profile-upload">
+            {uploadingProfile ? (
+              <>
+                <ImageIcon size={14} />
+                …
+              </>
+            ) : (
+              <>
+                <Camera size={14} />
+                Photo
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
+              onChange={onPickProfile}
+              disabled={uploadingProfile || uploadingCover}
             />
-            <label className="profile-upload">
-              {uploadingProfile ? (
-                <>
-                  <ImageIcon size={14} />
-                  …
-                </>
-              ) : (
-                <>
-                  <Camera size={14} />
-                  Photo
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
-                onChange={onPickProfile}
-                disabled={uploadingProfile || uploadingCover}
-              />
-            </label>
-          </div>
+          </label>
+        </div>
 
         <form className="editprofile-form" onSubmit={handleSubmit}>
           <h2 className="editprofile-form-title">Details</h2>

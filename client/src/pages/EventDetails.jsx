@@ -54,7 +54,7 @@ export default function EventDetail() {
         setEvent(data);
         setSelectedTicketType(data.pricing?.[0] || ((data.isFreeEvent || data.isFree) ? { type: "Free", price: 0 } : null));
       } catch (error) {
-        console.error("Failed to fetch event:", error);
+        setError("Failed to load event");
       } finally {
         setLoading(false);
       }
@@ -73,7 +73,7 @@ export default function EventDetail() {
         setEvent(data);
         sessionStorage.setItem(sessionKey, "tracked");
       } catch (error) {
-        console.error("View tracking failed:", error);
+        // View tracking is non-critical - fail silently
       }
     };
 
@@ -125,15 +125,14 @@ export default function EventDetail() {
       setEvent((current) =>
         current
           ? {
-              ...current,
-              ticketsSold: Number(current.ticketsSold || 0) + quantity,
-              totalTickets: Math.max(0, Number(current.totalTickets || 0) - quantity),
-            }
+            ...current,
+            ticketsSold: Number(current.ticketsSold || 0) + quantity,
+            totalTickets: Math.max(0, Number(current.totalTickets || 0) - quantity),
+          }
           : current,
       );
       navigate("/my-tickets");
     } catch (error) {
-      console.error("Failed to reserve free ticket:", error);
       toast.error(error.response?.data?.message || "Failed to reserve ticket");
     }
   };
@@ -157,7 +156,6 @@ export default function EventDetail() {
       const { data } = await API.post(`/events/${event._id}/like`);
       setEvent(data);
     } catch (error) {
-      console.error("Failed to update like:", error);
       setEvent(previousEvent);
     }
   };
@@ -182,7 +180,7 @@ export default function EventDetail() {
         const { data } = await API.post(`/events/${event._id}/share`);
         setEvent(data);
       } catch (error) {
-        console.error("Failed to track share:", error);
+        // Silently handle share tracking failure
       }
     });
   };
@@ -350,9 +348,8 @@ export default function EventDetail() {
                       <button
                         key={ticketType._id || ticketType.type}
                         type="button"
-                        className={`event-detail-ticket-item ${
-                          selectedTicketType?.type === ticketType.type ? "is-active" : ""
-                        }`}
+                        className={`event-detail-ticket-item ${selectedTicketType?.type === ticketType.type ? "is-active" : ""
+                          }`}
                         onClick={() => setSelectedTicketType(ticketType)}
                       >
                         <div>

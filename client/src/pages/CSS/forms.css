@@ -176,6 +176,11 @@
   margin-bottom: 1rem;
 }
 
+.form-home-link .tickispot-icon {
+  width: 48px;
+  height: 48px;
+}
+
 .form-inline-row {
   text-align: right;
   margin-top: 0.5rem;

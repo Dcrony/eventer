@@ -37,7 +37,7 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
         setMessages(formattedMessages);
         await API.put(`/messages/read/${selectedUser._id}`);
       } catch (err) {
-        console.error("Failed to fetch messages:", err);
+        // Failed to fetch messages - UI will show empty state
       } finally {
         setLoading(false);
       }
@@ -83,7 +83,9 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
         });
 
         if (data.senderId === selectedUser._id) {
-          API.put(`/messages/read/${selectedUser._id}`).catch(console.error);
+          API.put(`/messages/read/${selectedUser._id}`).catch(() => {
+            // Silently handle read status update failure
+          });
         }
       }
     };

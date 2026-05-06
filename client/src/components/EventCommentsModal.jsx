@@ -38,7 +38,7 @@ export default function EventCommentsModal({
         setComments(data.comments || []);
         setCommentCount(data.commentCount || 0);
       } catch (error) {
-        console.error("Failed to load comments:", error);
+        // Failed to load comments - will show empty state
       } finally {
         setLoading(false);
       }
@@ -88,7 +88,6 @@ export default function EventCommentsModal({
       setCommentCount(data.commentCount || 0);
       onCommentCountChange?.(data.commentCount || 0, data);
     } catch (error) {
-      console.error("Failed to post comment:", error);
       toast.error(error.response?.data?.message || "Could not post comment");
       setDraft(text);
     } finally {

@@ -28,7 +28,7 @@ export default function Messages() {
         const res = await API.get(`/users/${userIdFromQuery}`);
         setSelectedUser(res.data);
       } catch (err) {
-        console.error("Failed to fetch user from query", err);
+        // Failed to fetch user - will show empty state
       }
     };
 

@@ -14,7 +14,7 @@ export default function useShareLink() {
         }
       } catch (error) {
         if (error?.name !== "AbortError") {
-          console.error("Native share failed:", error);
+          // Silently handle native share failure
         } else {
           return false;
         }
@@ -25,7 +25,6 @@ export default function useShareLink() {
         toast.success(copiedMessage);
         return true;
       } catch (error) {
-        console.error("Copy failed:", error);
         toast.error("Could not copy link");
         return false;
       }

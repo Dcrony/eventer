@@ -35,7 +35,9 @@ export default function MyTickets() {
   useEffect(() => {
     API.get("/tickets/my-tickets")
       .then((res) => setTickets(res.data))
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        // Error loading tickets - handled via empty state UI
+      });
   }, []);
 
   const filteredTickets = useMemo(() => {
@@ -205,11 +207,11 @@ export default function MyTickets() {
                             <Calendar size={15} className="detail-icon" aria-hidden />
                             {event.startDate
                               ? new Date(event.startDate).toLocaleDateString("en-US", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })
                               : "TBD"}
                           </span>
                           {event.startDate ? (
@@ -244,10 +246,10 @@ export default function MyTickets() {
                         <div className="detail-split-cell">
                           <span className="detail-label">Paid</span>
                           <div className="detail-row-main detail-price">
-  {ticket.isFree || ticket.amount === 0
-    ? "Free"
-    : `₦${(ticket.amount ?? 0).toLocaleString("en-NG")}`}
-</div>
+                            {ticket.isFree || ticket.amount === 0
+                              ? "Free"
+                              : `₦${(ticket.amount ?? 0).toLocaleString("en-NG")}`}
+                          </div>
                         </div>
                       </div>
                     </div>

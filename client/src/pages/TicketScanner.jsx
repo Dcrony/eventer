@@ -30,7 +30,7 @@ export default function TicketScanner() {
 
   const playBeep = (file = "./sound/beep.m4a") => {
     const audio = new Audio(file);
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
   };
 
   const vibrate = (ms = 150) => navigator.vibrate && navigator.vibrate(ms);
@@ -104,7 +104,6 @@ export default function TicketScanner() {
               }, 1000);
             }
           } catch (err) {
-            console.error(err);
             const data = err.response?.data;
             const msg =
               (data && typeof data.message === "string" && data.message) ||
@@ -131,12 +130,11 @@ export default function TicketScanner() {
             }, 1000);
           }
         },
-        () => {}
+        () => { }
       );
       setIsScanning(true);
       scannedBlockRef.current = false;
     } catch (e) {
-      console.error(e);
       setError("Camera could not start. Allow camera access or try HTTPS.");
       scannerRef.current = null;
       setIsScanning(false);

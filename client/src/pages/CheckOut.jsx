@@ -59,6 +59,12 @@ export default function Checkout() {
   }
 
   const handleConfirmPayment = async () => {
+    if (!event || !quantity || !user || !ticketType || price == null) {
+      toast.error("Invalid checkout data. Please try again.");
+      navigate("/events");
+      return;
+    }
+
     setLoading(true);
     try {
       if (isFreeEvent) {
@@ -92,7 +98,6 @@ export default function Checkout() {
         toast.error("Failed to initiate payment");
       }
     } catch (err) {
-      console.error(err);
       toast.error(err.response?.data?.message || "Payment failed. Try again.");
     } finally {
       setLoading(false);
