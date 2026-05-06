@@ -13,7 +13,7 @@ import { promptUpgrade } from "../utils/planAccess";
 
 import SEO from "../../public/SEO";
 import { Helmet } from "react-helmet-async";
-import TrialNotificationBanner from "@/components/TrialNotificationBanner";
+import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
 
 
@@ -123,7 +123,7 @@ export default function Home() {
 
   return (
     <div className="dashboard-page ">
-      <div className="dashboard-container">
+      
       <TrialNotificationBanner />
       {/* ✅ TickiAI Floating Action Button & Sidebar Modal */}
       <div className="tickiai-wrapper">
@@ -261,7 +261,6 @@ export default function Home() {
             )}
           </>
         ) : null}
-      </div>
       </div>
     </div>
   );

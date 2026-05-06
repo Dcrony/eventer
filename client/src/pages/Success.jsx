@@ -26,7 +26,9 @@ export default function Success() {
         </div>
 
         {/* Success Message */}
-        <h1 className="success-title">Payment Successful! 🎉</h1>
+        <h1 className="success-title">
+          <span className="success-title-span" >Payment Successful!</span>
+           🎉</h1>
         <p className="success-message">
           Your ticket has been created and confirmed.
         </p>

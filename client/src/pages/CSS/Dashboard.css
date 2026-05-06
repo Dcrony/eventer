@@ -887,8 +887,8 @@
 /* Mobile responsiveness */
 @media (max-width: 768px) {
   .dashboard-page {
-    padding-right: 0.75rem;
-    padding-left: 0.75rem;
+    padding-right: 0.5rem;
+    padding-left: 0.5rem;
     padding-top: 4rem;
     padding-bottom: 80px;
     margin-left: 0;
