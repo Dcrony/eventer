@@ -135,7 +135,7 @@ export default function Home() {
       <TrialNotificationBanner />
 
       <SEO
-        title="Discover Events in Nigeria | TickiSpot"
+        title="Tickispot - Discover Events in Africa"
         description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
         url="https://tickispot.com"
       />
