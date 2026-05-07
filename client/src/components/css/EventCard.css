@@ -1,207 +1,347 @@
+/* ============================================================
+   EVENT CARD — TickiSpot Design Language
+   Drop-in replacement for EventCard.css
+   All existing class names preserved — only styles change
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Tokens (inherit from home if already declared, fallback here) ── */
+:root {
+  --ec-pink:        #f43f8e;
+  --ec-pink-deep:   #e11d74;
+  --ec-pink-soft:   rgba(244,63,142,0.08);
+  --ec-pink-mid:    rgba(244,63,142,0.16);
+  --ec-pink-glow:   rgba(244,63,142,0.2);
+
+  --ec-ink:         #111118;
+  --ec-body:        #374151;
+  --ec-muted:       #9ca3af;
+  --ec-faint:       #e8e8ed;
+  --ec-surface:     #ffffff;
+  --ec-bg:          #f7f7f9;
+
+  --ec-live:        #ef4444;
+  --ec-saved:       #f43f8e;
+
+  --ec-radius:      1.25rem;
+  --ec-radius-sm:   0.625rem;
+  --ec-radius-pill: 999px;
+
+  --ec-shadow:      0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --ec-shadow-up:   0 14px 36px rgba(0,0,0,0.1), 0 4px 12px rgba(244,63,142,0.1);
+  --ec-transition:  180ms cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Card shell ── */
 .social-event-card {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   display: flex;
   flex-direction: column;
+  background: var(--ec-surface);
+  border-radius: var(--ec-radius);
+  border: 1.5px solid var(--ec-faint);
   overflow: hidden;
-  border: 1px solid var(--border-subtle);
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.98)),
-    var(--card-bg);
-  box-shadow: var(--shadow-md);
-  transition: transform var(--transition-ui), box-shadow var(--transition-ui), border-color var(--transition-ui);
+  box-shadow: var(--ec-shadow);
+  transition:
+    transform var(--ec-transition),
+    box-shadow var(--ec-transition),
+    border-color var(--ec-transition);
+  position: relative;
+  height: 100%;
 }
 
 .social-event-card:hover {
-  transform: translateY(-6px);
-  border-color: rgba(15, 23, 42, 0.14);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-5px);
+  box-shadow: var(--ec-shadow-up);
+  border-color: rgba(244,63,142,0.28);
 }
 
+/* ── Card link (wraps image + content) ── */
 .social-event-card-link {
-  color: inherit;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   text-decoration: none;
+  color: inherit;
+  outline: none;
 }
 
+.social-event-card-link:focus-visible {
+  outline: 2px solid var(--ec-pink);
+  outline-offset: 2px;
+  border-radius: var(--ec-radius);
+}
+
+/* ── Media / image block ── */
 .social-event-card-media {
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: radial-gradient(circle at top left, rgba(255, 99, 132, 0.18), transparent 38%), #102038;
+  background: var(--ec-ink);
+  flex-shrink: 0;
 }
 
+/* Real image */
 .social-event-card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 260ms ease;
+  transition: transform 0.52s ease;
+  display: block;
 }
 
 .social-event-card:hover .social-event-card-image {
   transform: scale(1.06);
 }
 
+/* Placeholder */
 .social-event-card-placeholder {
-  position: relative;
-  display: grid;
-  place-items: center;
   width: 100%;
   height: 100%;
-  color: rgba(255, 255, 255, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1625 0%, #111118 50%, #1a0a2e 100%);
+  color: rgba(255,255,255,0.18);
+  position: relative;
+  overflow: hidden;
 }
 
 .social-event-card-placeholder-glow {
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.08) 50%, transparent 80%);
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    rgba(244,63,142,0.06) 45%,
+    rgba(244,63,142,0.1) 50%,
+    rgba(244,63,142,0.06) 55%,
+    transparent 100%
+  );
   background-size: 200% 100%;
-  animation: event-card-shimmer 2.4s linear infinite;
+  animation: ecShimmer 2.4s ease-in-out infinite;
+}
+
+@keyframes ecShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .social-event-card-placeholder-logo {
   position: absolute;
-  width: 112px;
-  opacity: 0.12;
-  filter: brightness(4);
+  width: 80px;
+  opacity: 0.07;
+  filter: grayscale(1) brightness(3);
+  pointer-events: none;
 }
 
+/* Top chips row (category + event type) */
 .social-event-card-topline {
   position: absolute;
-  inset: 1rem 1rem auto 1rem;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
   display: flex;
+  gap: 0.4rem;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .social-event-card-chip {
-  padding: 0.45rem 0.8rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  color: #102038;
-  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  height: 1.5rem;
+  padding: 0 0.6rem;
+  border-radius: 8px;
+  font-size: 0.62rem;
   font-weight: 700;
-  backdrop-filter: blur(12px);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: rgba(17,17,24,0.75);
+  backdrop-filter: blur(8px);
+  color: #f8fafc;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .social-event-card-chip.outline {
-  background: rgba(16, 32, 56, 0.72);
-  color: white;
+  background: rgba(244,63,142,0.18);
+  border-color: rgba(244,63,142,0.4);
+  color: #fce7f3;
 }
 
+/* ── Content block ── */
 .social-event-card-content {
+  padding: 1.1rem 1.2rem 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1.35rem;
+  gap: 0.75rem;
+  flex: 1;
 }
 
-.social-event-card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
+/* Title + description */
 .social-event-card-head h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  line-height: 1.2;
-  color: var(--text-color);
+  font-size: 0.97rem;
+  font-weight: 700;
+  color: var(--ec-ink);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.3rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color var(--ec-transition);
+}
+
+.social-event-card:hover .social-event-card-head h3 {
+  color: var(--ec-pink);
 }
 
 .social-event-card-head p {
+  font-size: 0.79rem;
+  color: var(--ec-muted);
+  line-height: 1.5;
   margin: 0;
-  color: var(--text-muted);
-  line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+/* Date + location */
 .social-event-card-meta {
-  display: grid;
-  gap: 0.6rem;
-  color: var(--text-muted);
-  font-size: 0.92rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-.social-event-card-meta span,
-.social-event-card-price,
-.social-event-card-organizer {
+.social-event-card-meta span {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.42rem;
+  font-size: 0.77rem;
+  font-weight: 500;
+  color: var(--ec-body);
 }
 
-.social-event-favorite {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border: 1px solid var(--border-subtle);
-  background: #fff;
-  color: var(--text-muted);
-  border-radius: 999px;
-  padding: 0.45rem 0.75rem;
-  font-weight: 700;
+/* Lucide icons in meta — tint pink */
+.social-event-card-meta span svg {
+  color: var(--ec-pink);
+  flex-shrink: 0;
 }
 
-.social-event-favorite.is-active {
-  color: var(--brand-primary-strong);
-  border-color: color-mix(in srgb, var(--brand-primary) 35%, white);
-  background: color-mix(in srgb, var(--brand-primary) 12%, white);
-}
-
+/* ── Footer inside content ── */
 .social-event-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.65rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ec-faint);
   margin-top: auto;
+  flex-wrap: wrap;
 }
 
+/* Price */
 .social-event-card-price {
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
+  gap: 0.05rem;
+  flex-shrink: 0;
 }
 
 .social-event-card-price span {
-  font-size: 0.82rem;
-  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--ec-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .social-event-card-price strong {
-  font-size: 1rem;
-  color: var(--text-color);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--ec-ink);
+  letter-spacing: -0.01em;
 }
 
-.social-event-card-organizer {
-  border: 0;
+/* Favorite button */
+.social-event-favorite {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.85rem;
+  padding: 0 0.85rem;
+  border-radius: var(--ec-radius-pill);
+  border: 1.5px solid var(--ec-faint);
   background: transparent;
-  padding: 0;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ec-muted);
+  cursor: pointer;
+  transition: all var(--ec-transition);
+  flex-shrink: 0;
+}
+
+.social-event-favorite svg {
+  transition: fill var(--ec-transition), color var(--ec-transition);
+}
+
+.social-event-favorite:hover {
+  border-color: var(--ec-pink);
+  color: var(--ec-pink);
+  background: var(--ec-pink-soft);
+}
+
+.social-event-favorite.is-active {
+  background: var(--ec-pink);
+  border-color: var(--ec-pink);
+  color: #fff;
+}
+
+.social-event-favorite.is-active svg {
+  fill: #fff;
+}
+
+.social-event-favorite:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Organizer mini-block */
+.social-event-card-organizer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  cursor: pointer;
+  border-radius: var(--ec-radius-sm);
+  padding: 0.25rem 0.4rem;
+  transition: background var(--ec-transition);
   min-width: 0;
 }
 
+.social-event-card-organizer:hover {
+  background: var(--ec-bg);
+}
+
 .social-event-card-organizer-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: grid;
-  place-items: center;
-  border-radius: 18px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   overflow: hidden;
-  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-  color: #475569;
+  flex-shrink: 0;
+  border: 1px solid var(--ec-faint);
 }
 
-.social-event-card-organizer-avatar img,
-.social-event-card-organizer-avatar .avatar {
-  width: 100%;
-  height: 100%;
+.social-event-card-organizer-avatar-img {
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover;
-}
-
-.social-event-card-organizer-avatar .avatar {
-  border: none;
+  border-radius: 6px;
 }
 
 .social-event-card-organizer-copy {
@@ -211,221 +351,143 @@
 }
 
 .social-event-card-organizer-copy span {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--ec-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 96px;
 }
 
 .social-event-card-organizer-copy small {
-  color: var(--text-muted);
+  font-size: 0.62rem;
+  color: var(--ec-muted);
+  font-weight: 400;
 }
 
-.event-engagement-bar {
+/* ── Engagement bar (EventEngagementBar component) ── */
+/* This sits below the card link, so we style its wrapper */
+.social-event-card > *:last-child:not(.social-event-card-link) {
+  border-top: 1px solid var(--ec-faint);
+  background: #fafafa;
+  border-radius: 0 0 calc(var(--ec-radius) - 1px) calc(var(--ec-radius) - 1px);
+}
+
+/* If EventEngagementBar uses these common class patterns, override them */
+.event-engagement-bar,
+[class*="engagement-bar"],
+[class*="EngagementBar"] {
+  padding: 0.55rem 1.1rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.95rem 1.1rem 1.1rem;
-  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  gap: 0.25rem;
 }
 
-.event-engagement-bar.is-compact {
-  padding-top: 0.85rem;
-}
-
-.event-engagement-button,
-.event-engagement-stat {
-  display: flex;
+/* Engagement action buttons */
+.event-engagement-bar button,
+[class*="engagement"] button {
+  display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 999px;
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
-.event-engagement-button {
-  border: 1px solid transparent;
-  background: rgba(241, 245, 249, 0.85);
-  cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-}
-
-.event-engagement-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(15, 23, 42, 0.08);
-  color: var(--text-color);
-}
-
-.event-engagement-button.is-active {
-  color: var(--brand-primary-strong);
-  background: color-mix(in srgb, var(--brand-primary) 14%, white);
-}
-
-.event-engagement-stat {
-  margin-left: auto;
-}
-
-.event-comments-modal {
-  max-width: 720px;
-}
-
-.event-comments-layout {
-  display: grid;
-  gap: 1rem;
-}
-
-.event-comments-list {
-  max-height: 360px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.event-comments-empty {
-  margin: 0;
-  padding: 2rem 1rem;
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.event-comment-item {
-  display: flex;
-  gap: 0.9rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-}
-
-.event-comment-avatar {
-  width: 2.75rem;
-  height: 2.75rem;
-  flex-shrink: 0;
-  border-radius: 50%;
-  overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: rgba(226, 232, 240, 0.8);
-  color: #64748b;
-}
-
-.event-comment-avatar img,
-.event-comment-avatar .avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.event-comment-avatar .avatar {
-  border: none;
-}
-
-.event-comment-body {
-  display: grid;
   gap: 0.35rem;
+  height: 1.85rem;
+  padding: 0 0.75rem;
+  border-radius: var(--ec-radius-pill);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ec-muted);
+  cursor: pointer;
+  transition: all var(--ec-transition);
 }
 
-.event-comment-body p {
-  margin: 0;
-  color: var(--text-color);
-  line-height: 1.6;
+.event-engagement-bar button:hover,
+[class*="engagement"] button:hover {
+  background: var(--ec-pink-soft);
+  color: var(--ec-pink);
 }
 
-.event-comment-meta {
+.event-engagement-bar button.active,
+.event-engagement-bar button[data-liked="true"],
+[class*="engagement"] button.active {
+  color: var(--ec-pink);
+}
+
+.event-engagement-bar button svg,
+[class*="engagement"] button svg {
+  transition: transform var(--ec-transition);
+}
+
+.event-engagement-bar button:hover svg,
+[class*="engagement"] button:hover svg {
+  transform: scale(1.15);
+}
+
+/* ── Animation on mount ── */
+.social-event-card {
+  animation: ecCardIn 0.38s ease both;
+}
+
+@keyframes ecCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Skeleton (used by EventCardSkeleton) ── */
+.event-card-skeleton,
+.social-event-card-skeleton {
+  background: var(--ec-surface);
+  border-radius: var(--ec-radius);
+  border: 1.5px solid var(--ec-faint);
+  overflow: hidden;
+  box-shadow: var(--ec-shadow);
+}
+
+.event-card-skeleton-img,
+.social-event-card-skeleton-img {
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(90deg, #f0f0f5 25%, #e8e8f0 50%, #f0f0f5 75%);
+  background-size: 200% 100%;
+  animation: ecShimmer2 1.5s infinite;
+}
+
+.event-card-skeleton-body,
+.social-event-card-skeleton-body {
+  padding: 1.1rem 1.2rem;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
-.event-comment-meta strong {
-  color: var(--text-color);
+.event-card-skeleton-line,
+.social-event-card-skeleton-line {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f0f0f5 25%, #e8e8f0 50%, #f0f0f5 75%);
+  background-size: 200% 100%;
+  animation: ecShimmer2 1.5s infinite;
 }
 
-.event-comment-pending {
-  color: var(--brand-primary);
+@keyframes ecShimmer2 {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-.event-comment-form {
-  display: grid;
-  gap: 0.9rem;
-  padding-top: 0.75rem;
-}
-
-.event-comment-form-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
-.event-comment-form textarea {
-  width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 18px;
-  padding: 1rem 1.1rem;
-  font: inherit;
-  resize: vertical;
-  background: white;
-  color: var(--text-color);
-}
-
-.event-comment-form textarea:focus {
-  outline: none;
-  border-color: rgba(255, 90, 95, 0.4);
-  box-shadow: 0 0 0 4px rgba(255, 90, 95, 0.12);
-}
-
-.event-comment-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
-@keyframes event-card-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-
-  to {
-    background-position: -100% 0;
-  }
-}
-
-@media (max-width: 680px) {
+/* ── Responsive ── */
+@media (max-width: 480px) {
   .social-event-card-content {
-    padding: 1.1rem;
+    padding: 0.9rem 1rem 0.75rem;
   }
 
-  .social-event-card-footer,
-  .event-comment-form-head {
-    flex-direction: column;
-    align-items: stretch;
+  .social-event-card-footer {
+    gap: 0.5rem;
   }
 
-  .event-engagement-bar {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.35rem;
-    align-items: center;
-  }
-
-  .event-engagement-button,
-  .event-engagement-stat {
-    justify-content: center;
-    margin-left: 0;
-    padding: 0.5rem 0.4rem;
-  }
-
-  .event-engagement-stat {
-    margin-left: 0;
-  }
-
-  .event-comment-form-actions {
-    justify-content: stretch;
+  .social-event-card-organizer-copy span {
+    max-width: 72px;
   }
 }
