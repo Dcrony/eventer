@@ -8,7 +8,7 @@ import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import TickiAIChat from "../components/TickiAIChat";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import SEO from "../../public/SEO";
+import SEO from "../components/SEO";
 import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
