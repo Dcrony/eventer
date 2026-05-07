@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const User = require("./models/User");
 
-mongoose.connect("mongodb+srv://dcrony:.Majeed244@cluster0.z8z1c7e.mongodb.net/");
+mongoose.connect("mongodb+srv://dcrony:.Majeed244@cluster0.z8z1c7e.mongodb.net/tickispotDBtest?retryWrites=true&w=majority");
 
 (async () => {
   try {

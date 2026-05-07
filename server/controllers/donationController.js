@@ -4,7 +4,7 @@ const sendEmail = require("../utils/email");
 const Donation = require("../models/Donation");
 
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
 
@@ -61,7 +61,7 @@ exports.verifyDonation = async (req, res) => {
   const ref = reference || trxref;
 
   if (!ref) {
-    return res.redirect(`${FRONTEND_URL}/donate?status=failed`);
+    return res.redirect(`${FRONTEND_URL}/donation?status=failed`);
   }
 
   try {
@@ -101,7 +101,7 @@ exports.verifyDonation = async (req, res) => {
       }).catch(console.error);
 
       return res.redirect(
-        `${FRONTEND_URL}/donate?status=success&reference=${ref}`
+        `${FRONTEND_URL}/donation?status=success&reference=${ref}`
       );
     }
 
