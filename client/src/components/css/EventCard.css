@@ -347,6 +347,7 @@
 .social-event-card-organizer-copy {
   display: flex;
   flex-direction: column;
+  gap: 0.1rem;
   min-width: 0;
 }
 
@@ -360,7 +361,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 96px;
+  max-width: auto;
 }
 
 .social-event-card-organizer-copy small {
@@ -383,6 +384,7 @@
 [class*="EngagementBar"] {
   padding: 0.55rem 1.1rem;
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 0.25rem;
 }
@@ -426,6 +428,16 @@
 .event-engagement-bar button:hover svg,
 [class*="engagement"] button:hover svg {
   transform: scale(1.15);
+}
+
+.event-engagement-bar.event-engagement-stat,
+[class*="engagement"] .event-engagement-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ec-muted);
 }
 
 /* ── Animation on mount ── */

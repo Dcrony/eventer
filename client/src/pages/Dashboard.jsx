@@ -176,6 +176,8 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
+        <TrialNotificationBanner />
+
       <div className="dashboard-container">
         <div className="dashboard-header">
           <div>
@@ -232,7 +234,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        <TrialNotificationBanner />
 
         {/* 📊 Stats */}
         {!loading && !error && stats && (

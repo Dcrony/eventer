@@ -12,15 +12,31 @@ import SEO from "../../public/SEO";
 import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
+/* ── Icons ── */
+import { 
+  Music, 
+  Zap, 
+  Briefcase, 
+  UtensilsCrossed, 
+  Trophy, 
+  Globe, 
+  Search, 
+  ArrowRight,
+  AlertCircle,
+  SearchX,
+  Sparkles,
+  X
+} from "lucide-react";
+
 /* ── Filter chips ── */
 const CHIPS = [
-  { id: "all",      label: "All"      },
-  { id: "music",    label: "🎵 Music"  },
-  { id: "tech",     label: "⚡ Tech"   },
-  { id: "business", label: "💼 Business" },
-  { id: "food",     label: "🍜 Food"  },
-  { id: "sports",   label: "🏆 Sports" },
-  { id: "online",   label: "🌐 Online" },
+  { id: "all",      label: "All",      icon: null },
+  { id: "music",    label: "Music",    icon: Music },
+  { id: "tech",     label: "Tech",     icon: Zap },
+  { id: "business", label: "Business", icon: Briefcase },
+  { id: "food",     label: "Food",     icon: UtensilsCrossed },
+  { id: "sports",   label: "Sports",   icon: Trophy },
+  { id: "online",   label: "Online",   icon: Globe },
 ];
 
 /* ── Filtering / sorting ── */
@@ -48,21 +64,6 @@ const applyFilters = (items, search, filter, sort) => {
   return out;
 };
 
-/* ── SVG icons (inline, no extra dep) ── */
-const SearchIco = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-  </svg>
-);
-
-const ArrowIco = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <path d="M5 12h14M12 5l7 7-7 7"/>
-  </svg>
-);
-
 /* ── Skeleton card ── */
 function SkelCard() {
   return (
@@ -81,18 +82,17 @@ function SkelCard() {
   );
 }
 
-/* ── Main component ── */
 export default function Home() {
   const { hasAccess: canAI, promptUpgrade: promptAI } = useFeatureAccess("tickiai");
 
-  const [events,      setEvents]      = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
+  const [events,       setEvents]      = useState([]);
+  const [loading,      setLoading]     = useState(true);
+  const [error,        setError]       = useState(null);
   const [useDemoData, setUseDemoData] = useState(false);
-  const [search,      setSearch]      = useState("");
-  const [filter,      setFilter]      = useState("all");
-  const [sort,        setSort]        = useState("newest");
-  const [showAI,      setShowAI]      = useState(false);
+  const [search,       setSearch]      = useState("");
+  const [filter,       setFilter]      = useState("all");
+  const [sort,         setSort]        = useState("newest");
+  const [showAI,       setShowAI]      = useState(false);
 
   const { toProfile } = useProfileNavigation();
   const demoEvents    = useDemoEvents(events, error && !useDemoData);
@@ -134,7 +134,6 @@ export default function Home() {
     <div className="ts-home dashboard-page">
       <TrialNotificationBanner />
 
-      {/* ── SEO ── */}
       <SEO
         title="Discover Events in Nigeria | TickiSpot"
         description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
@@ -155,15 +154,12 @@ export default function Home() {
       </Helmet>
 
       <div className="ts-home-container">
-
-        {/* ── Hero intro ── */}
         <div className="ts-intro">
           <span className="ts-intro-eyebrow">Event infrastructure for serious teams</span>
           <h1 className="ts-intro-title">Discover events</h1>
           <p className="ts-intro-sub">
             Browse social-first experiences across music, tech, culture, and community on TickiSpot.
           </p>
-          {/* Social proof stat pills — TickiSpot homepage pattern */}
           <div className="ts-stat-pills">
             <span className="ts-stat-pill">50K+ active organizers</span>
             <span className="ts-stat-pill">500K+ tickets sold</span>
@@ -171,11 +167,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Toolbar ── */}
         <div className="ts-toolbar">
-          {/* Search */}
           <div className="ts-search-wrap">
-            <span className="ts-search-ico"><SearchIco /></span>
+            <span className="ts-search-ico"><Search size={18} /></span>
             <input
               type="search"
               className="ts-search-input"
@@ -184,11 +178,10 @@ export default function Home() {
               onChange={(e) => setSearch(e.target.value)}
             />
             <button className="ts-search-submit" aria-label="Search">
-              <ArrowIco />
+              <ArrowRight size={18} />
             </button>
           </div>
 
-          {/* Filters + sort */}
           <div className="ts-filter-row">
             <div className="ts-pills" role="toolbar" aria-label="Categories">
               {CHIPS.map((chip) => (
@@ -197,6 +190,7 @@ export default function Home() {
                   className={`ts-pill ${filter === chip.id ? "active" : ""}`}
                   onClick={() => setFilter(chip.id)}
                 >
+                  {chip.icon && <chip.icon size={14} className="ts-chip-icon" />}
                   {chip.label}
                 </button>
               ))}
@@ -217,7 +211,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Results bar ── */}
         {!loading && (
           <div className="ts-results-bar">
             <p className="ts-results-count">
@@ -226,29 +219,26 @@ export default function Home() {
           </div>
         )}
 
-        {/* ── Loading skeletons ── */}
         {loading && (
           <div className="ts-skeleton-grid">
             {Array.from({ length: 6 }).map((_, i) => <SkelCard key={i} />)}
           </div>
         )}
 
-        {/* ── Error (non-demo) ── */}
         {error && !useDemoData && (
           <div className="ts-empty" style={{ gridColumn: "1/-1" }}>
-            <div className="ts-empty-icon">⚠️</div>
+            <div className="ts-empty-icon"><AlertCircle size={40} color="var(--ts-pink)" /></div>
             <h3>Couldn't load events</h3>
             <p>{error}</p>
           </div>
         )}
 
-        {/* ── Events grid ── */}
         {!loading && (!error || useDemoData) && (
           <>
             {filtered.length === 0 ? (
               <div className="ts-events-grid">
                 <div className="ts-empty">
-                  <div className="ts-empty-icon">🔍</div>
+                  <div className="ts-empty-icon"><SearchX size={48} strokeWidth={1.5} /></div>
                   <h3>{search ? "No events match your search" : "No events yet"}</h3>
                   <p>
                     {search
@@ -277,7 +267,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* ── TickiAI floating button ── */}
       <div className="ts-ai-wrapper">
         {showAI && (
           <div className="ts-ai-modal">
@@ -292,7 +281,7 @@ export default function Home() {
             setShowAI((v) => !v);
           }}
         >
-          {showAI ? "✕" : "✨"}
+          {showAI ? <X size={20} /> : <Sparkles size={20} />}
         </button>
       </div>
     </div>
