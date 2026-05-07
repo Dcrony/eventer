@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCreators } from "../services/api/creators";
 import { getProfileImageUrl } from "../utils/eventHelpers";
-import "./discovercreators.css";
+import "./CSS/DiscoverCreators.css";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 const fmt = (n) =>
