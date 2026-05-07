@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import API from "../api/axios";
 import EmptyState from "../components/EmptyState";
 import EventCard from "../components/EventCard";
@@ -9,258 +8,292 @@ import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import TickiAIChat from "../components/TickiAIChat";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import { promptUpgrade } from "../utils/planAccess";
-
 import SEO from "../../public/SEO";
 import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
-
-
-const EVENT_FILTER_CHIPS = [
-  { id: "all", label: "All" },
-  { id: "music", label: "Music" },
-  { id: "tech", label: "Tech" },
-  { id: "business", label: "Business" },
-  { id: "food", label: "Food" },
-  { id: "sports", label: "Sports" },
-  { id: "online", label: "Online" },
+/* ── Filter chips ── */
+const CHIPS = [
+  { id: "all",      label: "All"      },
+  { id: "music",    label: "🎵 Music"  },
+  { id: "tech",     label: "⚡ Tech"   },
+  { id: "business", label: "💼 Business" },
+  { id: "food",     label: "🍜 Food"  },
+  { id: "sports",   label: "🏆 Sports" },
+  { id: "online",   label: "🌐 Online" },
 ];
 
-const applyFilters = (items, searchTerm, filter, sortBy) => {
-  const lowerSearch = searchTerm.trim().toLowerCase();
-
-
-
-  let nextItems = [...items].filter((event) => {
-    const matchesSearch =
-      !lowerSearch ||
-      event?.title?.toLowerCase().includes(lowerSearch) ||
-      event?.location?.toLowerCase().includes(lowerSearch) ||
-      event?.category?.toLowerCase().includes(lowerSearch);
-
-    const matchesFilter =
+/* ── Filtering / sorting ── */
+const applyFilters = (items, search, filter, sort) => {
+  const q = search.trim().toLowerCase();
+  let out = items.filter((e) => {
+    const matchQ =
+      !q ||
+      e?.title?.toLowerCase().includes(q) ||
+      e?.location?.toLowerCase().includes(q) ||
+      e?.category?.toLowerCase().includes(q);
+    const matchF =
       filter === "all" ||
-      event?.category?.toLowerCase() === filter ||
-      (filter === "online" && !event?.location);
-
-    return matchesSearch && matchesFilter;
+      e?.category?.toLowerCase() === filter ||
+      (filter === "online" && !e?.location);
+    return matchQ && matchF;
   });
-
-  nextItems.sort((left, right) => {
-    if (sortBy === "popular") {
-      return (right.likeCount || right.ticketsSold || 0) - (left.likeCount || left.ticketsSold || 0);
-    }
-
-    if (sortBy === "soonest") {
-      return new Date(left.startDate || left.date || 0) - new Date(right.startDate || right.date || 0);
-    }
-
-    return new Date(right.createdAt || 0) - new Date(left.createdAt || 0);
+  out.sort((a, b) => {
+    if (sort === "popular")
+      return (b.likeCount || b.ticketsSold || 0) - (a.likeCount || a.ticketsSold || 0);
+    if (sort === "soonest")
+      return new Date(a.startDate || a.date || 0) - new Date(b.startDate || b.date || 0);
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
-
-  return nextItems;
+  return out;
 };
 
+/* ── SVG icons (inline, no extra dep) ── */
+const SearchIco = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+  </svg>
+);
+
+const ArrowIco = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <path d="M5 12h14M12 5l7 7-7 7"/>
+  </svg>
+);
+
+/* ── Skeleton card ── */
+function SkelCard() {
+  return (
+    <div className="ts-skel-card">
+      <div className="ts-skel-img" />
+      <div className="ts-skel-body">
+        <div className="ts-skel-line" style={{ height: 16, width: "75%" }} />
+        <div className="ts-skel-line" style={{ height: 12, width: "55%" }} />
+        <div className="ts-skel-line" style={{ height: 12, width: "40%" }} />
+      </div>
+      <div className="ts-skel-footer">
+        <div className="ts-skel-line" style={{ width: 28, height: 28, borderRadius: 8 }} />
+        <div className="ts-skel-line" style={{ width: 80, height: 12 }} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Main component ── */
 export default function Home() {
-  const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const { hasAccess: canAI, promptUpgrade: promptAI } = useFeatureAccess("tickiai");
+
+  const [events,      setEvents]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
   const [useDemoData, setUseDemoData] = useState(false);
-  const [filterVisual, setFilterVisual] = useState("all");
-  const [sortVisual, setSortVisual] = useState("newest");
+  const [search,      setSearch]      = useState("");
+  const [filter,      setFilter]      = useState("all");
+  const [sort,        setSort]        = useState("newest");
+  const [showAI,      setShowAI]      = useState(false);
+
   const { toProfile } = useProfileNavigation();
-  const [showAIGen, setShowAIGen] = useState(false);
-
-  const handleAIGeneration = (aiData) => {
-    setFormData((prev) => ({
-      ...prev,
-      ...aiData,
-    }));
-    setShowAIGen(false);
-  };
-
-
-  const demoEvents = useDemoEvents(events, error && !useDemoData);
+  const demoEvents    = useDemoEvents(events, error && !useDemoData);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    (async () => {
       try {
         setLoading(true);
-        const res = await API.get("/events");
+        const res  = await API.get("/events");
         const data = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.data)
-            ? res.data.data
-            : [];
-
+          ? res.data.data
+          : [];
         setEvents(data);
         setUseDemoData(false);
         setError(null);
-      } catch (fetchError) {
+      } catch {
         setError("Failed to load live events. Showing demo events instead.");
         setUseDemoData(true);
         setEvents([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchEvents();
+    })();
   }, []);
 
-  const dataset = useMemo(
+  const dataset  = useMemo(
     () => (useDemoData && demoEvents.length ? demoEvents : events),
     [demoEvents, events, useDemoData],
   );
 
-  const filteredEvents = useMemo(
-    () => applyFilters(dataset, searchTerm, filterVisual, sortVisual),
-    [dataset, filterVisual, searchTerm, sortVisual],
+  const filtered = useMemo(
+    () => applyFilters(dataset, search, filter, sort),
+    [dataset, search, filter, sort],
   );
 
   return (
-    <div className="dashboard-page ">
-      
+    <div className="ts-home dashboard-page">
       <TrialNotificationBanner />
-      {/* ✅ TickiAI Floating Action Button & Sidebar Modal */}
-      <div className="tickiai-wrapper">
-        {showAIGen && (
 
-          <div className="tickiai-modal">
-            <TickiAIChat onGenerate={handleAIGeneration} />
-          </div>
-
-        )}
-
-        <button
-          onClick={() => {
-            if (!canUseTickiAI) {
-              promptUpgradeAI();
-              return;
-            }
-            setShowAIGen(!showAIGen);
-          }}
-          className={`tickiai-floating-btn ${showAIGen ? 'active' : ''}`}
-          title={showAIGen ? "Close Chat" : "Chat with TickiAI"}
-        >
-          {showAIGen ? (
-            <span className="close-icon">✕</span>
-          ) : (
-            <span className="ai-icon">✨</span>
-          )}
-        </button>
-      </div>
+      {/* ── SEO ── */}
       <SEO
         title="Discover Events in Nigeria | TickiSpot"
         description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
         url="https://tickispot.com"
       />
-
-      {/* Structured Data for the Collection */}
       <Helmet>
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "itemListElement": filteredEvents.slice(0, 10).map((event, index) => ({
+            itemListElement: filtered.slice(0, 10).map((e, i) => ({
               "@type": "ListItem",
-              "position": index + 1,
-              "url": `https://tickispot.com/Eventdetail/${event._id || event.id}`
-            }))
+              position: i + 1,
+              url: `https://tickispot.com/Eventdetail/${e._id || e.id}`,
+            })),
           })}
         </script>
       </Helmet>
 
-      <div className="dashboard-container">
-        <div className="events-page-intro">
-          <div className="dashboard-title">Discover events</div>
-          <div className="dashboard-subtitle">
-            Browse social-first experiences across music, tech, culture, and community on
-            TickiSpot.
+      <div className="ts-home-container">
+
+        {/* ── Hero intro ── */}
+        <div className="ts-intro">
+          <span className="ts-intro-eyebrow">Event infrastructure for serious teams</span>
+          <h1 className="ts-intro-title">Discover events</h1>
+          <p className="ts-intro-sub">
+            Browse social-first experiences across music, tech, culture, and community on TickiSpot.
+          </p>
+          {/* Social proof stat pills — TickiSpot homepage pattern */}
+          <div className="ts-stat-pills">
+            <span className="ts-stat-pill">50K+ active organizers</span>
+            <span className="ts-stat-pill">500K+ tickets sold</span>
+            <span className="ts-stat-pill">99.9% uptime</span>
           </div>
         </div>
 
-        <div className="events-sticky-toolbar">
-          <div className="events-toolbar-inner">
-            <div className="search-wrapper events-toolbar-search">
-              <Search size={18} className="search-icon" />
-              <input
-                type="text"
-                placeholder="Search by title, location or category..."
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="dash-search"
-              />
-            </div>
+        {/* ── Toolbar ── */}
+        <div className="ts-toolbar">
+          {/* Search */}
+          <div className="ts-search-wrap">
+            <span className="ts-search-ico"><SearchIco /></span>
+            <input
+              type="search"
+              className="ts-search-input"
+              placeholder="Search events by title, location, or category"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button className="ts-search-submit" aria-label="Search">
+              <ArrowIco />
+            </button>
+          </div>
 
-            <div className="events-filter-row">
-              <div className="events-filter-pills" role="toolbar" aria-label="Categories">
-                {EVENT_FILTER_CHIPS.map((chip) => (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    className={`events-filter-pill ${filterVisual === chip.id ? "active" : ""}`}
-                    onClick={() => setFilterVisual(chip.id)}
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="events-sort">
-                <label htmlFor="events-sort-select" className="events-sort-label">
-                  Sort
-                </label>
-                <select
-                  id="events-sort-select"
-                  className="events-sort-select"
-                  value={sortVisual}
-                  onChange={(event) => setSortVisual(event.target.value)}
+          {/* Filters + sort */}
+          <div className="ts-filter-row">
+            <div className="ts-pills" role="toolbar" aria-label="Categories">
+              {CHIPS.map((chip) => (
+                <button
+                  key={chip.id}
+                  className={`ts-pill ${filter === chip.id ? "active" : ""}`}
+                  onClick={() => setFilter(chip.id)}
                 >
-                  <option value="newest">Newest</option>
-                  <option value="popular">Most loved</option>
-                  <option value="soonest">Starting soon</option>
-                </select>
-              </div>
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="ts-sort-wrap">
+              <span className="ts-sort-label">Sort</span>
+              <select
+                className="ts-sort-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+              >
+                <option value="newest">Newest</option>
+                <option value="popular">Most loved</option>
+                <option value="soonest">Starting soon</option>
+              </select>
             </div>
           </div>
         </div>
 
-        {loading ? (
-          <div className="events-grid" role="status" aria-label="Loading events">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <EventCardSkeleton key={`event-skeleton-${idx}`} />
-            ))}
+        {/* ── Results bar ── */}
+        {!loading && (
+          <div className="ts-results-bar">
+            <p className="ts-results-count">
+              <strong>{filtered.length}</strong> event{filtered.length !== 1 ? "s" : ""} found
+            </p>
           </div>
-        ) : null}
+        )}
 
-        {error && !useDemoData ? (
-          <div className="dash-card">
-            <div className="dash-card-body center">
-              <p className="error-text">{error}</p>
-            </div>
+        {/* ── Loading skeletons ── */}
+        {loading && (
+          <div className="ts-skeleton-grid">
+            {Array.from({ length: 6 }).map((_, i) => <SkelCard key={i} />)}
           </div>
-        ) : null}
+        )}
 
-        {!loading && (!error || useDemoData) ? (
+        {/* ── Error (non-demo) ── */}
+        {error && !useDemoData && (
+          <div className="ts-empty" style={{ gridColumn: "1/-1" }}>
+            <div className="ts-empty-icon">⚠️</div>
+            <h3>Couldn't load events</h3>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* ── Events grid ── */}
+        {!loading && (!error || useDemoData) && (
           <>
-            {filteredEvents.length === 0 ? (
-              <EmptyState
-                type={searchTerm ? "no-search-results" : "no-events"}
-                searchTerm={searchTerm}
-              />
+            {filtered.length === 0 ? (
+              <div className="ts-events-grid">
+                <div className="ts-empty">
+                  <div className="ts-empty-icon">🔍</div>
+                  <h3>{search ? "No events match your search" : "No events yet"}</h3>
+                  <p>
+                    {search
+                      ? `We couldn't find anything for "${search}". Try a different term.`
+                      : "Check back soon — new events are added every day."}
+                  </p>
+                  {search && (
+                    <button className="ts-empty-cta" onClick={() => setSearch("")}>
+                      Clear search
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
-              <div className="events-grid">
-                {filteredEvents.map((event) => (
-                  <EventCard key={event._id || event.title} event={event} onOrganizerClick={toProfile} />
+              <div className="ts-events-grid">
+                {filtered.map((event) => (
+                  <EventCard
+                    key={event._id || event.title}
+                    event={event}
+                    onOrganizerClick={toProfile}
+                  />
                 ))}
               </div>
             )}
           </>
-        ) : null}
+        )}
+      </div>
+
+      {/* ── TickiAI floating button ── */}
+      <div className="ts-ai-wrapper">
+        {showAI && (
+          <div className="ts-ai-modal">
+            <TickiAIChat />
+          </div>
+        )}
+        <button
+          className={`ts-ai-btn ${showAI ? "open" : ""}`}
+          title={showAI ? "Close TickiAI" : "Chat with TickiAI"}
+          onClick={() => {
+            if (!canAI) { promptAI(); return; }
+            setShowAI((v) => !v);
+          }}
+        >
+          {showAI ? "✕" : "✨"}
+        </button>
       </div>
     </div>
   );
