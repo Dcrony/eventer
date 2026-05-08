@@ -8,7 +8,7 @@ import useProfileNavigation from "../hooks/useProfileNavigation";
 import "./CSS/home.css";
 import TickiAIChat from "../components/TickiAIChat";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import SEO from "../../public/SEO";
+import SEO from "../components/SEO";
 import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
@@ -135,7 +135,7 @@ export default function Home() {
       <TrialNotificationBanner />
 
       <SEO
-        title="Discover Events in Nigeria | TickiSpot"
+        title="Tickispot - Discover Events in Africa"
         description="Browse and buy tickets for music, tech, business, parties and more events happening in Lagos, Abuja and across Nigeria."
         url="https://tickispot.com"
       />

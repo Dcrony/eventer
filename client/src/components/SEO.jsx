@@ -19,6 +19,8 @@ const SEO = ({
       <link rel="canonical" href={url} />
 
       {/* Open Graph */}
+<meta property="og:site_name" content="TickiSpot" />
+
       <meta property="og:type" content={type} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />

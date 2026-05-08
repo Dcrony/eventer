@@ -1,415 +1,420 @@
-/* ===============================
-   Admin Withdrawals Page Styles
-================================ */
+/* ============================================================
+   ADMINWITHDRAWALS.CSS — TickiSpot Design Language
+   Pink primary · Geist font · Admin management aesthetic
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  --aw-page-bg: var(--bg-page);
-  --aw-surface: var(--card-bg);
-  --aw-surface-soft: var(--gray-100);
-  --aw-text-primary: var(--text-color);
-  --aw-text-secondary: var(--gray-600);
-  --aw-border: var(--gray-200);
-  --aw-primary: var(--primary-pink);
-  --aw-primary-strong: var(--primary-dark-pink);
-  --aw-primary-soft: rgba(236, 72, 153, 0.14);
-  --aw-danger: var(--error);
-  --aw-success: var(--success);
-  --aw-warning: var(--warning);
-  --aw-shadow: var(--shadow-lg);
+  --aw-bg:          #f7f7f9;
+  --aw-surface:     #ffffff;
+  --aw-border:      #e8e8ed;
+  --aw-border-soft: #f0f0f5;
+
+  --aw-primary:     #f43f8e;
+  --aw-primary-deep: #e11d74;
+  --aw-primary-soft: rgba(244,63,142,0.08);
+  --aw-primary-mid:  rgba(244,63,142,0.16);
+  --aw-primary-glow: rgba(244,63,142,0.22);
+
+  --aw-ink:         #111118;
+  --aw-body:        #374151;
+  --aw-muted:       #9ca3af;
+  --aw-faint:       #e5e7eb;
+
+  --aw-green:       #10b981;
+  --aw-green-soft:  rgba(16,185,129,0.1);
+  --aw-amber:       #f59e0b;
+  --aw-amber-soft:  rgba(245,158,11,0.1);
+  --aw-red:         #ef4444;
+  --aw-red-soft:    rgba(239,68,68,0.1);
+  --aw-blue:        #3b82f6;
+  --aw-blue-soft:   rgba(59,130,246,0.1);
+
+  --aw-shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --aw-shadow:      0 4px 16px rgba(0,0,0,0.07);
+  --aw-shadow-up:   0 16px 40px rgba(0,0,0,0.1), 0 4px 12px rgba(244,63,142,0.08);
+  --aw-radius:      0.875rem;
+  --aw-radius-lg:   1.25rem;
+  --aw-radius-xl:   1.5rem;
+  --aw-radius-pill: 999px;
+  --aw-t:           180ms cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ── Page shell ── */
 .admin-page {
-  background: var(--aw-page-bg);
-  color: var(--aw-text-primary);
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--aw-bg);
+  color: var(--aw-ink);
   min-height: 100vh;
-  padding: 2.5rem 1.5rem 3rem;
-  padding-left: var(--sidebar-width);
+  padding: 2rem 2rem 4rem;
+  padding-left: calc(var(--sidebar-width, 0px) + 2rem);
   max-width: 1280px;
   margin: 0 auto;
   position: relative;
-  z-index: 1;
+  box-sizing: border-box;
 }
 
 .admin-page h2 {
-  font-size: clamp(2.2rem, 2.7vw, 3rem);
-  font-weight: 900;
-  margin: 0 0 2rem 0;
-  line-height: 1.05;
-  color: var(--aw-text-primary);
+  font-size: clamp(1.6rem, 2.5vw, 2.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--aw-ink);
+  margin: 0 0 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1.5px solid var(--aw-border);
 }
 
-/* ===============================
-   Analytics Cards
-================================ */
-
+/* ── Analytics cards ── */
 .analytics-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .card {
   background: var(--aw-surface);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  border: 1.5px solid var(--aw-border);
+  border-radius: var(--aw-radius-lg);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--aw-shadow-sm);
+  transition: all var(--aw-t);
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--aw-primary), #f472b6);
+  opacity: 0;
+  transition: opacity var(--aw-t);
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--aw-shadow-up);
+  border-color: rgba(244,63,142,0.2);
 }
 
+.card:hover::after { opacity: 1; }
+
 .card h4 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--aw-text-secondary);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--aw-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.55rem;
 }
 
 .card p {
-  font-size: 1.75rem;
+  font-size: 1.65rem;
   font-weight: 800;
   color: var(--aw-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1;
   margin: 0;
 }
 
-/* ===============================
-   Chart
-================================ */
-
+/* ── Chart ── */
 .chart {
   background: var(--aw-surface);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
+  border: 1.5px solid var(--aw-border);
+  border-radius: var(--aw-radius-xl);
+  padding: 1.35rem 1.5rem;
+  box-shadow: var(--aw-shadow);
+  margin-bottom: 1.5rem;
+  overflow: hidden;
 }
 
 .chart h4 {
-  font-size: 1.25rem;
+  font-size: 0.95rem;
   font-weight: 800;
-  color: var(--aw-text-primary);
-  margin-bottom: 1rem;
+  color: var(--aw-ink);
+  letter-spacing: -0.01em;
+  margin: 0 0 1.1rem;
 }
 
 .chart rect {
   fill: var(--aw-primary);
+  opacity: 0.85;
+  transition: opacity var(--aw-t);
 }
 
-/* ===============================
-   Filters
-================================ */
+.chart rect:hover { opacity: 1; }
 
+/* ── Filters ── */
 .filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
   align-items: center;
 }
 
-.filters input,
-.filters button {
-  padding: 0.95rem 1.1rem;
-  border-radius: 14px;
-  border: 1px solid var(--aw-border);
+.filters input {
+  height: 2.65rem;
+  padding: 0 1rem;
+  border-radius: var(--aw-radius-pill);
+  border: 1.5px solid var(--aw-border);
   background: var(--aw-surface);
-  color: var(--aw-text-primary);
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--aw-ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all var(--aw-t);
+  box-shadow: var(--aw-shadow-sm);
+  outline: none;
+  min-width: 180px;
 }
+
+.filters input::placeholder { color: var(--aw-muted); }
 
 .filters input:focus {
-  outline: none;
   border-color: var(--aw-primary);
-  box-shadow: 0 0 0 4px var(--aw-primary-soft);
+  box-shadow: 0 0 0 3px var(--aw-primary-soft);
 }
 
-.filters input:hover,
-.filters button:hover {
-  border-color: var(--aw-primary);
-}
-
-.filters button {
-  background: var(--aw-primary);
-  color: white;
-  border: none;
+.filters input[type="date"] {
+  min-width: 150px;
   cursor: pointer;
+}
+
+/* Export CSV button */
+.filters > button:not(.tabs button) {
+  height: 2.65rem;
+  padding: 0 1.25rem;
+  border-radius: var(--aw-radius-pill);
+  border: none;
+  background: var(--aw-primary);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
   font-weight: 700;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+  transition: all var(--aw-t);
+  box-shadow: 0 4px 14px var(--aw-primary-glow);
+  white-space: nowrap;
 }
 
-.filters button:hover {
+.filters > button:not(.tabs button):hover {
+  background: var(--aw-primary-deep);
   transform: translateY(-1px);
-  background: var(--aw-primary-strong);
+  box-shadow: 0 8px 20px var(--aw-primary-glow);
 }
 
-/* Tabs */
-
+/* ── Status tabs ── */
 .tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
+  background: var(--aw-surface);
+  border: 1.5px solid var(--aw-border);
+  border-radius: var(--aw-radius-pill);
+  padding: 0.25rem;
+  box-shadow: var(--aw-shadow-sm);
 }
 
 .tabs button {
-  padding: 0.75rem 1.25rem;
-  border-radius: 999px;
-  border: 1px solid var(--aw-border);
-  background: var(--aw-surface);
-  color: var(--aw-text-primary);
+  height: 2rem;
+  padding: 0 0.9rem;
+  border-radius: var(--aw-radius-pill);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: var(--aw-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--aw-t);
+  white-space: nowrap;
+  text-transform: capitalize;
 }
 
-.tabs button:hover {
-  border-color: var(--aw-primary);
-  background: rgba(236, 72, 153, 0.05);
-}
+.tabs button:hover { color: var(--aw-ink); background: var(--aw-border-soft); }
 
 .tabs button.active {
   background: var(--aw-primary);
-  color: white;
-  border-color: var(--aw-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--aw-primary-glow);
 }
 
-/* ===============================
-   Table
-================================ */
-
+/* ── Withdrawal table ── */
 .withdrawal-table {
   background: var(--aw-surface);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 22px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1.5px solid var(--aw-border);
+  border-radius: var(--aw-radius-xl);
+  box-shadow: var(--aw-shadow);
   overflow: hidden;
+}
+
+/* Table column header */
+.withdrawal-table::before {
+  content: '';
+  display: block;
+  padding: 0.75rem 1.35rem;
+  border-bottom: 1px solid var(--aw-border-soft);
+  background: #fafafa;
+  font-size: 0;
 }
 
 .withdrawal-row {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--aw-border);
+  padding: 1rem 1.35rem;
+  border-bottom: 1px solid var(--aw-border-soft);
   align-items: center;
-  transition: background-color 0.2s ease;
+  gap: 1rem;
+  transition: background var(--aw-t);
+  animation: rowFadeIn 0.3s ease both;
 }
 
-.withdrawal-row:hover {
-  background: var(--aw-surface-soft);
+@keyframes rowFadeIn {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 
-.withdrawal-row:last-child {
-  border-bottom: none;
+.withdrawal-row:hover { background: #fafafa; }
+.withdrawal-row:last-child { border-bottom: none; }
+
+/* Organizer info cell */
+.withdrawal-row > div:first-child strong {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--aw-ink);
+  margin-bottom: 0.15rem;
 }
 
-/* ===============================
-   Status Colors
-================================ */
+.withdrawal-row > div:first-child > div {
+  font-size: 0.78rem;
+  color: var(--aw-muted);
+  line-height: 1.4;
+}
 
+.bank-inline {
+  font-size: 0.75rem;
+  color: var(--aw-muted);
+  margin-top: 0.2rem;
+}
+
+.reference {
+  font-size: 0.68rem;
+  color: var(--aw-muted);
+  font-family: 'Geist Mono', 'Fira Code', monospace;
+  margin-top: 0.15rem;
+  opacity: 0.7;
+}
+
+.fee {
+  font-size: 0.75rem;
+  color: var(--aw-muted);
+  margin-top: 0.2rem;
+}
+
+/* ── Status pills ── */
 .status {
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.77rem;
+  display: inline-flex;
+  align-items: center;
+  height: 1.6rem;
+  padding: 0 0.7rem;
+  border-radius: var(--aw-radius-pill);
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: capitalize;
-  text-align: center;
+  letter-spacing: 0.04em;
 }
 
-.status.pending {
-  background: rgba(245, 158, 11, 0.1);
-  color: #92400e;
-}
+.status.pending   { background: var(--aw-amber-soft); color: #92400e; }
+.status.processing { background: var(--aw-blue-soft);  color: #1e40af; }
+.status.completed { background: var(--aw-green-soft); color: #065f46; }
+.status.approved  { background: var(--aw-green-soft); color: #065f46; }
+.status.rejected  { background: var(--aw-red-soft);   color: #991b1b; }
+.status.failed    { background: var(--aw-red-soft);   color: #991b1b; }
 
-.status.processing {
-  background: rgba(59, 130, 246, 0.1);
-  color: #1e40af;
-}
-
-.status.completed {
-  background: rgba(22, 163, 74, 0.1);
-  color: #166534;
-}
-
-.status.rejected {
-  background: rgba(239, 68, 68, 0.1);
-  color: #991b1b;
-}
-
-.status.failed {
-  background: rgba(239, 68, 68, 0.1);
-  color: #991b1b;
-}
-
-/* ===============================
-   Actions
-================================ */
-
+/* ── Action buttons ── */
 .actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .actions button {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  height: 2rem;
+  padding: 0 0.85rem;
+  border-radius: var(--aw-radius-pill);
   border: none;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--aw-t);
 }
 
 .actions button:first-child {
-  background: var(--aw-success);
-  color: white;
+  background: var(--aw-green-soft);
+  color: #065f46;
+  border: 1.5px solid rgba(16,185,129,0.25);
 }
 
 .actions button:first-child:hover {
-  background: #15803d;
+  background: var(--aw-green);
+  color: #fff;
+  border-color: var(--aw-green);
   transform: translateY(-1px);
 }
 
 .actions button:last-child {
-  background: var(--aw-danger);
-  color: white;
+  background: var(--aw-red-soft);
+  color: #991b1b;
+  border: 1.5px solid rgba(239,68,68,0.25);
 }
 
 .actions button:last-child:hover {
-  background: #dc2626;
+  background: var(--aw-red);
+  color: #fff;
+  border-color: var(--aw-red);
   transform: translateY(-1px);
 }
 
-/* ===============================
-   Additional Elements
-================================ */
+/* ── Loading spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.bank-inline {
-  font-size: 0.875rem;
-  color: var(--aw-text-secondary);
-  margin-top: 0.25rem;
-}
-
-.reference {
-  font-size: 0.75rem;
-  color: var(--aw-text-secondary);
-  font-family: monospace;
-  margin-top: 0.25rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* =================================
-   TABLET (≤1024px)
-================================= */
-
+/* ── Responsive ── */
 @media (max-width: 1024px) {
-  .analytics-cards {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
+  .filters { flex-direction: column; align-items: stretch; }
+  .filters input, .filters > button { width: 100%; min-width: 0; }
+  .tabs { width: 100%; justify-content: flex-start; }
 
-  .filters {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .filters input,
-  .filters button {
-    width: 100%;
-  }
-
-  .tabs {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .withdrawal-row {
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
+  .withdrawal-row { grid-template-columns: 1fr 1fr; }
 }
-
-/* =================================
-   MOBILE (≤768px)
-================================= */
 
 @media (max-width: 768px) {
-  .admin-page {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
+  .admin-page { padding: 1.25rem 1rem 5rem; }
+  .analytics-cards { grid-template-columns: 1fr; }
+  .chart { overflow-x: auto; }
 
-  .analytics-cards {
-    grid-template-columns: 1fr;
-  }
+  .withdrawal-table::before { display: none; }
 
-  .chart {
-    overflow-x: auto;
-  }
-
-  .tabs {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-
-  .tabs button {
-    flex: none;
-  }
-
-  /* Convert rows into cards */
   .withdrawal-row {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    padding: 1.25rem;
-    border-radius: 16px;
-    margin-bottom: 1rem;
-    border: 1px solid var(--aw-border);
-    background: var(--aw-surface);
+    gap: 0.6rem;
+    padding: 1.1rem;
+    margin: 0.5rem;
+    border: 1.5px solid var(--aw-border);
+    border-radius: var(--aw-radius-lg);
   }
 
-  .withdrawal-row > div {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .withdrawal-row > div:not(:last-child) {
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--aw-border);
-  }
+  .withdrawal-row:not(:last-child) { border-bottom: 1.5px solid var(--aw-border); }
 }
 
-/* =================================
-   SMALL MOBILE (≤480px)
-================================= */
-
 @media (max-width: 480px) {
-  .admin-page h2 {
-    font-size: 1.75rem;
-  }
-
-  .card p {
-    font-size: 1.5rem;
-  }
-
-  .chart svg {
-    height: 160px;
-  }
-
-  .filters input,
-  .filters button {
-    padding: 0.875rem 1rem;
-  }
+  .admin-page h2 { font-size: 1.5rem; }
+  .card p { font-size: 1.4rem; }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.1rem; }
+  .tabs button { flex-shrink: 0; }
 }
