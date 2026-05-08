@@ -391,9 +391,11 @@ exports.firebaseSync = async (req, res) => {
         username,
         email: emailLower,
         firebaseUid,
-        isVerified: false, // ✅ Not verified until OTP is verified
-        verificationCode: hashedOtp,
-        verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
+         isVerified: false,
+  verificationCode: hashedOtp,
+  verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
+  plan: "trial",
+  subscriptionStatus: "trialing",
       });
 
       await user.save();
