@@ -192,13 +192,10 @@ export default function LandingPageV2() {
                   Support us
                 </Link>
             {isLoggedIn && (
-              <>
-              <Link to="/donation" className="lp2-nav-link">
-                  Support us
-                </Link>
+              
               <Link to="/my-tickets" className="lp2-nav-link">
                 My Tickets
-              </Link></>
+              </Link>
             )}
           </nav>
           <div className="lp2-actions">
