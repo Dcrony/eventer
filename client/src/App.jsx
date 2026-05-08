@@ -13,6 +13,7 @@ import { NotificationsProvider } from "./hooks/useNotifications";
 import { CreateEventProvider } from "./context/CreateEventContext";
 import { getCurrentUser } from "./utils/auth";
 import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
+import TickiAIChat from "./components/TickiAIChat";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -196,7 +197,7 @@ function Layout() {
               <Route path="/founder" element={<FounderProfile />} />
               <Route path="/discover/creators" element={<DiscoverCreators />} />
               <Route path="/user/:username" element={<Profile />} />
-
+<Route path="/ticki-ai" element={<TickiAIChat />} />
               {/* Protected Routes */}
               <Route
                 path="/my-tickets"

@@ -1,29 +1,21 @@
-/* Container to ensure everything stays together */
+/* Container & Visibility */
 .mobile-nav-wrapper {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: block;
 }
 
-/* Hide everything by sliding it down */
-/* .nav-hidden {
-  transform: translateY(100px);
-} */
 
-/* Show everything */
-/* .nav-visible {
-  transform: translateY(0);
-} */
 
 .x-bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 54px; /* X uses a slimmer bar */
-  background: rgba(255, 255, 255, 0.96);
+  height: 54px;
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
-  border-top: 1px solid #eff3f4; /* Very subtle X-style border */
+  border-top: 1px solid #eff3f4;
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -37,85 +29,207 @@
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #0f1419; /* X default black */
+  color: #0f1419;
   text-decoration: none;
   transition: opacity 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.x-nav-item svg {
-  stroke-width: 1.5px;
-  transition: transform 0.1s ease;
 }
 
 .x-nav-item.active svg {
-  stroke-width: 2.5px; /* Makes the active icon "bold" */
-  color: #000;
+  stroke-width: 2.5px;
+  color: #ec4899; /* Brand Pink */
 }
 
-.x-nav-item:active svg {
-  transform: scale(0.85);
-}
-
-.icon-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* The red notification dot from X */
-.x-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 7px;
-  height: 7px;
-  background: #f43f5e;
-  border-radius: 50%;
-  border: 2px solid #fff;
-}
-
-/* Floating Action Button - The "X" Post Button style */
+/* FAB Toggle Button */
 .x-fab-btn {
   position: fixed;
   bottom: calc(70px + env(safe-area-inset-bottom));
   right: 16px;
   width: 56px;
   height: 56px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
-  color: white;
-  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-  z-index: 1000; /* Ensure it is above the bar */
-  cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  background: #ec4899;
+  color: white;
+  border: none;
+  z-index: 1002;
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.x-fab-btn:active {
-  transform: scale(0.92);
-  filter: brightness(1.1);
+.x-fab-btn.active {
+  background: #000;
+  transform: rotate(0deg);
 }
 
-/* On X, the button usually stays slightly visible or slides further */
-.nav-hidden .x-fab-btn {
-  transform: translateY(20px) scale(0.8);
-  opacity: 0;
+/* Vertical Sub-Menu */
+.fab-menu-items {
+  position: fixed;
+  bottom: calc(140px + env(safe-area-inset-bottom));
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 1001;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Visibility fix: Ensure these only show on mobile */
+.fab-menu-items.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fab-item-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.fab-label {
+  background: #000;
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.fab-sub-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.ai-btn { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+.create-btn { background: #fff; color: #0f1419; border: 1px solid #eff3f4; }
+
+/* FAB Backdrop */
+.fab-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* ── AI FLOATING WINDOW (HOME STYLE) ── */
+.ts-mobile-ai-window {
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 400px;
+  height: 70vh;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1.5px solid #e8e8ed;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 1005;
+  overflow: hidden;
+  animation: aiWindowPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes aiWindowPop {
+  from { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.ai-window-header {
+  padding: 14px 18px;
+  background: #fff;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ai-window-title {
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.title-icon { color: #8b5cf6; }
+
+.ai-window-close {
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.ai-window-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Hide on Desktop */
 @media (min-width: 769px) {
-  .mobile-nav-wrapper {
-    display: none !important;
-  }
+  .mobile-nav-wrapper { display: none !important; }
 }
 
-/* Content adjustment so bottom bar doesn't cover your app content */
+/* Push body content up so it's not hidden by nav */
 body {
-  padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+}
+
+
+
+/* Update your mobileNav.css to remove the .ts-mobile-ai-window styles */
+/* And add these for the AI page container */
+
+.ai-page-container {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-page-header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #eff3f4;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.ai-page-header h1 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+/* Ensure the main content doesn't get hidden */
+.ai-page-content {
+  flex: 1;
 }

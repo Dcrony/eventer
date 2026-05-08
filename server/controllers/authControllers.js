@@ -14,6 +14,9 @@ const {
   isTrialActive,
 } = require("../services/subscriptionService");
 
+const { verifyIdToken } = require("../utils/firebaseAdmin"); // Ensure this utility is set up
+
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const signAuthToken = (user) =>
@@ -301,60 +304,47 @@ async function ensureUniqueUsername(base) {
   return username;
 }
 
+
 exports.firebaseLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
-    if (!idToken) {
-      return res.status(400).json({ message: "idToken is required" });
-    }
+    if (!idToken) return res.status(400).json({ message: "No token provided" });
 
-    const decoded = await verifyIdToken(idToken);
-    const email = decoded.email;
-    const firebaseUid = decoded.uid;
-    if (!email) {
-      return res.status(400).json({ message: "Google account has no email" });
-    }
+    // 1. Verify token with Firebase Admin SDK
+    const decodedToken = await verifyIdToken(idToken);
+    const { email, name, picture, uid } = decodedToken;
 
-    let user = await User.findOne({ firebaseUid });
-    if (!user) user = await User.findOne({ email: email.toLowerCase() });
+    // 2. Find or Create User in MongoDB
+    let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      const displayName = decoded.name || email.split("@")[0];
-      const username = await ensureUniqueUsername(displayName);
+      // Create new user if they don't exist
       user = new User({
-        name: displayName,
-        username,
+        name: name || email.split('@')[0],
         email: email.toLowerCase(),
-        firebaseUid,
-        isVerified: true,
-        role: "user",
+        username: email.split('@')[0] + Math.floor(Math.random() * 1000),
+        firebaseUid: uid,
+        isVerified: true, // Social logins are pre-verified
       });
-      assignTrialToUser(user);
       await user.save();
     } else {
-      if (!user.firebaseUid) user.firebaseUid = firebaseUid;
-      if (!user.isVerified) user.isVerified = true;
-      await ensureSubscriptionState(user, { save: false });
-      await user.save();
+      // Update firebaseUid if not already linked
+      if (!user.firebaseUid) {
+        user.firebaseUid = uid;
+        await user.save();
+      }
     }
 
-    if (!JWT_SECRET) {
-      return res.status(500).json({ message: "Server configuration error" });
-    }
-
+    // 3. Generate YOUR backend JWT
     const token = signAuthToken(user);
 
     res.status(200).json({
-      message: "Login successful",
       token,
-      user: buildAuthUserPayload(user),
+      user: buildAuthUserPayload(user)
     });
   } catch (error) {
-    console.error("❌ FIREBASE LOGIN ERROR:", error);
-    if (error?.code === "FIREBASE_ADMIN_NOT_CONFIGURED") {
-      return res.status(503).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Server error" });
+    console.error("Firebase Login Error:", error);
+    res.status(401).json({ message: "Invalid Firebase token" });
   }
 };
 

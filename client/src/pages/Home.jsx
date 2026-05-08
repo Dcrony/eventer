@@ -267,22 +267,20 @@ export default function Home() {
         )}
       </div>
 
-      <div className="ts-ai-wrapper">
-        {showAI && (
-          <div className="ts-ai-modal">
-            <TickiAIChat />
-          </div>
-        )}
-        <button
-          className={`ts-ai-btn ${showAI ? "open" : ""}`}
-          title={showAI ? "Close TickiAI" : "Chat with TickiAI"}
-          onClick={() => {
-            if (!canAI) { promptAI(); return; }
-            setShowAI((v) => !v);
-          }}
-        >
-          {showAI ? <X size={20} /> : <Sparkles size={20} />}
-        </button>
+      <div className="ts-desktop-ai-only">
+        <div className="ts-ai-wrapper">
+          {showAI && (
+            <div className="ts-ai-modal">
+              <TickiAIChat />
+            </div>
+          )}
+          <button
+            className={`ts-ai-btn ${showAI ? "open" : ""}`}
+            onClick={() => setShowAI((v) => !v)}
+          >
+            {showAI ? <X size={20} /> : <Sparkles size={20} />}
+          </button>
+        </div>
       </div>
     </div>
   );

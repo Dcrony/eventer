@@ -442,5 +442,29 @@
 
 
 
+.user-table-wrapper {
+  background: var(--ts-surface);
+  border-radius: var(--ts-radius-xl);
+  border: 1.5px solid var(--ts-border);
+  padding: 1rem;
+}
 
+.user-row {
+  transition: background var(--ts-t);
+}
+
+.user-row:hover {
+  background: var(--ts-bg);
+}
+
+.role-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--ts-radius-pill);
+  text-transform: uppercase;
+}
+
+.role-admin { background: var(--ts-pink-soft); color: var(--ts-pink); }
+.role-organizer { background: #eff6ff; color: #3b82f6; }
 

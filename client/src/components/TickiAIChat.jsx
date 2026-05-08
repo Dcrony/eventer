@@ -1,213 +1,178 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ChevronLeft, RotateCcw, Send, Sparkles } from "lucide-react";
 import API from "../api/axios";
 import "./css/TickiAi.css";
 
 const QUICK_PROMPTS = {
-    organizer: [
-        "Create an event launch plan for my new experience.",
-        "What is the best pricing strategy for this event?",
-        "Give me marketing copy for ticket sales.",
-    ],
-    user: [
-        "Find events near me this weekend.",
-        "What should I know before attending this event?",
-        "Which ticket should I buy for the best experience?",
-    ],
+  organizer: [
+    "Create an event launch plan.",
+    "Best pricing strategy?",
+    "Marketing copy for tickets.",
+  ],
+  user: [
+    "Find events this weekend.",
+    "Know before attending?",
+    "Which ticket is best?",
+  ],
 };
 
 const SYSTEM_MESSAGE = {
-    organizer: "TickiAI is your organizer assistant. Ask for help with event creation, pricing, marketing, or performance.",
-    user: "TickiAI is your event concierge. Ask questions about events, tickets, or recommendations.",
+  organizer: "TickiAI is your organizer assistant. Ask for help with event creation, pricing, or marketing.",
+  user: "TickiAI is your event concierge. Ask questions about events, tickets, or recommendations.",
 };
 
 const buildContextPayload = (event, user) => {
-    const payload = {};
-
-    if (event) {
-        payload.event = {
-            _id: event._id || event.id,
-            title: event.title,
-            category: event.category,
-            location: event.location,
-            description: event.description,
-            startDate: event.startDate,
-            startTime: event.startTime,
-            pricing: event.pricing,
-            ticketsSold: event.ticketsSold,
-            viewCount: event.viewCount,
-            shareCount: event.shareCount,
-            analytics: event.analytics,
-        };
-    }
-
-    if (user) {
-        payload.user = {
-            _id: user._id || user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            location: user.location,
-            favorites: user.favorites,
-            plan: user.plan,
-            preferences: user.preferences,
-        };
-    }
-
-    return payload;
+  const payload = {};
+  if (event) {
+    payload.event = {
+      _id: event._id || event.id,
+      title: event.title,
+      category: event.category,
+      pricing: event.pricing,
+    };
+  }
+  if (user) {
+    payload.user = {
+      _id: user._id || user.id,
+      name: user.name,
+      role: user.role,
+    };
+  }
+  return payload;
 };
 
 const makeMessageId = () => `tickiai-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-export default function TickiAIChat({ event, user, initialRole = "organizer" || "user" }) {
-    const storageKey = "tickiAI.chat.history";
-    const [role, setRole] = useState(initialRole);
-    const [messages, setMessages] = useState(() => {
-        try {
-            const saved = sessionStorage.getItem(storageKey);
-            if (!saved) return [];
-            const parsed = JSON.parse(saved);
-            return Array.isArray(parsed.messages) ? parsed.messages : [];
-        } catch {
-            return [];
-        }
-    });
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const scrollRef = useRef(null);
+export default function TickiAIChat({ event, user, initialRole = "user" }) {
+  const navigate = useNavigate();
+  const isFullPage = window.location.pathname === "/ticki-ai";
+  const storageKey = "tickiAI.chat.history";
+  const [role, setRole] = useState(initialRole);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed.messages) ? parsed.messages : [];
+    } catch { return []; }
+  });
+  
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
 
-    const context = useMemo(() => buildContextPayload(event, user), [event, user]);
+  const context = useMemo(() => buildContextPayload(event, user), [event, user]);
 
-    useEffect(() => {
-        sessionStorage.setItem(storageKey, JSON.stringify({ role, messages }));
-    }, [messages, role]);
+  useEffect(() => {
+    sessionStorage.setItem(storageKey, JSON.stringify({ role, messages }));
+  }, [messages, role]);
 
-    useEffect(() => {
-        scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, [messages, loading]);
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-    const appendMessage = (message) => {
-        setMessages((current) => [...current, { ...message, id: makeMessageId() }]);
-    };
+  const appendMessage = (message) => {
+    setMessages((current) => [...current, { ...message, id: makeMessageId() }]);
+  };
 
-    const clearConversation = () => {
-        setMessages([]);
-        setError(null);
-    };
+  const sendMessage = async (text) => {
+    const trimmed = String(text || "").trim();
+    if (!trimmed) return;
 
-    const sendMessage = async (text) => {
-        const trimmed = String(text || "").trim();
-        if (!trimmed) return;
+    setError(null);
+    appendMessage({ sender: "user", text: trimmed });
+    setInput("");
+    setLoading(true);
 
-        setError(null);
-        const userMessage = {
-            sender: "user",
-            role: "user",
-            text: trimmed,
-        };
+    try {
+      const response = await API.post("/ai/chat", { role, message: trimmed, context });
+      appendMessage({ sender: "assistant", text: response.data.answer || "I couldn't generate a response." });
+    } catch (err) {
+      setError("Unable to reach TickiAI.");
+      appendMessage({ sender: "assistant", text: "There was a problem. Please try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        appendMessage(userMessage);
-        setInput("");
-        setLoading(true);
-
-        try {
-            const response = await API.post("/ai/chat", {
-                role,
-                message: trimmed,
-                context,
-            });
-
-            appendMessage({ sender: "assistant", role: "assistant", text: response.data.answer || "Sorry, I couldn't generate a response." });
-        } catch (err) {
-            const message = err.response?.data?.message || err.message || "Unable to reach TickiAI.";
-            setError(message);
-            appendMessage({ sender: "assistant", role: "assistant", text: "There was a problem processing your request. Please try again." });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleSubmit = async (eventSubmit) => {
-        eventSubmit.preventDefault();
-        await sendMessage(input);
-    };
-
-    return (
-        <section className="ticki-ai-chat">
-  {/* HEADER */}
-  <div className="ticki-ai-header">
-    <div>
-      <p className="ticki-ai-badge">TickiAI</p>
-      <h2>
-        {role === "organizer" ? "Organizer Assistant" : "Event Concierge"}
-      </h2>
-    </div>
-
-    <button onClick={clearConversation} className="ticki-ai-reset">
-      Reset
-    </button>
-  </div>
-
-  {/* ROLE SWITCH */}
-  <div className="ticki-ai-role-switch">
-    {["organizer", "user"].map((option) => (
-      <button
-        key={option}
-        onClick={() => setRole(option)}
-        className={role === option ? "active" : ""}
-      >
-        {option === "organizer" ? "Organizer" : "User"}
-      </button>
-    ))}
-  </div>
-
-  {/* QUICK PROMPTS */}
-  <div className="ticki-ai-prompts">
-    {QUICK_PROMPTS[role].map((prompt) => (
-      <button key={prompt} onClick={() => sendMessage(prompt)}>
-        {prompt}
-      </button>
-    ))}
-  </div>
-
-  {/* CHAT BODY */}
-  <div className="ticki-ai-body">
-    {messages.length === 0 ? (
-      <p className="ticki-ai-empty">{SYSTEM_MESSAGE[role]}</p>
-    ) : (
-      messages.map((message) => (
-        <div
-          key={message.id}
-          className={`ticki-ai-msg ${message.sender}`}
-        >
-          {message.text}
+  return (
+    <div className={isFullPage ? "ai-page-wrapper" : "ai-modal-wrapper"}>
+      {/* HEADER */}
+      <header className="ai-page-header">
+        <div className="header-left">
+          {isFullPage && (
+            <button onClick={() => navigate(-1)} className="ai-back-btn">
+              <ChevronLeft size={24} />
+            </button>
+          )}
+          <div className="header-info">
+            <span className="ai-brand">TickiAI</span>
+            <h1>{role === "organizer" ? "Assistant" : "Concierge"}</h1>
+          </div>
         </div>
-      ))
-    )}
+        <button onClick={() => setMessages([])} className="ai-reset-btn">
+          <RotateCcw size={18} />
+        </button>
+      </header>
 
-    {loading && <p className="ticki-ai-loading">TickiAI is thinking…</p>}
-    {error && <p className="ticki-ai-error">{error}</p>}
+      {/* BODY */}
+      <main className="ai-page-body">
+        {/* ROLE SWITCH */}
+        <div className="ai-role-tabs">
+          {["organizer", "user"].map((opt) => (
+            <button 
+              key={opt} 
+              className={role === opt ? "active" : ""} 
+              onClick={() => setRole(opt)}
+            >
+              {opt.charAt(0).toUpperCase() + opt.slice(1)}
+            </button>
+          ))}
+        </div>
 
-    <div ref={scrollRef} />
-  </div>
+        {/* CHAT BUBBLES */}
+        <div className="ai-chat-container">
+          {messages.length === 0 ? (
+            <div className="ai-welcome">
+              <Sparkles size={40} className="ai-spark-icon" />
+              <p>{SYSTEM_MESSAGE[role]}</p>
+            </div>
+          ) : (
+            messages.map((m) => (
+              <div key={m.id} className={`ai-bubble ${m.sender}`}>
+                {m.text}
+              </div>
+            ))
+          )}
+          {loading && <div className="ai-bubble assistant loading">Thinking...</div>}
+          {error && <div className="ai-error-tag">{error}</div>}
+          <div ref={scrollRef} />
+        </div>
 
-  {/* INPUT */}
-  <form onSubmit={handleSubmit} className="ticki-ai-footer">
-    <input
-      value={input}
-      onChange={(e) => setInput(e.target.value)}
-      placeholder={
-        role === "organizer"
-          ? "Ask about pricing, growth..."
-          : "Ask about events..."
-      }
-      disabled={loading}
-    />
+        {/* SUGGESTIONS */}
+        <div className="ai-suggestions">
+          {QUICK_PROMPTS[role].map((p) => (
+            <button key={p} onClick={() => sendMessage(p)}>{p}</button>
+          ))}
+        </div>
+      </main>
 
-    <button disabled={loading || !input.trim()}>
-      {loading ? "..." : "Send"}
-    </button>
-  </form>
-</section>
-    );
+      {/* FOOTER */}
+      <footer className="ai-page-footer">
+        <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading || !input.trim()}>
+            <Send size={20} />
+          </button>
+        </form>
+      </footer>
+    </div>
+  );
 }
