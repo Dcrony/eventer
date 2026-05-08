@@ -14,9 +14,6 @@ const {
   isTrialActive,
 } = require("../services/subscriptionService");
 
-const { verifyIdToken } = require("../utils/firebaseAdmin"); // Ensure this utility is set up
-
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const signAuthToken = (user) =>
