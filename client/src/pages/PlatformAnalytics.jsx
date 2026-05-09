@@ -158,7 +158,7 @@ export default function PlatformAnalytics() {
   const donutColors = ["#ec4899", "#3b82f6"];
 
   return (
-    <div className="dashboard-page analytics-page">
+    <div className="dashboard-page dashboard-page">
       <div className="dashboard-container">
         <header className="analytics-hero">
           <span className="analytics-hero-eyebrow">

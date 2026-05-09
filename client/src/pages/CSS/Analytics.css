@@ -5,7 +5,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
 
-.analytics-page {
+.dashboard-page  {
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   --an-border:  #e8e8ed;
   --an-muted:   #9ca3af;
@@ -22,6 +22,14 @@
   box-sizing: border-box;
   padding: clamp(1rem, 2vw, 2rem);
   background: var(--an-bg);
+}
+
+.dashboard-page  {
+  box-sizing: inherit;
+  padding-top: 2rem;
+  padding-left: var(--sidebar-width, 0px);
+  padding-right: 2rem;
+  padding-bottom: 4rem
 }
 
 .analytics-page .dashboard-container {

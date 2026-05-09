@@ -25,42 +25,63 @@ const PAYSTACK_CALLBACK =
 
 // 🟢 INITIATE PAYMENT
 exports.initiatePayment = async (req, res) => {
-  if (!PAYSTACK_SECRET) {
-    return res.status(500).json({ message: "Payment provider not configured" });
-  }
-
-  const { email, amount, metadata } = req.body;
-
-  console.log("📤 Payment initiation request received:", {
-    email,
-    amount,
-    metadata,
-  });
-
   try {
-    // Convert metadata values to strings (Paystack requirement)
-    const processedMetadata = {};
-    if (metadata) {
-      Object.keys(metadata).forEach((key) => {
-        if (metadata[key] !== undefined && metadata[key] !== null) {
-          processedMetadata[key] = metadata[key].toString();
-        }
+    if (!PAYSTACK_SECRET) {
+      return res.status(500).json({ message: "Payment provider not configured" });
+    }
+
+    const { email, amount, metadata } = req.body;
+
+    console.log("📤 Payment initiation request received:", {
+      email,
+      amount,
+      metadata,
+    });
+
+    if (!metadata?.eventId) {
+      return res.status(400).json({ message: "Missing eventId in metadata" });
+    }
+
+    const event = await Event.findById(metadata.eventId);
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    if (!event.createdBy) {
+      return res.status(400).json({ message: "This event has no organizer" });
+    }
+
+    const organizer = await User.findById(event.createdBy);
+
+    if (!organizer) {
+      return res.status(400).json({ message: "Organizer account no longer exists" });
+    }
+
+    if (event.totalTickets < Number(metadata.quantity)) {
+      return res.status(400).json({
+        message: "Not enough tickets available",
       });
     }
 
+    // Convert metadata safely
+    const processedMetadata = {};
+    Object.keys(metadata || {}).forEach((key) => {
+      processedMetadata[key] = String(metadata[key]);
+    });
+
     let paystackEmail = email;
+
     if (req.user) {
-      processedMetadata.userId = req.user.id.toString();
+      processedMetadata.userId = String(req.user.id);
       paystackEmail = req.user.email || email;
     }
-
-    console.log("📦 Processed metadata for Paystack:", processedMetadata);
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
         email: paystackEmail,
-        amount: amount * 100, // in kobo
+        amount: amount * 100,
         callback_url: PAYSTACK_CALLBACK,
         metadata: processedMetadata,
       },
@@ -72,15 +93,15 @@ exports.initiatePayment = async (req, res) => {
       }
     );
 
-    console.log("✅ Paystack initialization response:", response.data);
+    return res.status(200).json({
+      url: response.data.data.authorization_url,
+    });
 
-    return res.status(200).json({ url: response.data.data.authorization_url });
   } catch (err) {
-    console.error(
-      "❌ Payment initialization failed:",
-      err.response?.data || err.message
-    );
-    return res.status(500).json({ message: "Payment initialization failed" });
+    console.error("❌ Payment initiation failed:", err.response?.data || err.message);
+    return res.status(500).json({
+      message: "Payment initialization failed",
+    });
   }
 };
 

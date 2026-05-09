@@ -131,7 +131,7 @@ export default function Home() {
   );
 
   return (
-    <div className="ts-home dashboard-page">
+    <div className=" dashboard-page">
       <TrialNotificationBanner />
 
       <SEO
