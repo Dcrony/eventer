@@ -27,6 +27,7 @@ const tickiAiRoutes = require("./routes/tickiAiRoutes");
 const liveStreamRoutes = require("./routes/liveStreamRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const privateEventRoutes = require("./routes/privateEventRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const User = require("./models/User");
 const { PLAN_TYPES } = require("./services/subscriptionService");
 const { buildSocketServer } = require("./socket");
@@ -119,6 +120,7 @@ app.use("/api/live-stream", liveStreamRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/private-events", privateEventRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
