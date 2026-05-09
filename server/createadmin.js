@@ -15,13 +15,15 @@ mongoose.connect("mongodb+srv://dcrony:.Majeed244@cluster0.z8z1c7e.mongodb.net/t
     const hashedPassword = await bcrypt.hash("Admin@123", 10);
 
     const admin = await User.create({
-      name: "TickiSpot Admin",
+       name: 'Admin User',
       username: "tickispotadmin",
       bio: "Official administrator account for TickiSpot platform",
       email: "admin@tickispot.com",
       phone: "+2348000000000",
       password: hashedPassword,
-      role: "admin",
+      role: 'admin',
+        location: "Tickispot Headquarters",
+        
     });
 
     console.log("✅ Admin created:", admin.email);
