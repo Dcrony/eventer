@@ -1,86 +1,137 @@
-/* Container & Visibility */
-.mobile-nav-wrapper {
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  display: block;
+/* ============================================================
+   MOBILENAV.CSS — TickiSpot Design Language
+   Pink accent · Geist font · Clean bottom bar + FAB menu
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  --mn-pink:        #f43f8e;
+  --mn-pink-deep:   #e11d74;
+  --mn-pink-soft:   rgba(244,63,142,0.1);
+  --mn-pink-glow:   rgba(244,63,142,0.3);
+  --mn-ink:         #111118;
+  --mn-muted:       #9ca3af;
+  --mn-border:      #e8e8ed;
+  --mn-surface:     #ffffff;
+  --mn-bg:          #f7f7f9;
+  --mn-t:           200ms cubic-bezier(0.4,0,0.2,1);
 }
 
+/* ── Hide on desktop ── */
+@media (min-width: 769px) {
+  .mobile-nav-wrapper { display: none !important; }
+}
 
+/* ── Wrapper ── */
+.mobile-nav-wrapper {
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+}
 
+.nav-visible  { transform: translateY(0); }
+.nav-hidden   { transform: translateY(100%); }
+
+/* ── Bottom bar ── */
 .x-bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 54px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-top: 1px solid #eff3f4;
+  height: 56px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--mn-border);
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* ── Nav items ── */
 .x-nav-item {
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100%;
-  color: #0f1419;
+  color: var(--mn-muted);
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: color var(--mn-t);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.x-nav-item.active svg {
-  stroke-width: 2.5px;
-  color: #ec4899; /* Brand Pink */
+.x-nav-item:hover { color: var(--mn-ink); }
+
+.x-nav-item.active { color: var(--mn-pink); }
+
+.x-nav-item.active svg { stroke-width: 2.5px; }
+
+.icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  transition: background var(--mn-t);
 }
 
-/* FAB Toggle Button */
+.x-nav-item.active .icon-container {
+  background: var(--mn-pink-soft);
+}
+
+/* ── FAB toggle button ── */
 .x-fab-btn {
   position: fixed;
-  bottom: calc(70px + env(safe-area-inset-bottom));
+  bottom: calc(68px + env(safe-area-inset-bottom));
   right: 16px;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #ec4899;
-  color: white;
+  background: var(--mn-pink);
+  color: #fff;
   border: none;
   z-index: 1002;
-  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  box-shadow: 0 8px 24px var(--mn-pink-glow);
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  -webkit-tap-highlight-color: transparent;
 }
+
+.x-fab-btn:hover { transform: scale(1.06); box-shadow: 0 12px 32px var(--mn-pink-glow); }
 
 .x-fab-btn.active {
-  background: #000;
-  transform: rotate(0deg);
+  background: var(--mn-ink);
+  box-shadow: 0 8px 24px rgba(17,17,24,0.3);
+  transform: rotate(45deg);
 }
 
-/* Vertical Sub-Menu */
+/* ── FAB sub-menu ── */
 .fab-menu-items {
   position: fixed;
-  bottom: calc(140px + env(safe-area-inset-bottom));
-  right: 18px;
+  bottom: calc(136px + env(safe-area-inset-bottom));
+  right: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   z-index: 1001;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(16px) scale(0.95);
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  transform-origin: bottom right;
 }
 
 .fab-menu-items.open {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
@@ -88,148 +139,112 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Label pill */
 .fab-label {
-  background: #000;
+  background: var(--mn-ink);
   color: #fff;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-family: 'Geist', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(17,17,24,0.2);
+  white-space: nowrap;
 }
 
+/* Sub buttons */
 .fab-sub-btn {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: none;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.ai-btn { background: linear-gradient(135deg, #f43f8e 0%, #e11d74 100%); }
-.create-btn { background: #fff; color: #0f1419; border: 1px solid #eff3f4; }
-
-/* FAB Backdrop */
-.fab-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(5px);
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
-}
-
-/* ── AI FLOATING WINDOW (HOME STYLE) ── */
-.ts-mobile-ai-window {
-  position: fixed;
-  bottom: calc(80px + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  width: 92%;
-  max-width: 400px;
-  height: 70vh;
-  background: #ffffff;
-  border-radius: 20px;
-  border: 1.5px solid #e8e8ed;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-  display: flex;
-  flex-direction: column;
-  z-index: 1005;
-  overflow: hidden;
-  animation: aiWindowPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes aiWindowPop {
-  from { opacity: 0; transform: translateX(-50%) translateY(30px) scale(0.9); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-}
-
-.ai-window-header {
-  padding: 14px 18px;
-  background: #fff;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ai-window-title {
-  font-weight: 800;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 15px;
-}
-
-.title-icon { color: #8b5cf6; }
-
-.ai-window-close {
-  background: #f1f5f9;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #64748b;
+  transition: all var(--mn-t);
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.14);
 }
 
-.ai-window-body {
-  flex: 1;
-  overflow-y: auto;
+.fab-sub-btn:hover { transform: scale(1.07); }
+
+.ai-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  box-shadow: 0 4px 14px rgba(109,40,217,0.3);
 }
 
-/* Hide on Desktop */
-@media (min-width: 769px) {
-  .mobile-nav-wrapper { display: none !important; }
+.ai-btn:hover { box-shadow: 0 8px 22px rgba(109,40,217,0.4); }
+
+.create-btn {
+  background: var(--mn-surface);
+  color: var(--mn-ink);
+  border: 1.5px solid var(--mn-border);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
 }
 
-/* Push body content up so it's not hidden by nav */
+.create-btn:hover {
+  background: var(--mn-bg);
+  border-color: var(--mn-pink);
+  color: var(--mn-pink);
+}
+
+/* ── Backdrop overlay ── */
+.fab-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17,17,24,0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: mn-fade-in 0.18s ease-out;
+}
+
+@keyframes mn-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Body padding so content isn't hidden under bar ── */
 body {
-  padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
-
-
-/* Update your mobileNav.css to remove the .ts-mobile-ai-window styles */
-/* And add these for the AI page container */
-
+/* ── AI full-page container ── */
 .ai-page-container {
   min-height: 100vh;
-  background: #ffffff;
+  background: var(--mn-surface);
   display: flex;
   flex-direction: column;
+  font-family: 'Geist', sans-serif;
 }
 
 .ai-page-header {
-  padding: 16px;
+  padding: 1rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #eff3f4;
+  border-bottom: 1px solid var(--mn-border);
   position: sticky;
   top: 0;
-  background: white;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(12px);
   z-index: 10;
 }
 
 .ai-page-header h1 {
-  font-size: 18px;
+  font-size: 1.1rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
   margin: 0;
+  color: var(--mn-ink);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-/* Ensure the main content doesn't get hidden */
-.ai-page-content {
-  flex: 1;
-}
+.ai-page-content { flex: 1; overflow-y: auto; }
