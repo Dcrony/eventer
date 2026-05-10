@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Search, Activity, Shield, User, Calendar, AlertTriangle } from "lucide-react";
+import { Activity, Shield, User, Calendar, AlertTriangle, Wallet, StarOff } from "lucide-react";
 import adminService from "../services/adminService";
 import AdminLayout from "../components/AdminLayout";
-import { LoadingSpinner, ErrorMessage } from "../components/AdminComponents";
-import { formatDate } from "../utils/adminUtils";
+import { LoadingSpinner, ErrorMessage, EmptyState, PaginationControls } from "../components/AdminComponents";
+import { formatDateTime } from "../utils/adminUtils";
 
 const actionIcons = {
     USER_SUSPENDED: Shield,
@@ -11,7 +11,10 @@ const actionIcons = {
     EVENT_APPROVED: Calendar,
     EVENT_REJECTED: AlertTriangle,
     EVENT_FEATURED: Activity,
+    EVENT_UNFEATURED: StarOff,
     ANNOUNCEMENT_SENT: Activity,
+    WITHDRAWAL_APPROVED: Wallet,
+    WITHDRAWAL_REJECTED: AlertTriangle,
 };
 
 export default function AdminLogs() {
@@ -84,13 +87,7 @@ export default function AdminLogs() {
                 {loading ? (
                     <LoadingSpinner />
                 ) : logs.length === 0 ? (
-                    <div className="flex min-h-[240px] items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        <div className="text-center">
-                            <Activity className="mx-auto h-12 w-12 text-slate-400" />
-                            <h3 className="mt-4 text-sm font-semibold text-slate-900">No activity logs found</h3>
-                            <p className="mt-2 text-sm text-slate-500">Adjust filters to see activity history.</p>
-                        </div>
-                    </div>
+                    <EmptyState title="No activity logs found" description="Adjust filters to see admin history." />
                 ) : (
                     <div className="space-y-4">
                         {logs.map((log) => {
@@ -106,7 +103,7 @@ export default function AdminLogs() {
                                                 <h3 className="text-sm font-semibold text-slate-950">
                                                     {log.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())}
                                                 </h3>
-                                                <p className="text-xs text-slate-500">{formatDate(log.createdAt)}</p>
+                                                <p className="text-xs text-slate-500">{formatDateTime(log.createdAt)}</p>
                                             </div>
                                             <p className="mt-2 text-sm text-slate-600">{log.details || "No additional details"}</p>
                                             <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
@@ -121,27 +118,14 @@ export default function AdminLogs() {
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-                    <p className="text-sm text-slate-500">Page {page} of {pagination.pages}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            disabled={page <= 1}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Previous
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.min(pagination.pages || 1, page + 1))}
-                            disabled={page >= pagination.pages}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Next
-                        </button>
-                    </div>
-                </div>
+                <PaginationControls
+                    page={page}
+                    pages={pagination.pages || 1}
+                    total={pagination.total}
+                    label="logs"
+                    onPrevious={() => setPage(Math.max(1, page - 1))}
+                    onNext={() => setPage(Math.min(pagination.pages || 1, page + 1))}
+                />
             </div>
         </AdminLayout>
     );

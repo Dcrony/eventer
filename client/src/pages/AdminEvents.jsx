@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Search, Sparkles, CheckCircle2, Slash, Star, FileSearch } from "lucide-react";
 import adminService from "../services/adminService";
 import AdminLayout from "../components/AdminLayout";
-import { LoadingSpinner, ErrorMessage, WarningMessage } from "../components/AdminComponents";
-import { formatDate, formatNumber } from "../utils/adminUtils";
+import { LoadingSpinner, ErrorMessage, WarningMessage, PaginationControls, StatusBadge } from "../components/AdminComponents";
+import { formatDate, formatNumber, getStatusTone } from "../utils/adminUtils";
+import { useToast } from "../components/ui/toast";
 
 export default function AdminEvents() {
+    const toast = useToast();
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -44,6 +46,7 @@ export default function AdminEvents() {
         try {
             setLoading(true);
             await adminService[nextStatus === "approved" ? "approveEvent" : "rejectEvent"](eventId, "Review updated by admin");
+            toast.success(`Event ${nextStatus} successfully.`);
             refresh();
         } catch (err) {
             setError(err.response?.data?.message || "Unable to update event status.");
@@ -56,6 +59,7 @@ export default function AdminEvents() {
         try {
             setLoading(true);
             await adminService.toggleEventFeatured(eventId);
+            toast.success("Featured state updated.");
             refresh();
         } catch (err) {
             setError(err.response?.data?.message || "Unable to toggle featured status.");
@@ -156,14 +160,7 @@ export default function AdminEvents() {
                                         </td>
                                         <td className="px-6 py-4 text-slate-900">{event.ticketsSold || 0}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${event.status === "approved"
-                                                    ? "bg-emerald-100 text-emerald-700"
-                                                    : event.status === "pending"
-                                                        ? "bg-amber-100 text-amber-700"
-                                                        : "bg-rose-100 text-rose-700"
-                                                }`}>
-                                                {event.status || "unknown"}
-                                            </span>
+                                            <StatusBadge tone={getStatusTone(event.status)}>{event.status || "unknown"}</StatusBadge>
                                         </td>
                                         <td className="px-6 py-4">
                                             <button
@@ -193,7 +190,7 @@ export default function AdminEvents() {
                                             {event.status !== "rejected" && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => updateEventStatus(event._1d, "rejected")}
+                                                    onClick={() => updateEventStatus(event._id, "rejected")}
                                                     className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
                                                 >
                                                     <Slash size={14} />
@@ -208,27 +205,14 @@ export default function AdminEvents() {
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-                    <p className="text-sm text-slate-500">Page {page} of {pagination.pages}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            disabled={page <= 1}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Previous
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setPage(Math.min(pagination.pages || 1, page + 1))}
-                            disabled={page >= pagination.pages}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Next
-                        </button>
-                    </div>
-                </div>
+                <PaginationControls
+                    page={page}
+                    pages={pagination.pages || 1}
+                    total={pagination.total}
+                    label="events"
+                    onPrevious={() => setPage(Math.max(1, page - 1))}
+                    onNext={() => setPage(Math.min(pagination.pages || 1, page + 1))}
+                />
             </div>
         </AdminLayout>
     );

@@ -31,6 +31,7 @@ import {
 } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import "./CSS/eventdetail.css";
+import ShareModal from "../components/ShareModal";
 
 export default function EventDetail() {
   const { eventId } = useParams();
@@ -44,6 +45,7 @@ export default function EventDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isEventFree = event?.isFreeEvent || event?.isFree;
@@ -183,28 +185,9 @@ export default function EventDetail() {
   };
 
   const handleShare = async () => {
-    const shared = await shareLink({
-      title: event?.title,
-      text: `Check out ${event?.title} on TickiSpot`,
-      url: getEventUrl(event._id),
-      copiedMessage: "Event link copied to clipboard",
-    });
+    setShareOpen(true);
 
-    if (!shared) return;
-
-    startTransition(async () => {
-      setEvent((current) => ({
-        ...current,
-        shareCount: Number(current.shareCount || 0) + 1,
-      }));
-
-      try {
-        const { data } = await API.post(`/events/${event._id}/share`);
-        setEvent(data);
-      } catch (error) {
-        // Silently handle share tracking failure
-      }
-    });
+    
   };
 
   if (loading) {
@@ -522,6 +505,13 @@ export default function EventDetail() {
           }
         }}
       />
+
+      <ShareModal
+  open={shareOpen}
+  onClose={() => setShareOpen(false)}
+  title={event.title}
+  url={getEventUrl(event._id)}
+/>
     </>
   );
 }

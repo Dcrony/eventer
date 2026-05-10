@@ -18,6 +18,7 @@ import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import Avatar from "../components/ui/avatar";
 import useShareLink from "../hooks/useShareLink";
 import "./CSS/Profile.css";
+import ShareModal from "@/components/ShareModal";
 
 const TAB_ITEMS = [
   { id: "events", label: "Events", icon: CalendarDays },
@@ -78,7 +79,7 @@ export default function Profile() {
   const [followPending, setFollowPending] = useState(false);
   const [indicator, setIndicator] = useState({ width: 0, left: 0 });
   const tabsRef = useRef({});
-  const shareLink = useShareLink();
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -216,16 +217,8 @@ export default function Profile() {
   };
 
   const handleShareProfile = async () => {
-    const profileUrl = profile?.username
-      ? `${window.location.origin}/user/${profile.username}`
-      : `${window.location.origin}/profile/${profile?._id}`;
 
-    await shareLink({
-      title: `${profileName} on TickiSpot`,
-      text: `Check out ${profileName}'s profile on TickiSpot`,
-      url: profileUrl,
-      copiedMessage: "Profile link copied",
-    });
+   setShareOpen(true);
   };
 
   if (!profile) {
@@ -422,6 +415,17 @@ export default function Profile() {
             )}
           </div>
         </section>
+
+        <ShareModal
+  open={shareOpen}
+  onClose={() => setShareOpen(false)}
+  title={`${profileName} on TickiSpot`}
+  url={
+    profile?.username
+      ? `${window.location.origin}/user/${profile.username}`
+      : `${window.location.origin}/profile/${profile._id}`
+  }
+/>
       </div>
     </div>
   );

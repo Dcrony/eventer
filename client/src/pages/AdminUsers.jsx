@@ -1,290 +1,365 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import "./CSS/UserManagement.css";
-import { Users, UserCheck, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Shield, UserCheck, Users } from "lucide-react";
+import AdminLayout from "../components/AdminLayout";
+import {
+  EmptyState,
+  ErrorMessage,
+  LoadingSpinner,
+  PaginationControls,
+  StatCard,
+  StatusBadge,
+  SurfaceCard,
+} from "../components/AdminComponents";
 import { UserAvatar } from "../components/ui/avatar";
+import adminService from "../services/adminService";
+import { formatCurrency, formatDate, formatNumber, formatStatus, getStatusTone } from "../utils/adminUtils";
+import { useToast } from "../components/ui/toast";
 
-// Use VITE_API_URL for Vite projects (not REACT_APP_API_URL)
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
-
-const MOCK_USERS = [
-  {
-    _id: "1",
-    username: "olaoluwa",
-    email: "olaoluwa@example.com",
-    role: "organizer",
-    bio: "Music event producer with 5 years experience.",
-  },
-  {
-    _id: "2",
-    username: "taslim",
-    email: "taslim@example.com",
-    role: "user",
-    bio: "Attending events and managing bookings.",
-  },
-  {
-    _id: "3",
-    username: "micheal",
-    email: "micheal@example.com",
-    role: "admin",
-    bio: "Platform administrator and product owner.",
-  },
-  {
-    _id: "4",
-    username: "funke",
-    email: "funke@example.com",
-    role: "organizer",
-    bio: "Curator of tech conferences and workshops.",
-  },
-];
-
-const UserManagement = () => {
+export default function AdminUsers() {
+  const toast = useToast();
   const [users, setUsers] = useState([]);
-  const [toast, setToast] = useState(null);
-  const [search, setSearch] = useState("");
-  const [filterRole, setFilterRole] = useState("all");
+  const [summary, setSummary] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className={`stat-tile ${color}`}>
-      <div className="stat-tile-content">
-        <div className="stat-label">{title}</div>
-        <div className="stat-value">{value}</div>
-      </div>
-      <div className="stat-tile-icon-wrapper">
-        <Icon size={24} className="stat-tile-icon" />
-      </div>
-    </div>
-  );
+  const filters = {
+    ...(search ? { search } : {}),
+    ...(roleFilter ? { role: roleFilter } : {}),
+    ...(statusFilter ? { status: statusFilter } : {}),
+  };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`${API_URL}/users`, {
-          headers: token
-            ? { Authorization: `Bearer ${token}` }
-            : {},
-        });
-
-        const data = Array.isArray(res.data)
-          ? res.data
-          : Array.isArray(res.data?.users)
-          ? res.data.users
-          : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
-
-        if (data.length === 0) {
-          setUsers(MOCK_USERS);
-          setError("No users returned from API. Using local sample users.");
-          showToast("Using fallback sample users", "error");
-        } else {
-          setUsers(data);
-        }
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        const message =
-          err.response?.status === 401 || err.response?.status === 403
-            ? "Admin access required to load users. Please sign in as an admin."
-            : "Failed to load users. Showing sample data.";
-        setError(message);
-        setUsers(MOCK_USERS);
-        showToast(message, "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
-  }, []);
+  }, [page, roleFilter, statusFilter]);
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const updateRole = async (id, role) => {
+  const fetchUsers = async (overrideFilters = filters, nextPage = page) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `${API_URL}/users/${id}/role`,
-        { role },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setUsers(users.map((u) => (u._id === id ? { ...u, ...res.data } : u)));
-      showToast("User role updated successfully");
+      setLoading(true);
+      setError(null);
+      const data = await adminService.getAllUsers(nextPage, 20, overrideFilters);
+      setUsers(data.users || []);
+      setSummary(data.summary || null);
+      setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (err) {
-      console.error("Error updating role:", err);
-      showToast("Failed to update role", "error");
+      setError(err.response?.data?.message || "Failed to load users.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const deleteUser = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+  const applySearch = () => {
+    setPage(1);
+    fetchUsers(filters, 1);
+  };
+
+  const openUserDetails = async (userId) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_URL}/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers(users.filter((u) => u._id !== id));
-      showToast("User deleted successfully");
+      setDetailsLoading(true);
+      const data = await adminService.getUserDetails(userId);
+      setSelectedUser(data);
     } catch (err) {
-      console.error("Error deleting user:", err);
-      showToast("Failed to delete user", "error");
+      setError(err.response?.data?.message || "Failed to load user details.");
+    } finally {
+      setDetailsLoading(false);
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    const name = u.username ? u.username.toLowerCase() : "";
-    const email = u.email ? u.email.toLowerCase() : "";
-    const matchSearch =
-      name.includes(search.toLowerCase()) ||
-      email.includes(search.toLowerCase());
-    const matchRole = filterRole === "all" || u.role === filterRole;
-    return matchSearch && matchRole;
-  });
+  const handleSuspendToggle = async (user) => {
+    try {
+      if (user.isSuspended) {
+        await adminService.reactivateUser(user._id);
+        toast.success("User reactivated.");
+      } else {
+        await adminService.suspendUser(user._id);
+        toast.success("User suspended.");
+      }
+
+      fetchUsers(filters, page);
+
+      if (selectedUser?.user?._id === user._id) {
+        openUserDetails(user._id);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update user status.");
+    }
+  };
+
+  const handleRoleChange = async (userId, role) => {
+    try {
+      await adminService.updateUserRole(userId, role);
+      toast.success(`User role updated to ${role}.`);
+      fetchUsers(filters, page);
+
+      if (selectedUser?.user?._id === userId) {
+        openUserDetails(userId);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update user role.");
+    }
+  };
+
+  const handleDelete = async (user) => {
+    if (!window.confirm(`Delete ${user.email}? This will deactivate the account.`)) {
+      return;
+    }
+
+    try {
+      await adminService.deleteUser(user._id);
+      toast.success("User deleted successfully.");
+      if (selectedUser?.user?._id === user._id) {
+        setSelectedUser(null);
+      }
+      fetchUsers(filters, page);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete user.");
+    }
+  };
 
   return (
-    <div className="user-management">
-      <div className="page-header">
-        <div>
-          <h2>User Management</h2>
-          <p>View and manage registered participants, organizers, and admins.</p>
-        </div>
-      </div>
-
-      <div className="user-metrics-grid">
-        <StatCard
-          title="Total Users"
-          value={users.length}
-          icon={Users}
-          color="blue"
-        />
-        <StatCard
-          title="Organizers"
-          value={users.filter((u) => u.role === "organizer").length}
-          icon={UserCheck}
-          color="pink"
-        />
-        <StatCard
-          title="Admins"
-          value={users.filter((u) => u.role === "admin").length}
-          icon={Shield}
-          color="green"
-        />
-      </div>
-
-      <div className="user-actions-bar">
-        <div className="search-group">
-          <label htmlFor="user-search" className="sr-only">
-            Search users
-          </label>
-          <input
-            id="user-search"
-            type="text"
-            placeholder="Search by name or email"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="role-filter" className="sr-only">
-            Filter role
-          </label>
-          <select
-            id="role-filter"
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
+    <AdminLayout
+      title="User Management"
+      description="Search users, change access roles, suspend or reactivate accounts, and inspect organizer activity."
+    >
+      <div className="space-y-6">
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_auto]">
+          <SurfaceCard>
+            <input
+              type="search"
+              placeholder="Search by name, username, or email"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") applySearch();
+              }}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+            />
+          </SurfaceCard>
+          <SurfaceCard>
+            <select
+              value={roleFilter}
+              onChange={(event) => {
+                setRoleFilter(event.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+            >
+              <option value="">All roles</option>
+              <option value="user">Users</option>
+              <option value="organizer">Organizers</option>
+              <option value="admin">Admins</option>
+            </select>
+          </SurfaceCard>
+          <SurfaceCard>
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+            >
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </SurfaceCard>
+          <button
+            type="button"
+            onClick={applySearch}
+            className="rounded-2xl bg-pink-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-pink-700"
           >
-            <option value="all">All Roles</option>
-            <option value="user">User</option>
-            <option value="organizer">Organizer</option>
-            <option value="admin">Admin</option>
-          </select>
+            Search
+          </button>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading users...</p>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard icon={Users} label="Total Users" value={formatNumber(summary?.total || 0)} detail="Active admin scope" />
+          <StatCard icon={UserCheck} label="Organizers" value={formatNumber(summary?.organizers || 0)} detail="Event creators" />
+          <StatCard icon={Shield} label="Admins" value={formatNumber(summary?.admins || 0)} detail="Platform managers" />
+          <StatCard icon={Shield} label="Suspended" value={formatNumber(summary?.suspended || 0)} detail="Restricted accounts" />
         </div>
-      ) : (
-        <div className="user-table-wrapper">
-          {error && (
-            <div className="alert-banner">
-              <p>{error}</p>
+
+        {error ? <ErrorMessage message={error} onDismiss={() => setError(null)} /> : null}
+
+        <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
+          <div className="space-y-6">
+            {loading ? (
+              <LoadingSpinner label="Loading users..." />
+            ) : users.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No users found"
+                description="Try a broader search or clear some filters."
+              />
+            ) : (
+              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="px-6 py-4 text-left font-semibold">User</th>
+                      <th className="px-6 py-4 text-left font-semibold">Role</th>
+                      <th className="px-6 py-4 text-left font-semibold">Status</th>
+                      <th className="px-6 py-4 text-left font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {users.map((user) => (
+                      <tr key={user._id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4">
+                          <button
+                            type="button"
+                            onClick={() => openUserDetails(user._id)}
+                            className="flex items-center gap-3 text-left"
+                          >
+                            <UserAvatar user={user} className="h-10 w-10" />
+                            <div>
+                              <div className="font-semibold text-slate-950">{user.name || user.username}</div>
+                              <div className="mt-1 text-xs text-slate-500">{user.email}</div>
+                            </div>
+                          </button>
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={user.role}
+                            onChange={(event) => handleRoleChange(user._id, event.target.value)}
+                            className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none"
+                          >
+                            <option value="user">User</option>
+                            <option value="organizer">Organizer</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusBadge tone={getStatusTone(user.isSuspended ? "suspended" : "active")}>
+                            {user.isSuspended ? "Suspended" : "Active"}
+                          </StatusBadge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSuspendToggle(user)}
+                              className={`rounded-2xl px-3 py-2 text-xs font-semibold text-white transition ${
+                                user.isSuspended ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-500 hover:bg-amber-600"
+                              }`}
+                            >
+                              {user.isSuspended ? "Reactivate" : "Suspend"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(user)}
+                              className="rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <PaginationControls
+              page={pagination.page || page}
+              pages={pagination.pages || 1}
+              total={pagination.total}
+              label="users"
+              onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+              onNext={() => setPage((current) => Math.min(pagination.pages || 1, current + 1))}
+            />
+          </div>
+
+          <SurfaceCard className="space-y-5">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">User details</p>
+              <h3 className="mt-2 text-xl font-bold text-slate-950">
+                {selectedUser?.user?.name || selectedUser?.user?.username || "Select a user"}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                {selectedUser?.user?.email || "Choose a row to inspect recent activity and organizer events."}
+              </p>
             </div>
-          )}
 
-          <table className="user-table">
-            <thead>
-              <tr>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <tr key={user._id}>
-                    <td data-label="User">
-                      <div className="user-info">
-                        <UserAvatar user={user} className="user-table-avatar" />
-                        <div>
-                          <p className="user-name">{user.username}</p>
-                          <p className="user-bio">{user.bio || "Active member"}</p>
+            {detailsLoading ? (
+              <LoadingSpinner label="Loading user details..." />
+            ) : selectedUser?.user ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Role</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{formatStatus(selectedUser.user.role)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Status</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">
+                      {selectedUser.user.isSuspended ? "Suspended" : "Active"}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">Recent transactions</h4>
+                  <div className="mt-3 space-y-3">
+                    {(selectedUser.transactions || []).slice(0, 5).map((transaction) => (
+                      <div key={transaction._id} className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{transaction.event?.title || "Unknown event"}</p>
+                            <p className="mt-1 text-xs text-slate-500">{formatDate(transaction.purchasedAt)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-slate-900">{formatCurrency(transaction.amount || 0)}</p>
+                            <StatusBadge tone={getStatusTone(transaction.paymentStatus)}>
+                              {transaction.paymentStatus || "unknown"}
+                            </StatusBadge>
+                          </div>
                         </div>
                       </div>
-                    </td>
-                    <td data-label="Email">{user.email}</td>
-                    <td data-label="Role">
-                      <div className="role-wrapper">
-                        <span className={`role-badge role-${user.role}`}>
-                          {user.role}
-                        </span>
-                        <select
-                          value={user.role}
-                          onChange={(e) => updateRole(user._id, e.target.value)}
-                        >
-                          <option value="user">User</option>
-                          <option value="organizer">Organizer</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                    ))}
+                    {!selectedUser.transactions?.length ? <p className="text-sm text-slate-500">No recent transactions.</p> : null}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">Organizer events</h4>
+                  <div className="mt-3 space-y-3">
+                    {(selectedUser.events || []).slice(0, 5).map((event) => (
+                      <div key={event._id} className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{event.title}</p>
+                            <p className="mt-1 text-xs text-slate-500">{event.category || "No category"}</p>
+                          </div>
+                          <div className="text-right">
+                            <StatusBadge tone={getStatusTone(event.status)}>{event.status || "pending"}</StatusBadge>
+                            <p className="mt-2 text-xs text-slate-500">Sold: {formatNumber(event.ticketsSold || 0)}</p>
+                          </div>
+                        </div>
                       </div>
-                    </td>
-                    <td data-label="Actions">
-                      <button
-                        onClick={() => deleteUser(user._id)}
-                        className="delete-btn"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="empty-row">
-                    No users match your search.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    ))}
+                    {!selectedUser.events?.length ? <p className="text-sm text-slate-500">No organizer events found.</p> : null}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="No user selected"
+                description="Select a user from the table to view profile details, recent purchases, and events."
+              />
+            )}
+          </SurfaceCard>
         </div>
-      )}
-
-      {toast && <div className={`toast ${toast.type}`}>{toast.message}</div>}
-    </div>
+      </div>
+    </AdminLayout>
   );
-};
-
-export default UserManagement;
+}
