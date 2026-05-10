@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Banknote,
   DollarSign,
+  Shield,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -62,6 +63,9 @@ export default function Sidebar() {
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
 
   const menuItems = [
+    ...(isAdmin
+      ? [{ to: "/admin/dashboard", label: "Admin", icon: <Shield size={20} /> }]
+      : []),
     ...(canOrganize
       ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={20} /> }]
       : []),
@@ -73,22 +77,22 @@ export default function Sidebar() {
 
     ...(canOrganize
       ? [{
-          label: "Create",
-          icon: <PlusCircle size={20} />,
-          action: () => setShowCreateEvent(true),
-          primary: true,
-        }]
-      : []),  
+        label: "Create",
+        icon: <PlusCircle size={20} />,
+        action: () => setShowCreateEvent(true),
+        primary: true,
+      }]
+      : []),
     { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
     ...(canOrganize
       ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }]
       : []),
-    
-    
+
+
     { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
     { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
-    
-    
+
+
   ];
 
   const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
@@ -144,8 +148,8 @@ export default function Sidebar() {
               );
             })}
             <div className="sidebar-link notification-wrapper">
-               <NotificationBell />
-               {expand && <span className="sidebar-link-text">Notifications</span>}
+              <NotificationBell />
+              {expand && <span className="sidebar-link-text">Notifications</span>}
             </div>
 
             <Link to={profileUrl} className="sidebar-link" title={!expand ? "Profile" : ""}>
@@ -165,7 +169,7 @@ export default function Sidebar() {
           </nav>
         </div>
 
-       
+
       </aside>
 
       <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />

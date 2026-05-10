@@ -1,5 +1,5 @@
 import { Send } from "lucide-react";
-import { startTransition, useEffect, useOptimistic, useState } from "react";
+import { useEffect, useState } from "react"; // Removed startTransition and useOptimistic
 import API from "../api/axios";
 import { formatRelativeTime } from "../utils/eventHelpers";
 import { UserAvatar } from "./ui/avatar";
@@ -21,10 +21,7 @@ export default function EventCommentsModal({
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [optimisticComments, addOptimisticComment] = useOptimistic(
-    comments,
-    (current, optimisticComment) => [optimisticComment, ...current],
-  );
+  
   const toast = useToast();
   const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -63,11 +60,12 @@ export default function EventCommentsModal({
       return;
     }
 
+    // Create the optimistic comment object
     const optimisticComment = {
       _id: `optimistic-${Date.now()}`,
       text,
       createdAt: new Date().toISOString(),
-      pending: true,
+      pending: true, // Used to show "Sending..." in the UI
       user: {
         name: currentUser?.name,
         username: currentUser?.username,
@@ -75,21 +73,27 @@ export default function EventCommentsModal({
       },
     };
 
-    startTransition(() => {
-      addOptimisticComment(optimisticComment);
-    });
-
+    // 1. Optimistic Update: Add comment and clear draft immediately
+    const previousComments = [...comments];
+    setComments(prev => [optimisticComment, ...prev]);
+    setCommentCount(prev => prev + 1);
     setDraft("");
     setSubmitting(true);
 
     try {
+      // 2. Sync with Server
       const { data } = await API.post(`/events/${eventId}/comments`, { text });
+      
+      // Update state with confirmed data from server
       setComments(data.comments || []);
       setCommentCount(data.commentCount || 0);
       onCommentCountChange?.(data.commentCount || 0, data);
     } catch (error) {
+      // 3. Rollback on Failure
       toast.error(error.response?.data?.message || "Could not post comment");
-      setDraft(text);
+      setComments(previousComments);
+      setCommentCount(previousComments.length);
+      setDraft(text); // Restore text so user doesn't lose their message
     } finally {
       setSubmitting(false);
     }
@@ -106,11 +110,12 @@ export default function EventCommentsModal({
       <div className="event-comments-layout">
         <div className="event-comments-list">
           {loading ? <p className="event-comments-empty">Loading comments...</p> : null}
-          {!loading && optimisticComments.length === 0 ? (
+          {!loading && comments.length === 0 ? (
             <p className="event-comments-empty">No comments yet. Be the first to say something.</p>
           ) : null}
 
-          {optimisticComments.map((comment) => (
+          {/* Render using standard comments state instead of optimisticComments hook */}
+          {comments.map((comment) => (
             <article key={comment._id} className="event-comment-item">
               <div className="event-comment-avatar">
                 <UserAvatar user={comment.user} className="event-comment-avatar-img" />

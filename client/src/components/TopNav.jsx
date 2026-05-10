@@ -15,6 +15,8 @@ import {
   DollarSign,
   Bell,
   ChevronsRight,
+  Radio,
+  Shield,
 } from "lucide-react";
 
 import { logout } from "../utils/auth";
@@ -29,7 +31,6 @@ export default function TopNav() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const isAdmin = user?.role === "admin" || user?.isAdmin;
   const isOrganizer = user?.role === "organizer" || user?.isOrganizer;
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -49,6 +50,8 @@ export default function TopNav() {
   };
 
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
+  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+
 
   return (
     <>
@@ -103,9 +106,15 @@ export default function TopNav() {
         <div className="slide-menu-scrollable">
           <nav className="slide-menu-section">
             <label>My Activity</label>
+            {isAdmin && (
+            <MenuLink to="/admin/dashboard" icon={<Shield size={20} />} label="Admin" onClick={closeMenu} />
+
+            )}
             <MenuLink to="/my-tickets" icon={<Ticket size={20} />} label="My Tickets" onClick={closeMenu} />
             <MenuLink to="/favorites" icon={<Heart size={20} />} label="Favorites" onClick={closeMenu} />
             <MenuLink to="/events" icon={<Calendar size={20} />} label="Events" onClick={closeMenu} />
+            <MenuLink to="/live/events" icon={<Radio size={20} />} label="Live" onClick={closeMenu} />
+            
             {isFreeUser && (
     <MenuLink to="/pricing" icon={<DollarSign size={20} />} label="Premium" onClick={closeMenu} />
   )}

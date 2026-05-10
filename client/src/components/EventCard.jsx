@@ -1,4 +1,4 @@
-import { useEffect, useState, startTransition, useOptimistic } from "react";
+import { useEffect, useState } from "react"; // Removed startTransition and useOptimistic
 import { CalendarDays, Heart, MapPin, Ticket } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
@@ -23,10 +23,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const [optimisticEvent, updateOptimisticEvent] = useOptimistic(eventState, (current, patch) => ({
-    ...current,
-    ...patch,
-  }));
+  
   const navigate = useNavigate();
   const shareLink = useShareLink();
   const toast = useToast();
@@ -46,7 +43,6 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
       navigate("/login");
       return;
     }
-
     callback();
   };
 
@@ -54,24 +50,25 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
     eventClick.preventDefault();
     eventClick.stopPropagation();
 
-    handleProtectedAction(() => {
-      const nextLiked = !optimisticEvent.isLiked;
-      const nextLikeCount = Math.max(0, Number(optimisticEvent.likeCount || 0) + (nextLiked ? 1 : -1));
+    handleProtectedAction(async () => {
+      const previousState = { ...eventState }; // Save for rollback
+      const nextLiked = !eventState.isLiked;
+      const nextLikeCount = Math.max(0, Number(eventState.likeCount || 0) + (nextLiked ? 1 : -1));
 
-      startTransition(async () => {
-        updateOptimisticEvent({
-          isLiked: nextLiked,
-          likeCount: nextLikeCount,
-        });
+      // 1. Optimistic Update
+      setEventState(prev => ({
+        ...prev,
+        isLiked: nextLiked,
+        likeCount: nextLikeCount,
+      }));
 
-        try {
-          const { data } = await API.post(`/events/${eventState._id}/like`);
-          syncEvent(data);
-        } catch (error) {
-          toast.error("Could not update like");
-          syncEvent(eventState);
-        }
-      });
+      try {
+        const { data } = await API.post(`/events/${eventState._id}/like`);
+        syncEvent(data); // 2. Sync with real server data
+      } catch (error) {
+        toast.error("Could not update like");
+        setEventState(previousState); // 3. Rollback on failure
+      }
     });
   };
 
@@ -89,18 +86,18 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
 
     if (!shared) return;
 
-    startTransition(async () => {
-      updateOptimisticEvent({
-        shareCount: Number(optimisticEvent.shareCount || 0) + 1,
-      });
+    // Optimistic Update for share count
+    setEventState(prev => ({
+      ...prev,
+      shareCount: Number(prev.shareCount || 0) + 1,
+    }));
 
-      try {
-        const { data } = await API.post(`/events/${eventState._id}/share`);
-        syncEvent(data);
-      } catch (error) {
-        // Silently handle share tracking failure
-      }
-    });
+    try {
+      const { data } = await API.post(`/events/${eventState._id}/share`);
+      syncEvent(data);
+    } catch (error) {
+      // Silently handle share failure
+    }
   };
 
   const handleCommentsOpen = (eventClick) => {
@@ -114,32 +111,32 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
     eventClick.stopPropagation();
     if (favoriteLoading) return;
 
-    handleProtectedAction(() => {
-      const prev = Boolean(eventState.isFavorited);
-      const next = !prev;
+    handleProtectedAction(async () => {
+      const previousState = { ...eventState };
+      const next = !eventState.isFavorited;
 
-      startTransition(async () => {
-        updateOptimisticEvent({ isFavorited: next });
-        try {
-          setFavoriteLoading(true);
-          const { data } = await API.post(`/favorites/${eventState._id}`);
-          const isFavorited = Boolean(data?.isFavorited);
-          syncEvent({ ...eventState, isFavorited });
-          toast.success(isFavorited ? "Added to favorites" : "Removed from favorites");
-        } catch (error) {
-          toast.error("Could not update favorites");
-          updateOptimisticEvent({ isFavorited: prev });
-          syncEvent(eventState);
-        } finally {
-          setFavoriteLoading(false);
-        }
-      });
+      // Optimistic Update
+      setEventState(prev => ({ ...prev, isFavorited: next }));
+
+      try {
+        setFavoriteLoading(true);
+        const { data } = await API.post(`/favorites/${eventState._id}`);
+        const isFavorited = Boolean(data?.isFavorited);
+        syncEvent({ ...eventState, isFavorited });
+        toast.success(isFavorited ? "Added to favorites" : "Removed from favorites");
+      } catch (error) {
+        toast.error("Could not update favorites");
+        setEventState(previousState);
+      } finally {
+        setFavoriteLoading(false);
+      }
     });
   };
 
+  const organizer = eventState?.createdBy || null;
   const imageUrl = getEventImageUrl(eventState);
   const showPlaceholder = !imageUrl || imageFailed;
-  const favorited = Boolean(optimisticEvent.isFavorited);
+  const favorited = Boolean(eventState.isFavorited);
 
   return (
     <>
@@ -208,7 +205,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 onClick={(eventClick) => {
                   eventClick.preventDefault();
                   eventClick.stopPropagation();
-                  onOrganizerClick?.(eventState.createdBy);
+                  if (organizer?._id) onOrganizerClick?.(organizer);
                 }}
                 role={onOrganizerClick ? "button" : undefined}
                 tabIndex={onOrganizerClick ? 0 : undefined}
@@ -216,7 +213,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                   if (!onOrganizerClick) return;
                   if (eventClick.key === "Enter" || eventClick.key === " ") {
                     eventClick.preventDefault();
-                    onOrganizerClick(eventState.createdBy);
+                    if (organizer?._id) onOrganizerClick(organizer);
                   }
                 }}
               >
@@ -225,10 +222,10 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 </div>
                 <div className="social-event-card-organizer-copy">
                   <span>
-                    {eventState.createdBy?.username || "Organizer"}
-                    <VerifiedBadge user={eventState.createdBy} />
+                    {organizer?.username || "Deleted Organizer"}
+                    {organizer && <VerifiedBadge user={organizer} />}
                   </span>
-                  <small>Organizer</small>
+                  <small>{organizer ? "Organizer" : "Account removed"}</small>
                 </div>
               </div>
             </div>
@@ -236,7 +233,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
         </Link>
 
         <EventEngagementBar
-          event={optimisticEvent}
+          event={eventState}
           onLike={handleLike}
           onComment={handleCommentsOpen}
           onShare={handleShare}
@@ -250,11 +247,8 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
         eventId={eventState._id}
         eventTitle={eventState.title}
         initialComments={eventState.comments || []}
-        initialCommentCount={optimisticEvent.commentCount || 0}
+        initialCommentCount={eventState.commentCount || 0}
         onCommentCountChange={(nextCount, nextEvent) => {
-          startTransition(() => {
-            updateOptimisticEvent({ commentCount: nextCount });
-          });
           if (nextEvent) {
             syncEvent(nextEvent);
           } else {
