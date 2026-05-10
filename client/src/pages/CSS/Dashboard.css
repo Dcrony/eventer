@@ -47,10 +47,7 @@
 .dashboard-page {
   font-family: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
   min-height: 100vh;
-  padding-top: 2rem;
-  padding-left: var(--sidebar-width, 0px);
-  padding-right: 2rem;
-  padding-bottom: 4rem;
+  padding: 1.5rem 1.5rem 2.5rem calc(var(--sidebar-width) + 1.5rem);
   background: var(--ts-bg);
   color: var(--ts-ink);
   transition: padding-left 0.3s ease;

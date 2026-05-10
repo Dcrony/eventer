@@ -29,6 +29,7 @@ import {
   getEventImageUrl,
   getEventUrl,
 } from "../utils/eventHelpers";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import "./CSS/eventdetail.css";
 
 export default function EventDetail() {
@@ -37,6 +38,7 @@ export default function EventDetail() {
   const shareLink = useShareLink();
   const { toProfile } = useProfileNavigation();
   const toast = useToast();
+  const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -81,6 +83,26 @@ export default function EventDetail() {
       trackView();
     }
   }, [eventId]);
+
+  const streamEmbedUrl = useMemo(() => {
+    if (!event?.liveStream?.streamURL) return null;
+    const rawUrl = String(event.liveStream.streamURL).trim();
+
+    if (event.liveStream.streamType === "YouTube") {
+      const match = rawUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      return match ? `https://www.youtube.com/embed/${match[1]}` : rawUrl;
+    }
+
+    if (event.liveStream.streamType === "Custom") {
+      return rawUrl;
+    }
+
+    if (event.liveStream.streamType === "Facebook") {
+      return rawUrl;
+    }
+
+    return null;
+  }, [event]);
 
   const ticketStartingPrice = useMemo(() => {
     if (!event?.pricing?.length) return "Free";
@@ -240,6 +262,12 @@ export default function EventDetail() {
               <div className="event-detail-badges">
                 {event.category ? <span className="event-detail-badge">{event.category}</span> : null}
                 <span className="event-detail-badge outline">{event.eventType || "In-person"}</span>
+                {event.visibility === "private" ? (
+                  <span className="event-detail-badge private">
+                    <ShieldCheck size={14} />
+                    Private
+                  </span>
+                ) : null}
                 {event.liveStream?.streamType && event.liveStream.streamType !== "Camera" ? (
                   <span className="event-detail-badge live">
                     <MonitorPlay size={14} />
@@ -330,6 +358,64 @@ export default function EventDetail() {
                     ) : null}
                   </div>
                 </article>
+
+                {event.liveStream?.isLive && streamEmbedUrl && (
+                  <article>
+                    <span className="section-eyebrow">
+                      <MonitorPlay size={14} />
+                      Live Stream
+                    </span>
+                    <div className="event-detail-copy-block">
+                      {canAccessLiveStreaming ? (
+                        <div className="live-stream-embed">
+                          {event.liveStream.streamType === "YouTube" && (
+                            <iframe
+                              src={streamEmbedUrl}
+                              title="Live Stream"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="live-stream-iframe"
+                            ></iframe>
+                          )}
+                          {event.liveStream.streamType === "Custom" && (
+                            <iframe
+                              src={streamEmbedUrl}
+                              title="Live Stream"
+                              frameBorder="0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                              className="live-stream-iframe"
+                            ></iframe>
+                          )}
+                          {event.liveStream.streamType === "Facebook" && (
+                            <div className="facebook-embed">
+                              <iframe
+                                src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(streamEmbedUrl)}&show_text=false`}
+                                title="Live Stream"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="live-stream-iframe"
+                              ></iframe>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="live-stream-locked">
+                          <div className="blur-overlay">
+                            <div className="blur-content">
+                              <MonitorPlay size={48} />
+                              <h3>Live Stream Available</h3>
+                              <p>Upgrade to Pro to watch live streams from events.</p>
+                              <Button onClick={promptUpgradeLive}>Upgrade Now</Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                )}
               </div>
             </section>
 

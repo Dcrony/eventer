@@ -1,31 +1,74 @@
-import { Check, Sparkles, Zap, ShieldCheck, Building2, ArrowRight, CreditCard, History, LayoutGrid } from "lucide-react";
+import {
+  Check,
+  Sparkles,
+  Zap,
+  ShieldCheck,
+  Building2,
+  ArrowRight,
+  CreditCard,
+  History,
+  LayoutGrid,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { getCurrentPlan, getBillingHistory, initializeBilling } from "../services/api/billing";
+import {
+  getCurrentPlan,
+  getBillingHistory,
+  initializeBilling,
+} from "../services/api/billing";
 import { useToast } from "../components/ui/toast";
 import { useAuth } from "../context/AuthContext";
-import { getTrialDaysRemaining, isTrialActive, normalizePlan } from "../utils/planAccess";
-import "./CSS/Pricing.css";
+import {
+  getTrialDaysRemaining,
+  isTrialActive,
+  normalizePlan,
+} from "../utils/planAccess";
 
 const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
+
+const STATUS_STYLES = {
+  active:   "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  success:  "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  inactive: "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+  failed:   "bg-red-50 text-red-700 ring-1 ring-red-200",
+  pending:  "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+};
+
+const STATUS_ICONS = {
+  active:   <CheckCircle2 size={11} />,
+  success:  <CheckCircle2 size={11} />,
+  failed:   <AlertCircle  size={11} />,
+  pending:  <Clock        size={11} />,
+};
+
+function StatusBadge({ status }) {
+  const s = (status || "inactive").toLowerCase();
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_STYLES[s] ?? STATUS_STYLES.inactive}`}>
+      {STATUS_ICONS[s]}
+      {status || "inactive"}
+    </span>
+  );
+}
 
 export default function Pricing() {
   const toast = useToast();
   const { user, isAuthenticated } = useAuth();
 
-  const [billingCycle, setBillingCycle] = useState("monthly");
-  const [currentPlan, setCurrentPlan] = useState("free");
-  const [billingState, setBillingState] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("plans");
+  const [billingCycle, setBillingCycle]   = useState("monthly");
+  const [currentPlan, setCurrentPlan]     = useState("free");
+  const [billingState, setBillingState]   = useState(null);
+  const [history, setHistory]             = useState([]);
+  const [activeTab, setActiveTab]         = useState("plans");
   const [upgradingPlan, setUpgradingPlan] = useState("");
 
   const trialDaysRemaining = getTrialDaysRemaining(user);
-  const trialActive = isTrialActive(user);
+  const trialActive        = isTrialActive(user);
 
-  // Pricing
-  const monthlyPro = 4999;
-  const yearlyPro = 49990; // ~16.7% discount
-  const yearlySavings = monthlyPro * 12 - yearlyPro;
+  const monthlyPro  = 4999;
+  const yearlyPro   = 49990;
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,7 +81,7 @@ export default function Pricing() {
         setCurrentPlan(normalizePlan(planRes.data?.plan || user?.plan));
         setBillingState(planRes.data);
         setHistory(Array.isArray(historyRes.data) ? historyRes.data : []);
-      } catch (err) {
+      } catch {
         setCurrentPlan(normalizePlan(user?.plan));
       }
     };
@@ -49,7 +92,7 @@ export default function Pricing() {
     {
       id: "free",
       name: "Free",
-      icon: <Zap size={28} />,
+      icon: <Zap size={22} />,
       description: "For early organizers validating demand and running lean events.",
       price: { monthly: 0, yearly: 0 },
       features: [
@@ -64,7 +107,7 @@ export default function Pricing() {
     {
       id: "pro",
       name: "Pro",
-      icon: <ShieldCheck size={28} />,
+      icon: <ShieldCheck size={22} />,
       description: "For production-ready teams that want premium growth tools.",
       badge: "Most Popular",
       price: { monthly: monthlyPro, yearly: yearlyPro },
@@ -81,7 +124,7 @@ export default function Pricing() {
     {
       id: "business",
       name: "Business",
-      icon: <Building2 size={28} />,
+      icon: <Building2 size={22} />,
       description: "Custom tools for large-scale productions and enterprises.",
       price: { monthly: "Custom", yearly: "Custom" },
       features: [
@@ -98,21 +141,13 @@ export default function Pricing() {
 
   const handleUpgrade = async (planId) => {
     if (planId === "business") {
-      toast.info("Please contact support@tickispot.com for Business plan.");
+      toast.info("Contact support@tickispot.com for the Business plan.");
       return;
     }
-    if (!isAuthenticated) {
-      window.location.href = "/register";
-      return;
-    }
-
+    if (!isAuthenticated) { window.location.href = "/register"; return; }
     try {
       setUpgradingPlan(planId);
-      const response = await initializeBilling({
-        plan: planId,
-        interval: billingCycle,
-      });
-
+      const response = await initializeBilling({ plan: planId, interval: billingCycle });
       if (response.data?.authorization_url) {
         window.location.href = response.data.authorization_url;
       } else {
@@ -125,145 +160,231 @@ export default function Pricing() {
     }
   };
 
-  return (
-    <div className="pricing-page-container">
-      <div className="pricing-bg-gradient" />
+  const TABS = [
+    { id: "plans",   label: "Plans",   icon: <LayoutGrid size={15} /> },
+    { id: "billing", label: "Billing", icon: <CreditCard  size={15} /> },
+    { id: "history", label: "History", icon: <History     size={15} /> },
+  ];
 
-      <div className="pricing-content">
-        {/* Hero */}
-        <div className="pricing-hero">
-          <div className="pricing-badge">
-            <Sparkles size={16} /> 14-day free trial on all Pro features
-          </div>
-          <h1>Simple, powerful pricing for event organizers</h1>
-          <p className="pricing-subtitle">
+  const COMPARISON = [
+    ["Create events & sell tickets", true,  true,  true],
+    ["Basic dashboard",              true,  true,  true],
+    ["TickiAI",                      false, true,  true],
+    ["Advanced analytics",           false, true,  true],
+    ["Live streaming",               false, true,  true],
+    ["Private events",               false, true,  true],
+    ["Team members & roles",         false, true,  true],
+    ["Custom branding",              false, true,  true],
+    ["Priority payouts",             false, true,  true],
+    ["White-label & API",            false, false, true],
+    ["Dedicated manager",            false, false, true],
+  ];
+
+  return (
+    /*
+      pl-[var(--sidebar-width)] applies the sidebar offset so the sidebar never
+      overlaps the content. The CSS variable --sidebar-width is set by the
+      Sidebar component (5rem collapsed / 15rem expanded).
+    */
+    <div className="min-h-screen bg-white relative pl-[var(--sidebar-width,0px)] pr-4 sm:pr-8 pt-20 pb-16 transition-[padding-left] duration-300">
+
+      {/* Radial bg tint */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-[600px] z-0"
+        style={{ background: "radial-gradient(circle at 50% -10%, #fdf2f8 0%, rgba(255,255,255,0) 65%)" }}
+      />
+
+      <div className="relative z-10 max-w-6xl mx-auto">
+
+        {/* ── Hero ── */}
+        <div className="text-center mb-12">
+          <span className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+            <Sparkles size={15} />
+            14-day free trial on all Pro features
+          </span>
+
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight mb-4">
+            Simple, powerful pricing<br className="hidden sm:block" /> for event organizers
+          </h1>
+
+          <p className="text-lg text-slate-500 max-w-xl mx-auto">
             Start free. Scale with confidence. Everything you need to grow your events.
           </p>
 
           {trialActive && (
-            <div className="trial-status">
+            <div className="inline-block mt-5 bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-xl text-sm font-semibold border border-emerald-100">
               Your trial is active — {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} remaining
             </div>
           )}
         </div>
 
-        {/* Billing Toggle */}
-        <div className="billing-switcher">
-          <span className={billingCycle === "monthly" ? "active" : ""}>Monthly</span>
+        {/* ── Billing cycle toggle ── */}
+        <div className="flex items-center justify-center gap-4 mb-10">
+          <span className={`text-sm font-semibold ${billingCycle === "monthly" ? "text-slate-900" : "text-slate-400"}`}>
+            Monthly
+          </span>
           <button
-            className={`toggle-pill ${billingCycle}`}
-            onClick={() => setBillingCycle(b => b === "monthly" ? "yearly" : "monthly")}
+            onClick={() => setBillingCycle(c => c === "monthly" ? "yearly" : "monthly")}
+            className="relative w-14 h-7 rounded-full bg-slate-900 p-1 transition-colors"
+            aria-label="Toggle billing cycle"
           >
-            <div className="toggle-knob" />
+            <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ${billingCycle === "yearly" ? "translate-x-7" : "translate-x-0"}`} />
           </button>
-          <span className={billingCycle === "yearly" ? "active" : ""}>
-            Yearly <span className="discount-tag">Save ~17%</span>
+          <span className={`text-sm font-semibold flex items-center gap-1.5 ${billingCycle === "yearly" ? "text-slate-900" : "text-slate-400"}`}>
+            Yearly
+            <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
+              Save ~17%
+            </span>
           </span>
         </div>
 
-        {/* Tabs */}
-        <nav className="pricing-tabs">
-          <button className={activeTab === "plans" ? "active" : ""} onClick={() => setActiveTab("plans")}>
-            <LayoutGrid size={16} /> Plans
-          </button>
-          <button className={activeTab === "billing" ? "active" : ""} onClick={() => setActiveTab("billing")}>
-            <CreditCard size={16} /> Billing
-          </button>
-          <button className={activeTab === "history" ? "active" : ""} onClick={() => setActiveTab("history")}>
-            <History size={16} /> History
-          </button>
-        </nav>
+        {/* ── Tabs ── */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl gap-1">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                  activeTab === tab.id
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        {/* Plans Tab */}
+        {/* ══════════════════════════════════
+            PLANS TAB
+        ══════════════════════════════════ */}
         {activeTab === "plans" && (
           <>
-            <div className="pricing-grid">
+            {/* Plan cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
               {plans.map((plan) => {
-                const isCurrent = currentPlan === plan.id;
+                const isCurrent    = currentPlan === plan.id;
                 const isProcessing = upgradingPlan === plan.id;
-                const priceValue = billingCycle === "yearly" ? plan.price.yearly : plan.price.monthly;
+                const priceValue   = billingCycle === "yearly" ? plan.price.yearly : plan.price.monthly;
 
                 return (
-                  <div key={plan.id} className={`pricing-card ${plan.highlight ? "featured" : ""}`}>
-                    {plan.badge && <div className="card-popular-tag">{plan.badge}</div>}
+                  <div
+                    key={plan.id}
+                    className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-2 ${
+                      plan.highlight
+                        ? "border-pink-400 shadow-xl shadow-pink-100 bg-gradient-to-b from-pink-50/40 to-white"
+                        : "border-slate-200 bg-white hover:shadow-lg hover:shadow-slate-100"
+                    }`}
+                  >
+                    {/* Popular badge */}
+                    {plan.badge && (
+                      <div className="absolute -top-3 right-5 bg-pink-500 text-white text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full shadow-md shadow-pink-200">
+                        {plan.badge}
+                      </div>
+                    )}
 
-                    <div className="card-icon">{plan.icon}</div>
-                    <h3 className="card-name">{plan.name}</h3>
-                    <p className="card-desc">{plan.description}</p>
+                    {/* Icon */}
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-5 ${plan.highlight ? "bg-pink-100 text-pink-600" : "bg-slate-100 text-slate-600"}`}>
+                      {plan.icon}
+                    </div>
 
-                    <div className="card-price">
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-1">{plan.name}</h3>
+                    <p className="text-sm text-slate-500 mb-6 leading-relaxed">{plan.description}</p>
+
+                    {/* Price */}
+                    <div className="flex items-baseline gap-1 mb-1">
                       {typeof priceValue === "number" ? (
                         <>
-                          <span className="currency">₦</span>
-                          <span className="amount">{priceValue.toLocaleString()}</span>
-                          <span className="period">/{billingCycle === "monthly" ? "mo" : "yr"}</span>
+                          <span className="text-2xl font-semibold text-slate-700">₦</span>
+                          <span className="text-5xl font-extrabold text-slate-900 tracking-tight">
+                            {priceValue.toLocaleString()}
+                          </span>
+                          <span className="text-slate-400 text-base ml-1">
+                            /{billingCycle === "monthly" ? "mo" : "yr"}
+                          </span>
                         </>
                       ) : (
-                        <span className="amount-custom">Custom</span>
+                        <span className="text-4xl font-extrabold text-slate-900">Custom</span>
                       )}
                     </div>
 
                     {billingCycle === "yearly" && plan.id === "pro" && (
-                      <p className="savings-text">Save ~17% yearly</p>
+                      <p className="text-emerald-600 text-sm font-semibold mb-5">Save ~17% yearly</p>
                     )}
 
-                    <ul className="card-features">
-                      {plan.features.map((feature, i) => (
-                        <li key={i}>
-                          <Check size={18} /> {feature}
+                    {/* Features */}
+                    <ul className="space-y-3 mb-8 flex-1 mt-4">
+                      {plan.features.map((f, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                          <CheckCircle2 size={16} className="text-emerald-500 mt-0.5 shrink-0" />
+                          {f}
                         </li>
                       ))}
                     </ul>
 
+                    {/* CTA */}
                     <button
-                      className={`card-button ${plan.highlight ? "btn-primary" : "btn-secondary"}`}
-                      disabled={isCurrent || isProcessing}
                       onClick={() => handleUpgrade(plan.id)}
+                      disabled={isCurrent || isProcessing}
+                      className={`w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl text-sm font-bold transition-all ${
+                        plan.highlight
+                          ? "bg-pink-500 text-white hover:bg-pink-600 shadow-md shadow-pink-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-pink-200"
+                          : "bg-slate-900 text-white hover:bg-black"
+                      } disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0`}
                     >
-                      {isProcessing
-                        ? "Processing..."
-                        : isCurrent
-                          ? "Current Plan"
-                          : plan.cta}
-                      {!isCurrent && !isProcessing && <ArrowRight size={16} />}
+                      {isProcessing ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Processing…
+                        </>
+                      ) : isCurrent ? (
+                        <>
+                          <CheckCircle2 size={15} />
+                          Current Plan
+                        </>
+                      ) : (
+                        <>
+                          {plan.cta}
+                          <ArrowRight size={15} />
+                        </>
+                      )}
                     </button>
                   </div>
                 );
               })}
             </div>
 
-            {/* Feature Comparison Table */}
-            <div className="pricing-comparison">
-              <h3>Feature Comparison</h3>
-              <div className="pricing-table-wrap">
-                <table className="pricing-table">
+            {/* Comparison table */}
+            <div className="mb-8">
+              <h3 className="text-xl font-extrabold text-slate-900 text-center mb-6 tracking-tight">
+                Feature comparison
+              </h3>
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+                <table className="w-full text-sm bg-white">
                   <thead>
-                    <tr>
-                      <th>Feature</th>
-                      <th>Free</th>
-                      <th>Pro</th>
-                      <th>Business</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-6 py-4 text-left font-bold text-slate-500 text-xs uppercase tracking-widest">Feature</th>
+                      {["Free", "Pro", "Business"].map((h) => (
+                        <th key={h} className="px-6 py-4 text-center font-bold text-xs uppercase tracking-widest text-slate-500">{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody>
-                    {[
-                      ["Create events & sell tickets", "Yes", "Yes", "Yes"],
-                      ["Basic dashboard", "Yes", "Yes", "Yes"],
-                      ["TickiAI", "No", "Yes", "Yes"],
-                      ["Advanced analytics", "No", "Yes", "Yes"],
-                      ["Live streaming", "No", "Yes", "Yes"],
-                      ["Private events", "No", "Yes", "Yes"],
-                      ["Team members & roles", "No", "Yes", "Yes"],
-                      ["Custom branding", "No", "Yes", "Yes"],
-                      ["Priority payouts", "No", "Yes", "Yes"],
-                      ["White-label & API", "No", "No", "Yes"],
-                      ["Dedicated manager", "No", "No", "Yes"],
-                    ].map(([feature, freeV, proV, busV]) => (
-                      <tr key={feature}>
-                        <td>{feature}</td>
-                        <td>{freeV}</td>
-                        <td>{proV}</td>
-                        <td>{busV}</td>
+                  <tbody className="divide-y divide-slate-100">
+                    {COMPARISON.map(([feature, freeV, proV, busV]) => (
+                      <tr key={feature} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="px-6 py-3.5 text-slate-700 font-medium">{feature}</td>
+                        {[freeV, proV, busV].map((val, i) => (
+                          <td key={i} className="px-6 py-3.5 text-center">
+                            {val ? (
+                              <CheckCircle2 size={17} className="text-emerald-500 mx-auto" />
+                            ) : (
+                              <span className="block w-4 h-0.5 bg-slate-200 mx-auto rounded" />
+                            )}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -273,71 +394,108 @@ export default function Pricing() {
           </>
         )}
 
-        {/* Billing Tab */}
+        {/* ══════════════════════════════════
+            BILLING TAB
+        ══════════════════════════════════ */}
         {activeTab === "billing" && (
-          <div className="info-card">
-            <h3>Subscription Details</h3>
-            {billingState ? (
-              <div className="billing-details">
-                <div className="detail-row">
-                  <span className="label">Current Plan:</span>
-                  <span className="value">{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Status:</span>
-                  <span className="value">{billingState.status || "N/A"}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Next Billing Date:</span>
-                  <span className="value">{billingState.nextBillingDate ? new Date(billingState.nextBillingDate).toLocaleDateString() : "N/A"}</span>
-                </div>
-                {billingState.currentAmount && (
-                  <div className="detail-row">
-                    <span className="label">Current Amount:</span>
-                    <span className="value">{formatMoney(billingState.currentAmount)}</span>
-                  </div>
-                )}
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                <h3 className="font-extrabold text-slate-900 tracking-tight">Subscription details</h3>
               </div>
-            ) : (
-              <p className="empty-state">No active subscription</p>
-            )}
+              {billingState ? (
+                <div className="divide-y divide-slate-100">
+                  {[
+                    ["Current plan", (currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1))],
+                    ["Status",       <StatusBadge key="status" status={billingState.status} />],
+                    ["Next billing", billingState.nextBillingDate
+                      ? new Date(billingState.nextBillingDate).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
+                      : "N/A"],
+                    ...(billingState.currentAmount
+                      ? [["Current amount", formatMoney(billingState.currentAmount)]]
+                      : []),
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="flex items-center justify-between px-6 py-4">
+                      <span className="text-sm font-semibold text-slate-500">{label}</span>
+                      <span className="text-sm font-bold text-slate-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-6 py-12 text-center text-sm text-slate-400">
+                  No active subscription.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* History Tab */}
+        {/* ══════════════════════════════════
+            HISTORY TAB
+        ══════════════════════════════════ */}
         {activeTab === "history" && (
-          <div className="info-card">
-            <h3>Payment History</h3>
-            {history && history.length > 0 ? (
-              <table className="history-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Plan</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((entry, idx) => (
-                    <tr key={idx}>
-                      <td>{new Date(entry.createdAt).toLocaleDateString()}</td>
-                      <td>{entry.plan || "N/A"}</td>
-                      <td>{formatMoney(entry.amount)}</td>
-                      <td>
-                        <span className={`status ${entry.status}`}>
-                          {entry.status || "pending"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="empty-state">No payment history</p>
-            )}
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h3 className="font-extrabold text-slate-900 tracking-tight">Payment history</h3>
+                {history.length > 0 && (
+                  <span className="text-xs text-slate-400 font-medium">{history.length} record{history.length !== 1 ? "s" : ""}</span>
+                )}
+              </div>
+
+              {history.length > 0 ? (
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          {["Date", "Plan", "Amount", "Status"].map((h) => (
+                            <th key={h} className="px-6 py-3 text-left text-xs font-bold uppercase tracking-widest text-slate-400">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {history.map((entry, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="px-6 py-3.5 text-slate-600 whitespace-nowrap">
+                              {new Date(entry.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                            </td>
+                            <td className="px-6 py-3.5 capitalize text-slate-700 font-medium">{entry.plan || "N/A"}</td>
+                            <td className="px-6 py-3.5 font-extrabold text-slate-900">{formatMoney(entry.amount)}</td>
+                            <td className="px-6 py-3.5"><StatusBadge status={entry.status} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="sm:hidden divide-y divide-slate-100">
+                    {history.map((entry, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-4 gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span className="font-extrabold text-slate-900">{formatMoney(entry.amount)}</span>
+                            <StatusBadge status={entry.status} />
+                          </div>
+                          <p className="text-xs text-slate-400 capitalize mt-0.5">
+                            {entry.plan} · {new Date(entry.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="px-6 py-12 text-center text-sm text-slate-400">
+                  No payment history yet.
+                </div>
+              )}
+            </div>
           </div>
         )}
+
       </div>
     </div>
   );

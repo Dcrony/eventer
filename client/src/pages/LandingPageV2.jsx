@@ -555,9 +555,17 @@ export default function LandingPageV2() {
             <div className="lp2-footer-links">
               <h4>Product</h4>
               <Link to="/events">Events</Link>
-              <button onClick={openCreateEvent} className="create" >
+              
+              {isLoggedIn ? (
+             <button onClick={openCreateEvent} className="create" >
                 Create Event
               </button>
+            ) : (
+              <>
+              <Link to="/login">Create Event</Link>
+
+              </>
+            )}
               <Link to="/pricing">Pricing</Link>
               <Link to="/docs">Docs</Link>
             </div>

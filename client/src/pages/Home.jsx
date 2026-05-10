@@ -107,7 +107,11 @@ export default function Home() {
           : Array.isArray(res.data?.data)
           ? res.data.data
           : [];
-        setEvents(data);
+        const sanitizedEvents = data.filter(
+  (event) => event && event.createdBy
+);
+
+setEvents(sanitizedEvents);
         setUseDemoData(false);
         setError(null);
       } catch {

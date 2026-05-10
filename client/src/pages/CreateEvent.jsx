@@ -33,9 +33,14 @@ const eventTypes = [
 export default function CreateEvent({ isOpen, onClose }) {
   const toast = useToast();
   const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
+  const { hasAccess: canUsePrivateEvents, promptUpgrade: promptUpgradePrivate } = useFeatureAccess("private_events");
+  const { hasAccess: canUseLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
   const [submitting, setSubmitting] = useState(false);
   const [isFreeEvent, setIsFreeEvent] = useState(false);
   const [showAIGen, setShowAIGen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [newTeamMemberEmail, setNewTeamMemberEmail] = useState("");
+  const [newTeamMemberRole, setNewTeamMemberRole] = useState("Co-host");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -44,6 +49,7 @@ export default function CreateEvent({ isOpen, onClose }) {
     streamType: "Camera",
     streamURL: "",
     eventType: "In-person",
+    visibility: "public",
     startDate: "",
     startTime: "",
     endDate: "",
@@ -122,6 +128,25 @@ export default function CreateEvent({ isOpen, onClose }) {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  const handleAddTeamMember = () => {
+    const email = newTeamMemberEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Enter a valid email address");
+      return;
+    }
+
+    setTeamMembers((prev) => [
+      ...prev,
+      { email, role: newTeamMemberRole },
+    ]);
+    setNewTeamMemberEmail("");
+    setNewTeamMemberRole("Co-host");
+  };
+
+  const handleRemoveTeamMember = (index) => {
+    setTeamMembers((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -137,7 +162,11 @@ export default function CreateEvent({ isOpen, onClose }) {
         }
       });
 
+      formData.append("visibility", form.visibility);
       formData.append("isFree", isFreeEvent);
+      if (teamMembers.length) {
+        formData.append("teamMembers", JSON.stringify(teamMembers));
+      }
 
       if (imageFile) formData.append("image", imageFile);
 
@@ -249,7 +278,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">Start Date</label>
                 <input
                   type="date"
-                  value={form.date}
+                  value={form.startDate}
                   name="startDate"
                   className="input-field"
                   onChange={handleChange}
@@ -260,7 +289,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">Start Time</label>
                 <input
                   type="time"
-                  value={form.time}
+                  value={form.startTime}
                   name="startTime"
                   className="input-field"
                   onChange={handleChange}
@@ -271,7 +300,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">End Date</label>
                 <input
                   type="date"
-                  value={form.date}
+                  value={form.endDate}
                   name="endDate"
                   className="input-field"
                   onChange={handleChange}
@@ -282,7 +311,7 @@ export default function CreateEvent({ isOpen, onClose }) {
                 <label className="field-label">End Time</label>
                 <input
                   type="time"
-                  value={form.time}
+                  value={form.endTime}
                   name="endTime"
                   className="input-field"
                   onChange={handleChange}
@@ -362,26 +391,135 @@ export default function CreateEvent({ isOpen, onClose }) {
               />
             </div>
 
-            <label className="field-label">Stream Type</label>
-            <select
-              name="streamType"
-              value={form.streamType}
-              className="input-field"
-              onChange={handleChange}
-            >
-              <option value="Camera">Camera (Native Live Stream)</option>
-              <option value="YouTube">YouTube</option>
-              <option value="Facebook">Facebook</option>
-            </select>
+            <div className="team-settings-card">
+              <div className="section-head">
+                <div>
+                  <h3>Team collaboration</h3>
+                  <p>Invite teammates to help manage this event.</p>
+                </div>
+              </div>
 
-            {form.streamType !== "Camera" && (
-              <input
-                name="streamURL"
-                placeholder={`${form.streamType} Stream URL`}
-                className="input-field"
-                value={form.streamURL}
-                onChange={handleChange}
-              />
+              <div className="team-input-row">
+                <input
+                  type="email"
+                  value={newTeamMemberEmail}
+                  onChange={(e) => setNewTeamMemberEmail(e.target.value)}
+                  placeholder="Team member email"
+                  className="input-field"
+                />
+                <select
+                  value={newTeamMemberRole}
+                  onChange={(e) => setNewTeamMemberRole(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="Co-host">Co-host</option>
+                  <option value="Moderator">Moderator</option>
+                  <option value="Viewer">Viewer</option>
+                </select>
+                <button type="button" className="dash-btn" onClick={handleAddTeamMember}>
+                  Add
+                </button>
+              </div>
+
+              {teamMembers.length > 0 && (
+                <div className="team-members-list">
+                  {teamMembers.map((member, index) => (
+                    <div key={`${member.email}-${index}`} className="team-member-row">
+                      <div>
+                        <strong>{member.email}</strong>
+                        <p>{member.role}</p>
+                      </div>
+                      <button type="button" className="link-button" onClick={() => handleRemoveTeamMember(index)}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="private-event-card">
+              <div className="section-head">
+                <div>
+                  <h3>Private event</h3>
+                  <p>Keep the event hidden and share it only by link.</p>
+                </div>
+              </div>
+              <label className="free-toggle">
+                <input
+                  type="checkbox"
+                  checked={form.visibility === "private"}
+                  onChange={(e) => {
+                    if (!canUsePrivateEvents) {
+                      promptUpgradePrivate();
+                      return;
+                    }
+                    setForm((prev) => ({
+                      ...prev,
+                      visibility: e.target.checked ? "private" : "public",
+                    }));
+                  }}
+                />
+                <span>Private event</span>
+              </label>
+              {!canUsePrivateEvents && (
+                <div className="feature-note">
+                  Private events are a Pro feature. Upgrade to share your event by invite-only link.
+                </div>
+              )}
+              {form.visibility === "private" && (
+                <div className="private-link-card">
+                  <label className="field-label">Private event link</label>
+                  <input
+                    type="text"
+                    value="Your private event link will be generated after creation."
+                    readOnly
+                    className="input-field"
+                  />
+                  <p className="ticket-capacity-hint">
+                    You can share this unique link with invited guests once the event is created.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <label className="field-label">Stream Type</label>
+            {canUseLiveStreaming ? (
+              <>
+                <select
+                  name="streamType"
+                  value={form.streamType}
+                  className="input-field"
+                  onChange={handleChange}
+                >
+                  <option value="Camera">Camera (Native Live Stream)</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Custom">Custom</option>
+                </select>
+
+                {form.streamType !== "Camera" && (
+                  <input
+                    name="streamURL"
+                    placeholder={`${form.streamType} Stream URL`}
+                    className="input-field"
+                    value={form.streamURL}
+                    onChange={handleChange}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <select className="input-field" disabled>
+                  <option value="Camera">Camera (Native Live Stream)</option>
+                </select>
+                <div className="feature-note">
+                  Live streaming is a Pro feature. Upgrade to attach your live broadcast.
+                </div>
+                <button type="button" className="dash-btn" onClick={promptUpgradeLive}>
+                  Upgrade for live streaming
+                </button>
+              </>
             )}
 
             <div className="form-label">

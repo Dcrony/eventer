@@ -112,6 +112,16 @@ export const formatEventDateRange = (startDate, endDate) => {
   })}`;
 };
 
+export const formatDate = (value, options = { month: "short", day: "numeric", year: "numeric" }) => {
+  if (!value) return "Date TBD";
+
+  try {
+    return new Date(value).toLocaleDateString("en-US", options);
+  } catch {
+    return "Date TBD";
+  }
+};
+
 export const formatEventTimeRange = (startTime, endTime) => {
   if (!startTime) return "Time TBD";
   return endTime ? `${startTime} - ${endTime}` : startTime;

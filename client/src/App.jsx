@@ -45,7 +45,7 @@ const EventDetail = lazy(() => import("./pages/EventDetails"));
 const Checkout = lazy(() => import("./pages/CheckOut"));
 const TicketScanner = lazy(() => import("./pages/TicketScanner"));
 const TicketValidationPage = lazy(() => import("./pages/ValidateTicket"));
-const UserManagement = lazy(() => import("./pages/UserManagement"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const LiveStream = lazy(() => import("./pages/LiveStream"));
 const AboutUs = lazy(() => import("./pages/AboutUs"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -72,6 +72,12 @@ const FounderProfile = lazy(() => import("./pages/FounderProfile"));
 const Billing = lazy(() => import("./pages/Billing"));
 const DiscoverCreators = lazy(() => import("./pages/DiscoverCreators"));
 const FAQ = lazy(() => import("./pages/FAQ"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminEvents = lazy(() => import("./pages/AdminEvents"));
+const AdminTransactions = lazy(() => import("./pages/AdminTransactions"));
+const AdminLogs = lazy(() => import("./pages/AdminLogs"));
+const AdminControls = lazy(() => import("./pages/AdminControls"));
+const EventTickets = lazy(() => import("./pages/EventTickets"));
 
 // Layout component with route definitions
 function Layout() {
@@ -226,6 +232,14 @@ function Layout() {
                 }
               />
               <Route
+                path="/dashboard/payouts"
+                element={
+                  <OrganizerStaffRoute>
+                    <Earnings />
+                  </OrganizerStaffRoute>
+                }
+              />
+              <Route
                 path="/admin/withdrawals"
                 element={
                   <AdminRoute>
@@ -233,7 +247,46 @@ function Layout() {
                   </AdminRoute>
                 }
               />
-              <Route path="/admin/dashboard" element={<Navigate to="/analytics" replace />} />
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/events"
+                element={
+                  <AdminRoute>
+                    <AdminEvents />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/transactions"
+                element={
+                  <AdminRoute>
+                    <AdminTransactions />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/logs"
+                element={
+                  <AdminRoute>
+                    <AdminLogs />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/controls"
+                element={
+                  <AdminRoute>
+                    <AdminControls />
+                  </AdminRoute>
+                }
+              />
               <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
               <Route
                 path="/events/:eventId/analytics"
@@ -241,6 +294,14 @@ function Layout() {
                   <ProtectedRoute>
                     <EventAnalytics />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/events/:eventId/tickets"
+                element={
+                  <OrganizerStaffRoute>
+                    <EventTickets />
+                  </OrganizerStaffRoute>
                 }
               />
               <Route
@@ -319,7 +380,7 @@ function Layout() {
                 path="/admin/users"
                 element={
                   <AdminRoute>
-                    <UserManagement />
+                    <AdminUsers />
                   </AdminRoute>
                 }
               />

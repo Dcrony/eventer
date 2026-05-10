@@ -63,7 +63,10 @@ export default function Dashboard() {
   };
 
   const handleEventUpdated = () => {
-    API.get("/events/my-events")
+    // Added headers to match your initial useEffect fetch logic
+    API.get("/events/my-events", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((res) => setEvents(res.data))
       .catch(() => {
         setError("Failed to refresh events");
@@ -76,7 +79,11 @@ export default function Dashboard() {
     setError(null);
 
     Promise.all([
-      API.get("/events/my-events"),
+      API.get("/events/my-events", {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+}),
       API.get("/stats/stats", {
         headers: { Authorization: `Bearer ${token}` },
       }),
@@ -176,7 +183,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
-        <TrialNotificationBanner />
+      <TrialNotificationBanner />
 
       <div className="dashboard-container">
         <div className="dashboard-header">
@@ -387,10 +394,15 @@ export default function Dashboard() {
                         >
                           <button
                             onClick={() => {
-                              toggleLive(event._id, event.liveStream?.isLive);
+                              if (!canAccessLiveStreaming) {
+                                promptUpgradeLive();
+                              } else {
+                                toggleLive(event._id, event.liveStream?.isLive);
+                              }
                               setOpenMenuId(null);
                             }}
                             className="menu-item primary"
+                            disabled={!canAccessLiveStreaming}
                           >
                             {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
                             {!canAccessLiveStreaming && " 🔒"}
@@ -405,6 +417,14 @@ export default function Dashboard() {
                           >
                             Edit
                           </button>
+
+                          <Link
+                            to={`/events/${event._id}/tickets`}
+                            className="menu-item"
+                            onClick={() => setOpenMenuId(null)}
+                          >
+                            Manage Tickets
+                          </Link>
 
                           {canAccessAnalytics ? (
                             <Link

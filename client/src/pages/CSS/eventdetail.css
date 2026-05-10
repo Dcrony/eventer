@@ -523,6 +523,72 @@
   box-shadow: none;
 }
 
+/* ── Live Stream Embed ── */
+.live-stream-embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ed-radius-lg);
+  overflow: hidden;
+  background: var(--ed-ink);
+}
+
+.live-stream-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--ed-radius-lg);
+}
+
+.live-stream-locked {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ed-radius-lg);
+  overflow: hidden;
+  background: var(--ed-ink);
+}
+
+.blur-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.blur-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+  max-width: 300px;
+}
+
+.blur-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.blur-content p {
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.blur-content svg {
+  margin-bottom: 1rem;
+  opacity: 0.8;
+}
+
 /* ── Responsive ── */
 @media (max-width: 980px) {
   .event-detail-hero,
@@ -542,4 +608,69 @@
   .event-detail-hero { padding: 1rem; }
   .event-detail-main,
   .event-detail-sidebar { padding: 1rem; }
+}
+/* -- Live Stream Embed -- */
+.live-stream-embed {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ed-radius-lg);
+  overflow: hidden;
+  background: var(--ed-ink);
+}
+
+.live-stream-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--ed-radius-lg);
+}
+
+.live-stream-locked {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--ed-radius-lg);
+  overflow: hidden;
+  background: var(--ed-ink);
+}
+
+.blur-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.blur-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+  max-width: 300px;
+}
+
+.blur-content h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.blur-content p {
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.9;
+}
+
+.blur-content svg {
+  margin-bottom: 1rem;
+  opacity: 0.8;
 }
