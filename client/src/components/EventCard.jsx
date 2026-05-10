@@ -17,12 +17,15 @@ import VerifiedBadge from "./ui/verified-badge";
 import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
 import "./css/EventCard.css";
+import ShareModal from "./ShareModal";
 
 export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
   const [eventState, setEventState] = useState(event);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+  
   
   const navigate = useNavigate();
   const shareLink = useShareLink();
@@ -73,31 +76,9 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   };
 
   const handleShare = async (eventClick) => {
-    eventClick.preventDefault();
-    eventClick.stopPropagation();
-
-    const eventUrl = getEventUrl(eventState._id);
-    const shared = await shareLink({
-      title: eventState.title,
-      text: `Check out ${eventState.title} on TickiSpot`,
-      url: eventUrl,
-      copiedMessage: "Event link copied to clipboard",
-    });
-
-    if (!shared) return;
-
-    // Optimistic Update for share count
-    setEventState(prev => ({
-      ...prev,
-      shareCount: Number(prev.shareCount || 0) + 1,
-    }));
-
-    try {
-      const { data } = await API.post(`/events/${eventState._id}/share`);
-      syncEvent(data);
-    } catch (error) {
-      // Silently handle share failure
-    }
+   setShareOpen(true);
+    // eventClick.preventDefault();
+    // eventClick.stopPropagation();
   };
 
   const handleCommentsOpen = (eventClick) => {
@@ -255,6 +236,13 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
             syncEvent({ ...eventState, commentCount: nextCount });
           }
         }}
+      />
+
+      <ShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title={event.title}
+        url={getEventUrl(event._id)}
       />
     </>
   );

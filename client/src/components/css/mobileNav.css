@@ -29,8 +29,6 @@
   transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
 }
 
-.nav-visible  { transform: translateY(0); }
-.nav-hidden   { transform: translateY(100%); }
 
 /* ── Bottom bar ── */
 .x-bottom-bar {
@@ -174,7 +172,7 @@
 .fab-sub-btn:hover { transform: scale(1.07); }
 
 .ai-btn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  background: linear-gradient(135deg, var(--mn-pink) 0%, var(--mn-pink-deep) 100%);
   box-shadow: 0 4px 14px rgba(109,40,217,0.3);
 }
 
