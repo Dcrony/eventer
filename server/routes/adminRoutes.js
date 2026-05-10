@@ -6,10 +6,13 @@ const {
   getAllUsers,
   getUserDetails,
   toggleUserStatus,
+  updateUserRole,
+  deleteUser,
   getAllEvents,
   updateEventStatus,
   toggleEventFeatured,
   getTransactions,
+  exportTransactions,
   getActivityLogs,
   sendAnnouncement,
   getPlatformMetrics,
@@ -30,6 +33,8 @@ router.get("/metrics", getPlatformMetrics);
 router.get("/users", getAllUsers);
 router.get("/users/:userId", getUserDetails);
 router.patch("/users/:userId/status", toggleUserStatus);
+router.patch("/users/:userId/role", updateUserRole);
+router.delete("/users/:userId", deleteUser);
 
 // Event Management
 router.get("/events", getAllEvents);
@@ -38,6 +43,7 @@ router.patch("/events/:eventId/featured", toggleEventFeatured);
 
 // Transactions
 router.get("/transactions", getTransactions);
+router.get("/transactions/export", exportTransactions);
 
 // Activity Logs
 router.get("/logs", getActivityLogs);

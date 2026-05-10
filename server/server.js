@@ -29,6 +29,7 @@ const teamRoutes = require("./routes/teamRoutes");
 const privateEventRoutes = require("./routes/privateEventRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const User = require("./models/User");
+const Event = require("./models/Event");
 const { PLAN_TYPES } = require("./services/subscriptionService");
 const { buildSocketServer } = require("./socket");
 
@@ -134,6 +135,68 @@ app.use((err, req, res, next) => {
   }
   console.error(err);
   return res.status(500).json({ message: "Server error" });
+});
+
+app.get("/event/:id", async (req, res) => {
+  const event = await Event.findById(req.params.id);
+
+  const image = event.coverImage?.startsWith("http")
+  ? event.coverImage
+  : `${process.env.BACKEND_URL}/${event.coverImage}`;
+ 
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${event.title}</title>
+
+        <meta property="og:title" content="${event.title}" />
+        <meta property="og:description" content="${event.description}" />
+        <meta property="og:image" content="${image}" />
+        <meta property="og:url" content="https://tickispot.com/event/${event._id}" />
+        <meta property="og:type" content="website" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="${image}" />
+      </head>
+
+      <body>
+        <script>
+          window.location.href = "/event/${event._id}";
+        </script>
+      </body>
+    </html>
+  `);
+});
+
+app.get("/users/:id", async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  const image = user.avatar;
+
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${user.name}</title>
+
+        <meta property="og:title" content="${user.name}" />
+        <meta property="og:description" content="${user.bio}" />
+        <meta property="og:image" content="${image}" />
+        <meta property="og:url" content="https://tickispot.com/users/${user._id}" />
+        <meta property="og:type" content="website" />
+
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="${image}" />
+      </head>
+
+      <body>
+        <script>
+          window.location.href = "/users/${user._id}";
+        </script>
+      </body>
+    </html>
+  `);
 });
 
 const server = http.createServer(app);

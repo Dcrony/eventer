@@ -2,15 +2,68 @@ require("dotenv").config();
 const Withdrawal = require("../models/Withdrawal");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const ActivityLog = require("../models/ActivityLog");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
+const { createRecipient, initiateTransfer } = require("../utils/paystack");
 
-const WITHDRAWAL_FEE_PERCENT = 2; // change anytime
+const WITHDRAWAL_FEE_PERCENT = 2;
 
-/*
-|--------------------------------------------------------------------------
-| ORGANIZER REQUEST WITHDRAWAL
-|--------------------------------------------------------------------------
-*/
+const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const parsePagination = (page, limit, defaultLimit = 20) => {
+  const safePage = Math.max(Number.parseInt(page, 10) || 1, 1);
+  const safeLimit = Math.max(Number.parseInt(limit, 10) || defaultLimit, 1);
+  return {
+    page: safePage,
+    limit: safeLimit,
+    skip: (safePage - 1) * safeLimit,
+  };
+};
+
+const buildPagination = (page, limit, total) => ({
+  page,
+  limit,
+  total,
+  pages: Math.max(Math.ceil(total / limit), 1),
+});
+
+const buildDateRange = (startDate, endDate) => {
+  if (!startDate && !endDate) return null;
+  const range = {};
+
+  if (startDate) {
+    const start = new Date(startDate);
+    if (!Number.isNaN(start.getTime())) {
+      range.$gte = start;
+    }
+  }
+
+  if (endDate) {
+    const end = new Date(endDate);
+    if (!Number.isNaN(end.getTime())) {
+      end.setHours(23, 59, 59, 999);
+      range.$lte = end;
+    }
+  }
+
+  return Object.keys(range).length ? range : null;
+};
+
+async function logAdminActivity(req, action, targetId, details) {
+  try {
+    await ActivityLog.create({
+      adminId: req.user._id,
+      action,
+      targetType: "Other",
+      targetId,
+      details,
+      ipAddress: req.ip || null,
+    });
+  } catch (error) {
+    console.error("Failed to log withdrawal admin activity:", error);
+  }
+}
+
 exports.requestWithdrawal = async (req, res) => {
   try {
     const { amount, paymentMethod, bankDetails } = req.body;
@@ -21,7 +74,6 @@ exports.requestWithdrawal = async (req, res) => {
     }
 
     const organizer = await User.findById(organizerId);
-
     if (!organizer) {
       return res.status(404).json({ message: "Organizer not found" });
     }
@@ -30,15 +82,14 @@ exports.requestWithdrawal = async (req, res) => {
       organizerId,
       organizer.availableBalance,
     );
+
     if (amount > maxWithdrawable) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
 
-    // Calculate fee
     const fee = (amount * WITHDRAWAL_FEE_PERCENT) / 100;
     const netAmount = amount - fee;
 
-    // Create withdrawal
     const withdrawal = await Withdrawal.create({
       organizer: organizerId,
       amount,
@@ -49,9 +100,6 @@ exports.requestWithdrawal = async (req, res) => {
       status: "pending",
     });
 
-    // Do not deduct balance yet - wait for admin approval
-
-    // Log transaction
     await Transaction.create({
       organizer: organizerId,
       type: "withdrawal",
@@ -59,179 +107,276 @@ exports.requestWithdrawal = async (req, res) => {
       fee,
       status: "pending",
       referenceId: withdrawal._id,
+      metadata: {
+        withdrawalId: withdrawal._id,
+      },
     });
 
-    console.log(`💸 Withdrawal requested: ${amount} by ${organizer.username}`);
-
-    res.status(200).json({
+    return res.status(200).json({
       message: "Withdrawal request submitted. Awaiting admin approval.",
       withdrawal,
     });
-
   } catch (error) {
     console.error("Withdrawal Request Error:", error);
-    res.status(500).json({ message: "Withdrawal failed" });
+    return res.status(500).json({ message: "Withdrawal failed" });
   }
 };
 
-const { createRecipient, initiateTransfer } = require("../utils/paystack");
-
 exports.adminUpdateWithdrawal = async (req, res) => {
   try {
-    const { status } = req.body;
+    const requestedStatus = String(req.body.status || "").trim().toLowerCase();
     const withdrawalId = req.params.id;
 
-    const withdrawal = await Withdrawal.findById(withdrawalId).populate("organizer");
+    if (!["approved", "rejected"].includes(requestedStatus)) {
+      return res.status(400).json({ message: "Invalid status update" });
+    }
 
+    const withdrawal = await Withdrawal.findById(withdrawalId).populate("organizer");
     if (!withdrawal) {
       return res.status(404).json({ message: "Withdrawal not found" });
     }
 
-    if (withdrawal.status !== "pending") {
+    if (!["pending", "approved"].includes(withdrawal.status)) {
       return res.status(400).json({ message: "Withdrawal already processed" });
     }
 
     const organizer = withdrawal.organizer;
 
-    // ✅ HANDLE REJECTION (balance was never deducted while pending — do not add funds)
-    if (status === "rejected") {
+    if (requestedStatus === "rejected") {
       withdrawal.status = "rejected";
+      withdrawal.processedBy = req.user.id;
+      withdrawal.processedAt = new Date();
+      withdrawal.failureReason = String(req.body.reason || "Rejected by admin");
+      await withdrawal.save();
+
+      await Transaction.findOneAndUpdate(
+        { referenceId: withdrawal._id, type: "withdrawal" },
+        { status: "failed" },
+      );
+
+      await logAdminActivity(
+        req,
+        "WITHDRAWAL_REJECTED",
+        withdrawal._id,
+        `${organizer?.email || organizer?.username || "Organizer"} withdrawal rejected`,
+      );
+
+      return res.json({ message: "Withdrawal request rejected", withdrawal });
+    }
+
+    const MIN_WITHDRAWAL = Number(process.env.MIN_WITHDRAWAL_NGN || 1000);
+    if (withdrawal.amount < MIN_WITHDRAWAL) {
+      return res.status(400).json({ message: `Minimum withdrawal amount is NGN ${MIN_WITHDRAWAL}` });
+    }
+
+    const maxWithdrawable = await capOrganizerAvailableBalance(
+      organizer._id,
+      organizer.availableBalance,
+    );
+
+    if (withdrawal.amount > maxWithdrawable) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+
+    organizer.availableBalance = maxWithdrawable - withdrawal.amount;
+    await organizer.save();
+
+    try {
+      const recipientCode = await createRecipient(withdrawal.bankDetails);
+      const transfer = await initiateTransfer(
+        Math.round(withdrawal.netAmount * 100),
+        recipientCode,
+        `withdraw_${withdrawal._id}`,
+      );
+
+      withdrawal.status = "processing";
+      withdrawal.paystackRecipientCode = recipientCode;
+      withdrawal.transferReference = transfer.reference;
+      withdrawal.paystackReference = transfer.reference;
       withdrawal.processedBy = req.user.id;
       withdrawal.processedAt = new Date();
       await withdrawal.save();
 
       await Transaction.findOneAndUpdate(
         { referenceId: withdrawal._id, type: "withdrawal" },
-        { status: "failed" }
+        { status: "pending", reference: transfer.reference },
       );
 
-      console.log(`❌ Withdrawal rejected (no balance change; pending request only): ${withdrawal.amount} for ${organizer.username}`);
-      return res.json({ message: "Withdrawal request rejected" });
-    }
-
-    // ✅ HANDLE APPROVAL (INITIATE TRANSFER)
-    if (status === "approved") {
-      // Check minimum withdrawal
-      const MIN_WITHDRAWAL = 1000; // NGN
-      if (withdrawal.amount < MIN_WITHDRAWAL) {
-        return res.status(400).json({ message: `Minimum withdrawal amount is ₦${MIN_WITHDRAWAL}` });
-      }
-
-      // Deduct balance now (snap to ticket-net cap first so DB cannot keep inflated balances)
-      const maxWithdrawable = await capOrganizerAvailableBalance(
-        organizer._id,
-        organizer.availableBalance,
+      await logAdminActivity(
+        req,
+        "WITHDRAWAL_APPROVED",
+        withdrawal._id,
+        `${organizer?.email || organizer?.username || "Organizer"} withdrawal approved`,
       );
-      if (withdrawal.amount > maxWithdrawable) {
-        return res.status(400).json({ message: "Insufficient balance" });
-      }
-      organizer.availableBalance = maxWithdrawable;
-      organizer.availableBalance -= withdrawal.amount;
+
+      return res.json({ message: "Transfer initiated successfully", withdrawal });
+    } catch (paystackError) {
+      organizer.availableBalance += withdrawal.amount;
       await organizer.save();
 
-      try {
-        const recipientCode = await createRecipient(withdrawal.bankDetails);
+      withdrawal.status = "failed";
+      withdrawal.failureReason =
+        paystackError.response?.data?.message || paystackError.message || "Transfer failed";
+      withdrawal.processedBy = req.user.id;
+      withdrawal.processedAt = new Date();
+      await withdrawal.save();
 
-        const transfer = await initiateTransfer(
-          Math.round(withdrawal.netAmount * 100), // Paystack expects kobo
-          recipientCode,
-          `withdraw_${withdrawal._id}`
-        );
+      await Transaction.findOneAndUpdate(
+        { referenceId: withdrawal._id, type: "withdrawal" },
+        { status: "failed" },
+      );
 
-        withdrawal.status = "processing";
-        withdrawal.paystackRecipientCode = recipientCode;
-        withdrawal.transferReference = transfer.reference;
-        withdrawal.paystackReference = transfer.reference;
-        withdrawal.processedBy = req.user.id;
-        withdrawal.processedAt = new Date();
-        await withdrawal.save();
-
-        // Update transaction
-        await Transaction.findOneAndUpdate(
-          { referenceId: withdrawal._id, type: "withdrawal" },
-          { status: "processing" }
-        );
-
-        console.log(`🚀 Withdrawal approved and transfer initiated: ${withdrawal._id}`);
-        return res.json({ message: "Transfer initiated successfully", withdrawal });
-      } catch (paystackError) {
-        console.error("Paystack Transfer Error:", paystackError.response?.data || paystackError.message);
-        
-        // Refund balance on failure
-        organizer.availableBalance += withdrawal.amount;
-        await organizer.save();
-
-        withdrawal.status = "failed";
-        withdrawal.failureReason = paystackError.response?.data?.message || paystackError.message;
-        await withdrawal.save();
-
-        return res.status(500).json({ message: "Paystack transfer failed", error: withdrawal.failureReason });
-      }
+      console.error("Paystack Transfer Error:", paystackError.response?.data || paystackError.message);
+      return res.status(500).json({ message: "Paystack transfer failed", error: withdrawal.failureReason });
     }
-
-    res.status(400).json({ message: "Invalid status update" });
   } catch (error) {
     console.error("Admin Withdrawal Update Error:", error);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
 exports.getAdminWithdrawals = async (req, res) => {
   try {
-    const { status, search } = req.query;
+    const { status, search, sort = "latest" } = req.query;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit);
     const filter = {};
 
     if (status && status !== "all") {
       filter.status = status;
     }
 
-    let withdrawals = await Withdrawal.find(filter)
-      .populate("organizer", "username email")
-      .sort({ createdAt: -1 });
-
-    if (search) {
-      withdrawals = withdrawals.filter((w) =>
-        w.organizer?.username?.toLowerCase().includes(search.toLowerCase())
-      );
+    const dateRange = buildDateRange(req.query.startDate, req.query.endDate);
+    if (dateRange) {
+      filter.createdAt = dateRange;
     }
 
-    res.json(withdrawals);
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
+      const organizers = await User.find({
+        $or: [{ username: regex }, { email: regex }, { name: regex }],
+      }).select("_id");
+      filter.organizer = { $in: organizers.map((user) => user._id) };
+
+      if (!organizers.length) {
+        return res.json({
+          success: true,
+          withdrawals: [],
+          summary: {
+            totalRequested: 0,
+            totalCompleted: 0,
+            totalPending: 0,
+            totalPlatformFees: 0,
+          },
+          pagination: buildPagination(page, limit, 0),
+        });
+      }
+    }
+
+    const sortOption =
+      sort === "oldest"
+        ? { createdAt: 1 }
+        : sort === "largest"
+          ? { amount: -1, createdAt: -1 }
+          : { createdAt: -1 };
+
+    const [withdrawals, total, summaryAgg] = await Promise.all([
+      Withdrawal.find(filter)
+        .populate("organizer", "name username email")
+        .populate("processedBy", "name username email")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Withdrawal.countDocuments(filter),
+      Withdrawal.aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            totalRequested: { $sum: "$amount" },
+            totalCompleted: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
+              },
+            },
+            totalPending: {
+              $sum: {
+                $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0],
+              },
+            },
+            totalPlatformFees: { $sum: "$fee" },
+          },
+        },
+      ]),
+    ]);
+
+    return res.json({
+      success: true,
+      withdrawals,
+      summary:
+        summaryAgg[0] || {
+          totalRequested: 0,
+          totalCompleted: 0,
+          totalPending: 0,
+          totalPlatformFees: 0,
+        },
+      pagination: buildPagination(page, limit, total),
+    });
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch withdrawals" });
+    console.error("Failed to fetch withdrawals:", error);
+    return res.status(500).json({ message: "Failed to fetch withdrawals" });
   }
 };
 
 exports.getWithdrawalAnalytics = async (req, res) => {
   try {
-    const totalPaid = await Withdrawal.aggregate([
-      { $match: { status: "completed" } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
+    const [summary, statusBreakdown] = await Promise.all([
+      Withdrawal.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalPaid: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
+              },
+            },
+            totalPending: {
+              $sum: {
+                $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0],
+              },
+            },
+            totalPlatformFees: { $sum: "$fee" },
+          },
+        },
+      ]),
+      Withdrawal.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+            amount: { $sum: "$amount" },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
     ]);
 
-    const totalPending = await Withdrawal.aggregate([
-      { $match: { status: "pending" } },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-
-    const totalFees = await Withdrawal.aggregate([
-      { $match: { status: "completed" } },
-      { $group: { _id: null, total: { $sum: "$fee" } } },
-    ]);
-
-    res.json({
-      totalPaid: totalPaid[0]?.total || 0,
-      totalPending: totalPending[0]?.total || 0,
-      totalPlatformFees: totalFees[0]?.total || 0,
+    return res.json({
+      ...(summary[0] || {
+        totalPaid: 0,
+        totalPending: 0,
+        totalPlatformFees: 0,
+      }),
+      statusBreakdown,
     });
   } catch (error) {
-    res.status(500).json({ message: "Analytics failed" });
+    return res.status(500).json({ message: "Analytics failed" });
   }
 };
 
 exports.getMonthlyWithdrawalTrend = async (req, res) => {
   try {
     const monthly = await Withdrawal.aggregate([
-      { $match: { status: "completed" } },
       {
         $group: {
           _id: {
@@ -239,19 +384,85 @@ exports.getMonthlyWithdrawalTrend = async (req, res) => {
             month: { $month: "$createdAt" },
           },
           total: { $sum: "$amount" },
+          completed: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
+            },
+          },
         },
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
+      { $limit: 12 },
     ]);
 
-    const formatted = monthly.map((m) => ({
-      month: `${m._id.month}/${m._id.year}`,
-      total: m.total,
+    const formatted = monthly.map((item) => ({
+      month: `${item._id.month}/${item._id.year}`,
+      total: item.total,
+      completed: item.completed,
     }));
 
-    res.json(formatted);
+    return res.json(formatted);
   } catch (error) {
-    res.status(500).json({ message: "Monthly analytics failed" });
+    return res.status(500).json({ message: "Monthly analytics failed" });
+  }
+};
+
+exports.exportAdminWithdrawals = async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status && req.query.status !== "all") {
+      filter.status = req.query.status;
+    }
+
+    const dateRange = buildDateRange(req.query.startDate, req.query.endDate);
+    if (dateRange) {
+      filter.createdAt = dateRange;
+    }
+
+    if (req.query.search) {
+      const regex = new RegExp(escapeRegex(req.query.search), "i");
+      const organizers = await User.find({
+        $or: [{ username: regex }, { email: regex }, { name: regex }],
+      }).select("_id");
+      filter.organizer = { $in: organizers.map((user) => user._id) };
+    }
+
+    const withdrawals = await Withdrawal.find(filter)
+      .populate("organizer", "name username email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const csvRows = [
+      ["Organizer", "Email", "Amount", "Fee", "Net Amount", "Status", "Reference", "Created At"],
+      ...withdrawals.map((item) => [
+        item.organizer?.name || item.organizer?.username || "",
+        item.organizer?.email || "",
+        item.amount || 0,
+        item.fee || 0,
+        item.netAmount || 0,
+        item.status || "",
+        item.paystackReference || item.transferReference || "",
+        item.createdAt ? new Date(item.createdAt).toISOString() : "",
+      ]),
+    ];
+
+    const csv = csvRows
+      .map((row) =>
+        row
+          .map((value) => {
+            const safe = String(value ?? "");
+            return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+          })
+          .join(","),
+      )
+      .join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="withdrawals.csv"');
+    return res.status(200).send(csv);
+  } catch (error) {
+    console.error("Withdrawal export failed:", error);
+    return res.status(500).json({ message: "Failed to export withdrawals" });
   }
 };
 
@@ -262,7 +473,6 @@ exports.getOrganizerTransactions = async (req, res) => {
     }
 
     const organizerId = req.user.id;
-
     const transactions = await Transaction.find({ organizer: organizerId })
       .sort({ createdAt: -1 })
       .lean();

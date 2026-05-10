@@ -68,6 +68,10 @@ const UserSchema = new mongoose.Schema(
       enum: ["admin", "organizer", "user"],
       default: "organizer",
     },
+    isSuspended: {
+      type: Boolean,
+      default: false,
+    },
     coverPic: {
       type: String,
       default: "1754696275588.jpg",

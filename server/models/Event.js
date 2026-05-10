@@ -122,6 +122,28 @@ const eventSchema = new mongoose.Schema({
     enum: ["public", "private"],
     default: "public",
   },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false,
+  },
+  reviewReason: {
+    type: String,
+    default: "",
+  },
+  reviewedAt: {
+    type: Date,
+    default: null,
+  },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
 
   liveStream: {
     isLive: { type: Boolean, default: false },

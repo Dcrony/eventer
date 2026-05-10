@@ -12,6 +12,7 @@ const {
   getAdminWithdrawals,
   getWithdrawalAnalytics,
   getMonthlyWithdrawalTrend,
+  exportAdminWithdrawals,
 } = require("../controllers/withdrawalController");
 const { getOrganizerEarnings } = require("../controllers/statController");
 
@@ -74,6 +75,13 @@ router.get(
   authMiddleware,
   authorizeRoles("admin"),
   getWithdrawalAnalytics
+);
+
+router.get(
+  "/admin/withdrawals/export",
+  authMiddleware,
+  authorizeRoles("admin"),
+  exportAdminWithdrawals
 );
 
 const axios = require("axios");

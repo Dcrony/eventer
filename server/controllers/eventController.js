@@ -50,21 +50,40 @@ const normalizeVisibility = (value) =>
   String(value || "public").trim().toLowerCase() === "private" ? "private" : "public";
 
 const buildEventPayload = (event, currentUserId) => {
-  const data = event.toObject ? event.toObject() : event;
+  const data = event?.toObject ? event.toObject() : event;
+
+  if (!data) return null;
+
   const likes = Array.isArray(data.likes) ? data.likes : [];
+
   const likeIds = likes.map((like) =>
-    typeof like === "string" ? like : String(like?._id || like),
+    typeof like === "string"
+      ? like
+      : String(like?._id || like || ""),
   );
 
   return {
     ...data,
+
+    createdBy: data.createdBy || null,
+
     likes,
     likeCount: likeIds.length,
-    commentCount: Array.isArray(data.comments) ? data.comments.length : 0,
+
+    commentCount: Array.isArray(data.comments)
+      ? data.comments.length
+      : 0,
+
     viewCount: Number(data.viewCount || 0),
     shareCount: Number(data.shareCount || 0),
-    isLiked: currentUserId ? likeIds.includes(String(currentUserId)) : false,
-    comments: enrichComments(data.comments || []),
+
+    isLiked: currentUserId
+      ? likeIds.includes(String(currentUserId))
+      : false,
+
+    comments: enrichComments(
+      Array.isArray(data.comments) ? data.comments : [],
+    ),
   };
 };
 
@@ -212,6 +231,18 @@ exports.getAllEvents = async (req, res) => {
     const { liveOnly } = req.query;
     const currentUserId = getCurrentUserIdFromRequest(req);
     const filter = {
+      ...(currentUserId
+        ? {}
+        : {
+            $and: [
+              {
+                $or: [
+                  { status: { $exists: false } },
+                  { status: "approved" },
+                ],
+              },
+            ],
+          }),
       ...(liveOnly === "true" ? { "liveStream.isLive": true } : {}),
       $or: [
         { visibility: { $exists: false } },
@@ -220,10 +251,17 @@ exports.getAllEvents = async (req, res) => {
       ],
     };
     const events = await Event.find(filter)
-      .populate(eventPopulateOptions)
-      .sort({ createdAt: -1 });
+  .populate(eventPopulateOptions)
+  .sort({ createdAt: -1 });
 
-    res.status(200).json(events.map((event) => buildEventPayload(event, currentUserId)));
+const validEvents = events.filter((event) => event.createdBy);
+
+const payload = validEvents
+  .map((event) => buildEventPayload(event, currentUserId))
+  .filter(Boolean);
+
+res.status(200).json(payload);
+
   } catch (err) {
     console.error("Error fetching all events:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -237,6 +275,13 @@ exports.getEventById = async (req, res) => {
 
     if (!event) return res.status(404).json({ message: "Event not found" });
     const ownerId = String(event.createdBy?._id || event.createdBy || "");
+    if (
+      event.status &&
+      event.status !== "approved" &&
+      ownerId !== currentUserId
+    ) {
+      return res.status(404).json({ message: "Event not found" });
+    }
     if (normalizeVisibility(event.visibility) === "private" && ownerId !== currentUserId) {
       return res.status(404).json({ message: "Event not found" });
     }
@@ -251,16 +296,32 @@ exports.getEventById = async (req, res) => {
 exports.getMyEvents = async (req, res) => {
   try {
     const userId = req.user.id;
-    const myEvents = await Event.find({ createdBy: userId })
+
+    console.log("Fetching events for:", userId);
+
+    const events = await Event.find({ createdBy: userId })
       .populate(eventPopulateOptions)
       .sort({ createdAt: -1 });
 
-    res.status(200).json(myEvents.map((event) => buildEventPayload(event, userId)));
+    console.log("Found events:", events.length);
+
+    const validEvents = events.filter((event) => event?.createdBy);
+
+    const payload = validEvents
+      .map((event) => buildEventPayload(event, userId))
+      .filter(Boolean);
+
+    res.status(200).json(payload);
   } catch (error) {
-    console.error("Error fetching user events:", error.message);
-    res.status(500).json({ message: "Server Error", error: error.message });
+    console.error("GET MY EVENTS ERROR:", error);
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
+
+
 
 exports.getEventBuyers = async (req, res) => {
   try {
