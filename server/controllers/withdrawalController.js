@@ -5,6 +5,7 @@ const User = require("../models/User");
 const ActivityLog = require("../models/ActivityLog");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
 const { createRecipient, initiateTransfer } = require("../utils/paystack");
+const { createNotification } = require("../services/notificationService");
 
 const WITHDRAWAL_FEE_PERCENT = 2;
 
@@ -66,16 +67,32 @@ async function logAdminActivity(req, action, targetId, details) {
 
 exports.requestWithdrawal = async (req, res) => {
   try {
-    const { amount, paymentMethod, bankDetails } = req.body;
+    const { amount } = req.body;
     const organizerId = req.user.id;
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
     }
 
-    const organizer = await User.findById(organizerId);
+    const organizer = await User.findById(organizerId).populate('payoutAccount');
     if (!organizer) {
       return res.status(404).json({ message: "Organizer not found" });
+    }
+
+    // Check if payout account is connected
+    if (!organizer.payoutAccount) {
+      return res.status(400).json({
+        message: "No payout account connected. Please connect a bank account first.",
+        code: "PAYOUT_ACCOUNT_REQUIRED"
+      });
+    }
+
+    // Check if payout account is active
+    if (organizer.payoutAccount.status !== "active") {
+      return res.status(400).json({
+        message: "Payout account is not active. Please update your account details.",
+        code: "PAYOUT_ACCOUNT_INACTIVE"
+      });
     }
 
     const maxWithdrawable = await capOrganizerAvailableBalance(
@@ -90,13 +107,14 @@ exports.requestWithdrawal = async (req, res) => {
     const fee = (amount * WITHDRAWAL_FEE_PERCENT) / 100;
     const netAmount = amount - fee;
 
+    // Create withdrawal with payout account details
     const withdrawal = await Withdrawal.create({
       organizer: organizerId,
       amount,
       fee,
       netAmount,
-      paymentMethod,
-      bankDetails,
+      paymentMethod: "bank",
+      bankDetails: organizer.payoutAccount.bankDetails,
       status: "pending",
     });
 
@@ -109,12 +127,30 @@ exports.requestWithdrawal = async (req, res) => {
       referenceId: withdrawal._id,
       metadata: {
         withdrawalId: withdrawal._id,
+        payoutAccountId: organizer.payoutAccount._id,
       },
     });
 
+    // Send notification
+    await createNotification(req.app, {
+      userId: organizerId,
+      type: "withdrawal_requested",
+      message: `Withdrawal request for ₦${amount.toLocaleString()} submitted successfully`,
+      actionUrl: "/transactions",
+      entityId: withdrawal._id,
+      entityType: "withdrawal",
+    });
+
     return res.status(200).json({
-      message: "Withdrawal request submitted. Awaiting admin approval.",
-      withdrawal,
+      message: "Withdrawal request submitted successfully",
+      withdrawal: {
+        id: withdrawal._id,
+        amount: withdrawal.amount,
+        fee: withdrawal.fee,
+        netAmount: withdrawal.netAmount,
+        status: withdrawal.status,
+        createdAt: withdrawal.createdAt,
+      },
     });
   } catch (error) {
     console.error("Withdrawal Request Error:", error);
@@ -182,15 +218,22 @@ exports.adminUpdateWithdrawal = async (req, res) => {
     await organizer.save();
 
     try {
-      const recipientCode = await createRecipient(withdrawal.bankDetails);
+      // Get the payout account to use existing recipient code
+      const PayoutAccount = require("../models/PayoutAccount");
+      const payoutAccount = await PayoutAccount.findOne({ organizer: organizer._id });
+
+      if (!payoutAccount || !payoutAccount.paystackRecipientCode) {
+        throw new Error("No valid payout account found for this organizer");
+      }
+
       const transfer = await initiateTransfer(
         Math.round(withdrawal.netAmount * 100),
-        recipientCode,
+        payoutAccount.paystackRecipientCode,
         `withdraw_${withdrawal._id}`,
       );
 
       withdrawal.status = "processing";
-      withdrawal.paystackRecipientCode = recipientCode;
+      withdrawal.paystackRecipientCode = payoutAccount.paystackRecipientCode;
       withdrawal.transferReference = transfer.reference;
       withdrawal.paystackReference = transfer.reference;
       withdrawal.processedBy = req.user.id;
@@ -201,6 +244,16 @@ exports.adminUpdateWithdrawal = async (req, res) => {
         { referenceId: withdrawal._id, type: "withdrawal" },
         { status: "pending", reference: transfer.reference },
       );
+
+      // Send notification to organizer
+      await createNotification(req.app, {
+        userId: organizer._id,
+        type: "withdrawal_processing",
+        message: `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} is now being processed`,
+        actionUrl: "/transactions",
+        entityId: withdrawal._id,
+        entityType: "withdrawal",
+      });
 
       await logAdminActivity(
         req,

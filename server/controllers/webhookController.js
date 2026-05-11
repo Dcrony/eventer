@@ -591,7 +591,7 @@ exports.handlePaystackWebhook = async (req, res) => {
 
       const withdrawal = await Withdrawal.findOne({
         paystackReference: reference,
-      });
+      }).populate("organizer");
 
       if (!withdrawal || withdrawal.status === "completed") {
         return res.sendStatus(200);
@@ -605,6 +605,18 @@ exports.handlePaystackWebhook = async (req, res) => {
         { reference: reference, type: "withdrawal" },
         { status: "success" }
       );
+
+      // Send success notification
+      if (withdrawal.organizer) {
+        await createNotification(req.app, {
+          userId: withdrawal.organizer._id,
+          type: "withdrawal_completed",
+          message: `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} has been completed successfully`,
+          actionUrl: "/transactions",
+          entityId: withdrawal._id,
+          entityType: "withdrawal",
+        });
+      }
 
       console.log("💸 Withdrawal completed:", reference);
     }
@@ -641,6 +653,18 @@ exports.handlePaystackWebhook = async (req, res) => {
         { reference: reference, type: "withdrawal" },
         { status: "failed" }
       );
+
+      // Send failure notification
+      if (organizer) {
+        await createNotification(req.app, {
+          userId: organizer._id,
+          type: "withdrawal_failed",
+          message: `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} failed: ${withdrawal.failureReason}`,
+          actionUrl: "/transactions",
+          entityId: withdrawal._id,
+          entityType: "withdrawal",
+        });
+      }
 
       console.log("❌ Withdrawal failed and refunded:", reference);
     }

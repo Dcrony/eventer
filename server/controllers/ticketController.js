@@ -1,5 +1,6 @@
 const Ticket = require("../models/Ticket");
 const Event = require("../models/Event");
+const Transaction = require("../models/Transaction");
 const mongoose = require("mongoose");
 const QRCode = require("qrcode");
 const fs = require("fs");
@@ -222,7 +223,7 @@ exports.validateTicket = async (req, res) => {
       });
     }
 
-    if (ticket.used) {
+    if (ticket.status === "checked-in" || ticket.used) {
       return res.json({
         success: false,
         message: "Ticket already used",
@@ -231,6 +232,7 @@ exports.validateTicket = async (req, res) => {
     }
 
     ticket.used = true;
+    ticket.status = "checked-in";
     ticket.usedAt = new Date();
     await ticket.save();
 
@@ -243,5 +245,223 @@ exports.validateTicket = async (req, res) => {
   } catch (err) {
     console.error("VALIDATE ERROR:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+/**
+ * Get all tickets for an event (for organizers)
+ */
+exports.getEventTickets = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    if (!eventId || !mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
+    // Check if user is the event owner
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const isOwner = String(event.createdBy) === String(req.user.id);
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const tickets = await Ticket.find({ event: eventId })
+      .populate("buyer", "name email username profilePic")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(tickets);
+  } catch (err) {
+    console.error("Error fetching event tickets:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Refund a ticket (organizer only)
+ */
+exports.refundTicket = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    if (!ticketId || !mongoose.Types.ObjectId.isValid(ticketId)) {
+      return res.status(400).json({ message: "Invalid ticket ID" });
+    }
+
+    const ticket = await Ticket.findById(ticketId).populate("event");
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Check if user is the event owner
+    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (ticket.status === "refunded") {
+      return res.status(400).json({ message: "Ticket already refunded" });
+    }
+
+    if (ticket.status === "checked-in") {
+      return res.status(400).json({ message: "Cannot refund checked-in ticket" });
+    }
+
+    // Update ticket status
+    ticket.status = "refunded";
+    await ticket.save();
+
+    // Update event metrics (reverse the purchase)
+    ticket.event.ticketsSold = Math.max(0, Number(ticket.event.ticketsSold || 0) - ticket.quantity);
+    ticket.event.totalTickets = Number(ticket.event.totalTickets || 0) + ticket.quantity;
+    await ticket.event.save();
+
+    // If paid ticket, handle refund via payment processor
+    if (!ticket.isFree && ticket.amountPaid > 0) {
+      // Find the transaction
+      const transaction = await Transaction.findOne({ ticket: ticketId });
+      if (transaction) {
+        // Process refund through payment provider (Paystack/Stripe)
+        // This would need integration with the payment service
+        // For now, mark as refunded
+        transaction.status = "refunded";
+        await transaction.save();
+      }
+    }
+
+    res.status(200).json({ message: "Ticket refunded successfully", ticket });
+  } catch (err) {
+    console.error("Error refunding ticket:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Resend ticket email to buyer
+ */
+exports.resendTicketEmail = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    if (!ticketId || !mongoose.Types.ObjectId.isValid(ticketId)) {
+      return res.status(400).json({ message: "Invalid ticket ID" });
+    }
+
+    const ticket = await Ticket.findById(ticketId)
+      .populate("event")
+      .populate("buyer", "name email");
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Check if user is the event owner
+    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (!ticket.buyer?.email) {
+      return res.status(400).json({ message: "Buyer email not found" });
+    }
+
+    // Generate QR code if not exists
+    let qrBase64 = null;
+    if (ticket.qrCode) {
+      const qrPath = path.join(__dirname, "../uploads", ticket.qrCode);
+      if (fs.existsSync(qrPath)) {
+        qrBase64 = fs.readFileSync(qrPath).toString("base64");
+      }
+    }
+
+    // Send email
+    await sendEmail({
+      to: ticket.buyer.email,
+      subject: "🎟️ Your Ticket - Resent",
+      html: ticketPurchaseEmail(
+        ticket.buyer.name || "Guest",
+        ticket.event.title,
+        ticket.quantity
+      ),
+      attachments: qrBase64 ? [
+        {
+          filename: "ticket-qr.png",
+          content: qrBase64,
+          cid: "ticketqr",
+        },
+      ] : [],
+    });
+
+    res.status(200).json({ message: "Ticket email resent successfully" });
+  } catch (err) {
+    console.error("Error resending ticket email:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Manual check-in ticket (organizer only)
+ */
+exports.manualCheckIn = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    if (!ticketId || !mongoose.Types.ObjectId.isValid(ticketId)) {
+      return res.status(400).json({ message: "Invalid ticket ID" });
+    }
+
+    const ticket = await Ticket.findById(ticketId).populate({
+      path: "event",
+      select: "title startDate location createdBy",
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    // Check if user is the event owner
+    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    if (ticket.status === "checked-in") {
+      return res.status(400).json({ message: "Ticket already checked in" });
+    }
+
+    if (ticket.status === "refunded") {
+      return res.status(400).json({ message: "Cannot check in refunded ticket" });
+    }
+
+    // Update ticket status
+    ticket.status = "checked-in";
+    ticket.used = true;
+    ticket.usedAt = new Date();
+    await ticket.save();
+
+    res.status(200).json({
+      message: "Ticket checked in successfully",
+      ticket: {
+        id: ticket._id,
+        quantity: ticket.quantity,
+        status: ticket.status,
+        usedAt: ticket.usedAt,
+      },
+    });
+  } catch (err) {
+    console.error("Error checking in ticket:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

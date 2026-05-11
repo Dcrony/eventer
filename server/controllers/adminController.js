@@ -3,7 +3,9 @@ const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const Withdrawal = require("../models/Withdrawal");
 const Notification = require("../models/Notification");
+const Announcement = require("../models/Announcement");
 const ActivityLog = require("../models/ActivityLog");
+const { createNotification } = require("../services/notificationService");
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -432,25 +434,40 @@ exports.toggleUserStatus = async (req, res) => {
       return res.status(400).json({ message: "You cannot suspend your own admin account" });
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { isSuspended: suspend },
-      { new: true },
-    ).select("-password");
-
+    const user = await User.findById(userId).select("-password");
     if (!user || user.isDeleted) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    const updates = { isSuspended: suspend };
+    if (suspend) {
+      updates["security.sessionVersion"] = Number(user.security?.sessionVersion || 0) + 1;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true }).select("-password");
+
+    await createNotification(req.app, {
+      userId: updatedUser._id,
+      actorId: req.user._id,
+      type: suspend ? "account_suspended" : "account_reactivated",
+      message: suspend
+        ? `Your account has been suspended by TickiSpot admin. Contact support for help.`
+        : `Your account has been reactivated. You can now access TickiSpot again.`,
+      actionUrl: suspend ? "/support" : "/dashboard",
+      entityId: updatedUser._id,
+      entityType: "User",
+      meta: { adminId: req.user._id },
+    });
 
     await logAdminActivity(
       req,
       suspend ? "USER_SUSPENDED" : "USER_ACTIVATED",
       "User",
       userId,
-      `${user.email} was ${suspend ? "suspended" : "reactivated"}`,
+      `${updatedUser.email} was ${suspend ? "suspended" : "reactivated"}`,
     );
 
-    return res.json({ success: true, user });
+    return res.json({ success: true, user: updatedUser });
   } catch (error) {
     console.error("Error toggling user status:", error);
     return res.status(500).json({ message: "Failed to update user status" });
@@ -844,16 +861,53 @@ exports.getActivityLogs = async (req, res) => {
   }
 };
 
+exports.getAnnouncements = async (req, res) => {
+  try {
+    const { targetAudience, type } = req.query;
+    const { page, limit, skip } = parsePagination(req.query.page, req.query.limit, 20);
+
+    const filter = {};
+    if (targetAudience) {
+      filter.targetAudience = targetAudience;
+    }
+    if (type) {
+      filter.type = type;
+    }
+
+    const [announcements, total] = await Promise.all([
+      Announcement.find(filter)
+        .populate("author", "name username email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Announcement.countDocuments(filter),
+    ]);
+
+    return res.json({
+      success: true,
+      announcements,
+      pagination: buildPagination(page, limit, total),
+    });
+  } catch (error) {
+    console.error("Error fetching announcements:", error);
+    return res.status(500).json({ message: "Failed to fetch announcements" });
+  }
+};
+
 exports.sendAnnouncement = async (req, res) => {
   try {
     const title = String(req.body.title || "").trim();
     const content = String(req.body.content || "").trim();
-    const type = String(req.body.type || "info").trim().toLowerCase();
+    const requestedType = String(req.body.type || "info").trim().toLowerCase();
     const targetAudience = String(req.body.targetAudience || "all").trim().toLowerCase();
 
     if (!title || !content) {
       return res.status(400).json({ message: "Title and content are required" });
     }
+
+    const allowedTypes = ["info", "warning", "success", "maintenance"];
+    const announcementType = allowedTypes.includes(requestedType) ? requestedType : "info";
 
     const filter = { isDeleted: { $ne: true } };
     if (targetAudience === "organizers") {
@@ -863,29 +917,63 @@ exports.sendAnnouncement = async (req, res) => {
     }
 
     const users = await User.find(filter).select("_id");
-    const notifications = users.map((user) => ({
-      user: user._id,
-      title,
-      message: content,
-      type: `announcement_${type}`,
-      isAnnouncement: true,
-    }));
+    const audienceCount = users.length;
 
-    if (notifications.length) {
-      await Notification.insertMany(notifications);
+    const announcement = await Announcement.create({
+      title,
+      content,
+      type: announcementType,
+      targetAudience,
+      author: req.user._id,
+      sentTo: audienceCount,
+      meta: {
+        issuerId: req.user._id,
+      },
+    });
+
+    if (audienceCount > 0) {
+      const notificationMessage = `${title} — ${content}`;
+      const notifications = users.map((user) => ({
+        user: user._id,
+        actor: req.user._id,
+        type: "announcement",
+        message: notificationMessage,
+        actionUrl: "/notifications",
+        entityId: announcement._id,
+        entityType: "Announcement",
+        announcementId: announcement._id,
+        isAnnouncement: true,
+        meta: {
+          announcementId: announcement._id,
+          title,
+          content,
+          level: announcementType,
+          targetAudience,
+        },
+      }));
+
+      const insertedNotifications = await Notification.insertMany(notifications);
+      const io = req.app.get("io");
+      if (io) {
+        insertedNotifications.forEach((notification) => {
+          io.emitToUser(String(notification.user), "new_notification", notification.toJSON());
+        });
+      }
     }
 
     await logAdminActivity(
       req,
       "ANNOUNCEMENT_SENT",
       "Announcement",
-      null,
+      announcement._id,
       `${title} sent to ${targetAudience}`,
     );
 
     return res.json({
       success: true,
-      message: `Announcement sent to ${notifications.length} users`,
+      message: `Announcement sent to ${audienceCount} users`,
+      announcementId: announcement._id,
+      audienceCount,
     });
   } catch (error) {
     console.error("Error sending announcement:", error);
