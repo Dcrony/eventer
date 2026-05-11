@@ -157,6 +157,12 @@ const eventSchema = new mongoose.Schema({
     required: true,
   },
 
+  team: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "EventTeam",
+    default: null,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

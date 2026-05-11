@@ -61,6 +61,11 @@ const ticketSchema = new mongoose.Schema({
   usedAt: { 
     type: Date 
   },
+  status: {
+    type: String,
+    enum: ["active", "checked-in", "refunded", "cancelled"],
+    default: "active",
+  },
   purchasedAt: {
     type: Date,
     default: Date.now,

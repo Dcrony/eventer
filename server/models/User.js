@@ -208,6 +208,13 @@ favorites: {
       },
     },
 
+    // Payout account for withdrawals
+    payoutAccount: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PayoutAccount",
+      default: null,
+    },
+
     /** SaaS subscription tier */
     plan: {
       type: String,
