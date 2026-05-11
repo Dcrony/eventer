@@ -17,7 +17,7 @@ const router = express.Router();
 router.get("/", authMiddleware, requireFeature("TEAM_MEMBERS"), getMyTeamEvents);
 
 // Event team management
-router.get("/events/:eventId", authMiddleware, getEventTeam);
+router.get("/events/:eventId",  getEventTeam);
 router.post("/events/:eventId/invite", authMiddleware, inviteTeamMember);
 router.delete("/events/:eventId/members/:memberId", authMiddleware, removeTeamMember);
 router.patch("/events/:eventId/members/:memberId/role", authMiddleware, updateTeamMemberRole);
