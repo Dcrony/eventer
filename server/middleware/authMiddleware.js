@@ -33,6 +33,10 @@ exports.authMiddleware = async (req, res, next) => {
       return res.status(403).json({ message: "Account is deactivated" });
     }
 
+    if (user.isSuspended) {
+      return res.status(403).json({ message: "Account is suspended" });
+    }
+
     const tokenSessionVersion = Number(decoded.sv || 0);
     const currentSessionVersion = Number(user.security?.sessionVersion || 0);
     if (tokenSessionVersion !== currentSessionVersion) {
