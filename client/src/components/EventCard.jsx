@@ -24,9 +24,9 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-    const [shareOpen, setShareOpen] = useState(false);
-  
-  
+  const [shareOpen, setShareOpen] = useState(false);
+
+
   const navigate = useNavigate();
   const shareLink = useShareLink();
   const toast = useToast();
@@ -76,7 +76,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   };
 
   const handleShare = async (eventClick) => {
-   setShareOpen(true);
+    setShareOpen(true);
     // eventClick.preventDefault();
     // eventClick.stopPropagation();
   };
@@ -122,7 +122,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   return (
     <>
       <article className={cn("social-event-card", className)}>
-        <Link to={`/Eventdetail/${eventState._id}`} className="social-event-card-link">
+        <Link to={`/event/${eventState._id}`} className="social-event-card-link">
           <div className="social-event-card-media">
             {showPlaceholder ? (
               <div className="social-event-card-placeholder" aria-hidden="true">

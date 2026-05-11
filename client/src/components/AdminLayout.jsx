@@ -24,7 +24,7 @@ export default function AdminLayout({ children, title = "Admin Control Center", 
                     </div>
                     <div className="inline-flex flex-wrap gap-3">
                         <Link
-                            to="/"
+                            to="/dashboard"
                             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-300 hover:text-pink-600"
                         >
                             Back to app

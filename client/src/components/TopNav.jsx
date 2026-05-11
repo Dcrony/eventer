@@ -57,7 +57,7 @@ export default function TopNav() {
     <>
       <header className="top-nav">
         <div className="top-nav-container">
-          
+
 
           <Link to="/" className="top-nav-logo">
             <span className="logo-text">TickiSpot</span>
@@ -68,17 +68,17 @@ export default function TopNav() {
               <Bell size={22} />
             </Link>
 
-            <button 
-            className="top-nav-profile-trigger" 
-            onClick={() => setIsMenuOpen(true)}
-            aria-label="Open Menu"
-          >
-            <Avatar 
-              src={user ? getProfileImageUrl(user) : null} 
-              name={user?.name || "User"} 
-              className="avatar-mini" 
-            />
-          </button>
+            <button
+              className="top-nav-profile-trigger"
+              onClick={() => setIsMenuOpen(true)}
+              aria-label="Open Menu"
+            >
+              <Avatar
+                src={user ? getProfileImageUrl(user) : null}
+                name={user?.name || "User"}
+                className="avatar-mini"
+              />
+            </button>
           </div>
         </div>
       </header>
@@ -107,17 +107,17 @@ export default function TopNav() {
           <nav className="slide-menu-section">
             <label>My Activity</label>
             {isAdmin && (
-            <MenuLink to="/admin/dashboard" icon={<Shield size={20} />} label="Admin" onClick={closeMenu} />
+              <MenuLink to="/admin/dashboard" icon={<Shield size={20} />} label="Admin" onClick={closeMenu} />
 
             )}
             <MenuLink to="/my-tickets" icon={<Ticket size={20} />} label="My Tickets" onClick={closeMenu} />
             <MenuLink to="/favorites" icon={<Heart size={20} />} label="Favorites" onClick={closeMenu} />
             <MenuLink to="/events" icon={<Calendar size={20} />} label="Events" onClick={closeMenu} />
             <MenuLink to="/live/events" icon={<Radio size={20} />} label="Live" onClick={closeMenu} />
-            
+
             {isFreeUser && (
-    <MenuLink to="/pricing" icon={<DollarSign size={20} />} label="Premium" onClick={closeMenu} />
-  )}
+              <MenuLink to="/pricing" icon={<DollarSign size={20} />} label="Premium" onClick={closeMenu} />
+            )}
           </nav>
 
 
@@ -128,6 +128,7 @@ export default function TopNav() {
                 <>
                   <MenuLink to="/dashboard" icon={<BarChart3 size={20} />} label="Dashboard" onClick={closeMenu} />
                   <MenuLink to="/earnings" icon={<Banknote size={20} />} label="Earnings" onClick={closeMenu} />
+                  <MenuLink to="/team/invitations" icon={<Users size={20} />} label="Team Invitations" onClick={closeMenu} />
                 </>
               )}
               {isAdmin && (

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import API from "../api/axios";
+import teamService from "../services/api/team";
 import { useToast } from "../components/ui/toast";
 import { getEventImageUrl, getEventUrl } from "../utils/eventHelpers";
 import { validateImageFile } from "../utils/imageUpload";
@@ -66,9 +67,15 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isFree, setIsFree] = useState(false);
+  const teamRoles = [
+    { value: "manager", label: "Manager", description: "Full access to manage this event and the team." },
+    { value: "ticket_manager", label: "Ticket Manager", description: "Manage ticket setup and attendee support." },
+    { value: "analytics_viewer", label: "Analytics Viewer", description: "View-only access to event analytics." },
+    { value: "livestream_moderator", label: "Livestream Moderator", description: "Manage livestream controls." },
+  ];
   const [teamMembers, setTeamMembers] = useState([]);
   const [newTeamMemberEmail, setNewTeamMemberEmail] = useState("");
-  const [newTeamMemberRole, setNewTeamMemberRole] = useState("Co-host");
+  const [newTeamMemberRole, setNewTeamMemberRole] = useState("manager");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -124,7 +131,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
           pricing: freeEvent ? clonePricing(FREE_PRICING) : clonePricing(paidPricing),
           totalTickets: data.totalTickets || "",
         });
-        setTeamMembers(Array.isArray(data.teamMembers) ? data.teamMembers : []);
+        setTeamMembers([]);
         setImagePreview(data.image ? getEventImageUrl(data) || "" : null);
         setImageFile(null);
       } catch (error) {
@@ -193,7 +200,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
 
     setTeamMembers((prev) => [...prev, { email, role: newTeamMemberRole }]);
     setNewTeamMemberEmail("");
-    setNewTeamMemberRole("Co-host");
+    setNewTeamMemberRole("manager");
   };
 
   const handleRemoveTeamMember = (index) => {
@@ -218,15 +225,34 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
 
       formData.append("visibility", form.visibility);
       formData.append("isFree", isFree);
-      if (teamMembers.length) {
-        formData.append("teamMembers", JSON.stringify(teamMembers));
-      }
-
       if (imageFile) {
         formData.append("image", imageFile);
       }
 
-      await API.put(`/events/update/${eventId}`, formData);
+      const response = await API.put(`/events/update/${eventId}`, formData);
+      const updatedEvent = response.data.event;
+
+      if (teamMembers.length && updatedEvent?._id) {
+        const inviteResults = await Promise.allSettled(
+          teamMembers.map((member) =>
+            teamService.inviteTeamMember(updatedEvent._id, {
+              email: member.email,
+              role: member.role,
+              message: `You were invited to join the event ${form.title}`,
+            }),
+          ),
+        );
+
+        const failedInvites = inviteResults
+          .map((result, idx) => ({ result, member: teamMembers[idx] }))
+          .filter((entry) => entry.result.status === "rejected");
+
+        if (failedInvites.length) {
+          toast.error(
+            `Event updated, but ${failedInvites.length} team invitation(s) failed. Please verify the email addresses and try again.`,
+          );
+        }
+      }
 
       toast.success("Event updated successfully!");
       onEventUpdated();
@@ -441,9 +467,11 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                     onChange={(e) => setNewTeamMemberRole(e.target.value)}
                     className="input-field"
                   >
-                    <option value="Co-host">Co-host</option>
-                    <option value="Moderator">Moderator</option>
-                    <option value="Viewer">Viewer</option>
+                    {teamRoles.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
                   </select>
                   <button type="button" className="dash-btn" onClick={handleAddTeamMember}>
                     Add
@@ -452,17 +480,20 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
 
                 {teamMembers.length > 0 && (
                   <div className="team-members-list">
-                    {teamMembers.map((member, index) => (
-                      <div key={`${member.email}-${index}`} className="team-member-row">
-                        <div>
-                          <strong>{member.email}</strong>
-                          <p>{member.role}</p>
+                    {teamMembers.map((member, index) => {
+                      const roleLabel = teamRoles.find((role) => role.value === member.role)?.label || member.role;
+                      return (
+                        <div key={`${member.email}-${index}`} className="team-member-row">
+                          <div>
+                            <strong>{member.email}</strong>
+                            <p>{roleLabel}</p>
+                          </div>
+                          <button type="button" className="link-button" onClick={() => handleRemoveTeamMember(index)}>
+                            Remove
+                          </button>
                         </div>
-                        <button type="button" className="link-button" onClick={() => handleRemoveTeamMember(index)}>
-                          Remove
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
