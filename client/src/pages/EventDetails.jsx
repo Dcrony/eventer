@@ -92,32 +92,28 @@ export default function EventDetail() {
   }, [eventId]);
 
   useEffect(() => {
-    const loadEventTeam = async () => {
-      if (!eventId || !isLoggedIn) return;
+  const loadEventTeam = async () => {
+    if (!eventId) return;
 
-      try {
-        setTeamLoading(true);
-        const { data } = await teamService.getEventTeam(eventId);
-        setTeamMembers(
-  (data.members || []).filter(
-    member => member.isActive !== false
-  )
-);
-        setTeamError("");
-      } catch (error) {
-        if (error.response?.status === 403) {
-          setTeamError("Team details are not available for this event.");
-        } else {
-          setTeamError("Failed to load event team.");
-        }
-        setTeamMembers([]);
-      } finally {
-        setTeamLoading(false);
-      }
-    };
+    try {
+      setTeamLoading(true);
+      const { data } = await teamService.getEventTeam(eventId);
 
-    loadEventTeam();
-  }, [eventId, isLoggedIn]);
+      setTeamMembers(
+        (data.members || []).filter(member => member.isActive !== false)
+      );
+
+      setTeamError("");
+    } catch (error) {
+      setTeamError("Failed to load event team.");
+      setTeamMembers([]);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  loadEventTeam();
+}, [eventId]);
 
   const streamEmbedUrl = useMemo(() => {
     if (!event?.liveStream?.streamURL) return null;
@@ -376,7 +372,6 @@ export default function EventDetail() {
                   </div>
                 </article>
 
-                {isLoggedIn && (
                   <article>
                     <span className="section-eyebrow">
                       <Users size={14} />
@@ -407,7 +402,6 @@ export default function EventDetail() {
                       )}
                     </div>
                   </article>
-                )}
 
                 {event.liveStream?.isLive && streamEmbedUrl && (
                   <article>

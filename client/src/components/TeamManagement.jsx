@@ -5,14 +5,14 @@ import {
 import teamService from "../services/api/team";
 
 const ROLES = [
-  { value: "manager",             label: "Manager",              icon: Crown,     description: "Full access to manage event and team" },
+  { value: "co_organizer",             label: "co_organizer",              icon: Crown,     description: "Full access to manage event and team" },
   { value: "ticket_manager",      label: "Ticket Manager",       icon: Shield,    description: "Manage tickets and attendee support" },
   { value: "analytics_viewer",    label: "Analytics Viewer",     icon: BarChart3, description: "View-only access to analytics" },
   { value: "livestream_moderator",label: "Livestream Moderator", icon: Radio,     description: "Manage live streaming features" },
 ];
 
 const ROLE_COLORS = {
-  manager:              "bg-purple-100 text-purple-700",
+  co_organizer:              "bg-purple-100 text-purple-700",
   ticket_manager:       "bg-blue-100 text-blue-700",
   analytics_viewer:     "bg-amber-100 text-amber-700",
   livestream_moderator: "bg-pink-100 text-pink-700",
@@ -24,7 +24,7 @@ const TeamManagement = ({ eventId, isOpen, onClose }) => {
   const [team,           setTeam]           = useState([]);
   const [loading,        setLoading]        = useState(false);
   const [inviteEmail,    setInviteEmail]    = useState("");
-  const [inviteRole,     setInviteRole]     = useState("manager");
+  const [inviteRole,     setInviteRole]     = useState("co_organizer");
   const [inviteMessage,  setInviteMessage]  = useState("");
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [error,          setError]          = useState("");

@@ -3,7 +3,7 @@ import { CheckCircle, XCircle, Clock, Mail, Calendar, Users, AlertCircle, X } fr
 import teamService from "../services/api/team";
 
 const getRoleDescription = (role) => ({
-  manager:              "Full access to manage the event and team",
+  co_organizer:              "Full access to manage the event and team",
   ticket_manager:       "Manage tickets and attendee support",
   analytics_viewer:     "View-only access to event analytics",
   livestream_moderator: "Manage live streaming features",
