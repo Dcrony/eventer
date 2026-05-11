@@ -41,21 +41,40 @@ export default defineConfig({
       manifest: {
         name: "TickiSpot",
         short_name: "TickiSpot",
-        description: "Event management and ticketing platform",
+        description: "Nigeria’s event ticketing, event management, live streaming, and analytics platform.",
         start_url: "/",
+        scope: "/",
         display: "standalone",
-        background_color: "#000000",
+        orientation: "portrait",
+        background_color: "#0f172a",
         theme_color: "#db2777",
-        icons: [
+        categories: ["business", "entertainment", "productivity"],
+        shortcuts: [
           {
-            src: "icon.jpg",
-            sizes: "192x192",
-            type: "image/jpeg",
+            name: "Browse Events",
+            short_name: "Events",
+            description: "Explore upcoming events across Nigeria",
+            url: "/events",
           },
           {
-            src: "icon.jpg",
+            name: "Create Event",
+            short_name: "Create",
+            description: "Start selling tickets and managing your event",
+            url: "/events/create",
+          },
+        ],
+        icons: [
+          {
+            src: "icon.svg",
+            sizes: "192x192",
+            type: "image/svg+xml",
+            purpose: "any maskable",
+          },
+          {
+            src: "icon.svg",
             sizes: "512x512",
-            type: "image/jpeg",
+            type: "image/svg+xml",
+            purpose: "any maskable",
           },
         ],
       },
