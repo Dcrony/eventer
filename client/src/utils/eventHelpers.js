@@ -153,6 +153,6 @@ export const formatRelativeTime = (value) => {
   return "Just now";
 };
 
-export const getEventUrl = (eventId) => `${window.location.origin}/Eventdetail/${eventId}`;
+export const getEventUrl = (eventId) => `${window.location.origin}/event/${eventId}`;
 
 export const getProfileUrl = (userId) => `${window.location.origin}/profile/${userId}`;

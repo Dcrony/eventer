@@ -78,6 +78,7 @@ const AdminTransactions = lazy(() => import("./pages/AdminTransactions"));
 const AdminLogs = lazy(() => import("./pages/AdminLogs"));
 const AdminControls = lazy(() => import("./pages/AdminControls"));
 const EventTickets = lazy(() => import("./pages/EventTickets"));
+const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
 
 // Layout component with route definitions
 function Layout() {
@@ -94,7 +95,8 @@ function Layout() {
     location.pathname === "/forgot-password" ||
     location.pathname === "/reset-password" ||
     location.pathname === "/verify-email" ||
-    location.pathname === "/verify-otp";
+    location.pathname === "/verify-otp" ||
+    location.pathname.startsWith("/admin");
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
@@ -287,6 +289,7 @@ function Layout() {
                   </AdminRoute>
                 }
               />
+              <Route path="/event/:eventId" element={<EventDetail />} />
               <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
               <Route
                 path="/events/:eventId/analytics"
@@ -302,6 +305,14 @@ function Layout() {
                   <OrganizerStaffRoute>
                     <EventTickets />
                   </OrganizerStaffRoute>
+                }
+              />
+              <Route
+                path="/team/invitations"
+                element={
+                  <ProtectedRoute>
+                    <TeamInvitations />
+                  </ProtectedRoute>
                 }
               />
               <Route
