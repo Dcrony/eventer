@@ -37,6 +37,7 @@ router.get("/", getAllEvents);
 // Authenticated routes
 router.get("/my-events", authMiddleware, getMyEvents);
 router.get("/buyers/:eventId", authMiddleware, getEventBuyers);
+router.get("/:eventId/tickets", authMiddleware, getEventBuyers); // Alias for buyers
 router.patch("/toggle-live", authMiddleware, toggleLiveStream);
 router.get("/:id/comments", getEventComments);
 router.post("/:id/comments", authMiddleware, addEventComment);

@@ -15,6 +15,7 @@ const {
   exportTransactions,
   getActivityLogs,
   sendAnnouncement,
+  getAnnouncements,
   getPlatformMetrics,
 } = require("../controllers/adminController");
 
@@ -48,7 +49,8 @@ router.get("/transactions/export", exportTransactions);
 // Activity Logs
 router.get("/logs", getActivityLogs);
 
-// Platform Control
+// Announcement Management
+router.get("/announcements", getAnnouncements);
 router.post("/announcement", sendAnnouncement);
 
 module.exports = router;

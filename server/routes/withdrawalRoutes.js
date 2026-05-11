@@ -14,6 +14,12 @@ const {
   getMonthlyWithdrawalTrend,
   exportAdminWithdrawals,
 } = require("../controllers/withdrawalController");
+const {
+  connectPayoutAccount,
+  getPayoutAccount,
+  updatePayoutAccount,
+  disconnectPayoutAccount,
+} = require("../controllers/payoutController");
 const { getOrganizerEarnings } = require("../controllers/statController");
 
 const {
@@ -41,6 +47,35 @@ router.get(
   authMiddleware,
   authorizeRoles("organizer", "admin"),
   getOrganizerEarnings
+);
+
+// Payout Account Routes
+router.post(
+  "/organizer/payout/connect",
+  authMiddleware,
+  authorizeRoles("organizer", "admin"),
+  connectPayoutAccount,
+);
+
+router.get(
+  "/organizer/payout/account",
+  authMiddleware,
+  authorizeRoles("organizer", "admin"),
+  getPayoutAccount,
+);
+
+router.put(
+  "/organizer/payout/account",
+  authMiddleware,
+  authorizeRoles("organizer", "admin"),
+  updatePayoutAccount,
+);
+
+router.delete(
+  "/organizer/payout/account",
+  authMiddleware,
+  authorizeRoles("organizer", "admin"),
+  disconnectPayoutAccount,
 );
 
 /*
