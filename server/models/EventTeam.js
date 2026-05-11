@@ -9,8 +9,9 @@ const eventTeamMemberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["manager", "ticket_manager", "analytics_viewer", "livestream_moderator"],
+      enum: ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"],
       required: true,
+      default: "co_organizer"
     },
     permissions: {
       // Core permissions
@@ -40,21 +41,21 @@ const eventTeamMemberSchema = new mongoose.Schema(
 );
 
 // Set permissions based on role
-eventTeamMemberSchema.pre("save", function(next) {
-  switch (this.role) {
-    case "manager":
-      this.permissions = {
+const getRolePermissions = (role) => {
+  switch (role) {
+    case "co_organizer":
+      return {
         canEditEvent: true,
-        canDeleteEvent: false, // Only owner can delete
+        canDeleteEvent: false,
         canManageTickets: true,
         canViewAnalytics: true,
         canManageLivestream: true,
         canViewTickets: true,
         canManageTeam: true,
       };
-      break;
+
     case "ticket_manager":
-      this.permissions = {
+      return {
         canEditEvent: false,
         canDeleteEvent: false,
         canManageTickets: true,
@@ -63,9 +64,9 @@ eventTeamMemberSchema.pre("save", function(next) {
         canViewTickets: true,
         canManageTeam: false,
       };
-      break;
+
     case "analytics_viewer":
-      this.permissions = {
+      return {
         canEditEvent: false,
         canDeleteEvent: false,
         canManageTickets: false,
@@ -74,9 +75,9 @@ eventTeamMemberSchema.pre("save", function(next) {
         canViewTickets: false,
         canManageTeam: false,
       };
-      break;
+
     case "livestream_moderator":
-      this.permissions = {
+      return {
         canEditEvent: false,
         canDeleteEvent: false,
         canManageTickets: false,
@@ -85,10 +86,11 @@ eventTeamMemberSchema.pre("save", function(next) {
         canViewTickets: false,
         canManageTeam: false,
       };
-      break;
+
+    default:
+      return {};
   }
-  next();
-});
+};
 
 const eventTeamSchema = new mongoose.Schema(
   {
@@ -105,5 +107,11 @@ const eventTeamSchema = new mongoose.Schema(
 
 // Index for efficient queries
 eventTeamSchema.index({ event: 1 });
+
+// Auto assign permissions from role
+eventTeamMemberSchema.pre("save", function (next) {
+  this.permissions = getRolePermissions(this.role);
+  next();
+});
 
 module.exports = mongoose.model("EventTeam", eventTeamSchema);
