@@ -97,24 +97,24 @@ const adminService = {
   },
 
   getWithdrawals: async (page = 1, limit = 20, filters = {}) => {
-    const response = await axios.get(`${API_URL}/admin/withdrawals`, {
+    const response = await axios.get(`${ADMIN_API}/withdrawals`, {
       params: { page, limit, ...filters },
     });
     return response.data;
   },
 
   getWithdrawalAnalytics: async () => {
-    const response = await axios.get(`${API_URL}/admin/withdrawals/analytics`);
+    const response = await axios.get(`${ADMIN_API}/withdrawals/analytics`);
     return response.data;
   },
 
   getWithdrawalMonthlyTrend: async () => {
-    const response = await axios.get(`${API_URL}/admin/withdrawals/monthly`);
+    const response = await axios.get(`${ADMIN_API}/withdrawals/monthly`);
     return response.data;
   },
 
   updateWithdrawalStatus: async (withdrawalId, status, reason = "") => {
-    const response = await axios.patch(`${API_URL}/admin/withdrawals/${withdrawalId}`, {
+    const response = await axios.patch(`${ADMIN_API}/withdrawals/${withdrawalId}`, {
       status,
       reason,
     });
@@ -123,7 +123,7 @@ const adminService = {
 
   exportWithdrawals: async (filters = {}) => {
     const params = new URLSearchParams(filters).toString();
-    return downloadBlob(`${API_URL}/admin/withdrawals/export${params ? `?${params}` : ""}`);
+    return downloadBlob(`${ADMIN_API}/withdrawals/export${params ? `?${params}` : ""}`);
   },
 
   getActivityLogs: async (page = 1, limit = 50, filters = {}) => {
