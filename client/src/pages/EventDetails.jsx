@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import API from "../api/axios";
+import teamService from "../services/api/team";
 import Button from "../components/ui/button";
 import EventCommentsModal from "../components/EventCommentsModal";
 import EventEngagementBar from "../components/EventEngagementBar";
@@ -46,6 +47,10 @@ export default function EventDetail() {
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [error, setError] = useState("");
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isEventFree = event?.isFreeEvent || event?.isFree;
@@ -86,6 +91,34 @@ export default function EventDetail() {
     }
   }, [eventId]);
 
+  useEffect(() => {
+    const loadEventTeam = async () => {
+      if (!eventId || !isLoggedIn) return;
+
+      try {
+        setTeamLoading(true);
+        const { data } = await teamService.getEventTeam(eventId);
+        setTeamMembers(
+  (data.members || []).filter(
+    member => member.isActive !== false
+  )
+);
+        setTeamError("");
+      } catch (error) {
+        if (error.response?.status === 403) {
+          setTeamError("Team details are not available for this event.");
+        } else {
+          setTeamError("Failed to load event team.");
+        }
+        setTeamMembers([]);
+      } finally {
+        setTeamLoading(false);
+      }
+    };
+
+    loadEventTeam();
+  }, [eventId, isLoggedIn]);
+
   const streamEmbedUrl = useMemo(() => {
     if (!event?.liveStream?.streamURL) return null;
     const rawUrl = String(event.liveStream.streamURL).trim();
@@ -111,6 +144,8 @@ export default function EventDetail() {
     const lowest = Math.min(...event.pricing.map((ticketType) => Number(ticketType.price || 0)));
     return lowest > 0 ? formatCurrency(lowest) : "Free";
   }, [event]);
+
+  const imageUrl = useMemo(() => getEventImageUrl(event), [event]);
 
   const handleBuy = () => {
     if (!isLoggedIn) {
@@ -187,7 +222,7 @@ export default function EventDetail() {
   const handleShare = async () => {
     setShareOpen(true);
 
-    
+
   };
 
   if (loading) {
@@ -211,7 +246,6 @@ export default function EventDetail() {
     );
   }
 
-  const imageUrl = getEventImageUrl(event);
   const remainingTickets = Number(event.totalTickets || 0);
 
   return (
@@ -341,6 +375,39 @@ export default function EventDetail() {
                     ) : null}
                   </div>
                 </article>
+
+                {isLoggedIn && (
+                  <article>
+                    <span className="section-eyebrow">
+                      <Users size={14} />
+                      Event Team
+                    </span>
+                    <div className="event-detail-copy-block">
+                      {teamLoading ? (
+                        <p>Loading team members...</p>
+                      ) : teamError ? (
+                        <p className="section-error">{teamError}</p>
+                      ) : teamMembers.length ? (
+                        <div className="event-team-list">
+                          {teamMembers.map((member) => (
+                            <div key={member.id} className="event-team-member">
+                              <div className="event-team-avatar">
+                                <UserAvatar user={member.user} className="event-team-avatar-img" />
+                              </div>
+                              <div className="event-team-details">
+                                <strong>{member.user?.name || member.user?.username || "Team Member"}</strong>
+                                <span>{member.user?.email || "No email"}</span>
+                                <small>{member.role.replace("_", " ")}</small>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>No team members have joined this event yet.</p>
+                      )}
+                    </div>
+                  </article>
+                )}
 
                 {event.liveStream?.isLive && streamEmbedUrl && (
                   <article>
@@ -507,11 +574,11 @@ export default function EventDetail() {
       />
 
       <ShareModal
-  open={shareOpen}
-  onClose={() => setShareOpen(false)}
-  title={event.title}
-  url={getEventUrl(event._id)}
-/>
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title={event.title}
+        url={getEventUrl(event._id)}
+      />
     </>
   );
 }

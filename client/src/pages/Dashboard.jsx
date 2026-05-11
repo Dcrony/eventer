@@ -3,6 +3,7 @@ import API from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import "./CSS/Dashboard.css";
 import EditEvent from "../components/EditEvent";
+import TeamManagement from "../components/TeamManagement";
 import { getCurrentUser } from "../utils/auth";
 import {
   ArrowRight,
@@ -36,6 +37,8 @@ export default function Dashboard() {
   // 🟢 For Modal Control
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
 
   const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
@@ -62,6 +65,16 @@ export default function Dashboard() {
     setSelectedEventId(null);
   };
 
+  const handleTeamClick = (id) => {
+    setSelectedTeamEventId(id);
+    setTeamModalOpen(true);
+  };
+
+  const handleTeamModalClose = () => {
+    setTeamModalOpen(false);
+    setSelectedTeamEventId(null);
+  };
+
   const handleEventUpdated = () => {
     // Added headers to match your initial useEffect fetch logic
     API.get("/events/my-events", {
@@ -80,10 +93,10 @@ export default function Dashboard() {
 
     Promise.all([
       API.get("/events/my-events", {
-  headers: {
-    Authorization: `Bearer ${token}`,
-  },
-}),
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
       API.get("/stats/stats", {
         headers: { Authorization: `Bearer ${token}` },
       }),
@@ -447,6 +460,17 @@ export default function Dashboard() {
                             </button>
                           )}
 
+                          <button
+                            onClick={() => {
+                              handleTeamClick(event._id);
+                              setOpenMenuId(null);
+                            }}
+                            className="menu-item"
+                          >
+                            <Users size={14} style={{ marginRight: '6px' }} />
+                            Manage Team
+                          </button>
+
                           <div className="menu-divider" />
 
                           <button
@@ -528,6 +552,12 @@ export default function Dashboard() {
       <CreateEvent
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
+      />
+      {/* ✅ Team Management Modal */}
+      <TeamManagement
+        eventId={selectedTeamEventId}
+        isOpen={teamModalOpen}
+        onClose={handleTeamModalClose}
       />
 
     </div>

@@ -13,14 +13,14 @@ import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
 /* ── Icons ── */
-import { 
-  Music, 
-  Zap, 
-  Briefcase, 
-  UtensilsCrossed, 
-  Trophy, 
-  Globe, 
-  Search, 
+import {
+  Music,
+  Zap,
+  Briefcase,
+  UtensilsCrossed,
+  Trophy,
+  Globe,
+  Search,
   ArrowRight,
   AlertCircle,
   SearchX,
@@ -30,13 +30,13 @@ import {
 
 /* ── Filter chips ── */
 const CHIPS = [
-  { id: "all",      label: "All",      icon: null },
-  { id: "music",    label: "Music",    icon: Music },
-  { id: "tech",     label: "Tech",     icon: Zap },
+  { id: "all", label: "All", icon: null },
+  { id: "music", label: "Music", icon: Music },
+  { id: "tech", label: "Tech", icon: Zap },
   { id: "business", label: "Business", icon: Briefcase },
-  { id: "food",     label: "Food",     icon: UtensilsCrossed },
-  { id: "sports",   label: "Sports",   icon: Trophy },
-  { id: "online",   label: "Online",   icon: Globe },
+  { id: "food", label: "Food", icon: UtensilsCrossed },
+  { id: "sports", label: "Sports", icon: Trophy },
+  { id: "online", label: "Online", icon: Globe },
 ];
 
 /* ── Filtering / sorting ── */
@@ -85,33 +85,33 @@ function SkelCard() {
 export default function Home() {
   const { hasAccess: canAI, promptUpgrade: promptAI } = useFeatureAccess("tickiai");
 
-  const [events,       setEvents]      = useState([]);
-  const [loading,      setLoading]     = useState(true);
-  const [error,        setError]       = useState(null);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [useDemoData, setUseDemoData] = useState(false);
-  const [search,       setSearch]      = useState("");
-  const [filter,       setFilter]      = useState("all");
-  const [sort,         setSort]        = useState("newest");
-  const [showAI,       setShowAI]      = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
+  const [showAI, setShowAI] = useState(false);
 
   const { toProfile } = useProfileNavigation();
-  const demoEvents    = useDemoEvents(events, error && !useDemoData);
+  const demoEvents = useDemoEvents(events, error && !useDemoData);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const res  = await API.get("/events");
+        const res = await API.get("/events");
         const data = Array.isArray(res.data)
           ? res.data
           : Array.isArray(res.data?.data)
-          ? res.data.data
-          : [];
+            ? res.data.data
+            : [];
         const sanitizedEvents = data.filter(
-  (event) => event && event.createdBy
-);
+          (event) => event && event.createdBy
+        );
 
-setEvents(sanitizedEvents);
+        setEvents(sanitizedEvents);
         setUseDemoData(false);
         setError(null);
       } catch {
@@ -124,7 +124,7 @@ setEvents(sanitizedEvents);
     })();
   }, []);
 
-  const dataset  = useMemo(
+  const dataset = useMemo(
     () => (useDemoData && demoEvents.length ? demoEvents : events),
     [demoEvents, events, useDemoData],
   );
@@ -151,7 +151,7 @@ setEvents(sanitizedEvents);
             itemListElement: filtered.slice(0, 10).map((e, i) => ({
               "@type": "ListItem",
               position: i + 1,
-              url: `https://tickispot.com/Eventdetail/${e._id || e.id}`,
+              url: `https://tickispot.com/event/${e._id || e.id}`,
             })),
           })}
         </script>

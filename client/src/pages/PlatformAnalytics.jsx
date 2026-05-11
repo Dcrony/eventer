@@ -394,7 +394,7 @@ export default function PlatformAnalytics() {
                         <td>{formatCurrency(event.revenue)}</td>
                         <td>
                           <div className="analytics-actions">
-                            <Link to={`/Eventdetail/${event.id}`} className="analytics-btn analytics-btn--ghost">
+                            <Link to={`/event/${event.id}`} className="analytics-btn analytics-btn--ghost">
                               <ExternalLink size={14} /> View
                             </Link>
                             {canOrganize && (

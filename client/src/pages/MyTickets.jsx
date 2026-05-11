@@ -287,7 +287,7 @@ export default function MyTickets() {
                         )}
 
                         <Link
-                          to={`/Eventdetail/${event._id}`}
+                          to={`/event/${event._id}`}
                           className="btn-premium btn-secondary btn-ghost"
                         >
                           <ExternalLink size={18} />

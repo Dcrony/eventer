@@ -31,10 +31,10 @@ import { formatCurrency, formatEventDate, formatFullNumber } from "../utils/even
 /* ── Metric card ── */
 const TONE_STYLES = {
   default: "from-slate-800 to-slate-900",
-  blue:    "from-blue-600   to-blue-700",
-  pink:    "from-pink-500   to-rose-600",
-  green:   "from-emerald-500 to-emerald-700",
-  purple:  "from-violet-600  to-violet-800",
+  blue: "from-blue-600   to-blue-700",
+  pink: "from-pink-500   to-rose-600",
+  green: "from-emerald-500 to-emerald-700",
+  purple: "from-violet-600  to-violet-800",
 };
 
 function MetricCard({ icon: Icon, label, value, tone = "default" }) {
@@ -73,11 +73,11 @@ function ChartTooltip({ active, payload, label }) {
 
 export default function EventAnalytics() {
   const { eventId } = useParams();
-  const navigate    = useNavigate();
+  const navigate = useNavigate();
 
   const [analytics, setAnalytics] = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -94,18 +94,18 @@ export default function EventAnalytics() {
     })();
   }, [eventId]);
 
-  const summary  = useMemo(() => analytics?.metrics || {}, [analytics]);
+  const summary = useMemo(() => analytics?.metrics || {}, [analytics]);
   const timeline = analytics?.charts?.timeline || [];
-  const event    = analytics?.event;
+  const event = analytics?.event;
 
   const metrics = [
-    { icon: Eye,         label: "Total views",      value: formatFullNumber(summary.totalViews),          tone: "blue"    },
-    { icon: Ticket,      label: "Tickets sold",     value: formatFullNumber(summary.ticketsSold),         tone: "pink"    },
-    { icon: Wallet,      label: "Revenue",          value: formatCurrency(summary.revenue),               tone: "green"   },
-    { icon: TrendingUp,  label: "Conversion rate",  value: `${summary.conversionRate || 0}%`,             tone: "purple"  },
-    { icon: Heart,       label: "Likes",            value: formatFullNumber(summary.likes),               tone: "default" },
-    { icon: MessageCircle, label: "Comments",       value: formatFullNumber(summary.comments),            tone: "default" },
-    { icon: Share2,      label: "Shares",           value: formatFullNumber(summary.shares),              tone: "default" },
+    { icon: Eye, label: "Total views", value: formatFullNumber(summary.totalViews), tone: "blue" },
+    { icon: Ticket, label: "Tickets sold", value: formatFullNumber(summary.ticketsSold), tone: "pink" },
+    { icon: Wallet, label: "Revenue", value: formatCurrency(summary.revenue), tone: "green" },
+    { icon: TrendingUp, label: "Conversion rate", value: `${summary.conversionRate || 0}%`, tone: "purple" },
+    { icon: Heart, label: "Likes", value: formatFullNumber(summary.likes), tone: "default" },
+    { icon: MessageCircle, label: "Comments", value: formatFullNumber(summary.comments), tone: "default" },
+    { icon: Share2, label: "Shares", value: formatFullNumber(summary.shares), tone: "default" },
   ];
 
   return (
@@ -167,7 +167,7 @@ export default function EventAnalytics() {
                 Back
               </button>
               <button
-                onClick={() => navigate(`/Eventdetail/${eventId}`)}
+                onClick={() => navigate(`/event/${eventId}`)}
                 className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 shadow-md shadow-pink-200 transition-all"
               >
                 Open event
@@ -216,10 +216,10 @@ export default function EventAnalytics() {
                     <ComposedChart data={timeline} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                       <XAxis dataKey="label" stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
-                      <YAxis yAxisId="left"  stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                      <YAxis yAxisId="left" stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                       <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar yAxisId="left" dataKey="views" name="Views" fill="#3b82f6" radius={[6,6,0,0]} />
+                      <Bar yAxisId="left" dataKey="views" name="Views" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                       <Line yAxisId="right" type="monotone" dataKey="ticketsSold" name="Tickets sold" stroke="#f43f8e" strokeWidth={2.5} dot={{ r: 3, fill: "#f43f8e" }} />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -239,7 +239,7 @@ export default function EventAnalytics() {
                       <XAxis dataKey="label" stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                       <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
                       <Tooltip content={<ChartTooltip />} />
-                      <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[6,6,0,0]} />
+                      <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[6, 6, 0, 0]} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>

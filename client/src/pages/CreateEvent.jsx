@@ -8,6 +8,7 @@ import icon from "../assets/icon.svg";
 import { validateImageFile } from "../utils/imageUpload";
 import TickiAIGenerator from "../components/TickiAIGenerator";
 import useFeatureAccess from "../hooks/useFeatureAccess";
+import teamService from "../services/api/team";
 
 const eventTypes = [
   {
@@ -38,9 +39,15 @@ export default function CreateEvent({ isOpen, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [isFreeEvent, setIsFreeEvent] = useState(false);
   const [showAIGen, setShowAIGen] = useState(false);
+  const teamRoles = [
+    { value: "manager", label: "Manager", description: "Full access to manage this event and the team." },
+    { value: "ticket_manager", label: "Ticket Manager", description: "Manage ticket setup and attendee support." },
+    { value: "analytics_viewer", label: "Analytics Viewer", description: "View-only access to event analytics." },
+    { value: "livestream_moderator", label: "Livestream Moderator", description: "Manage livestream controls." },
+  ];
   const [teamMembers, setTeamMembers] = useState([]);
   const [newTeamMemberEmail, setNewTeamMemberEmail] = useState("");
-  const [newTeamMemberRole, setNewTeamMemberRole] = useState("Co-host");
+  const [newTeamMemberRole, setNewTeamMemberRole] = useState("manager");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -140,7 +147,7 @@ export default function CreateEvent({ isOpen, onClose }) {
       { email, role: newTeamMemberRole },
     ]);
     setNewTeamMemberEmail("");
-    setNewTeamMemberRole("Co-host");
+    setNewTeamMemberRole("manager");
   };
 
   const handleRemoveTeamMember = (index) => {
@@ -164,13 +171,32 @@ export default function CreateEvent({ isOpen, onClose }) {
 
       formData.append("visibility", form.visibility);
       formData.append("isFree", isFreeEvent);
-      if (teamMembers.length) {
-        formData.append("teamMembers", JSON.stringify(teamMembers));
-      }
-
       if (imageFile) formData.append("image", imageFile);
 
-      await API.post("/events/create", formData);
+      const response = await API.post("/events/create", formData);
+      const createdEvent = response.data.event;
+
+      if (teamMembers.length && createdEvent?._id) {
+        const inviteResults = await Promise.allSettled(
+          teamMembers.map((member) =>
+            teamService.inviteTeamMember(createdEvent._id, {
+              email: member.email,
+              role: member.role,
+              message: `You were invited to join the event ${form.title}`,
+            }),
+          ),
+        );
+
+        const failedInvites = inviteResults
+          .map((result, idx) => ({ result, member: teamMembers[idx] }))
+          .filter((entry) => entry.result.status === "rejected");
+
+        if (failedInvites.length) {
+          toast.error(
+            `Event created, but ${failedInvites.length} team invitation(s) failed. Please verify the email addresses and try again.`,
+          );
+        }
+      }
 
       toast.success("Event created successfully!");
       navigate("/events");
@@ -412,9 +438,11 @@ export default function CreateEvent({ isOpen, onClose }) {
                   onChange={(e) => setNewTeamMemberRole(e.target.value)}
                   className="input-field"
                 >
-                  <option value="Co-host">Co-host</option>
-                  <option value="Moderator">Moderator</option>
-                  <option value="Viewer">Viewer</option>
+                  {teamRoles.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
+                  ))}
                 </select>
                 <button type="button" className="dash-btn" onClick={handleAddTeamMember}>
                   Add
@@ -423,17 +451,20 @@ export default function CreateEvent({ isOpen, onClose }) {
 
               {teamMembers.length > 0 && (
                 <div className="team-members-list">
-                  {teamMembers.map((member, index) => (
-                    <div key={`${member.email}-${index}`} className="team-member-row">
-                      <div>
-                        <strong>{member.email}</strong>
-                        <p>{member.role}</p>
+                  {teamMembers.map((member, index) => {
+                    const roleLabel = teamRoles.find((role) => role.value === member.role)?.label || member.role;
+                    return (
+                      <div key={`${member.email}-${index}`} className="team-member-row">
+                        <div>
+                          <strong>{member.email}</strong>
+                          <p>{roleLabel}</p>
+                        </div>
+                        <button type="button" className="link-button" onClick={() => handleRemoveTeamMember(index)}>
+                          Remove
+                        </button>
                       </div>
-                      <button type="button" className="link-button" onClick={() => handleRemoveTeamMember(index)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

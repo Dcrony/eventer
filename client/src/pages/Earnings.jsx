@@ -17,10 +17,16 @@ export default function Earnings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Payout account state
+  const [payoutAccount, setPayoutAccount] = useState(null);
+  const [payoutAccountLoading, setPayoutAccountLoading] = useState(false);
+
   const [banks, setBanks] = useState([]);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showConnectAccountModal, setShowConnectAccountModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
   const [bankDetails, setBankDetails] = useState({
     bankName: "",
     accountNumber: "",
@@ -51,8 +57,24 @@ export default function Earnings() {
       });
   };
 
+  const loadPayoutAccount = () => {
+    setPayoutAccountLoading(true);
+    API.get("/organizer/payout/account")
+      .then((res) => {
+        setPayoutAccount(res.data);
+        setPayoutAccountLoading(false);
+      })
+      .catch((err) => {
+        if (err.response?.status === 404) {
+          setPayoutAccount(null);
+        }
+        setPayoutAccountLoading(false);
+      });
+  };
+
   useEffect(() => {
     loadEarnings();
+    loadPayoutAccount();
   }, []);
 
   useEffect(() => {
@@ -70,24 +92,51 @@ export default function Earnings() {
     if (!withdrawAmount || Number(withdrawAmount) <= 0) {
       return alert("Enter a valid amount");
     }
-    if (!bankDetails.bankCode || !bankDetails.accountNumber || !bankDetails.accountName) {
-      return alert("Complete bank details");
-    }
+
     try {
       setWithdrawLoading(true);
       await API.post("/organizer/withdraw", {
         amount: Number(withdrawAmount),
-        paymentMethod: "bank",
-        bankDetails,
       });
-      alert("Withdrawal submitted. Awaiting admin approval.");
+      alert("Withdrawal request submitted successfully");
       setShowWithdrawModal(false);
       setWithdrawAmount("");
       loadEarnings();
     } catch (err) {
-      alert(err.response?.data?.message || "Withdrawal failed");
+      const errorMessage = err.response?.data?.message || "Withdrawal failed";
+      if (err.response?.data?.code === "PAYOUT_ACCOUNT_REQUIRED") {
+        alert("Please connect a payout account first");
+        setShowWithdrawModal(false);
+        setShowConnectAccountModal(true);
+        return;
+      }
+      alert(errorMessage);
     } finally {
       setWithdrawLoading(false);
+    }
+  };
+
+  const handleConnectPayoutAccount = async () => {
+    if (!bankDetails.bankCode || !bankDetails.accountNumber || !bankDetails.accountName) {
+      return alert("Please complete all bank details");
+    }
+
+    try {
+      setConnectLoading(true);
+      await API.post("/organizer/payout/connect", bankDetails);
+      alert("Payout account connected successfully!");
+      setShowConnectAccountModal(false);
+      setBankDetails({
+        bankName: "",
+        accountNumber: "",
+        accountName: "",
+        bankCode: "",
+      });
+      loadPayoutAccount();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to connect payout account");
+    } finally {
+      setConnectLoading(false);
     }
   };
 
@@ -209,13 +258,33 @@ export default function Earnings() {
             </div>
 
             <div className="earnings-actions">
-              <button
-                type="button"
-                className="dash-btn dash-btn-primary"
-                onClick={() => setShowWithdrawModal(true)}
-              >
-                <Banknote size={18} /> Withdraw
-              </button>
+              {payoutAccount ? (
+                <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
+                    <strong>Payout Account:</strong> {payoutAccount.accountName} • {payoutAccount.bankName} • {payoutAccount.accountNumber}
+                  </div>
+                  <button
+                    type="button"
+                    className="dash-btn dash-btn-primary"
+                    onClick={() => setShowWithdrawModal(true)}
+                  >
+                    <Banknote size={18} /> Withdraw
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: "0.9rem", color: "#dc2626" }}>
+                    No payout account connected
+                  </div>
+                  <button
+                    type="button"
+                    className="dash-btn dash-btn-secondary"
+                    onClick={() => setShowConnectAccountModal(true)}
+                  >
+                    Connect Bank Account
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="dash-card">
@@ -272,7 +341,7 @@ export default function Earnings() {
         )}
       </div>
 
-      {showWithdrawModal && data && (
+      {showWithdrawModal && data && payoutAccount && (
         <div className="modal-overlay">
           <div className="withdraw-modal">
             <button type="button" className="close-btn" onClick={() => setShowWithdrawModal(false)}>
@@ -280,19 +349,46 @@ export default function Earnings() {
             </button>
             <h3>Request withdrawal</h3>
             <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
-              Available: ₦{formatNumber(data.availableBalance)} · Min (on approval): ₦
-              {formatNumber(minW)}
+              Available: ₦{formatNumber(data.availableBalance)} · Min: ₦{formatNumber(minW)}
               {platformPct > 0
                 ? ` · Balances reflect the ${platformPct}% platform fee on ticket sales.`
                 : "."}
             </p>
-            <div className="withdraw-balance">Amount to request (₦)</div>
+            <div style={{ marginBottom: "1rem", padding: "0.75rem", background: "var(--ts-bg)", borderRadius: "0.5rem" }}>
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
+                Payout Account
+              </div>
+              <div style={{ fontWeight: 500 }}>
+                {payoutAccount.accountName} • {payoutAccount.bankName} • {payoutAccount.accountNumber}
+              </div>
+            </div>
+            <label>Amount to withdraw (₦)</label>
             <input
               type="number"
               placeholder="Enter amount"
               value={withdrawAmount}
               onChange={(e) => setWithdrawAmount(e.target.value)}
             />
+            <div className="modal-actions">
+              <div />
+              <button type="button" onClick={handleWithdraw} disabled={withdrawLoading}>
+                {withdrawLoading ? "Submitting…" : "Submit request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConnectAccountModal && (
+        <div className="modal-overlay">
+          <div className="withdraw-modal">
+            <button type="button" className="close-btn" onClick={() => setShowConnectAccountModal(false)}>
+              ✕
+            </button>
+            <h3>Connect Payout Account</h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
+              Connect your bank account to receive payouts. This information will be securely stored and used for all future withdrawals.
+            </p>
             <label>Bank</label>
             <select
               value={bankDetails.bankCode}
@@ -328,8 +424,8 @@ export default function Earnings() {
             />
             <div className="modal-actions">
               <div />
-              <button type="button" onClick={handleWithdraw} disabled={withdrawLoading}>
-                {withdrawLoading ? "Submitting…" : "Submit request"}
+              <button type="button" onClick={handleConnectPayoutAccount} disabled={connectLoading}>
+                {connectLoading ? "Connecting…" : "Connect Account"}
               </button>
             </div>
           </div>

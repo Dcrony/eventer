@@ -24,8 +24,8 @@ export default function AdminControls() {
         try {
             setLoading(true);
             setError(null);
-            await adminService.sendAnnouncement(announcement);
-            setSuccess("Announcement sent successfully to all users.");
+            const response = await adminService.sendAnnouncement(announcement);
+            setSuccess(response?.message || "Announcement sent successfully.");
             setAnnouncement({ title: "", content: "", type: "info", targetAudience: "all" });
         } catch (err) {
             console.error("Failed to send announcement", err);

@@ -14,8 +14,11 @@ export default function EventTickets() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [refundingTicket, setRefundingTicket] = useState(null);
+    const [checkingInTicket, setCheckingInTicket] = useState(null);
+    const [resendingTicket, setResendingTicket] = useState(null);
 
     const { hasAccess: canRefund } = useFeatureAccess("refunds");
 
@@ -67,11 +70,66 @@ export default function EventTickets() {
         }
     };
 
-    const filteredTickets = tickets.filter(ticket =>
-        ticket.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.buyer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ticket.ticketType?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleCheckIn = async (ticketId) => {
+        try {
+            setCheckingInTicket(ticketId);
+            await API.post(`/tickets/${ticketId}/checkin`);
+            // Refresh tickets after check-in
+            await fetchEventAndTickets();
+            alert("Ticket checked in successfully");
+        } catch (err) {
+            console.error("Failed to check in ticket", err);
+            alert(err.response?.data?.message || "Failed to check in ticket");
+        } finally {
+            setCheckingInTicket(null);
+        }
+    };
+
+    const handleResendEmail = async (ticketId) => {
+        try {
+            setResendingTicket(ticketId);
+            await API.post(`/tickets/${ticketId}/resend`);
+            alert("Ticket email resent successfully");
+        } catch (err) {
+            console.error("Failed to resend ticket email", err);
+            alert(err.response?.data?.message || "Failed to resend ticket email");
+        } finally {
+            setResendingTicket(null);
+        }
+    };
+
+    const handleExportCSV = () => {
+        const headers = ["Buyer Name", "Email", "Ticket Type", "Price", "Purchase Date", "Status"];
+        const csvContent = [
+            headers.join(","),
+            ...filteredTickets.map(ticket => [
+                `"${ticket.buyer?.name || "Unknown"}"`,
+                `"${ticket.buyer?.email || ""}"`,
+                `"${ticket.ticketType || ""}"`,
+                ticket.price || 0,
+                `"${formatDate(ticket.createdAt)}"`,
+                ticket.status || "active"
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${event?.title || "event"}-tickets.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
+    const filteredTickets = tickets.filter(ticket => {
+        const matchesSearch = ticket.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ticket.buyer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            ticket.ticketType?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === "all" || (ticket.status || "active") === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
 
     if (loading) {
         return (
@@ -114,12 +172,17 @@ export default function EventTickets() {
                         </Link>
                         <div>
                             <h1>{event?.title} - Tickets</h1>
-                            <p>{tickets.length} tickets sold</p>
+                            <div className="tickets-stats">
+                                <span>{tickets.length} total tickets</span>
+                                <span>{tickets.filter(t => (t.status || 'active') === 'active').length} active</span>
+                                <span>{tickets.filter(t => t.status === 'checked-in').length} checked in</span>
+                                <span>{tickets.filter(t => t.status === 'refunded').length} refunded</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Search */}
+                {/* Search and Filters */}
                 <div className="search-section">
                     <div className="search-input-wrapper">
                         <Search size={20} />
@@ -130,6 +193,22 @@ export default function EventTickets() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
                         />
+                    </div>
+                    <div className="filters-wrapper">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="status-filter"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="checked-in">Checked In</option>
+                            <option value="refunded">Refunded</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button onClick={handleExportCSV} className="export-btn">
+                            Export CSV
+                        </button>
                     </div>
                 </div>
 
@@ -165,10 +244,15 @@ export default function EventTickets() {
                                                     <XCircle size={14} />
                                                     Refunded
                                                 </>
-                                            ) : ticket.status === 'used' ? (
+                                            ) : ticket.status === 'checked-in' ? (
                                                 <>
                                                     <CheckCircle size={14} />
-                                                    Used
+                                                    Checked In
+                                                </>
+                                            ) : ticket.status === 'cancelled' ? (
+                                                <>
+                                                    <XCircle size={14} />
+                                                    Cancelled
                                                 </>
                                             ) : (
                                                 <>
@@ -180,6 +264,30 @@ export default function EventTickets() {
                                     </td>
                                     <td>
                                         <div className="actions-menu">
+                                            {(ticket.status === 'active' || !ticket.status) && (
+                                                <button
+                                                    onClick={() => handleCheckIn(ticket._id)}
+                                                    disabled={checkingInTicket === ticket._id}
+                                                    className="checkin-btn"
+                                                >
+                                                    {checkingInTicket === ticket._id ? (
+                                                        <RefreshCw size={14} className="animate-spin" />
+                                                    ) : (
+                                                        "Check In"
+                                                    )}
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleResendEmail(ticket._id)}
+                                                disabled={resendingTicket === ticket._id}
+                                                className="resend-btn"
+                                            >
+                                                {resendingTicket === ticket._id ? (
+                                                    <RefreshCw size={14} className="animate-spin" />
+                                                ) : (
+                                                    "Resend"
+                                                )}
+                                            </button>
                                             {ticket.status !== 'refunded' && ticket.price > 0 && (
                                                 <button
                                                     onClick={() => handleRefund(ticket._id)}
