@@ -131,3 +131,38 @@ exports.billingSuccessEmail = (name, plan, amount, interval, reference) => `
   </div>
 `;
 
+exports.teamInvitationEmail = (name, eventTitle, role, acceptUrl) => `
+  <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px;">
+
+    <h2 style="color:#ec4899;">🎟️ Team Invitation</h2>
+
+    <p>Hi <strong>${name}</strong>,</p>
+
+    <p>You've been invited to join the team for an event on <strong>TickiSpot</strong>!</p>
+
+    <div style="background:#f9fafb; padding:15px; border-radius:8px; margin:20px 0;">
+      <p><strong>Event:</strong> ${eventTitle}</p>
+      <p><strong>Your Role:</strong> ${role.replace("_", " ")}</p>
+    </div>
+
+    <p>As a team member, you'll have access to help manage this event based on your assigned permissions.</p>
+
+    <div style="text-align:center; margin:30px 0;">
+      <a href="${acceptUrl}"
+         style="background:#ec4899; color:#fff; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold; display:inline-block;">
+        View Invitation
+      </a>
+    </div>
+
+    <p style="font-size:14px; color:#6b7280;">
+      This invitation expires in 7 days. You can accept or decline it from your TickiSpot dashboard.
+    </p>
+
+    <p>Happy organizing! 🎉</p>
+
+    <p style="margin-top:20px;">
+      — <strong>TickiSpot Team</strong>
+    </p>
+  </div>
+`;
+
