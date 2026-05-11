@@ -12,9 +12,13 @@ const canManageTeam = async (eventId, userId) => {
   if (!event) return false;
 
   // Owner can always manage team
-  if (String(event.createdBy) === String(userId)) return true;
+  const ownerId = event.createdBy?._id || event.createdBy;
 
-  // Check if user is a team manager
+if (String(ownerId) === String(userId)) {
+  return true;
+}
+
+  // Check if user is a team co_organizer
   const eventTeam = await EventTeam.findOne({ event: eventId });
   if (!eventTeam) return false;
 
@@ -25,41 +29,50 @@ const canManageTeam = async (eventId, userId) => {
   return member && member.permissions.canManageTeam;
 };
 
-// Helper function to check if user has access to event
-const hasEventAccess = async (eventId, userId, requiredPermission = null) => {
-  const event = await Event.findById(eventId);
-  if (!event) return false;
+// // Helper function to check if user has access to event
+// const hasEventAccess = async (eventId, userId, requiredPermission = null) => {
+//   const event = await Event.findById(eventId);
 
-  // Owner has full access
-  if (String(event.createdBy) === String(userId)) return true;
+//   if (!event) return false;
 
-  // Check team membership
-  const eventTeam = await EventTeam.findOne({ event: eventId }).populate("members.user");
-  if (!eventTeam) return false;
+//   // Owner has full access
+//   const ownerId = event.createdBy?._id || event.createdBy;
 
-  const member = eventTeam.members.find(m =>
-    String(m.user._id || m.user) === String(userId) && m.isActive
-  );
+//   if (String(ownerId) === String(userId)) {
+//     return true;
+//   }
 
-  if (!member) return false;
+//   // Check team membership
+//   const eventTeam = await EventTeam.findOne({
+//     event: eventId,
+//   }).populate("members.user");
 
-  // If no specific permission required, just check membership
-  if (!requiredPermission) return true;
+//   if (!eventTeam) {
+//     return false;
+//   }
 
-  // Check specific permission
-  return member.permissions[requiredPermission] === true;
-};
+//   const member = eventTeam.members.find(
+//     (m) =>
+//       String(m.user?._id || m.user) === String(userId) &&
+//       m.isActive
+//   );
+
+//   if (!member) {
+//     return false;
+//   }
+
+//   // If no specific permission required
+//   if (!requiredPermission) {
+//     return true;
+//   }
+
+//   return member.permissions?.[requiredPermission] === true;
+// };
 
 // Get team members for an event
 exports.getEventTeam = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const userId = req.user.id;
-
-    // Check if user has access to view team
-    if (!await hasEventAccess(eventId, userId)) {
-      return res.status(403).json({ message: "Access denied" });
-    }
 
     const eventTeam = await EventTeam.findOne({ event: eventId })
       .populate("members.user", "name username email profilePic isVerified")
@@ -101,7 +114,7 @@ exports.inviteTeamMember = async (req, res) => {
       return res.status(400).json({ message: "Email and role are required" });
     }
 
-    const validRoles = ["manager", "ticket_manager", "analytics_viewer", "livestream_moderator"];
+    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
@@ -387,7 +400,7 @@ exports.updateTeamMemberRole = async (req, res) => {
     const { role } = req.body;
     const userId = req.user.id;
 
-    const validRoles = ["manager", "ticket_manager", "analytics_viewer", "livestream_moderator"];
+    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
