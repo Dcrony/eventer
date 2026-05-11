@@ -14,6 +14,7 @@ import { CreateEventProvider } from "./context/CreateEventContext";
 import { getCurrentUser } from "./utils/auth";
 import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
 import TickiAIChat from "./components/TickiAIChat";
+import PwaInstallModal from "./components/PwaInstallModal";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -167,6 +168,7 @@ function Layout() {
   return (
     <div className="flex flex-col min-h-screen">
       <SEO />
+      <PwaInstallModal />
 
       {renderSidebar()}
 
