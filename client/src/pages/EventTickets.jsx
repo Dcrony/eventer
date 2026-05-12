@@ -266,14 +266,14 @@ export default function EventTickets() {
 
         {/* Page header */}
         <div style={{ marginBottom: "1.75rem" }}>
-          <Link to="/dashboard" className="et-back-link"
+          <Link to={`/event/${eventId}`} className="et-back-link"
             style={{
               display: "inline-flex", alignItems: "center", gap: "0.35rem",
               fontSize: "0.82rem", fontWeight: 600, color: T.muted,
               textDecoration: "none", marginBottom: "0.85rem",
               transition: `color ${T.t}`,
             }}>
-            <ArrowLeft size={18} /> Back to Dashboard
+            <ArrowLeft size={18} /> Back to event
           </Link>
           <h1 style={{ fontSize: "clamp(1.3rem, 2.5vw, 1.75rem)", fontWeight: 800, letterSpacing: "-0.03em", color: T.ink, margin: "0 0 0.5rem" }}>
             {event?.title} – Tickets
