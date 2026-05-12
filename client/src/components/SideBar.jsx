@@ -206,9 +206,35 @@ export default function Sidebar() {
             </button>
           </nav>
         </div>
+
+        {expand && user && (
+          <div className="p-4 border-t border-gray-100 mt-auto">
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-gray-50">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-100 to-pink-200 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold text-pink-600">
+                  {user.name?.charAt(0) || user.username?.charAt(0) || "U"}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-900 truncate">{user.name || user.username}</p>
+                <p className="text-[0.6rem] text-gray-400 capitalize">{user.plan || "free"} plan</p>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
       <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
+
+        <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </>
   );
 }

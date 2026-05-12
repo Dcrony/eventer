@@ -114,7 +114,7 @@ export default function MobileBottomNav() {
       {/* Main FAB Toggle Button */}
       <button
         onClick={() => setIsMenuOpen(!isMenuOpen)}
-        className={`absolute bottom-4 right-4 w-14 h-14 rounded-full bg-pink-500 text-white shadow-xl transition-all duration-300 flex items-center justify-center z-50 ${
+        className={`absolute bottom-14 right-4 w-14 h-14 rounded-full bg-pink-500 text-white shadow-xl transition-all duration-300 flex items-center justify-center z-50 ${
           isMenuOpen ? "rotate-45 bg-gray-800" : "rotate-0"
         }`}
       >
