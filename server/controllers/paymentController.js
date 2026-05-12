@@ -11,6 +11,7 @@ const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
+const { canViewEvent } = require("../utils/eventVisibility");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -45,6 +46,12 @@ exports.initiatePayment = async (req, res) => {
     const event = await Event.findById(metadata.eventId);
 
     if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -172,6 +179,12 @@ exports.verifyPayment = async (req, res) => {
 
       if (!event || !user)
         return res.status(400).json({ message: "Invalid event or user" });
+      const visibility = await canViewEvent(event, user, {
+        allowPrivateLink: true,
+      });
+      if (!visibility.allowed) {
+        return res.status(404).json({ message: "Event not found" });
+      }
 
       if (event.totalTickets < quantity)
         return res

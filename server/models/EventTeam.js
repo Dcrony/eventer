@@ -106,11 +106,13 @@ const eventTeamSchema = new mongoose.Schema(
 );
 
 // Index for efficient queries
-eventTeamSchema.index({ event: 1 });
+eventTeamSchema.index({ "members.user": 1, "members.isActive": 1 });
 
-// Auto assign permissions from role
-eventTeamMemberSchema.pre("save", function (next) {
-  this.permissions = getRolePermissions(this.role);
+// Keep member permissions synchronized with their role.
+eventTeamSchema.pre("validate", function (next) {
+  this.members.forEach((member) => {
+    member.permissions = getRolePermissions(member.role);
+  });
   next();
 });
 

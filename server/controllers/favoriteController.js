@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Event = require("../models/Event");
 const User = require("../models/User");
+const { canViewEvent, filterViewableEvents } = require("../utils/eventVisibility");
 
 const eventPopulate = [
   { path: "createdBy", select: "name username profilePic role isVerified billing" },
@@ -18,6 +19,12 @@ exports.toggleFavorite = async (req, res) => {
 
     const event = await Event.findById(eventId);
     if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -59,7 +66,11 @@ exports.getFavorites = async (req, res) => {
       options: { sort: { createdAt: -1 } },
     });
 
-    return res.status(200).json(user?.favorites || []);
+    const visibleFavorites = await filterViewableEvents(user?.favorites || [], req.user, {
+      allowPrivateLink: false,
+    });
+
+    return res.status(200).json(visibleFavorites);
   } catch (error) {
     console.error("getFavorites error", error);
     return res.status(500).json({ message: "Server error" });

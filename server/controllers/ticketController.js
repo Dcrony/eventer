@@ -8,6 +8,8 @@ const path = require("path");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const User = require("../models/User");
 const sendEmail = require("../utils/email");
+const { authorizeEventAction, getEventAccessForUser } = require("../utils/eventPermissions");
+const { canViewEvent } = require("../utils/eventVisibility");
 const {
   ticketPurchaseEmail,
   organizerTicketAlertEmail,
@@ -48,6 +50,12 @@ exports.createTicket = async (req, res) => {
 
     const event = await Event.findById(eventId);
     if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
       return res.status(404).json({ message: "Event not found" });
     }
 
@@ -210,16 +218,12 @@ exports.validateTicket = async (req, res) => {
       return res.status(404).json({ success: false, message: "Ticket not found" });
     }
 
-    const event = ticket.event;
-    const userId = req.user.id.toString();
-    const isAdmin = req.user.role === "admin";
-    const isEventOwner =
-      event.createdBy && event.createdBy.toString() === userId;
+    const eventAccess = await getEventAccessForUser(ticket.event, req.user);
 
-    if (!isAdmin && !isEventOwner) {
+    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
       return res.status(403).json({
         success: false,
-        message: "You can only check in tickets for your own events",
+        message: "You do not have permission to check in tickets for this event",
       });
     }
 
@@ -259,17 +263,15 @@ exports.getEventTickets = async (req, res) => {
       return res.status(400).json({ message: "Invalid event ID" });
     }
 
-    // Check if user is the event owner
-    const event = await Event.findById(eventId);
-    if (!event) {
-      return res.status(404).json({ message: "Event not found" });
-    }
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canManageTickets",
+      deniedMessage: "You do not have permission to manage tickets for this event",
+    });
 
-    const isOwner = String(event.createdBy) === String(req.user.id);
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+    if (lookup.error) {
+      return res.status(lookup.error.status).json({ message: lookup.error.message });
     }
 
     const tickets = await Ticket.find({ event: eventId })
@@ -299,12 +301,9 @@ exports.refundTicket = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Check if user is the event owner
-    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+    const eventAccess = await getEventAccessForUser(ticket.event, req.user);
+    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
+      return res.status(403).json({ message: "You do not have permission to refund tickets for this event" });
     }
 
     if (ticket.status === "refunded") {
@@ -363,12 +362,9 @@ exports.resendTicketEmail = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Check if user is the event owner
-    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+    const eventAccess = await getEventAccessForUser(ticket.event, req.user);
+    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
+      return res.status(403).json({ message: "You do not have permission to resend tickets for this event" });
     }
 
     if (!ticket.buyer?.email) {
@@ -429,12 +425,9 @@ exports.manualCheckIn = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // Check if user is the event owner
-    const isOwner = String(ticket.event.createdBy) === String(req.user.id);
-    const isAdmin = req.user.role === "admin";
-
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ message: "Unauthorized" });
+    const eventAccess = await getEventAccessForUser(ticket.event, req.user);
+    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
+      return res.status(403).json({ message: "You do not have permission to check in tickets for this event" });
     }
 
     if (ticket.status === "checked-in") {

@@ -8,6 +8,16 @@ const { createNotification } = require("../services/notificationService");
 const { hasAccess } = require("../services/featureService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
 const {
+  getEventAccessForUser,
+  authorizeEventAction,
+  toSerializableAccess,
+} = require("../utils/eventPermissions");
+const {
+  buildPublicEventQuery,
+  canViewEvent,
+  normalizeVisibility,
+} = require("../utils/eventVisibility");
+const {
   isConfigured,
   uploadImageBuffer,
   destroyCloudinaryImage,
@@ -46,10 +56,7 @@ const enrichComments = (comments = []) =>
       : null,
   }));
 
-const normalizeVisibility = (value) =>
-  String(value || "public").trim().toLowerCase() === "private" ? "private" : "public";
-
-const buildEventPayload = (event, currentUserId) => {
+const buildEventPayload = (event, currentUserId, extras = {}) => {
   const data = event?.toObject ? event.toObject() : event;
 
   if (!data) return null;
@@ -84,6 +91,7 @@ const buildEventPayload = (event, currentUserId) => {
     comments: enrichComments(
       Array.isArray(data.comments) ? data.comments : [],
     ),
+    ...extras,
   };
 };
 
@@ -131,20 +139,6 @@ const resolveEventPricing = (pricing, isFree) => {
   }
 
   return normalizedPricing;
-};
-
-const getEventByIdForOwner = async (eventId, userId, allowAdmin = false, userRole = "user") => {
-  const event = await Event.findById(eventId);
-  if (!event) return { error: { status: 404, message: "Event not found" } };
-
-  const isOwner = String(event.createdBy) === String(userId);
-  const isAdmin = allowAdmin && userRole === "admin";
-
-  if (!isOwner && !isAdmin) {
-    return { error: { status: 403, message: "Unauthorized" } };
-  }
-
-  return { event };
 };
 
 exports.createEvent = async (req, res) => {
@@ -230,26 +224,9 @@ exports.getAllEvents = async (req, res) => {
   try {
     const { liveOnly } = req.query;
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const filter = {
-      ...(currentUserId
-        ? {}
-        : {
-            $and: [
-              {
-                $or: [
-                  { status: { $exists: false } },
-                  { status: "approved" },
-                ],
-              },
-            ],
-          }),
-      ...(liveOnly === "true" ? { "liveStream.isLive": true } : {}),
-      $or: [
-        { visibility: { $exists: false } },
-        { visibility: "public" },
-        ...(currentUserId ? [{ createdBy: currentUserId }] : []),
-      ],
-    };
+    const filter = buildPublicEventQuery(
+      liveOnly === "true" ? { "liveStream.isLive": true } : {},
+    );
     const events = await Event.find(filter)
   .populate(eventPopulateOptions)
   .sort({ createdAt: -1 });
@@ -274,19 +251,22 @@ exports.getEventById = async (req, res) => {
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
 
     if (!event) return res.status(404).json({ message: "Event not found" });
-    const ownerId = String(event.createdBy?._id || event.createdBy || "");
-    if (
-      event.status &&
-      event.status !== "approved" &&
-      ownerId !== currentUserId
-    ) {
-      return res.status(404).json({ message: "Event not found" });
-    }
-    if (normalizeVisibility(event.visibility) === "private" && ownerId !== currentUserId) {
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    res.status(200).json(buildEventPayload(event, currentUserId));
+    const access = currentUserId
+      ? await getEventAccessForUser(event, currentUserId)
+      : null;
+
+    res.status(200).json(
+      buildEventPayload(event, currentUserId, {
+        eventAccess: access ? toSerializableAccess(access) : null,
+      }),
+    );
   } catch (err) {
     console.error("Error fetching event by ID:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -308,7 +288,24 @@ exports.getMyEvents = async (req, res) => {
     const validEvents = events.filter((event) => event?.createdBy);
 
     const payload = validEvents
-      .map((event) => buildEventPayload(event, userId))
+      .map((event) =>
+        buildEventPayload(event, userId, {
+          eventAccess: toSerializableAccess({
+            hasAccess: true,
+            isOwner: true,
+            isAdmin: req.user.role === "admin",
+            isCollaborator: false,
+            role: "owner",
+            permissions: null,
+            featureAccess: {
+              analytics: hasAccess(req.user, "ANALYTICS_ADVANCED"),
+              liveStream: hasAccess(req.user, "LIVE_STREAM"),
+              teamMembers: hasAccess(req.user, "TEAM_MEMBERS"),
+              refunds: hasAccess(req.user, "REFUNDS"),
+            },
+          }),
+        }),
+      )
       .filter(Boolean);
 
     res.status(200).json(payload);
@@ -326,9 +323,17 @@ exports.getMyEvents = async (req, res) => {
 exports.getEventBuyers = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const lookup = await getEventByIdForOwner(eventId, req.user.id);
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canManageTickets",
+      deniedMessage: "You do not have permission to view ticket sales for this event",
+    });
     if (lookup.error) {
-      return res.status(lookup.error.status).json({ message: lookup.error.message });
+      return res.status(lookup.error.status).json({
+        message: lookup.error.message,
+        ...(lookup.error.code ? { code: lookup.error.code } : {}),
+      });
     }
 
     const tickets = await Ticket.find({ event: eventId })
@@ -346,16 +351,17 @@ exports.toggleLiveStream = async (req, res) => {
   const { eventId, isLive } = req.body;
 
   try {
-    if (!hasAccess(req.user, "LIVE_STREAM")) {
-      return res.status(403).json({
-        code: "PLAN_UPGRADE_REQUIRED",
-        message: "Upgrade to Pro to access this feature",
-      });
-    }
-
-    const lookup = await getEventByIdForOwner(eventId, req.user.id);
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canModerateLivestream",
+      deniedMessage: "You do not have permission to manage this livestream",
+    });
     if (lookup.error) {
-      return res.status(lookup.error.status).json({ message: lookup.error.message });
+      return res.status(lookup.error.status).json({
+        message: lookup.error.message,
+        ...(lookup.error.code ? { code: lookup.error.code } : {}),
+      });
     }
 
     lookup.event.liveStream.isLive = isLive;
@@ -373,9 +379,17 @@ exports.toggleLiveStream = async (req, res) => {
 exports.updateEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const lookup = await getEventByIdForOwner(eventId, req.user.id);
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canEditEvent",
+      deniedMessage: "You do not have permission to edit this event",
+    });
     if (lookup.error) {
-      return res.status(lookup.error.status).json({ message: lookup.error.message });
+      return res.status(lookup.error.status).json({
+        message: lookup.error.message,
+        ...(lookup.error.code ? { code: lookup.error.code } : {}),
+      });
     }
 
     const event = lookup.event;
@@ -441,9 +455,17 @@ exports.updateEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const lookup = await getEventByIdForOwner(eventId, req.user.id);
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canDeleteEvent",
+      deniedMessage: "You do not have permission to delete this event",
+    });
     if (lookup.error) {
-      return res.status(lookup.error.status).json({ message: lookup.error.message });
+      return res.status(lookup.error.status).json({
+        message: lookup.error.message,
+        ...(lookup.error.code ? { code: lookup.error.code } : {}),
+      });
     }
 
     const ev = lookup.event;
@@ -467,12 +489,19 @@ exports.trackEventView = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const currentUserId = getCurrentUserIdFromRequest(req);
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     event.viewCount += 1;
     recordEventMetrics(event, { views: 1 });
     await event.save();
 
-    res.status(200).json(buildEventPayload(event, getCurrentUserIdFromRequest(req)));
+    res.status(200).json(buildEventPayload(event, currentUserId));
   } catch (err) {
     console.error("Error tracking event view:", err.message);
     res.status(500).json({ message: "Server error" });
@@ -483,6 +512,12 @@ exports.toggleEventLike = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     const userId = String(req.user.id);
     const existingIndex = event.likes.findIndex((like) => String(like) === userId);
@@ -523,6 +558,14 @@ exports.getEventComments = async (req, res) => {
     });
 
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(
+      event,
+      getCurrentUserIdFromRequest(req),
+      { allowPrivateLink: true },
+    );
+    if (!visibility.allowed) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     res.status(200).json({
       comments: enrichComments(event.toObject().comments || []),
@@ -541,6 +584,12 @@ exports.addEventComment = async (req, res) => {
 
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     event.comments.unshift({
       user: req.user.id,
@@ -575,6 +624,14 @@ exports.trackEventShare = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
     if (!event) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(
+      event,
+      getCurrentUserIdFromRequest(req),
+      { allowPrivateLink: true },
+    );
+    if (!visibility.allowed) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
     event.shareCount += 1;
     recordEventMetrics(event, { shares: 1 });
@@ -589,15 +646,18 @@ exports.trackEventShare = async (req, res) => {
 
 exports.getEventAnalytics = async (req, res) => {
   try {
-    const lookup = await getEventByIdForOwner(
-      req.params.id,
-      req.user.id,
-      true,
-      req.user.role,
-    );
+    const lookup = await authorizeEventAction({
+      eventId: req.params.id,
+      user: req.user,
+      permission: "canAccessAnalytics",
+      deniedMessage: "You do not have permission to view analytics for this event",
+    });
 
     if (lookup.error) {
-      return res.status(lookup.error.status).json({ message: lookup.error.message });
+      return res.status(lookup.error.status).json({
+        message: lookup.error.message,
+        ...(lookup.error.code ? { code: lookup.error.code } : {}),
+      });
     }
 
     const event = await Event.findById(req.params.id).populate(eventPopulateOptions);

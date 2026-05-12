@@ -5,29 +5,12 @@ const User = require("../models/User");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../utils/email");
 const { teamInvitationEmail } = require("../utils/emailTemplates");
-
-// Helper function to check if user can manage team for an event
-const canManageTeam = async (eventId, userId) => {
-  const event = await Event.findById(eventId);
-  if (!event) return false;
-
-  // Owner can always manage team
-  const ownerId = event.createdBy?._id || event.createdBy;
-
-if (String(ownerId) === String(userId)) {
-  return true;
-}
-
-  // Check if user is a team co_organizer
-  const eventTeam = await EventTeam.findOne({ event: eventId });
-  if (!eventTeam) return false;
-
-  const member = eventTeam.members.find(m =>
-    String(m.user) === String(userId) && m.isActive
-  );
-
-  return member && member.permissions.canManageTeam;
-};
+const {
+  authorizeEventAction,
+  getEventAccessForUser,
+  getRolePermissions,
+  toSerializableAccess,
+} = require("../utils/eventPermissions");
 
 // // Helper function to check if user has access to event
 // const hasEventAccess = async (eventId, userId, requiredPermission = null) => {
@@ -120,8 +103,17 @@ exports.inviteTeamMember = async (req, res) => {
     }
 
     // Check if user can manage team
-    if (!await canManageTeam(eventId, userId)) {
-      return res.status(403).json({ message: "You don't have permission to manage team" });
+    const accessLookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canManageTeam",
+      deniedMessage: "You don't have permission to manage team",
+    });
+    if (accessLookup.error) {
+      return res.status(accessLookup.error.status).json({
+        message: accessLookup.error.message,
+        ...(accessLookup.error.code ? { code: accessLookup.error.code } : {}),
+      });
     }
 
     // Get event details
@@ -347,8 +339,17 @@ exports.removeTeamMember = async (req, res) => {
     const userId = req.user.id;
 
     // Check if user can manage team
-    if (!await canManageTeam(eventId, userId)) {
-      return res.status(403).json({ message: "You don't have permission to manage team" });
+    const accessLookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canManageTeam",
+      deniedMessage: "You don't have permission to manage team",
+    });
+    if (accessLookup.error) {
+      return res.status(accessLookup.error.status).json({
+        message: accessLookup.error.message,
+        ...(accessLookup.error.code ? { code: accessLookup.error.code } : {}),
+      });
     }
 
     const eventTeam = await EventTeam.findOne({ event: eventId });
@@ -406,8 +407,17 @@ exports.updateTeamMemberRole = async (req, res) => {
     }
 
     // Check if user can manage team
-    if (!await canManageTeam(eventId, userId)) {
-      return res.status(403).json({ message: "You don't have permission to manage team" });
+    const accessLookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canManageTeam",
+      deniedMessage: "You don't have permission to manage team",
+    });
+    if (accessLookup.error) {
+      return res.status(accessLookup.error.status).json({
+        message: accessLookup.error.message,
+        ...(accessLookup.error.code ? { code: accessLookup.error.code } : {}),
+      });
     }
 
     const eventTeam = await EventTeam.findOne({ event: eventId });
@@ -429,6 +439,7 @@ if (!member) {
     }
 
     member.role = role;
+    member.permissions = getRolePermissions(role);
     await eventTeam.save();
 
     // Notify member of role change
@@ -463,28 +474,35 @@ exports.getMyTeamEvents = async (req, res) => {
     const userId = req.user.id;
 
     const eventTeams = await EventTeam.find({
-  members: {
-    $elemMatch: {
-      user: userId,
-      isActive: true
-    }
-  }
-})
-    .populate("event")
-    .populate("members.user", "name username");
+      members: {
+        $elemMatch: {
+          user: userId,
+          isActive: true,
+        },
+      },
+    })
+      .populate({
+        path: "event",
+        populate: {
+          path: "createdBy",
+          select: "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus",
+        },
+      })
+      .populate("members.user", "name username");
 
-    const events = eventTeams.map(et => {
-      const member = et.members.find(
-  m =>
-    String(m.user._id || m.user) === String(userId) &&
-    m.isActive
-);
-      return {
-        ...et.event.toObject(),
-        teamRole: member.role,
-        teamPermissions: member.permissions,
-      };
-    });
+    const events = await Promise.all(
+      eventTeams
+        .filter((eventTeam) => eventTeam.event)
+        .map(async (eventTeam) => {
+          const access = await getEventAccessForUser(eventTeam.event, req.user, { eventTeam });
+          return {
+            ...eventTeam.event.toObject(),
+            teamRole: access.role,
+            teamPermissions: access.permissions,
+            eventAccess: toSerializableAccess(access),
+          };
+        }),
+    );
 
     res.json({ events });
 

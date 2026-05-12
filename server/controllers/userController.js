@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const Event = require("../models/Event");
+const EventTeam = require("../models/EventTeam");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const {
@@ -10,11 +11,22 @@ const {
   destroyCloudinaryImage,
 } = require("../utils/cloudinaryMedia");
 const { createNotification } = require("../services/notificationService");
+const {
+  getEventAccessForUser,
+  toSerializableAccess,
+} = require("../utils/eventPermissions");
+const {
+  buildPublicEventQuery,
+  filterViewableEvents,
+} = require("../utils/eventVisibility");
 
-const buildProfileStats = (user, createdEvents = []) => ({
+const buildProfileStats = (user, createdEvents = [], extras = {}) => ({
   followers: Array.isArray(user.followers) ? user.followers.length : 0,
   following: Array.isArray(user.following) ? user.following.length : 0,
   events: createdEvents.length,
+  totalEventsCreated: createdEvents.length,
+  totalTicketsSold: Number(extras.totalTicketsSold || 0),
+  totalFeaturedEvents: Number(extras.totalFeaturedEvents || 0),
   totalViews: createdEvents.reduce((sum, event) => sum + Number(event.viewCount || 0), 0),
   totalLikes: createdEvents.reduce(
     (sum, event) => sum + (Array.isArray(event.likes) ? event.likes.length : 0),
@@ -31,6 +43,7 @@ const buildProfileEventPayload = (event, currentUserId, extras = {}) => {
   const data = event.toObject ? event.toObject() : event;
   const likes = Array.isArray(data.likes) ? data.likes : [];
   const likeIds = likes.map((like) => String(like?._id || like));
+  const { isFavorited, ...restExtras } = extras;
 
   const payload = {
     ...data,
@@ -39,13 +52,117 @@ const buildProfileEventPayload = (event, currentUserId, extras = {}) => {
     viewCount: Number(data.viewCount || 0),
     shareCount: Number(data.shareCount || 0),
     isLiked: currentUserId ? likeIds.includes(String(currentUserId)) : false,
+    ...restExtras,
   };
 
-  if (typeof extras.isFavorited === "boolean") {
-    payload.isFavorited = extras.isFavorited;
+  if (typeof isFavorited === "boolean") {
+    payload.isFavorited = isFavorited;
   }
 
   return payload;
+};
+
+const getProfileFeaturedEvents = async (profileUserId, viewerUser, options = {}) => {
+  const includePrivate = Boolean(options.includePrivate);
+  const createdEvents = await Event.find({
+    createdBy: profileUserId,
+  })
+    .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+    .sort({ createdAt: -1 });
+
+  const collaboratorTeams = await EventTeam.find({
+    members: {
+      $elemMatch: {
+        user: profileUserId,
+        isActive: true,
+      },
+    },
+  }).populate({
+    path: "event",
+    match: eventFilter,
+    populate: {
+      path: "createdBy",
+      select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus",
+    },
+  });
+
+  const featuredMap = new Map();
+
+  createdEvents.forEach((event) => {
+    featuredMap.set(String(event._id), {
+      event,
+      featuredRole: null,
+      featuredSource: "owner",
+    });
+  });
+
+  collaboratorTeams.forEach((team) => {
+    if (!team.event) return;
+
+    const member = team.members.find(
+      (item) =>
+        item?.isActive && String(item.user?._id || item.user) === String(profileUserId),
+    );
+
+    if (!member) return;
+
+    const key = String(team.event._id);
+    if (!featuredMap.has(key)) {
+      featuredMap.set(key, {
+        event: team.event,
+        featuredRole: member.role,
+        featuredSource: "collaborator",
+      });
+    }
+  });
+
+  const featuredEvents = await Promise.all(
+    [...featuredMap.values()].map(async ({ event, featuredRole, featuredSource }) => {
+      if (!includePrivate) {
+        const [visibleEvent] = await filterViewableEvents([event], viewerUser, {
+          allowPrivateLink: false,
+        });
+        if (!visibleEvent) return null;
+      }
+
+      const viewerAccess = viewerUser
+        ? await getEventAccessForUser(event, viewerUser)
+        : null;
+
+      return buildProfileEventPayload(event, viewerUser?._id || viewerUser?.id || null, {
+        featuredRole,
+        featuredSource,
+        eventAccess: viewerAccess ? toSerializableAccess(viewerAccess) : null,
+      });
+    }),
+  );
+
+  return featuredEvents.filter(Boolean).sort(
+    (left, right) => new Date(right.createdAt || 0).getTime() - new Date(left.createdAt || 0).getTime(),
+  );
+};
+
+const getTotalTicketsSoldForCreatedEvents = async (profileUserId) => {
+  const createdEvents = await Event.find({ createdBy: profileUserId }).select("_id").lean();
+  if (!createdEvents.length) return 0;
+
+  const totals = await Ticket.aggregate([
+    {
+      $match: {
+        event: {
+          $in: createdEvents.map((event) => event._id),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$quantity" },
+      },
+    },
+  ]);
+
+  return Number(totals[0]?.total || 0);
 };
 
 const formatDate = (date) => {
@@ -77,12 +194,19 @@ const getMyProfile = async (req, res) => {
     const userId = uid;
     const tickets = await Ticket.find({ buyer: userId }).populate("event").exec();
     const createdEvents = await Event.find({ createdBy: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .exec();
-    const likedEvents = await Event.find({ likes: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified")
+    const likedEventDocs = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .sort({ createdAt: -1 })
       .exec();
+    const likedEvents = await filterViewableEvents(likedEventDocs, req.user, {
+      allowPrivateLink: false,
+    });
+    const [featuredEvents, totalTicketsSold] = await Promise.all([
+      getProfileFeaturedEvents(userId, req.user, { includePrivate: true }),
+      getTotalTicketsSoldForCreatedEvents(userId),
+    ]);
 
     res.json({
       ...user.toObject(),
@@ -105,10 +229,14 @@ const getMyProfile = async (req, res) => {
         ),
       ),
       likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, userId)),
+      featuredEvents,
       savedEvents: (user.favorites || []).map((event) =>
         buildProfileEventPayload(event, userId, { isFavorited: true }),
       ),
-      stats: buildProfileStats(user, createdEvents),
+      stats: buildProfileStats(user, createdEvents, {
+        totalTicketsSold,
+        totalFeaturedEvents: featuredEvents.length,
+      }),
       isOwner: true,
       isFollowing: false,
     });
@@ -409,32 +537,50 @@ const getUserProfile = async (req, res) => {
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-    const createdEvents = await Event.find({ createdBy: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified");
-    const likedEvents = await Event.find({ likes: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified")
+    const createdEventDocs = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus");
+    const likedEventDocs = await Event.find({ likes: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .sort({ createdAt: -1 });
     const isOwner = String(currentUserId) === String(userId);
+    const createdEvents = isOwner
+      ? createdEventDocs
+      : await filterViewableEvents(createdEventDocs, req.user, {
+          allowPrivateLink: false,
+        });
+    const likedEvents = await filterViewableEvents(likedEventDocs, req.user, {
+      allowPrivateLink: false,
+    });
     const isFollowing = user.followers.some(
       (follower) => follower._id.toString() === String(currentUserId),
     );
+    const featuredEvents = await getProfileFeaturedEvents(userId, req.user, {
+      includePrivate: isOwner,
+    });
 
     const base = user.toObject();
     if (!isOwner) {
       delete base.favorites;
     }
 
-    res.json({
-      ...base,
-      tickets,
-      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
-      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      res.json({
+        ...base,
+        tickets: isOwner ? tickets : [],
+        createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+        likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+        featuredEvents,
       savedEvents: isOwner
         ? (user.favorites || []).map((event) =>
             buildProfileEventPayload(event, currentUserId, { isFavorited: true }),
           )
         : [],
-      stats: buildProfileStats(user, createdEvents),
+      stats: buildProfileStats(user, createdEvents, {
+        totalTicketsSold: createdEvents.reduce(
+          (sum, event) => sum + Number(event.ticketsSold || 0),
+          0,
+        ),
+        totalFeaturedEvents: featuredEvents.length,
+      }),
       isOwner,
       isFollowing,
     });
@@ -459,21 +605,37 @@ const getPublicProfile = async (req, res) => {
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     const createdEvents = await Event.find({ createdBy: user._id })
-      .populate("createdBy", "name username profilePic role billing isVerified")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .sort({ createdAt: -1 });
-    const likedEvents = await Event.find({ likes: user._id })
-      .populate("createdBy", "name username profilePic role billing isVerified")
+    const likedEventDocs = await Event.find({ likes: user._id })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .sort({ createdAt: -1 });
+    const visibleCreatedEvents = await filterViewableEvents(createdEvents, null, {
+      allowPrivateLink: false,
+    });
+    const likedEvents = await filterViewableEvents(likedEventDocs, null, {
+      allowPrivateLink: false,
+    });
+    const featuredEvents = await getProfileFeaturedEvents(user._id, null, {
+      includePrivate: false,
+    });
 
     const pub = user.toObject();
     delete pub.favorites;
 
     return res.json({
       ...pub,
-      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, null)),
+      createdEvents: visibleCreatedEvents.map((event) => buildProfileEventPayload(event, null)),
       likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, null)),
+      featuredEvents,
       savedEvents: [],
-      stats: buildProfileStats(user, createdEvents),
+      stats: buildProfileStats(user, visibleCreatedEvents, {
+        totalTicketsSold: visibleCreatedEvents.reduce(
+          (sum, event) => sum + Number(event.ticketsSold || 0),
+          0,
+        ),
+        totalFeaturedEvents: featuredEvents.length,
+      }),
       isOwner: false,
       isFollowing: false,
       isPublic: true,
@@ -495,13 +657,21 @@ const getCreators = async (req, res) => {
     const category = String(req.query.category || "all").toLowerCase();
     const sort = String(req.query.sort || "trending").toLowerCase();
     const match = { isDeleted: { $ne: true } };
+    const publicEventMatch = buildPublicEventQuery();
     const pipeline = [
       { $match: match },
       {
         $lookup: {
           from: "events",
-          localField: "_id",
-          foreignField: "createdBy",
+          let: { creatorId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$createdBy", "$$creatorId"] },
+                ...publicEventMatch,
+              },
+            },
+          ],
           as: "events",
         },
       },
