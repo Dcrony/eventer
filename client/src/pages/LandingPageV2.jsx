@@ -514,6 +514,7 @@ export default function LandingPageV2() {
                 )}
                 <li><Link to="/pricing" className="hover:text-pink-500 transition-colors">Pricing</Link></li>
                 <li><Link to="/docs" className="hover:text-pink-500 transition-colors">Docs</Link></li>
+                <li><Link to="/faq" className="hover:text-pink-500 transition-colors">FAQ</Link></li>
               </ul>
             </div>
 
@@ -524,6 +525,7 @@ export default function LandingPageV2() {
                 <li><Link to="/contact" className="hover:text-pink-500 transition-colors">Contact</Link></li>
                 <li><Link to="/help" className="hover:text-pink-500 transition-colors">Help Center</Link></li>
                 <li><Link to="/founder" className="hover:text-pink-500 transition-colors">Founder</Link></li>
+                <li><Link to="/features" className="hover:text-pink-500 transition-colors">Features</Link></li>
               </ul>
             </div>
 

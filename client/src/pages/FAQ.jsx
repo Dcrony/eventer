@@ -51,18 +51,18 @@ export default function FAQ() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-semibold mb-4">
-            <Sparkles size={14} />
-            Frequently Asked Questions
+    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-3">
+            <Headphones size={14} />
+            Help Center
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-3">
             Got questions? We've got answers
           </h1>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             Everything you need to know about using TickiSpot for your events
           </p>
 
@@ -74,16 +74,14 @@ export default function FAQ() {
               placeholder="Search FAQs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 rounded-full bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-lg"
+              className="w-full pl-11 pr-4 py-3 rounded-full border-2 border-gray-200 bg-white text-gray-900 text-sm placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all shadow-sm"
             />
           </div>
         </div>
-      </div>
 
-      {/* FAQ List */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* FAQ List */}
         {filteredFaqs.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 mb-12">
             {filteredFaqs.map((faq, index) => (
               <div
                 key={index}
@@ -107,7 +105,7 @@ export default function FAQ() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 mb-12">
             <Search size={48} className="mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-bold text-gray-900 mb-2">No matching questions found</h3>
             <p className="text-gray-500">Try different keywords or browse all FAQs above.</p>
@@ -115,23 +113,23 @@ export default function FAQ() {
         )}
 
         {/* Still Need Help Section */}
-        <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-pink-100 text-pink-500 mb-4">
-            <Headphones size={24} />
-          </div>
-          <h2 className="text-xl font-extrabold text-gray-900 mb-2">Still have questions?</h2>
-          <p className="text-gray-600 mb-6">Our support team is ready to help you.</p>
+        <div className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl p-8 text-center text-white">
+          <h2 className="text-2xl font-extrabold mb-2">Still have questions?</h2>
+          <p className="text-white/90 mb-6">Our support team is ready to help you.</p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link to="/contact" className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-semibold transition-all duration-200 hover:bg-pink-600 shadow-md">
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white text-pink-600 font-semibold transition-all duration-200 hover:bg-gray-100 hover:-translate-y-0.5 shadow-md"
+            >
               Contact Support
             </Link>
             <a
               href="https://wa.me/2349056911562"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-500 text-white font-semibold transition-all duration-200 hover:bg-green-600 shadow-md"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-500 text-white font-semibold transition-all duration-200 hover:bg-green-600 hover:-translate-y-0.5 shadow-md"
             >
-              <MessageCircle size={16} />
+              <MessageCircle size={18} />
               Chat on WhatsApp
             </a>
           </div>
