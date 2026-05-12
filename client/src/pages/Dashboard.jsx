@@ -3,6 +3,7 @@ import API from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import EditEvent from "../components/EditEvent";
 import TeamManagement from "../components/TeamManagement";
+import EventActionMenu from "../components/EventActionMenu";
 import { getCurrentUser } from "../utils/auth";
 import {
   ArrowRight,
@@ -15,13 +16,13 @@ import {
   MapPin,
   Users,
   Wallet,
-  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import { promptUpgrade } from "../utils/planAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 
 export default function Dashboard() {
@@ -35,9 +36,7 @@ export default function Dashboard() {
   const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
   const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [openMenuId, setOpenMenuId] = useState(null);
-  
+  const [transactions, setTransactions] = useState([]); // FIXED: Added missing state variable
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
@@ -93,10 +92,10 @@ export default function Dashboard() {
       .then(([eventsRes, statsRes, transactionRes]) => {
         setEvents(eventsRes.data || []);
         setStats(statsRes.data || null);
-        setTransactions(transactionRes.data || []);
+        setTransactions(transactionRes.data || []); // FIXED: Now setTransactions is defined
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError("Failed to load dashboard data");
         setLoading(false);
       });
@@ -128,30 +127,30 @@ export default function Dashboard() {
                 ...ev,
                 liveStream: { ...ev.liveStream, isLive: !currentStatus },
               }
-            : ev
-        )
+            : ev,
+        ),
       );
 
       if (!currentStatus) {
         navigate(`/live/${id}`);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to toggle live status");
     }
   };
 
   const handleDelete = async (id) => {
-    const eventToDelete = events.find((e) => e._id === id);
+    const eventToDelete = events.find((event) => event._id === id);
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`
+      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`,
     );
 
     if (!confirmed) return;
 
     try {
       await API.delete(`/events/delete/${id}`);
-      setEvents(events.filter((e) => e._id !== id));
-    } catch (err) {
+      setEvents(events.filter((event) => event._id !== id));
+    } catch {
       setError("Failed to delete event. Please try again.");
     }
   };
@@ -163,7 +162,7 @@ export default function Dashboard() {
       green: "before:bg-green-500",
       red: "before:bg-red-500",
     };
-    
+
     const iconBgClasses = {
       blue: "bg-blue-50 text-blue-500",
       pink: "bg-pink-50 text-pink-500",
@@ -172,7 +171,7 @@ export default function Dashboard() {
     };
 
     return (
-      <div 
+      <div
         className={`group relative bg-white rounded-2xl border border-gray-200 p-5 flex justify-between items-center transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:rounded-t-2xl before:opacity-0 group-hover:before:opacity-100 ${colorClasses[color]}`}
       >
         <div>
@@ -191,26 +190,24 @@ export default function Dashboard() {
   };
 
   const formatNumber = (num) => {
-    if (num === null || num === undefined || isNaN(num)) return "0";
+    if (num === null || num === undefined || Number.isNaN(num)) return "0";
     return new Intl.NumberFormat("en-NG").format(num);
   };
 
-  const latestTransactions = transactions.slice(0, 3);
+  const latestTransactions = transactions?.slice(0, 3) || []; // FIXED: Added safe access
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] pt-8 transition-all duration-300">
+    <div className="min-h-screen bg-gray-50 font-geist pt-8 transition-all duration-300 lg:pl-[var(--sidebar-width,0px)]">
       <TrialNotificationBanner />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-6 pb-6 mb-8 border-b border-gray-200">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">
               Organizer Dashboard
             </h1>
             <p className="text-sm text-gray-400 mt-1.5">
-              Welcome back{user?.username ? `, ${user.username}` : ""}. Manage
-              your events, sales, and live sessions.
+              Welcome back{user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.
             </p>
           </div>
 
@@ -230,16 +227,17 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Loading State */}
         {loading && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             <div className="p-6">
-              <p className="text-gray-500">Loading dashboard...</p>
+              <div className="animate-pulse flex items-center justify-center">
+                <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+              </div>
+              <p className="text-gray-500 text-center mt-3">Loading dashboard...</p>
             </div>
           </div>
         )}
 
-        {/* Error State */}
         {error && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             <div className="p-6">
@@ -254,49 +252,17 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Stats Grid */}
         {!loading && !error && stats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-            <StatCard
-              title="Total Events"
-              value={stats.totalEvents}
-              icon={LayoutDashboard}
-              color="blue"
-            />
-            <StatCard
-              title="Tickets Sold"
-              value={formatNumber(stats.totalTicketsSold)}
-              icon={Ticket}
-              color="pink"
-            />
-            <StatCard
-              title="Revenue"
-              value={`₦${formatNumber(stats.totalRevenue)}`}
-              icon={BarChart3}
-              color="green"
-            />
-            <StatCard
-              title="Live Sessions"
-              value={stats.currentlyLive}
-              icon={Radio}
-              color="red"
-            />
-            <StatCard
-              title="Available Balance"
-              value={`₦${formatNumber(stats.availableBalance || 0)}`}
-              icon={Wallet}
-              color="green"
-            />
-            <StatCard
-              title="Pending Balance"
-              value={`₦${formatNumber(stats.pendingBalance || 0)}`}
-              icon={Wallet}
-              color="green"
-            />
+            <StatCard title="Total Events" value={stats.totalEvents} icon={LayoutDashboard} color="blue" />
+            <StatCard title="Tickets Sold" value={formatNumber(stats.totalTicketsSold)} icon={Ticket} color="pink" />
+            <StatCard title="Revenue" value={`₦${formatNumber(stats.totalRevenue)}`} icon={BarChart3} color="green" />
+            <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
+            <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" />
+            <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" />
           </div>
         )}
 
-        {/* Top Performing Events */}
         {!loading && !error && stats && stats.topEvents?.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
@@ -304,18 +270,14 @@ export default function Dashboard() {
             </div>
             <div className="p-6">
               <div className="space-y-0">
-                {stats.topEvents.map((event, i) => (
+                {stats.topEvents.slice(0, 3).map((event, index) => (
                   <div
-                    key={i}
+                    key={index}
                     className="grid grid-cols-[32px_1fr_180px] items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg"
                   >
-                    <div className="text-sm font-extrabold text-gray-400 text-center">
-                      #{i + 1}
-                    </div>
+                    <div className="text-sm font-extrabold text-gray-400 text-center">#{index + 1}</div>
                     <div>
-                      <div className="text-sm font-bold text-gray-900 mb-0.5 truncate">
-                        {event.title}
-                      </div>
+                      <div className="text-sm font-bold text-gray-900 mb-0.5 truncate">{event.title}</div>
                       <div className="text-xs text-gray-400">
                         {formatNumber(event.quantitySold || event.ticketsSold || 0)} tickets sold
                       </div>
@@ -326,7 +288,7 @@ export default function Dashboard() {
                         style={{
                           width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%`,
                         }}
-                      ></div>
+                      />
                     </div>
                   </div>
                 ))}
@@ -335,7 +297,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Transaction History */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
             <h3 className="text-sm font-bold text-gray-900">Transaction History</h3>
@@ -356,9 +317,7 @@ export default function Dashboard() {
                         {new Date(tx.createdAt).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="text-sm font-semibold text-gray-900">
-                      ₦{formatNumber(ticketNetToOrganizer(tx))}
-                    </div>
+                    <div className="text-sm font-semibold text-gray-900">₦{formatNumber(ticketNetToOrganizer(tx))}</div>
                     <div
                       className={`text-xs font-bold px-2 py-1 rounded-full ${
                         tx.status === "success"
@@ -383,13 +342,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Events Section */}
         {!loading && !error && (
           <>
-            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">
-              Your events
-            </h2>
-            
+            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Your events</h2>
+
             {events.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm text-center py-16 px-8">
                 <p className="text-gray-400 text-sm mb-6">
@@ -409,97 +365,65 @@ export default function Dashboard() {
                     key={event._id}
                     className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
                   >
-                    {/* Menu */}
                     <div className="absolute top-3 right-3 z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === event._id ? null : event._id);
-                        }}
-                        className="bg-white/90 backdrop-blur-sm rounded-lg p-1.5 transition-all duration-200 hover:bg-white hover:scale-105 shadow-sm"
-                      >
-                        <MoreVertical size={18} className="text-gray-600" />
-                      </button>
-
-                      {openMenuId === event._id && (
-                        <div
-                          className="absolute top-10 right-0 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-20 animate-in fade-in slide-in-from-top-1 duration-150"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={() => {
+                      <EventActionMenu
+                        items={[
+                          {
+                            key: "live",
+                            label: event.liveStream?.isLive ? "Stop Live" : "Go Live",
+                            icon: Radio,
+                            active: Boolean(event.liveStream?.isLive),
+                            onClick: () => {
                               if (!canAccessLiveStreaming) {
                                 promptUpgradeLive();
                               } else {
                                 toggleLive(event._id, event.liveStream?.isLive);
                               }
-                              setOpenMenuId(null);
-                            }}
-                            disabled={!canAccessLiveStreaming}
-                            className="w-full text-left px-3 py-2 text-sm font-semibold text-pink-500 hover:bg-pink-50 transition-colors duration-200 flex items-center gap-1.5"
-                          >
-                            {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
-                            {!canAccessLiveStreaming && " 🔒"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleEditClick(event._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
-                          >
-                            Edit
-                          </button>
-                          <Link
-                            to={`/events/${event._id}/tickets`}
-                            onClick={() => setOpenMenuId(null)}
-                            className="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
-                          >
-                            Manage Tickets
-                          </Link>
-                          {canAccessAnalytics ? (
-                            <Link
-                              to={`/events/${event._id}/analytics`}
-                              onClick={() => setOpenMenuId(null)}
-                              className="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
-                            >
-                              Analytics
-                            </Link>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                promptUpgradeAnalytics();
-                              }}
-                              className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
-                            >
-                              Analytics
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              handleTeamClick(event._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex items-center gap-1.5"
-                          >
-                            <Users size={14} /> Manage Team
-                          </button>
-                          <div className="h-px bg-gray-100 my-1"></div>
-                          <button
-                            onClick={() => {
-                              handleDelete(event._id);
-                              setOpenMenuId(null);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors duration-200"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      )}
+                            },
+                          },
+                          {
+                            key: "edit",
+                            label: "Edit event",
+                            icon: Pencil,
+                            onClick: () => handleEditClick(event._id),
+                          },
+                          {
+                            key: "tickets",
+                            label: "Manage tickets",
+                            icon: Ticket,
+                            to: `/events/${event._id}/tickets`,
+                          },
+                          canAccessAnalytics
+                            ? {
+                                key: "analytics",
+                                label: "Analytics",
+                                icon: BarChart3,
+                                to: `/events/${event._id}/analytics`,
+                              }
+                            : {
+                                key: "analytics-upgrade",
+                                label: "Analytics",
+                                icon: BarChart3,
+                                onClick: promptUpgradeAnalytics,
+                              },
+                          {
+                            key: "team",
+                            label: "Manage team",
+                            icon: Users,
+                            onClick: () => handleTeamClick(event._id),
+                          },
+                          { key: "divider-delete", type: "divider" },
+                          {
+                            key: "delete",
+                            label: "Delete event",
+                            icon: Trash2,
+                            danger: true,
+                            onClick: () => handleDelete(event._id),
+                          },
+                        ]}
+                      />
                     </div>
 
-                    {/* Cover Image */}
                     {getEventImageUrl(event) ? (
                       <img
                         src={getEventImageUrl(event)}
@@ -512,12 +436,9 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {/* Body */}
                     <div className="p-4 flex-1 flex flex-col gap-2.5">
                       <div className="flex justify-between items-start gap-3">
-                        <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">
-                          {event.title}
-                        </h3>
+                        <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{event.title}</h3>
                         {event.liveStream?.isLive && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
                             LIVE
@@ -525,9 +446,7 @@ export default function Dashboard() {
                         )}
                       </div>
 
-                      <p className="text-xs text-gray-400 line-clamp-2">
-                        {event.description || "No description provided."}
-                      </p>
+                      <p className="text-xs text-gray-400 line-clamp-2">{event.description || "No description provided."}</p>
 
                       <div className="mt-auto space-y-1.5">
                         <div className="flex items-center gap-2 text-xs text-gray-600">
