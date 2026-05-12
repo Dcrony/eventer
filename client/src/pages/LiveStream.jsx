@@ -39,6 +39,10 @@ import Peer from "simple-peer";
 import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
+import {
+    canManageTickets as canManageEventTickets,
+    canModerateLivestream as canModerateEventLivestream,
+} from "../utils/eventPermissions";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 const SERVER_URL = import.meta.env.VITE_SOCKET_URL || API_URL.replace(/\/api\/?$/, "");
@@ -58,7 +62,7 @@ export default function LiveStream() {
     const { toProfile } = useProfileNavigation();
 
     // Host panel state
-    const [hostPanelTab, setHostPanelTab] = useState("attendees");
+    const [hostPanelTab, setHostPanelTab] = useState("chat");
     const [attendees, setAttendees] = useState([]);
     const [attendeesLoading, setAttendeesLoading] = useState(false);
     const [attendeesError, setAttendeesError] = useState(null);
@@ -119,11 +123,9 @@ export default function LiveStream() {
                 setEvent(eventData);
                 setLoading(false);
 
-                const createdById = typeof eventData.createdBy === "string"
-                    ? eventData.createdBy
-                    : eventData.createdBy?._id || eventData.createdBy?.id;
-                const isOwner = !!currentUserId && createdById === currentUserId;
-                setIsBroadcaster(isOwner);
+                const canModerate = canModerateEventLivestream(eventData);
+                setIsBroadcaster(canModerate);
+                setHostPanelTab(canManageEventTickets(eventData) ? "attendees" : "chat");
 
                 socketRef.current = io(SOCKET_URL, {
                     auth: { token: localStorage.getItem("token") },
@@ -132,9 +134,9 @@ export default function LiveStream() {
                 });
                 socketRef.current.emit("joinRoom", eventId);
 
-                if (isOwner && eventData.liveStream?.streamType === "Camera") {
+                if (canModerate && eventData.liveStream?.streamType === "Camera") {
                     requestCameraAndMic();
-                } else if (!isOwner && eventData.liveStream?.streamType === "Camera") {
+                } else if (!canModerate && eventData.liveStream?.streamType === "Camera") {
                     socketRef.current.on("signal", (data) => {
                         const peer = new Peer({ initiator: false, trickle: false });
                         peer.on("signal", (signal) => {
@@ -246,7 +248,7 @@ export default function LiveStream() {
     };
 
     useEffect(() => {
-        if (!isBroadcaster || !eventId) return;
+        if (!isBroadcaster || !eventId || !canManageEventTickets(event)) return;
         setAttendeesLoading(true);
         setAttendeesError(null);
         API.get(`/events/buyers/${eventId}`)
@@ -258,13 +260,13 @@ export default function LiveStream() {
                 setAttendeesError("Could not load attendees.");
                 setAttendeesLoading(false);
             });
-    }, [isBroadcaster, eventId]);
+    }, [isBroadcaster, eventId, event]);
 
     const handleEndStream = () => {
         if (!eventId || !endStreamConfirm) return;
         setEndingStream(true);
         API.patch("/events/toggle-live", { eventId, isLive: false })
-            .then(() => navigate("/dashboard"))
+            .then(() => navigate(`/event/${eventId}`))
             .catch(() => {
                 setEndingStream(false);
                 alert("Failed to end stream. Please try again.");
@@ -340,11 +342,11 @@ export default function LiveStream() {
                         ? "Add a YouTube or custom stream URL in your event settings to go live here."
                         : `This ${event.liveStream?.streamType || "stream"} hasn't been configured yet.`}
                 </p>
-                {isBroadcaster && (
-                    <Link to="/dashboard" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold hover:bg-pink-600 transition-all shadow-md">
-                        <SettingsIcon size={16} /> Go to Dashboard
+                    {isBroadcaster && (
+                    <Link to={`/event/${eventId}`} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold hover:bg-pink-600 transition-all shadow-md">
+                        <SettingsIcon size={16} /> Open event
                     </Link>
-                )}
+                    )}
             </div>
         );
     };
@@ -513,6 +515,7 @@ export default function LiveStream() {
                 <aside className="w-[360px] min-w-[300px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
                     {/* Tabs */}
                     <div className="flex p-1.5 gap-1 border-b border-gray-200 bg-gray-50/80">
+                        {canManageEventTickets(event) && (
                         <button
                             onClick={() => setHostPanelTab("attendees")}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${hostPanelTab === "attendees" ? "bg-pink-50 text-pink-600" : "text-gray-400 hover:text-gray-600"}`}
@@ -520,6 +523,7 @@ export default function LiveStream() {
                             <UserCheck size={14} /> Attendees
                             {attendees.length > 0 && <span className="px-1.5 py-0.5 rounded-full bg-pink-500 text-white text-[0.6rem] font-bold">{attendees.length}</span>}
                         </button>
+                        )}
                         <button onClick={() => setHostPanelTab("event")} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${hostPanelTab === "event" ? "bg-pink-50 text-pink-600" : "text-gray-400 hover:text-gray-600"}`}>
                             <Calendar size={14} /> Event
                         </button>
@@ -530,7 +534,7 @@ export default function LiveStream() {
 
                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                         {/* Attendees Panel */}
-                        {hostPanelTab === "attendees" && (
+                        {hostPanelTab === "attendees" && canManageEventTickets(event) && (
                             <div className="flex-1 overflow-y-auto p-4">
                                 <h3 className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-3">Ticket holders ({attendees.length})</h3>
                                 {attendeesLoading && (
