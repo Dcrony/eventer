@@ -32,6 +32,12 @@ import {
 } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import ShareModal from "../components/ShareModal";
+import {
+  canAccessAnalytics as canAccessEventAnalytics,
+  canManageTeam as canManageEventTeam,
+  canManageTickets as canManageEventTickets,
+  canModerateLivestream as canManageEventLivestream,
+} from "../utils/eventPermissions";
 
 export default function EventDetail() {
   const { eventId } = useParams();
@@ -240,6 +246,10 @@ export default function EventDetail() {
   }
 
   const remainingTickets = Number(event.totalTickets || 0);
+  const showAnalyticsAction = canAccessEventAnalytics(event);
+  const showTicketAction = canManageEventTickets(event);
+  const showTeamAction = canManageEventTeam(event);
+  const showLiveAction = canManageEventLivestream(event);
 
   return (
     <>
@@ -271,9 +281,26 @@ export default function EventDetail() {
                     <Button variant="secondary" onClick={() => navigate("/events")} className="text-sm">
                       <ArrowLeft size={16} /> Back to browse
                     </Button>
-                    {(event.createdBy?._id === user?._id || event.createdBy?._id === user?.id) && (
+                    {showAnalyticsAction && (
                       <Link to={`/events/${event._id}/analytics`}>
                         <Button variant="secondary" className="text-sm">View analytics</Button>
+                      </Link>
+                    )}
+                    {showTicketAction && (
+                      <Link to={`/events/${event._id}/tickets`}>
+                        <Button variant="secondary" className="text-sm">Manage tickets</Button>
+                      </Link>
+                    )}
+                    {showLiveAction && (
+                      <Link to={`/live/${event._id}`}>
+                        <Button variant="secondary" className="text-sm">
+                          {event.liveStream?.isLive ? "Open live controls" : "Open livestream"}
+                        </Button>
+                      </Link>
+                    )}
+                    {showTeamAction && (
+                      <Link to={`/profile/me`}>
+                        <Button variant="secondary" className="text-sm">Manage team from profile</Button>
                       </Link>
                     )}
                   </div>
