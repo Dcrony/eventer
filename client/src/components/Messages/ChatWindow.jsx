@@ -187,24 +187,33 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
 
   if (!selectedUser) {
     return (
-      <div className="chat-window-empty">
-        <h3>Select a conversation</h3>
-        <p>Choose someone to start chatting with</p>
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center min-h-[300px]">
+        <div className="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+          <MessageCircleMore size={32} strokeWidth={1.5} />
+        </div>
+        <h3 className="text-sm font-bold text-gray-900">Select a conversation</h3>
+        <p className="text-xs text-gray-400">Choose someone to start chatting with</p>
       </div>
     );
   }
 
   return (
-    <div className="chat-window">
-      <div className="chat-window-header">
-        {isMobile ? (
-          <button type="button" className="chat-back-button" onClick={onBack} aria-label="Back to conversations">
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-2 p-3 border-b border-gray-200 bg-white flex-shrink-0">
+        {isMobile && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 transition-all duration-200 hover:bg-pink-50 hover:text-pink-500"
+            aria-label="Back to conversations"
+          >
             <ArrowLeft size={18} />
           </button>
-        ) : null}
+        )}
 
         <div
-          className="chat-header-user"
+          className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer py-1 px-2 rounded-lg transition-all duration-200 hover:bg-gray-50"
           role="button"
           tabIndex={0}
           onClick={() => toProfile(selectedUser)}
@@ -215,36 +224,39 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
             }
           }}
         >
-          <div className="chat-header-avatar">
-            <UserAvatar user={selectedUser} className="chat-header-avatar-inner" />
-            <span className={`online-indicator ${online ? "online" : "offline"}`}></span>
+          <div className="relative flex-shrink-0">
+            <UserAvatar user={selectedUser} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+            <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${online ? "bg-green-500" : "bg-gray-300"}`} />
           </div>
 
-          <div className="chat-header-info">
-            <h3 className="chat-header-name">{selectedUser.name || selectedUser.username}</h3>
-            <p className="chat-header-status">
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-gray-900 truncate">
+              {selectedUser.name || selectedUser.username}
+            </h3>
+            <p className="text-xs text-gray-400">
               {online ? "Online now" : `@${selectedUser.username || "user"}`}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="chat-window-messages">
-        <div className="messages">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="p-4 space-y-2 min-h-full">
           {loading ? (
-            <div className="chat-loading">
-              <div className="loading-spinner"></div>
-              <p>Loading messages...</p>
+            <div className="flex flex-col items-center justify-center gap-3 py-12">
+              <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+              <p className="text-sm text-gray-400">Loading messages...</p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="chat-no-messages">
-              <div className="chat-no-messages-icon" aria-hidden>
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center min-h-[300px]">
+              <div className="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
                 <MessageCircleMore size={32} strokeWidth={1.5} />
               </div>
-              <p className="chat-no-messages-title">No messages yet</p>
-              <span className="chat-no-messages-hint">
+              <p className="text-sm font-semibold text-gray-900">No messages yet</p>
+              <p className="text-xs text-gray-400">
                 Say hello to {selectedUser.name || selectedUser.username}
-              </span>
+              </p>
             </div>
           ) : (
             <>
@@ -255,25 +267,35 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
                   isMe={msg.senderId === currentUserId || msg.sender?._id === currentUserId}
                 />
               ))}
-              {isTyping ? (
-                <div className="typing-indicator">
-                  <div className="typing-bubble">
-                    <span></span>
-                    <span></span>
-                    <span></span>
+              {isTyping && (
+                <div className="flex items-start gap-2">
+                  <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden">
+                    <UserAvatar user={selectedUser} className="w-full h-full" />
                   </div>
-                  <span className="typing-text">{selectedUser.name} is typing...</span>
+                  <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
+                    <div className="flex gap-1">
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
+                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">{selectedUser.name} is typing...</span>
                 </div>
-              ) : null}
+              )}
             </>
           )}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      <div className="chat-input-area">
-        <div className="chat-input">
-          <button type="button" className="chat-input-icon" aria-label="Emoji picker">
+      {/* Input Area */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex-shrink-0 border-t border-gray-200 bg-white p-3 pb-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 transition-all duration-200 hover:bg-pink-50 hover:text-pink-500"
+            aria-label="Emoji picker"
+          >
             <Smile size={18} />
           </button>
           <input
@@ -290,18 +312,19 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
             }}
             placeholder="Type a message"
             disabled={!currentUserId || !selectedUser || !isConnected}
-            className="chat-input-field"
+            className="flex-1 px-4 py-2.5 rounded-full border-2 border-gray-200 bg-gray-50 text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none disabled:opacity-50"
           />
           <button
+            type="submit"
             onClick={handleSend}
             disabled={!text.trim() || !currentUserId || !selectedUser}
-            className="chat-send-btn"
+            className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center transition-all duration-200 hover:bg-pink-600 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 shadow-md shadow-pink-500/30"
             title="Send message"
           >
             <Send size={18} />
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

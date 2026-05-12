@@ -55,19 +55,19 @@ export default function AdminDashboard() {
 
     return (
         <AdminLayout title="Dashboard Analytics" description="Monitor users, events, revenue, admin actions, and payout activity across TickiSpot.">
-            <div className="space-y-6">
+            <div className="space-y-5">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-950">Platform Overview</h2>
-                        <p className="mt-2 text-sm text-slate-500">A live snapshot of growth, moderation queues, and money movement.</p>
+                        <h2 className="text-lg font-extrabold text-gray-900">Platform Overview</h2>
+                        <p className="mt-1 text-xs text-gray-500">A live snapshot of growth, moderation queues, and money movement.</p>
                     </div>
                     <button
                         type="button"
                         onClick={fetchDashboardData}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-pink-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-pink-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-full bg-pink-500 px-4 py-2 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50"
                     >
-                        <Activity size={18} />
+                        <Activity size={16} />
                         Refresh data
                     </button>
                 </div>
@@ -132,20 +132,20 @@ export default function AdminDashboard() {
                             />
                         </div>
 
-                        <div className="grid gap-6 xl:grid-cols-2">
+                        <div className="grid gap-5 xl:grid-cols-2">
                             <SurfaceCard>
                                 <div className="mb-4 flex items-center gap-2">
-                                    <TrendingUp className="text-pink-500" size={20} />
-                                    <h3 className="text-lg font-semibold text-slate-950">Revenue Trend</h3>
+                                    <TrendingUp className="text-pink-500" size={18} />
+                                    <h3 className="text-sm font-extrabold text-gray-900">Revenue Trend</h3>
                                 </div>
                                 {revenue.length ? (
-                                    <ResponsiveContainer width="100%" height={300}>
+                                    <ResponsiveContainer width="100%" height={280}>
                                         <LineChart data={revenue}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                            <XAxis dataKey="_id" stroke="#94a3b8" />
-                                            <YAxis stroke="#94a3b8" />
+                                            <XAxis dataKey="_id" stroke="#94a3b8" fontSize={12} />
+                                            <YAxis stroke="#94a3b8" fontSize={12} />
                                             <Tooltip formatter={(value) => formatCurrency(value)} />
-                                            <Line type="monotone" dataKey="revenue" stroke="#ec4899" strokeWidth={3} dot={false} />
+                                            <Line type="monotone" dataKey="revenue" stroke="#ec4899" strokeWidth={2} dot={false} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
@@ -155,15 +155,15 @@ export default function AdminDashboard() {
 
                             <SurfaceCard>
                                 <div className="mb-4 flex items-center gap-2">
-                                    <Users className="text-pink-500" size={20} />
-                                    <h3 className="text-lg font-semibold text-slate-950">User Growth</h3>
+                                    <Users className="text-pink-500" size={18} />
+                                    <h3 className="text-sm font-extrabold text-gray-900">User Growth</h3>
                                 </div>
                                 {metrics?.userGrowth?.length ? (
-                                    <ResponsiveContainer width="100%" height={300}>
+                                    <ResponsiveContainer width="100%" height={280}>
                                         <BarChart data={metrics.userGrowth}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                                            <XAxis dataKey="_id" stroke="#94a3b8" />
-                                            <YAxis stroke="#94a3b8" />
+                                            <XAxis dataKey="_id" stroke="#94a3b8" fontSize={12} />
+                                            <YAxis stroke="#94a3b8" fontSize={12} />
                                             <Tooltip />
                                             <Bar dataKey="count" fill="#ec4899" radius={[8, 8, 0, 0]} />
                                         </BarChart>
@@ -174,20 +174,20 @@ export default function AdminDashboard() {
                             </SurfaceCard>
                         </div>
 
-                        <div className="grid gap-6 xl:grid-cols-3">
-                            <SurfaceCard className="space-y-4">
-                                <h3 className="text-lg font-semibold text-slate-950">Recent Transactions</h3>
+                        <div className="grid gap-5 xl:grid-cols-3">
+                            <SurfaceCard className="space-y-3">
+                                <h3 className="text-sm font-extrabold text-gray-900">Recent Transactions</h3>
                                 {(stats.recentTransactions || []).slice(0, 5).map((transaction) => (
-                                    <div key={transaction._id} className="rounded-2xl border border-slate-200 p-4">
+                                    <div key={transaction._id} className="rounded-xl border border-gray-200 p-3">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">{transaction.event?.title || "Unknown event"}</p>
-                                                <p className="mt-1 text-xs text-slate-500">
+                                                <p className="text-sm font-semibold text-gray-900">{transaction.event?.title || "Unknown event"}</p>
+                                                <p className="mt-0.5 text-xs text-gray-500">
                                                     {transaction.buyer?.name || transaction.buyer?.username || "Unknown buyer"}
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-semibold text-slate-900">{formatCurrency(transaction.amount || 0)}</p>
+                                                <p className="text-sm font-semibold text-gray-900">{formatCurrency(transaction.amount || 0)}</p>
                                                 <StatusBadge tone={getStatusTone(transaction.paymentStatus === "paid" ? "success" : transaction.paymentStatus)}>
                                                     {transaction.paymentStatus === "paid" ? "success" : transaction.paymentStatus}
                                                 </StatusBadge>
@@ -195,45 +195,45 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 ))}
-                                {!stats.recentTransactions?.length ? <p className="text-sm text-slate-500">No recent transactions.</p> : null}
+                                {!stats.recentTransactions?.length ? <p className="text-xs text-gray-500">No recent transactions.</p> : null}
                             </SurfaceCard>
 
-                            <SurfaceCard className="space-y-4">
-                                <h3 className="text-lg font-semibold text-slate-950">Recent Withdrawals</h3>
+                            <SurfaceCard className="space-y-3">
+                                <h3 className="text-sm font-extrabold text-gray-900">Recent Withdrawals</h3>
                                 {(stats.recentWithdrawals || []).slice(0, 5).map((withdrawal) => (
-                                    <div key={withdrawal._id} className="rounded-2xl border border-slate-200 p-4">
+                                    <div key={withdrawal._id} className="rounded-xl border border-gray-200 p-3">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">
+                                                <p className="text-sm font-semibold text-gray-900">
                                                     {withdrawal.organizer?.name || withdrawal.organizer?.username || "Unknown organizer"}
                                                 </p>
-                                                <p className="mt-1 text-xs text-slate-500">{formatDateTime(withdrawal.createdAt)}</p>
+                                                <p className="mt-0.5 text-xs text-gray-500">{formatDateTime(withdrawal.createdAt)}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-semibold text-slate-900">{formatCurrency(withdrawal.amount || 0)}</p>
+                                                <p className="text-sm font-semibold text-gray-900">{formatCurrency(withdrawal.amount || 0)}</p>
                                                 <StatusBadge tone={getStatusTone(withdrawal.status)}>{withdrawal.status}</StatusBadge>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
-                                {!stats.recentWithdrawals?.length ? <p className="text-sm text-slate-500">No recent withdrawals.</p> : null}
+                                {!stats.recentWithdrawals?.length ? <p className="text-xs text-gray-500">No recent withdrawals.</p> : null}
                             </SurfaceCard>
 
-                            <SurfaceCard className="space-y-4">
-                                <h3 className="text-lg font-semibold text-slate-950">Admin Activity</h3>
+                            <SurfaceCard className="space-y-3">
+                                <h3 className="text-sm font-extrabold text-gray-900">Admin Activity</h3>
                                 {(stats.recentActivities || []).slice(0, 6).map((activity) => (
-                                    <div key={activity._id} className="rounded-2xl border border-slate-200 p-4">
+                                    <div key={activity._id} className="rounded-xl border border-gray-200 p-3">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
-                                                <p className="text-sm font-semibold text-slate-900">{activity.action.replace(/_/g, " ")}</p>
-                                                <p className="mt-1 text-xs text-slate-500">{activity.adminId?.name || activity.adminId?.email || "Unknown admin"}</p>
+                                                <p className="text-sm font-semibold text-gray-900">{activity.action.replace(/_/g, " ")}</p>
+                                                <p className="mt-0.5 text-xs text-gray-500">{activity.adminId?.name || activity.adminId?.email || "Unknown admin"}</p>
                                             </div>
-                                            <p className="text-xs text-slate-500">{formatDateTime(activity.createdAt)}</p>
+                                            <p className="text-xs text-gray-500">{formatDateTime(activity.createdAt)}</p>
                                         </div>
-                                        {activity.details ? <p className="mt-2 text-sm text-slate-600">{activity.details}</p> : null}
+                                        {activity.details ? <p className="mt-2 text-xs text-gray-600">{activity.details}</p> : null}
                                     </div>
                                 ))}
-                                {!stats.recentActivities?.length ? <p className="text-sm text-slate-500">No admin activity logged yet.</p> : null}
+                                {!stats.recentActivities?.length ? <p className="text-xs text-gray-500">No admin activity logged yet.</p> : null}
                             </SurfaceCard>
                         </div>
                     </>

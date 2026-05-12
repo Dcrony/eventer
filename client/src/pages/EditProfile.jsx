@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Camera, ImageIcon } from "lucide-react";
+import { ArrowLeft, Camera, ImageIcon, AlertCircle, CheckCircle } from "lucide-react";
 import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
 import { validateImageFile } from "../utils/imageUpload";
-import "./CSS/EditProfile.css";
 import { useToast } from "../components/ui/toast";
 import Avatar from "../components/ui/avatar";
 
@@ -12,7 +11,6 @@ const BIO_MAX = 500;
 
 export default function EditProfile() {
   const navigate = useNavigate();
-
   const toast = useToast();
   const [user, setUser] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -20,8 +18,6 @@ export default function EditProfile() {
   const [uploadingProfile, setUploadingProfile] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [feedback, setFeedback] = useState({ type: "", text: "" });
-  
-  // Track field-specific errors
   const [fieldErrors, setFieldErrors] = useState({});
 
   const profileBlobRef = useRef(null);
@@ -83,7 +79,6 @@ export default function EditProfile() {
     const { name, value } = e.target;
     if (name === "bio" && value.length > BIO_MAX) return;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear field-specific error when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -103,8 +98,7 @@ export default function EditProfile() {
     setUploading(true);
 
     try {
-      const endpoint =
-        type === "profilePic" ? "/users/me/upload" : "/users/me/cover";
+      const endpoint = type === "profilePic" ? "/users/me/upload" : "/users/me/cover";
       const res = await API.post(endpoint, form);
 
       if (type === "profilePic") {
@@ -121,18 +115,13 @@ export default function EditProfile() {
 
       setFeedback({
         type: "success",
-        text:
-          type === "profilePic"
-            ? "Profile photo updated."
-            : "Cover image updated.",
+        text: type === "profilePic" ? "Profile photo updated." : "Cover image updated.",
       });
       return true;
     } catch (err) {
       setFeedback({
         type: "error",
-        text:
-          err.response?.data?.message ||
-          "Upload failed. Check your connection and try again.",
+        text: err.response?.data?.message || "Upload failed. Check your connection and try again.",
       });
       return false;
     } finally {
@@ -178,8 +167,8 @@ export default function EditProfile() {
     e.preventDefault();
     setSaving(true);
     setFeedback({ type: "", text: "" });
-    setFieldErrors({}); // Clear previous field errors
-    
+    setFieldErrors({});
+
     try {
       await API.put("/users/edit", formData);
       toast.success("Profile updated successfully");
@@ -187,9 +176,7 @@ export default function EditProfile() {
       navigate(`/users/${id}`);
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Update failed. Please try again.";
-      const errorData = err.response?.data;
       
-      // Check for specific field errors
       if (errorMessage.toLowerCase().includes("username already taken") || 
           errorMessage.toLowerCase().includes("username already exists")) {
         setFieldErrors({ username: "Username already taken. Please choose another one." });
@@ -199,10 +186,7 @@ export default function EditProfile() {
         setFieldErrors({ email: "Email already in use. Please use another email." });
         toast.error("Email already in use");
       } else {
-        setFeedback({
-          type: "error",
-          text: errorMessage,
-        });
+        setFeedback({ type: "error", text: errorMessage });
         toast.error("Update failed. Please try again");
       }
     } finally {
@@ -212,12 +196,11 @@ export default function EditProfile() {
 
   if (loadError && !user) {
     return (
-      <div className="editprofile-page editprofile-page--centered">
-        <div className="editprofile-card editprofile-card--narrow">
-          <p className="editprofile-error-text">{loadError}</p>
-          <Link to="/events" className="editprofile-back-link">
-            <ArrowLeft size={18} />
-            Back to events
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center font-geist p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+          <p className="text-red-500 text-sm mb-4">{loadError}</p>
+          <Link to="/events" className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-pink-500 transition-colors">
+            <ArrowLeft size={18} /> Back to events
           </Link>
         </div>
       </div>
@@ -226,53 +209,57 @@ export default function EditProfile() {
 
   if (!user) {
     return (
-      <div className="editprofile-loading">
-        <div className="spinner" />
-        <p>Loading your profile...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50 font-geist text-gray-400">
+        <div className="w-9 h-9 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+        <p className="text-sm">Loading your profile...</p>
       </div>
     );
   }
 
   const profileId = user?.id ?? user?._id ?? "";
-  const coverSrc = coverPreview || getCoverImageUrl(user) || "/cover.jpg";
+  const coverSrc = coverPreview || getCoverImageUrl(user) || null;
   const profileSrc = profilePreview || getProfileImageUrl(user) || null;
 
   return (
-    <div className="editprofile-page">
-      <div className="editprofile-inner">
-        <header className="editprofile-header">
-          <Link to={`/users/${profileId}`} className="editprofile-back-link">
-            <ArrowLeft size={20} />
-            Profile
+    <div className="min-h-screen bg-gray-50 font-geist py-6 sm:py-8 px-4 sm:px-6 pb-20 pl-[calc(var(--sidebar-width,0px)+1rem)] sm:pl-[calc(var(--sidebar-width,0px)+1.5rem)]">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <header className="mb-6">
+          <Link to={`/users/${profileId}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-pink-500 transition-colors mb-3">
+            <ArrowLeft size={18} /> Profile
           </Link>
-          <h1 className="editprofile-heading">Edit profile</h1>
-          <p className="editprofile-lead">
-            Update how you appear on TickiSpot. Photos are stored securely; use
-            JPEG, PNG, WebP, GIF, AVIF, or HEIC up to 10MB.
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 mb-1.5">
+            Edit profile
+          </h1>
+          <p className="text-sm text-gray-400 leading-relaxed max-w-md">
+            Update how you appear on TickiSpot. Photos are stored securely; use JPEG, PNG, WebP, GIF, AVIF, or HEIC up to 10MB.
           </p>
         </header>
 
-        {feedback.text ? (
-          <div
-            className={`editprofile-banner editprofile-banner--${feedback.type}`}
-            role="status"
-          >
+        {/* Feedback Banner */}
+        {feedback.text && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium mb-4 ${
+            feedback.type === "success"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-600 border border-red-200"
+          }`} role="status">
+            {feedback.type === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
             {feedback.text}
           </div>
-        ) : null}
+        )}
 
-        <div className="cover-section">
-          <img src={coverSrc} alt="" className="cover-image" />
-          <label className="cover-upload">
+        {/* Cover Section */}
+        <div className="relative h-[180px] sm:h-[210px] w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950">
+          {coverSrc && <img src={coverSrc} alt="" className="w-full h-full object-cover" />}
+          <label className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-pink-500 text-white text-xs font-bold cursor-pointer transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/30">
             {uploadingCover ? (
               <>
-                <ImageIcon size={18} />
-                Uploading…
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Uploading...
               </>
             ) : (
               <>
-                <Camera size={18} />
-                Change cover
+                <Camera size={16} /> Change cover
               </>
             )}
             <input
@@ -280,26 +267,24 @@ export default function EditProfile() {
               accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
               onChange={onPickCover}
               disabled={uploadingCover || uploadingProfile}
+              className="hidden"
             />
           </label>
         </div>
 
-        <div className="profile-pic-wrapper">
+        {/* Profile Picture */}
+        <div className="relative -mt-12 ml-4 sm:ml-6 z-10 inline-block">
           <Avatar
             src={profileSrc}
             name={formData.name || formData.username || "User"}
-            className="profile-pic"
+            className="w-[90px] h-[90px] sm:w-[108px] sm:h-[108px] rounded-full border-4 border-gray-50 object-cover shadow-lg"
           />
-          <label className="profile-upload">
+          <label className="absolute bottom-1 right-0 inline-flex items-center gap-1 h-6 px-2 rounded-lg bg-pink-500 text-white text-[0.6rem] font-bold cursor-pointer transition-all duration-200 hover:bg-pink-600">
             {uploadingProfile ? (
-              <>
-                <ImageIcon size={14} />
-                …
-              </>
+              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                <Camera size={14} />
-                Photo
+                <Camera size={12} /> Photo
               </>
             )}
             <input
@@ -307,14 +292,19 @@ export default function EditProfile() {
               accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif"
               onChange={onPickProfile}
               disabled={uploadingProfile || uploadingCover}
+              className="hidden"
             />
           </label>
         </div>
 
-        <form className="editprofile-form" onSubmit={handleSubmit}>
-          <h2 className="editprofile-form-title">Details</h2>
+        {/* Form */}
+        <form className="mt-5 bg-white p-5 sm:p-6 rounded-xl border border-gray-200 shadow-sm" onSubmit={handleSubmit}>
+          <h2 className="text-base font-extrabold tracking-tight text-gray-900 mb-5">Details</h2>
 
-          <label htmlFor="edit-name">Name</label>
+          {/* Name */}
+          <label htmlFor="edit-name" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+            Name
+          </label>
           <input
             id="edit-name"
             type="text"
@@ -323,9 +313,13 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="Your full name"
             autoComplete="name"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none mb-4"
           />
 
-          <label htmlFor="edit-username">Username</label>
+          {/* Username */}
+          <label htmlFor="edit-username" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+            Username
+          </label>
           <input
             id="edit-username"
             type="text"
@@ -334,17 +328,24 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="username"
             autoComplete="username"
-            className={fieldErrors.username ? "input-error" : ""}
+            className={`w-full px-4 py-2.5 rounded-xl border-2 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:ring-2 outline-none mb-2 ${
+              fieldErrors.username
+                ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
+            }`}
           />
           {fieldErrors.username && (
-            <div className="field-error-message">{fieldErrors.username}</div>
+            <div className="flex items-center gap-1.5 text-xs text-red-500 mb-3">
+              <AlertCircle size={12} /> {fieldErrors.username}
+            </div>
           )}
 
-          <div className="editprofile-bio-row">
-            <label htmlFor="edit-bio">Bio</label>
-            <span className="editprofile-char-count">
-              {formData.bio.length}/{BIO_MAX}
-            </span>
+          {/* Bio */}
+          <div className="flex items-center justify-between gap-3 mb-1.5 mt-2">
+            <label htmlFor="edit-bio" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
+              Bio
+            </label>
+            <span className="text-xs font-medium text-gray-400">{formData.bio.length}/{BIO_MAX}</span>
           </div>
           <textarea
             id="edit-bio"
@@ -354,9 +355,13 @@ export default function EditProfile() {
             placeholder="A short line about you…"
             rows={4}
             maxLength={BIO_MAX}
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none resize-y min-h-[110px] mb-4"
           />
 
-          <label htmlFor="edit-location">Location</label>
+          {/* Location */}
+          <label htmlFor="edit-location" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+            Location
+          </label>
           <input
             id="edit-location"
             type="text"
@@ -365,9 +370,13 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="e.g. Lagos, Nigeria"
             autoComplete="address-level1"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none mb-4"
           />
 
-          <label htmlFor="edit-email">Email</label>
+          {/* Email */}
+          <label htmlFor="edit-email" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+            Email
+          </label>
           <input
             id="edit-email"
             type="email"
@@ -376,13 +385,22 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="you@example.com"
             autoComplete="email"
-            className={fieldErrors.email ? "input-error" : ""}
+            className={`w-full px-4 py-2.5 rounded-xl border-2 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:ring-2 outline-none mb-2 ${
+              fieldErrors.email
+                ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
+            }`}
           />
           {fieldErrors.email && (
-            <div className="field-error-message">{fieldErrors.email}</div>
+            <div className="flex items-center gap-1.5 text-xs text-red-500 mb-3">
+              <AlertCircle size={12} /> {fieldErrors.email}
+            </div>
           )}
 
-          <label htmlFor="edit-phone">Phone</label>
+          {/* Phone */}
+          <label htmlFor="edit-phone" className="block text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5">
+            Phone
+          </label>
           <input
             id="edit-phone"
             type="tel"
@@ -391,14 +409,23 @@ export default function EditProfile() {
             onChange={handleChange}
             placeholder="Phone number"
             autoComplete="tel"
+            className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none mb-4"
           />
 
+          {/* Submit Button */}
           <button
             type="submit"
-            className="editprofile-save"
             disabled={saving || uploadingProfile || uploadingCover}
+            className="w-full h-11 mt-2 rounded-full bg-pink-500 text-white text-sm font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 shadow-lg shadow-pink-500/25"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Saving...
+              </span>
+            ) : (
+              "Save changes"
+            )}
           </button>
         </form>
       </div>

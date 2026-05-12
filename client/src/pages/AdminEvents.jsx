@@ -70,37 +70,37 @@ export default function AdminEvents() {
 
     return (
         <AdminLayout title="Event Management" description="Approve, feature, and moderate events across TickiSpot.">
-            <div className="space-y-6">
+            <div className="space-y-5">
                 <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <Search className="text-pink-500" />
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Search className="text-pink-500" size={18} />
                             <input
                                 type="search"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search events, organizers, or categories"
-                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+                                className="min-w-0 flex-1 rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                             />
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={refresh}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-pink-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-pink-700"
+                        className="inline-flex items-center gap-2 rounded-full bg-pink-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5"
                     >
-                        <Sparkles size={18} />
+                        <Sparkles size={16} />
                         Refresh
                     </button>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em]">Status</p>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Status</p>
                         <select
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         >
                             <option value="">All statuses</option>
                             <option value="pending">Pending</option>
@@ -108,22 +108,22 @@ export default function AdminEvents() {
                             <option value="rejected">Rejected</option>
                         </select>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em]">Featured</p>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Featured</p>
                         <select
                             value={featuredFilter}
                             onChange={(e) => setFeaturedFilter(e.target.value)}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         >
                             <option value="">All events</option>
                             <option value="true">Featured only</option>
                             <option value="false">Not featured</option>
                         </select>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em]">Total events</p>
-                        <p className="mt-4 text-3xl font-bold text-slate-950">{formatNumber(events.length)}</p>
-                        <p className="mt-2 text-sm text-slate-500">Showing page {page} of {pagination.pages}</p>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Total events</p>
+                        <p className="mt-3 text-2xl font-extrabold text-gray-900">{formatNumber(events.length)}</p>
+                        <p className="mt-1 text-xs text-gray-500">Showing page {page} of {pagination.pages}</p>
                     </div>
                 </div>
 
@@ -134,56 +134,57 @@ export default function AdminEvents() {
                 ) : events.length === 0 ? (
                     <WarningMessage message="No events match the current filters. Adjust status or search terms to continue." />
                 ) : (
-                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead className="bg-slate-50 text-slate-500">
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead className="bg-gray-50 text-gray-500">
                                 <tr>
-                                    <th className="px-6 py-4 text-left font-semibold">Event</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Organizer</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Tickets</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Status</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Featured</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Created</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Actions</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Event</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Organizer</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Tickets</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Featured</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Created</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 bg-white">
+                            <tbody className="divide-y divide-gray-200 bg-white">
                                 {events.map((event) => (
-                                    <tr key={event._id} className="hover:bg-slate-50">
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm font-semibold text-slate-950">{event.title}</div>
-                                            <div className="mt-1 text-xs text-slate-500">{event.category || "No category"}</div>
+                                    <tr key={event._id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm font-semibold text-gray-900">{event.title}</div>
+                                            <div className="mt-0.5 text-xs text-gray-500">{event.category || "No category"}</div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-slate-900">{event.createdBy?.name || "Unknown"}</div>
-                                            <div className="mt-1 text-xs text-slate-500">{event.createdBy?.email || "No email"}</div>
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm text-gray-800">{event.createdBy?.name || "Unknown"}</div>
+                                            <div className="mt-0.5 text-xs text-gray-500">{event.createdBy?.email || "No email"}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-900">{event.ticketsSold || 0}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3 text-sm text-gray-700">{event.ticketsSold || 0}</td>
+                                        <td className="px-4 py-3">
                                             <StatusBadge tone={getStatusTone(event.status)}>{event.status || "unknown"}</StatusBadge>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <button
                                                 type="button"
                                                 onClick={() => toggleFeatured(event._id)}
-                                                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition ${event.isFeatured
-                                                        ? "bg-pink-50 text-pink-700 border border-pink-200"
-                                                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                                                    }`}
+                                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-200 ${
+                                                    event.isFeatured
+                                                        ? "bg-pink-50 text-pink-600 border border-pink-200"
+                                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                                }`}
                                             >
-                                                <Star size={14} />
+                                                <Star size={12} />
                                                 {event.isFeatured ? "Featured" : "Feature"}
                                             </button>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500">{formatDate(event.createdAt)}</td>
-                                        <td className="px-6 py-4 space-x-2">
+                                        <td className="px-4 py-3 text-sm text-gray-500">{formatDate(event.createdAt)}</td>
+                                        <td className="px-4 py-3 space-x-2">
                                             {event.status !== "approved" && (
                                                 <button
                                                     type="button"
                                                     onClick={() => updateEventStatus(event._id, "approved")}
-                                                    className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                                                    className="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-green-700"
                                                 >
-                                                    <CheckCircle2 size={14} />
+                                                    <CheckCircle2 size={12} />
                                                     Approve
                                                 </button>
                                             )}
@@ -191,9 +192,9 @@ export default function AdminEvents() {
                                                 <button
                                                     type="button"
                                                     onClick={() => updateEventStatus(event._id, "rejected")}
-                                                    className="inline-flex items-center gap-2 rounded-2xl bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
+                                                    className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-red-600"
                                                 >
-                                                    <Slash size={14} />
+                                                    <Slash size={12} />
                                                     Reject
                                                 </button>
                                             )}

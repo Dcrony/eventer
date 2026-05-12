@@ -7,8 +7,8 @@ export default function VerifiedBadge({ user, className }) {
 
   return (
     <Tooltip content="Verified Organizer" className={className}>
-      <span className="verified-organizer-badge" aria-label="Verified Organizer">
-        <BadgeCheck aria-hidden strokeWidth={2.75} />
+      <span className="inline-flex text-pink-500" aria-label="Verified Organizer">
+        <BadgeCheck size={16} strokeWidth={2.5} />
       </span>
     </Tooltip>
   );

@@ -7,11 +7,10 @@ export default function ProtectedRoute({ children }) {
 
   if (isBootstrapping) {
     return (
-      <div className="dashboard-page">
-        <div className="dashboard-container">
-          <div className="dash-card">
-            <div className="dash-card-body muted">Restoring your session...</div>
-          </div>
+      <div className="min-h-screen bg-gray-50 font-geist flex items-center justify-center pl-[var(--sidebar-width,0px)] lg:pl-[var(--sidebar-width,0px)]">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center">
+          <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Restoring your session...</p>
         </div>
       </div>
     );
@@ -23,4 +22,3 @@ export default function ProtectedRoute({ children }) {
 
   return children;
 }
-

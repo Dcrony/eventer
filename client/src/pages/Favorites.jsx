@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import EventCard from "../components/EventCard";
+import { Heart, SearchX } from "lucide-react";
 
 export default function Favorites() {
   const [events, setEvents] = useState([]);
@@ -22,25 +23,39 @@ export default function Favorites() {
   }, []);
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-container">
-        <div className="events-page-intro">
-          <div className="dashboard-title">Favorites</div>
-          <div className="dashboard-subtitle">Your saved events in one place.</div>
-        </div>
-        {loading ? (
-          <div className="dash-card">
-            <div className="dash-card-body muted">Loading favorites...</div>
+    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart size={24} className="text-pink-500" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">
+              Favorites
+            </h1>
           </div>
-        ) : events.length ? (
-          <div className="events-grid">
+          <p className="text-sm text-gray-500">Your saved events in one place.</p>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+          </div>
+        ) : events.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {events.map((event) => (
               <EventCard key={event._id} event={event} />
             ))}
           </div>
         ) : (
-          <div className="dash-card">
-            <div className="dash-card-body center muted">No favorites yet.</div>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-20 h-20 rounded-full bg-pink-50 flex items-center justify-center mb-4">
+              <SearchX size={40} className="text-pink-300" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">No favorites yet</h3>
+            <p className="text-sm text-gray-500 max-w-sm">
+              Start saving events you're interested in by clicking the heart icon on any event card.
+            </p>
           </div>
         )}
       </div>

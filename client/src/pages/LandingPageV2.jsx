@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import "./CSS/landing.css";
 import icon from "../assets/icon.svg";
 import EventCard from "../components/EventCard";
 import API from "../api/axios";
@@ -63,36 +62,12 @@ export default function LandingPageV2() {
   ];
 
   const features = [
-    {
-      icon: TicketCheck,
-      title: "Smart Ticketing",
-      description: "Multi-tier pricing, limits, and live sales visibility.",
-    },
-    {
-      icon: Video,
-      title: "Live Streaming",
-      description: "Run virtual events with reliable, low-friction workflows.",
-    },
-    {
-      icon: MessageSquare,
-      title: "Audience Chat",
-      description: "Keep attendees engaged before, during, and after sessions.",
-    },
-    {
-      icon: BarChart3,
-      title: "Analytics",
-      description: "Track funnel, conversion, attendance, and revenue in one view.",
-    },
-    {
-      icon: Shield,
-      title: "Secure Payments",
-      description: "Trusted checkout with confirmation and refund controls.",
-    },
-    {
-      icon: Smartphone,
-      title: "Mobile Ready",
-      description: "Consistent experience across phone, tablet, and desktop.",
-    },
+    { icon: TicketCheck, title: "Smart Ticketing", description: "Multi-tier pricing, limits, and live sales visibility." },
+    { icon: Video, title: "Live Streaming", description: "Run virtual events with reliable, low-friction workflows." },
+    { icon: MessageSquare, title: "Audience Chat", description: "Keep attendees engaged before, during, and after sessions." },
+    { icon: BarChart3, title: "Analytics", description: "Track funnel, conversion, attendance, and revenue in one view." },
+    { icon: Shield, title: "Secure Payments", description: "Trusted checkout with confirmation and refund controls." },
+    { icon: Smartphone, title: "Mobile Ready", description: "Consistent experience across phone, tablet, and desktop." },
   ];
 
   const testimonials = [
@@ -100,8 +75,7 @@ export default function LandingPageV2() {
       name: "Sarah Johnson",
       role: "Event Organizer",
       company: "Tech Summit 2024",
-      content:
-        "TickiSpot transformed how we manage events. The analytics alone saved us hours weekly.",
+      content: "TickiSpot transformed how we manage events. The analytics alone saved us hours weekly.",
       rating: 5,
       avatar: "https://i.pravatar.cc/150?u=sarah",
     },
@@ -109,8 +83,7 @@ export default function LandingPageV2() {
       name: "Michael Chen",
       role: "Marketing Director",
       company: "Music Festivals Inc",
-      content:
-        "Our team finally has one source of truth for ticketing, content, and engagement.",
+      content: "Our team finally has one source of truth for ticketing, content, and engagement.",
       rating: 5,
       avatar: "https://i.pravatar.cc/150?u=michael",
     },
@@ -118,8 +91,7 @@ export default function LandingPageV2() {
       name: "Emily Rodriguez",
       role: "Conference Manager",
       company: "Business Connect",
-      content:
-        "The check-in and post-event reporting experience feels built for professional operators.",
+      content: "The check-in and post-event reporting experience feels built for professional operators.",
       rating: 5,
       avatar: "https://i.pravatar.cc/150?u=emily",
     },
@@ -155,11 +127,8 @@ export default function LandingPageV2() {
   };
 
   const filteredEvents = events.filter((event) => {
-    const byCategory =
-      selectedCategory === "all" ||
-      event.category?.toLowerCase() === selectedCategory;
-    const bySearch =
-      !searchQuery ||
+    const byCategory = selectedCategory === "all" || event.category?.toLowerCase() === selectedCategory;
+    const bySearch = !searchQuery ||
       event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       event.location?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -170,180 +139,180 @@ export default function LandingPageV2() {
     .sort((a, b) => (b.ticketsSold || 0) - (a.ticketsSold || 0))
     .slice(0, 6);
 
-  const featuredEvents =
-    selectedCategory === "all" ? trendingEvents : filteredEvents.slice(0, 6);
+  const featuredEvents = selectedCategory === "all" ? trendingEvents : filteredEvents.slice(0, 6);
 
   return (
-    <div className="lp2-page">
-      <header className="lp2-header">
-        <div className="lp2-shell lp2-header-inner">
-          <Link to="/" className="lp2-brand">
-            <img src={icon} className="tickispot-icon" alt="TickiSpot" />
-            <span>TickiSpot</span>
-          </Link>
-          <nav className="lp2-nav">
-            <Link to="/events" className="lp2-nav-link">
-              Explore Events
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-inter">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="flex items-center justify-between h-16 lg:h-20">
+            <Link to="/" className="flex items-center gap-2 font-bold text-gray-900">
+              <img src={icon} className="w-8 h-8" alt="TickiSpot" />
+              <span className="text-lg">TickiSpot</span>
             </Link>
-            <Link to="/pricing" className="lp2-nav-link">
-              Pricing
-            </Link>
-            <Link to="/donation" className="lp2-nav-link">
-                  Support us
+
+            <nav className="hidden md:flex items-center gap-6">
+              <Link to="/events" className="text-sm font-medium text-gray-600 hover:text-pink-500 transition-colors">Explore Events</Link>
+              <Link to="/pricing" className="text-sm font-medium text-gray-600 hover:text-pink-500 transition-colors">Pricing</Link>
+              <Link to="/donation" className="text-sm font-medium text-gray-600 hover:text-pink-500 transition-colors">Support us</Link>
+              {isLoggedIn && (
+                <Link to="/my-tickets" className="text-sm font-medium text-gray-600 hover:text-pink-500 transition-colors">My Tickets</Link>
+              )}
+            </nav>
+
+            <div className="flex items-center gap-3">
+              {isLoggedIn ? (
+                <Link to="/dashboard" className="px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 transition-all shadow-md shadow-pink-500/25">
+                  Dashboard
                 </Link>
-            {isLoggedIn && (
-              
-              <Link to="/my-tickets" className="lp2-nav-link">
-                My Tickets
-              </Link>
-            )}
-          </nav>
-          <div className="lp2-actions">
-            
-            {isLoggedIn ? (
-              <Link to="/dashboard" className="lp2-btn lp2-btn-primary">
-                Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="lp2-btn lp2-btn-ghost">
-                  Sign In
-                </Link>
-                <Link to="/register" className="lp2-btn lp2-btn-primary">
-                  Get Started
-                </Link>
-              </>
-            )}
+              ) : (
+                <>
+                  <Link to="/login" className="px-4 py-2 rounded-full border border-gray-300 text-gray-700 text-sm font-semibold hover:border-pink-300 hover:text-pink-500 transition-all">
+                    Sign In
+                  </Link>
+                  <Link to="/register" className="px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 transition-all shadow-md shadow-pink-500/25">
+                    Get Started
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="lp2-hero">
-        <div className="lp2-shell lp2-hero-grid">
-          <div>
-            <p className="lp2-kicker">Event infrastructure for serious teams</p>
-            <h1 className="lp2-title">
-              Design, sell, and run standout events without operational chaos.
-            </h1>
-            <p className="lp2-subtitle">
-              TickiSpot combines ticketing, live delivery, and analytics into
-              one elegant workflow so your team scales quality, not complexity.
-            </p>
-            <div className="lp2-search">
-              <Search size={18} />
-              <input
-                type="text"
-                placeholder="Search events by title, location, or category"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button type="button" aria-label="Search events">
-                <ArrowRight size={16} />
-              </button>
-            </div>
-            {searchQuery && (
-              <p className="lp2-search-feedback">
-                {filteredEvents.length} result
-                {filteredEvents.length === 1 ? "" : "s"} for "{searchQuery}"
+      {/* Hero Section */}
+      <section className="py-12 lg:py-20">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
+            {/* Left Column */}
+            <div>
+              <p className="text-pink-600 text-xs font-bold uppercase tracking-wider mb-3">Event infrastructure for serious teams</p>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 leading-tight">
+                Design, sell, and run standout events without operational chaos.
+              </h1>
+              <p className="text-gray-500 text-lg mt-4 max-w-lg">
+                TickiSpot combines ticketing, live delivery, and analytics into one elegant workflow so your team scales quality, not complexity.
               </p>
-            )}
-            <div className="lp2-hero-cta">
-              {isLoggedIn ? (
 
-                <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-                  Create Event
+              {/* Search Bar */}
+              <div className="mt-6 flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm">
+                <Search size={18} className="text-gray-400 ml-2" />
+                <input
+                  type="text"
+                  placeholder="Search events by title, location, or category"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 outline-none bg-transparent text-gray-900 text-sm"
+                />
+                <button className="w-9 h-9 rounded-lg bg-pink-500 text-white flex items-center justify-center hover:bg-pink-600 transition-colors">
                   <ArrowRight size={16} />
                 </button>
-              ) : (
-                <Link to="/register" className="lp2-btn lp2-btn-primary">
-                  Start Free
-                  <ArrowRight size={16} />
-                </Link>
+              </div>
+
+              {searchQuery && (
+                <p className="text-sm text-gray-500 mt-2">
+                  {filteredEvents.length} result{filteredEvents.length !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
               )}
-              <Link to="/events" className="lp2-btn lp2-btn-secondary">
-                Browse Events
-              </Link>
-            </div>
-            <div className="lp2-proof">
-              <span>50K+ active organizers</span>
-              <span>500K+ tickets sold</span>
-              <span>99.9% uptime</span>
-            </div>
-          </div>
 
-          <aside className="lp2-hero-stack">
-            <article className="lp2-panel">
-              <p className="lp2-panel-label">Platform Snapshot</p>
-              <h3>Built for premium event execution</h3>
-              <div className="lp2-panel-stats">
-                {stats.map((item) => (
-                  <div key={item.label}>
-                    <strong>{item.number}</strong>
-                    <span>{item.label}</span>
-                  </div>
-                ))}
+              {/* CTA Buttons */}
+              <div className="flex flex-wrap gap-3 mt-5">
+                {isLoggedIn ? (
+                  <button onClick={openCreateEvent} className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-all shadow-md shadow-pink-500/25">
+                    Create Event <ArrowRight size={16} className="inline ml-1" />
+                  </button>
+                ) : (
+                  <Link to="/register" className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-all shadow-md shadow-pink-500/25">
+                    Start Free <ArrowRight size={16} className="inline ml-1" />
+                  </Link>
+                )}
+                <Link to="/events" className="px-5 py-2.5 rounded-full border border-gray-300 text-gray-700 font-semibold hover:border-pink-300 hover:text-pink-500 transition-all">
+                  Browse Events
+                </Link>
               </div>
-              <Link to="/pricing" className="lp2-panel-link">
-                Compare plans
-                <ArrowRight size={14} />
-              </Link>
-            </article>
-            <article className="lp2-mini-board">
-              <p>Used by teams in:</p>
-              <div>
-                <span>Conferences</span>
-                <span>Festivals</span>
-                <span>Campus events</span>
-                <span>Creator communities</span>
-              </div>
-            </article>
-          </aside>
-        </div>
-      </section>
 
-      <section className="lp2-process">
-        <div className="lp2-shell">
-          <div className="lp2-section-head">
-            <h2>How teams run events with TickiSpot</h2>
-          </div>
-          <div className="lp2-process-grid">
-            <article>
-              <span>01</span>
-              <h3>Plan</h3>
-              <p>Create event pages, tickets, and launch assets in one flow.</p>
-            </article>
-            <article>
-              <span>02</span>
-              <h3>Launch</h3>
-              <p>Open sales instantly with secure checkout and smart controls.</p>
-            </article>
-            <article>
-              <span>03</span>
-              <h3>Operate</h3>
-              <p>Handle admissions, livestreams, and audience engagement live.</p>
-            </article>
-            <article>
-              <span>04</span>
-              <h3>Improve</h3>
-              <p>Use analytics to optimize conversion and retention every time.</p>
-            </article>
+              {/* Trust Badges */}
+              <div className="flex flex-wrap gap-2 mt-5">
+                <span className="px-3 py-1 rounded-full bg-white border border-gray-200 text-xs font-semibold text-gray-600">50K+ active organizers</span>
+                <span className="px-3 py-1 rounded-full bg-white border border-gray-200 text-xs font-semibold text-gray-600">500K+ tickets sold</span>
+                <span className="px-3 py-1 rounded-full bg-white border border-gray-200 text-xs font-semibold text-gray-600">99.9% uptime</span>
+              </div>
+            </div>
+
+            {/* Right Column - Stats Panel */}
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <p className="text-pink-600 text-xs font-bold uppercase tracking-wider">Platform Snapshot</p>
+                <h3 className="text-lg font-bold text-gray-900 mt-2 mb-4">Built for premium event execution</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {stats.map((stat) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div key={stat.label} className="border border-gray-100 rounded-lg p-3">
+                        <Icon size={16} className="text-pink-500" />
+                        <strong className="block text-base font-extrabold text-gray-900 mt-1">{stat.number}</strong>
+                        <span className="text-xs text-gray-500">{stat.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Link to="/pricing" className="inline-flex items-center gap-1 text-sm font-semibold text-pink-500 mt-3 hover:gap-2 transition-all">
+                  Compare plans <ArrowRight size={14} />
+                </Link>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500 mb-2">Used by teams in:</p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">Conferences</span>
+                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">Festivals</span>
+                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">Campus events</span>
+                  <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs">Creator communities</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="lp2-capabilities">
-        <div className="lp2-shell">
-          <div className="lp2-section-head">
-            <h2>Core capabilities</h2>
+      {/* Process Section */}
+      <section className="py-12 bg-white">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">How teams run events with TickiSpot</h2>
           </div>
-          <div className="lp2-bento">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              { number: "01", title: "Plan", desc: "Create event pages, tickets, and launch assets in one flow." },
+              { number: "02", title: "Launch", desc: "Open sales instantly with secure checkout and smart controls." },
+              { number: "03", title: "Operate", desc: "Handle admissions, livestreams, and audience engagement live." },
+              { number: "04", title: "Improve", desc: "Use analytics to optimize conversion and retention every time." },
+            ].map((step) => (
+              <article key={step.number} className="bg-gray-50 rounded-xl border border-gray-200 p-4 transition-all hover:-translate-y-1 hover:shadow-md">
+                <span className="inline-flex w-8 h-8 rounded-full bg-pink-100 text-pink-600 items-center justify-center text-sm font-bold">{step.number}</span>
+                <h3 className="text-base font-bold text-gray-900 mt-3 mb-1">{step.title}</h3>
+                <p className="text-sm text-gray-500">{step.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Core Capabilities */}
+      <section className="py-12">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Core capabilities</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((feature) => {
-              const IconComponent = feature.icon;
+              const Icon = feature.icon;
               return (
-                <article key={feature.title} className="lp2-bento-card">
-                  <IconComponent size={18} />
-                  <h3>{feature.title}</h3>
-                  <p>{feature.description}</p>
+                <article key={feature.title} className="bg-white rounded-xl border border-gray-200 p-5 transition-all hover:-translate-y-1 hover:shadow-lg">
+                  <Icon size={22} className="text-pink-500" />
+                  <h3 className="text-base font-bold text-gray-900 mt-3 mb-1">{feature.title}</h3>
+                  <p className="text-sm text-gray-500">{feature.description}</p>
                 </article>
               );
             })}
@@ -351,10 +320,11 @@ export default function LandingPageV2() {
         </div>
       </section>
 
-      <section className="lp2-market">
-        <div className="lp2-shell">
-          <div className="lp2-section-head">
-            <h2>
+      {/* Events Section */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="flex flex-wrap justify-between items-center mb-6">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">
               {searchQuery
                 ? "Search results"
                 : selectedCategory === "all"
@@ -362,108 +332,115 @@ export default function LandingPageV2() {
                   : `${selectedCategory[0].toUpperCase()}${selectedCategory.slice(1)} events`}
             </h2>
             {!searchQuery && (
-              <Link to="/events" className="lp2-inline-link">
-                View all events
-                <ArrowRight size={14} />
+              <Link to="/events" className="inline-flex items-center gap-1 text-sm font-semibold text-pink-500 hover:gap-2 transition-all">
+                View all events <ArrowRight size={14} />
               </Link>
             )}
           </div>
 
-          <div className="lp2-market-layout">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Categories Sidebar */}
             {!searchQuery && (
-              <aside className="lp2-sidebar">
-                <h3>Categories</h3>
-                <div className="lp2-categories">
-                  {categories.map((category) => {
-                    const IconComponent = category.icon;
-                    return (
-                      <button
-                        key={category.id}
-                        className={`lp2-chip ${selectedCategory === category.id ? "is-active" : ""}`}
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <IconComponent size={15} />
-                        <span>{category.name}</span>
-                      </button>
-                    );
-                  })}
+              <aside className="lg:w-64 flex-shrink-0">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-24">
+                  <h3 className="font-bold text-gray-900 mb-3">Categories</h3>
+                  <div className="space-y-1">
+                    {categories.map((category) => {
+                      const Icon = category.icon;
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            selectedCategory === category.id
+                              ? "bg-gray-900 text-white"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Icon size={14} />
+                          {category.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </aside>
             )}
 
-            <div>
+            {/* Events Grid */}
+            <div className="flex-1">
               {loading ? (
-                <div className="lp2-grid lp2-grid-loading">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <div key={n} className="lp2-skeleton" />
+                    <div key={n} className="bg-white rounded-xl border border-gray-200 h-64 animate-pulse">
+                      <div className="h-32 bg-gray-200 rounded-t-xl" />
+                      <div className="p-4 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                        <div className="h-3 bg-gray-200 rounded w-2/3" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (searchQuery ? filteredEvents : featuredEvents).length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {(searchQuery ? filteredEvents : featuredEvents).map((event) => (
+                    <EventCard key={event._id} event={event} />
                   ))}
                 </div>
               ) : (
-                <>
-                  {(searchQuery ? filteredEvents : featuredEvents).length > 0 ? (
-                    <div className="lp2-grid">
-                      {(searchQuery ? filteredEvents : featuredEvents).map((event) => (
-                        <EventCard key={event._id} event={event} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="lp2-empty">
-                      <p>No events found for this selection.</p>
-                      {isLoggedIn && (
-                        <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-                          Create Event
-                        </button>
-                      )}
-                    </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <p className="text-gray-500 mb-4">No events found for this selection.</p>
+                  {isLoggedIn && (
+                    <button onClick={openCreateEvent} className="px-4 py-2 rounded-full bg-pink-500 text-white font-semibold hover:bg-pink-600">
+                      Create Event
+                    </button>
                   )}
-                </>
+                </div>
               )}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="lp2-stats">
-        <div className="lp2-shell lp2-stats-grid">
-          {stats.map((stat) => {
-            const IconComponent = stat.icon;
-            return (
-              <article key={stat.label} className="lp2-stat">
-                <IconComponent size={18} />
-                <strong>{stat.number}</strong>
-                <span>{stat.label}</span>
-              </article>
-            );
-          })}
+      {/* Stats Section */}
+      <section className="py-12 bg-white">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="text-center">
+                  <Icon size={24} className="text-pink-500 mx-auto mb-2" />
+                  <strong className="block text-2xl font-extrabold text-gray-900">{stat.number}</strong>
+                  <span className="text-sm text-gray-500">{stat.label}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      <section className="lp2-testimonials">
-        <div className="lp2-shell">
-          <div className="lp2-section-head">
-            <h2>What organizers say</h2>
+      {/* Testimonials */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">What organizers say</h2>
           </div>
-          <div className="lp2-testimonial-grid">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {testimonials.map((testimonial) => (
-              <article key={testimonial.name} className="lp2-testimonial">
-                <div className="lp2-stars">
+              <article key={testimonial.name} className="bg-white rounded-xl border border-gray-200 p-5 transition-all hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex gap-0.5 text-amber-400 mb-3">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} size={14} fill="currentColor" />
                   ))}
                 </div>
-                <p>{testimonial.content}</p>
-                <div className="lp2-author">
-                  <Avatar
-                    src={testimonial.avatar}
-                    name={testimonial.name}
-                    className="author-avatar"
-                    alt={testimonial.name}
-                  />
+                <p className="text-gray-600 text-sm leading-relaxed mb-4">{testimonial.content}</p>
+                <div className="flex items-center gap-3">
+                  <Avatar src={testimonial.avatar} name={testimonial.name} className="w-10 h-10 rounded-full" />
                   <div>
-                    <strong>{testimonial.name}</strong>
-                    <span>
-                      {testimonial.role} · {testimonial.company}
-                    </span>
+                    <strong className="text-sm font-bold text-gray-900 block">{testimonial.name}</strong>
+                    <span className="text-xs text-gray-500">{testimonial.role} · {testimonial.company}</span>
                   </div>
                 </div>
               </article>
@@ -472,120 +449,94 @@ export default function LandingPageV2() {
         </div>
       </section>
 
-      <section className="lp2-cta">
-        <div className="lp2-shell lp2-cta-inner">
-          <h2>Move from event hustle to event excellence.</h2>
-          <p>
-            Join the teams using TickiSpot to deliver premium event experiences
-            with operational confidence.
-          </p>
-          <div className="lp2-hero-cta">
-            {isLoggedIn ? (
-              <button onClick={openCreateEvent} className="lp2-btn lp2-btn-primary">
-                Create Event
-                <ArrowRight size={16} />
-              </button>
-            ) : (
-              <Link to="/register" className="lp2-btn lp2-btn-primary">
-                Start Free Trial
-                <ArrowRight size={16} />
+      {/* CTA Section */}
+      <section className="py-16">
+        <div className="max-w-4xl mx-auto  sm:px-6 ">
+          <div className="bg-pink-500 rounded-2xl p-8 text-center text-white">
+            <h2 className="text-2xl sm:text-3xl font-extrabold mb-3">Move from event hustle to event excellence.</h2>
+            <p className="text-white/90 mb-6 max-w-lg mx-auto">
+              Join the teams using TickiSpot to deliver premium event experiences with operational confidence.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {isLoggedIn ? (
+                <button onClick={openCreateEvent} className="px-6 py-2.5 rounded-full bg-white text-pink-600 font-semibold hover:bg-gray-100 transition-all shadow-md">
+                  Create Event <ArrowRight size={16} className="inline ml-1" />
+                </button>
+              ) : (
+                <Link to="/register" className="px-6 py-2.5 rounded-full bg-white text-pink-600 font-semibold hover:bg-gray-100 transition-all shadow-md">
+                  Start Free Trial <ArrowRight size={16} className="inline ml-1" />
+                </Link>
+              )}
+              <Link to="/events" className="px-6 py-2.5 rounded-full bg-white/20 text-white font-semibold hover:bg-white/30 transition-all">
+                Browse Events
               </Link>
-            )}
-            <Link to="/events" className="lp2-btn lp2-btn-secondary">
-              Browse Events
-            </Link>
-          </div>
-          <div className="lp2-cta-trust">
-            <CheckCircle2 size={14} />
-            <span>No credit card required</span>
-            <span>14-day free trial</span>
-            <span>Cancel anytime</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 mt-5 text-sm">
+              <CheckCircle2 size={14} className="inline mr-1" /> No credit card required
+              <CheckCircle2 size={14} className="inline mr-1" /> 14-day free trial
+              <CheckCircle2 size={14} className="inline mr-1" /> Cancel anytime
+            </div>
           </div>
         </div>
       </section>
 
-      <footer className="lp2-footer">
-        <div className="lp2-shell">
-          <div className="lp2-footer-grid">
+      {/* Footer */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-6xl mx-auto  sm:px-6 ">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-              <div className="lp2-brand">
-                <img src={icon} className="tickispot-icon" alt="TickiSpot" />
-                <span>TickiSpot</span>
+              <div className="flex items-center gap-2 mb-4">
+                <img src={icon} className="w-8 h-8" alt="TickiSpot" />
+                <span className="text-white font-bold">TickiSpot</span>
               </div>
-              <p className="lp2-footer-copy">
-                Complete event infrastructure for teams building memorable
-                experiences.
-              </p>
-              <div className="lp2-footer-social">
-                <a
-                  href="https://x.com/tickispot"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TickiSpot on X"
-                >
-                  <XLogo size={17} />
+              <p className="text-sm">Complete event infrastructure for teams building memorable experiences.</p>
+              <div className="flex gap-3 mt-4">
+                <a href="https://x.com/tickispot" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center hover:border-pink-500 hover:text-pink-500 transition-colors">
+                  <XLogo size={16} />
                 </a>
-                <a
-                  href="https://www.facebook.com/share/1ArixBJeTq/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TickiSpot on Facebook"
-                >
-                  <Facebook size={18} strokeWidth={1.75} aria-hidden={true} />
+                <a href="https://www.facebook.com/share/1ArixBJeTq/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center hover:border-pink-500 hover:text-pink-500 transition-colors">
+                  <Facebook size={16} />
                 </a>
-                <a
-                  href="https://www.tiktok.com/@tickispot?_r=1&_t=ZS-95sxo4URp72"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TickiSpot on TikTok"
-                >
-                  <Globe size={18} strokeWidth={1.75} aria-hidden={true} />
-                </a>
-                <a
-                  href="https://www.instagram.com/tickispot?igsh=a2oyMzIyandnb2J2"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TickiSpot on Instagram"
-                >
-                  <Instagram size={18} strokeWidth={1.75} aria-hidden={true} />
+                <a href="https://www.instagram.com/tickispot" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full border border-gray-700 flex items-center justify-center hover:border-pink-500 hover:text-pink-500 transition-colors">
+                  <Instagram size={16} />
                 </a>
               </div>
             </div>
 
-            <div className="lp2-footer-links">
-              <h4>Product</h4>
-              <Link to="/events">Events</Link>
-              
-              {isLoggedIn ? (
-             <button onClick={openCreateEvent} className="create" >
-                Create Event
-              </button>
-            ) : (
-              <>
-              <Link to="/login">Create Event</Link>
-
-              </>
-            )}
-              <Link to="/pricing">Pricing</Link>
-              <Link to="/docs">Docs</Link>
+            <div>
+              <h4 className="text-white font-semibold mb-3">Product</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/events" className="hover:text-pink-500 transition-colors">Events</Link></li>
+                {isLoggedIn ? (
+                  <li><button onClick={openCreateEvent} className="hover:text-pink-500 transition-colors">Create Event</button></li>
+                ) : (
+                  <li><Link to="/login" className="hover:text-pink-500 transition-colors">Create Event</Link></li>
+                )}
+                <li><Link to="/pricing" className="hover:text-pink-500 transition-colors">Pricing</Link></li>
+                <li><Link to="/docs" className="hover:text-pink-500 transition-colors">Docs</Link></li>
+              </ul>
             </div>
 
-            <div className="lp2-footer-links">
-              <h4>Company</h4>
-              <Link to="/about">About</Link>
-              <Link to="/contact">Contact</Link>
-              <Link to="/help">Help Center</Link>
-              <Link to="/founder">Founder</Link>
+            <div>
+              <h4 className="text-white font-semibold mb-3">Company</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/about" className="hover:text-pink-500 transition-colors">About</Link></li>
+                <li><Link to="/contact" className="hover:text-pink-500 transition-colors">Contact</Link></li>
+                <li><Link to="/help" className="hover:text-pink-500 transition-colors">Help Center</Link></li>
+                <li><Link to="/founder" className="hover:text-pink-500 transition-colors">Founder</Link></li>
+              </ul>
             </div>
 
-            <div className="lp2-footer-links">
-              <h4>Legal</h4>
-              <Link to="/privacy">Privacy</Link>
-              <Link to="/terms">Terms</Link>
-              <Link to="/donation">Donate</Link>
+            <div>
+              <h4 className="text-white font-semibold mb-3">Legal</h4>
+              <ul className="space-y-2 text-sm">
+                <li><Link to="/privacy" className="hover:text-pink-500 transition-colors">Privacy</Link></li>
+                <li><Link to="/terms" className="hover:text-pink-500 transition-colors">Terms</Link></li>
+                <li><Link to="/donation" className="hover:text-pink-500 transition-colors">Donate</Link></li>
+              </ul>
             </div>
           </div>
-          <div className="lp2-footer-bottom">
+          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-xs">
             <p>© 2026 TickiSpot. All rights reserved.</p>
           </div>
         </div>

@@ -2,16 +2,17 @@ import { forwardRef } from "react";
 import { cn } from "../../lib/utils";
 
 const BUTTON_VARIANTS = {
-  primary: "ui-button-primary",
-  secondary: "ui-button-secondary",
-  ghost: "ui-button-ghost",
-  danger: "ui-button-danger",
+  primary: "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600 hover:-translate-y-0.5",
+  secondary: "bg-white text-gray-700 border-2 border-gray-200 hover:border-pink-300 hover:text-pink-500",
+  ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+  danger: "bg-red-500 text-white hover:bg-red-600 hover:-translate-y-0.5 shadow-md shadow-red-500/25",
 };
 
 const BUTTON_SIZES = {
-  sm: "ui-button-sm",
-  md: "ui-button-md",
-  lg: "ui-button-lg",
+  xs: "px-2 py-1 text-xs rounded-lg",
+  sm: "px-3 py-1.5 text-sm rounded-xl",
+  md: "px-4 py-2 text-sm rounded-xl",
+  lg: "px-5 py-2.5 text-base rounded-xl",
 };
 
 const Button = forwardRef(
@@ -31,11 +32,18 @@ const Button = forwardRef(
     <button
       ref={ref}
       type={type}
-      className={cn("ui-button", BUTTON_VARIANTS[variant], BUTTON_SIZES[size], className)}
+      className={cn(
+        "inline-flex items-center justify-center gap-1.5 font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0",
+        BUTTON_VARIANTS[variant],
+        BUTTON_SIZES[size],
+        className,
+      )}
       disabled={loading || disabled}
       {...props}
     >
-      {loading ? <span className="ui-button-spinner" aria-hidden="true" /> : null}
+      {loading && (
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden="true" />
+      )}
       {children}
     </button>
   ),

@@ -1,5 +1,5 @@
 import { Send } from "lucide-react";
-import { useEffect, useState } from "react"; // Removed startTransition and useOptimistic
+import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { formatRelativeTime } from "../utils/eventHelpers";
 import { UserAvatar } from "./ui/avatar";
@@ -60,12 +60,11 @@ export default function EventCommentsModal({
       return;
     }
 
-    // Create the optimistic comment object
     const optimisticComment = {
       _id: `optimistic-${Date.now()}`,
       text,
       createdAt: new Date().toISOString(),
-      pending: true, // Used to show "Sending..." in the UI
+      pending: true,
       user: {
         name: currentUser?.name,
         username: currentUser?.username,
@@ -73,7 +72,6 @@ export default function EventCommentsModal({
       },
     };
 
-    // 1. Optimistic Update: Add comment and clear draft immediately
     const previousComments = [...comments];
     setComments(prev => [optimisticComment, ...prev]);
     setCommentCount(prev => prev + 1);
@@ -81,19 +79,15 @@ export default function EventCommentsModal({
     setSubmitting(true);
 
     try {
-      // 2. Sync with Server
       const { data } = await API.post(`/events/${eventId}/comments`, { text });
-      
-      // Update state with confirmed data from server
       setComments(data.comments || []);
       setCommentCount(data.commentCount || 0);
       onCommentCountChange?.(data.commentCount || 0, data);
     } catch (error) {
-      // 3. Rollback on Failure
       toast.error(error.response?.data?.message || "Could not post comment");
       setComments(previousComments);
       setCommentCount(previousComments.length);
-      setDraft(text); // Restore text so user doesn't lose their message
+      setDraft(text);
     } finally {
       setSubmitting(false);
     }
@@ -105,51 +99,65 @@ export default function EventCommentsModal({
       onClose={onClose}
       title="Comments"
       description={`Join the conversation around ${eventTitle}`}
-      contentClassName="event-comments-modal"
+      contentClassName="max-w-2xl w-full"
     >
-      <div className="event-comments-layout">
-        <div className="event-comments-list">
-          {loading ? <p className="event-comments-empty">Loading comments...</p> : null}
-          {!loading && comments.length === 0 ? (
-            <p className="event-comments-empty">No comments yet. Be the first to say something.</p>
-          ) : null}
-
-          {/* Render using standard comments state instead of optimisticComments hook */}
+      <div className="flex flex-col max-h-[70vh]">
+        {/* Comments List */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+            </div>
+          )}
+          {!loading && comments.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-sm text-gray-500">No comments yet. Be the first to say something.</p>
+            </div>
+          )}
           {comments.map((comment) => (
-            <article key={comment._id} className="event-comment-item">
-              <div className="event-comment-avatar">
-                <UserAvatar user={comment.user} className="event-comment-avatar-img" />
+            <article key={comment._id} className="flex gap-3">
+              <div className="flex-shrink-0">
+                <UserAvatar user={comment.user} className="w-9 h-9 rounded-lg" />
               </div>
-              <div className="event-comment-body">
-                <div className="event-comment-meta">
-                  <strong>{comment.user?.name || comment.user?.username || "Guest"}</strong>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-1">
+                  <strong className="font-semibold text-gray-900">
+                    {comment.user?.name || comment.user?.username || "Guest"}
+                  </strong>
                   <span>@{comment.user?.username || "member"}</span>
+                  <span>•</span>
                   <span>{formatRelativeTime(comment.createdAt)}</span>
-                  {comment.pending ? <span className="event-comment-pending">Sending...</span> : null}
+                  {comment.pending && (
+                    <span className="text-pink-500 text-[0.65rem] font-medium ml-2">Sending...</span>
+                  )}
                 </div>
-                <p>{comment.text}</p>
+                <p className="text-sm text-gray-700 leading-relaxed break-words">
+                  {comment.text}
+                </p>
               </div>
             </article>
           ))}
         </div>
 
-        <form className="event-comment-form" onSubmit={handleSubmit}>
-          <div className="event-comment-form-head">
-            <span>{commentCount} comments</span>
-            <span>Keep it helpful and kind.</span>
+        {/* Comment Form */}
+        <form onSubmit={handleSubmit} className="mt-5 pt-4 border-t border-gray-200">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <span className="text-xs font-bold text-gray-900">{commentCount} comments</span>
+            <span className="text-xs text-gray-500">Keep it helpful and kind.</span>
           </div>
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Ask a question, share your excitement, or drop a tip for other attendees."
-            rows={4}
+            rows={3}
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none resize-none"
           />
-          <div className="event-comment-form-actions">
-            <Button variant="secondary" onClick={onClose}>
+          <div className="flex justify-end gap-2 mt-3">
+            <Button variant="secondary" size="sm" onClick={onClose}>
               Close
             </Button>
-            <Button type="submit" disabled={submitting || !draft.trim()}>
-              <Send size={16} />
+            <Button type="submit" size="sm" disabled={submitting || !draft.trim()}>
+              <Send size={14} />
               {submitting ? "Posting..." : "Post comment"}
             </Button>
           </div>

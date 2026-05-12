@@ -17,27 +17,35 @@ export default function MessageBubble({ message, isMe }) {
   const status = message.temp ? "Sent" : message.seen ? "Seen" : "Delivered";
 
   return (
-    <div className={`message-wrapper ${isMe ? "message-wrapper-me" : "message-wrapper-them"}`}>
-      {!isMe ? (
-        <div className="message-avatar">
-          <UserAvatar user={message.sender} className="avatar-message" />
+    <div className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
+      {!isMe && (
+        <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden">
+          <UserAvatar user={message.sender} className="w-full h-full" />
         </div>
-      ) : null}
+      )}
 
-      <div className={`message-bubble ${isMe ? "message-bubble-me" : "message-bubble-them"}`}>
-        {!isMe && message.sender?.name ? (
-          <div className="message-sender-name">{message.sender.name}</div>
-        ) : null}
+      <div className={`max-w-[78%] sm:max-w-[420px] ${isMe ? "order-1" : ""}`}>
+        {!isMe && message.sender?.name && (
+          <p className="text-xs font-semibold text-gray-400 ml-2 mb-0.5">{message.sender.name}</p>
+        )}
 
-        <div className="message-bubble-content">
-          <p className="message-text">{message.text}</p>
-          <div className="message-meta">
-            <span className="message-time">{formatTime(message.createdAt)}</span>
-            {isMe ? (
-              <span className={`message-status ${status.toLowerCase()}`} title={status}>
-                {message.seen ? <CheckCheck size={14} strokeWidth={2.5} /> : <Check size={14} strokeWidth={2.5} />}
+        <div
+          className={`rounded-2xl px-3 py-2 shadow-sm ${
+            isMe
+              ? "bg-pink-500 text-white rounded-br-md"
+              : "bg-white text-gray-900 border border-gray-200 rounded-bl-md"
+          }`}
+        >
+          <p className="text-sm leading-relaxed break-words m-0">{message.text}</p>
+          <div className={`flex items-center gap-1 mt-0.5 text-[0.65rem] ${isMe ? "justify-end" : "ml-2"}`}>
+            <span className={isMe ? "text-white/80" : "text-gray-400"}>
+              {formatTime(message.createdAt)}
+            </span>
+            {isMe && (
+              <span className={`inline-flex items-center ${message.seen ? "text-white" : "text-white/70"}`} title={status}>
+                {message.seen ? <CheckCheck size={12} strokeWidth={2.5} /> : <Check size={12} strokeWidth={2.5} />}
               </span>
-            ) : null}
+            )}
           </div>
         </div>
       </div>

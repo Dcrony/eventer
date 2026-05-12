@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { X } from "lucide-react"; // Optional: for a close icon
+import { X, Heart, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import API from "../api/axios";
-import "./CSS/landing.css";
 
 export default function Donation() {
   const [searchParams] = useSearchParams();
@@ -79,86 +78,158 @@ export default function Donation() {
   };
 
   return (
-    <div className="landing-page">
-      <div className="grid-background"></div>
-
-      <div className="page-container" style={{ paddingTop: "120px", textAlign: "center" }}>
-        <div className="section-header animate-in">
-          <h1 className="section-title">
-            <span className="title-box title-box-border">Support</span>
-            <span className="title-box title-box-filled">Our Mission</span>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+        <div className="text-center">
+          {/* Header */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-4">
+            <Heart size={14} />
+            Support Our Mission
+          </div>
+          
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-4">
+            Help us build the future
+            <br />
+            <span className="bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
+              of event technology
+            </span>
           </h1>
-          <p className="section-subtitle">
-            Your support helps us improve, innovate, and keep the platform accessible.
+          
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto mb-8">
+            Your support helps us improve, innovate, and keep the platform accessible for creators and organizers worldwide.
           </p>
+
+          {/* Success Message */}
+          {status?.type === 'success' && (
+            <div className="max-w-md mx-auto mb-8 p-4 rounded-xl bg-green-50 border border-green-200">
+              <div className="flex items-center gap-3">
+                <CheckCircle size={24} className="text-green-500" />
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-green-700">Thank you for your donation!</p>
+                  <p className="text-xs text-green-600">Your payment has been processed successfully.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowForm(true)} 
+                className="mt-3 w-full py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+              >
+                Donate Again
+              </button>
+            </div>
+          )}
+
+          {/* Donate Button */}
+          {!status?.type === 'success' && (
+            <button 
+              onClick={() => setShowForm(true)} 
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-pink-500 text-white text-lg font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-xl shadow-pink-500/30"
+            >
+              <Heart size={20} />
+              Donate Now
+            </button>
+          )}
         </div>
 
-        {/* Success Message outside Modal */}
-        {status?.type === 'success' ? (
-          <div className="success-banner">
-             <p>✅ {status.message}</p>
-             <button className="btn btn-primary" onClick={() => setShowForm(true)}>Donate Again</button>
+        {/* Impact Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 max-w-3xl mx-auto">
+          <div className="text-center p-4">
+            <div className="text-2xl font-extrabold text-pink-500">50K+</div>
+            <p className="text-sm text-gray-500">Events created</p>
           </div>
-        ) : (
-          <button className="btn btn-primary" onClick={() => setShowForm(true)} style={{ marginTop: "30px" }}>
-            Donate Now
-          </button>
-        )}
+          <div className="text-center p-4">
+            <div className="text-2xl font-extrabold text-pink-500">500K+</div>
+            <p className="text-sm text-gray-500">Tickets sold</p>
+          </div>
+          <div className="text-center p-4">
+            <div className="text-2xl font-extrabold text-pink-500">10K+</div>
+            <p className="text-sm text-gray-500">Active organizers</p>
+          </div>
+        </div>
       </div>
 
-      {/* --- PURE CSS MODAL SECTION --- */}
+      {/* Donation Modal */}
       {showForm && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content animate-pop" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={closeModal}>&times;</button>
-            
-            <div className="modal-header">
-              <h3>Make a Donation</h3>
-              <p>Your contribution helps us build a better platform.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={closeModal}>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-100 p-5">
+              <button onClick={closeModal} className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-pink-500 transition-colors">
+                <X size={18} />
+              </button>
+              <h3 className="text-lg font-extrabold text-gray-900">Make a Donation</h3>
+              <p className="text-sm text-gray-500 mt-1">Your contribution helps us build a better platform.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="donation-form">
-              <div className="input-group">
-                <label>Full Name *</label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
+            {/* Modal Body */}
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Full Name *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all" />
               </div>
 
-              <div className="input-group">
-                <label>Email Address *</label>
-                <input type="email" name="email" value={formData.email} onChange={handleInputChange} required />
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Email Address *</label>
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all" />
               </div>
 
-              <div className="input-group">
-                <label>Donation Amount (₦) *</label>
-                <div className="preset-grid">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Donation Amount (₦) *</label>
+                <div className="grid grid-cols-2 gap-2 mb-2">
                   {presetAmounts.map((preset) => (
                     <button
                       key={preset.value}
                       type="button"
-                      className={selectedPreset === preset.value ? "preset-btn active" : "preset-btn"}
                       onClick={() => handlePresetSelect(preset.value)}
+                      className={`py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                        selectedPreset === preset.value
+                          ? "bg-pink-500 text-white shadow-md"
+                          : "bg-gray-100 text-gray-700 hover:bg-pink-100 hover:text-pink-600"
+                      }`}
                     >
                       {preset.label}
                     </button>
                   ))}
                 </div>
-                <input type="number" name="amount" placeholder="Custom amount" value={formData.amount} onChange={handleInputChange} className="custom-amount-input" />
+                <input type="number" name="amount" placeholder="Custom amount" value={formData.amount} onChange={handleInputChange} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all" />
               </div>
 
-              <div className="input-group">
-                <label>Message (Optional)</label>
-                <textarea name="message" value={formData.message} onChange={handleInputChange} rows={2} maxLength={200} />
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400">Message (Optional)</label>
+                <textarea name="message" value={formData.message} onChange={handleInputChange} rows={2} maxLength={200} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none transition-all resize-none" />
+                <p className="text-right text-xs text-gray-400">{formData.message.length}/200</p>
               </div>
 
-              {status?.type === 'error' && <div className="error-msg">{status.message}</div>}
+              {status?.type === 'error' && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">
+                  <AlertCircle size={16} />
+                  <span>{status.message}</span>
+                </div>
+              )}
 
-              <button type="submit" className="btn btn-primary full-width" disabled={isLoading}>
+              <button type="submit" className="w-full py-3 rounded-full bg-pink-500 text-white font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50 shadow-md shadow-pink-500/25" disabled={isLoading}>
                 {isLoading ? "Processing..." : "Continue to Payment"}
               </button>
             </form>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scale-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease-out;
+        }
+        .animate-scale-in {
+          animation: scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      `}</style>
     </div>
   );
 }

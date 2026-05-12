@@ -35,24 +35,35 @@ export default function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div className={cn("ui-modal-overlay", className)} onClick={onClose} role="presentation">
+    <div
+      className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in", className)}
+      onClick={onClose}
+      role="presentation"
+    >
       <div
-        className={cn("ui-modal-shell", contentClassName)}
+        className={cn(
+          "relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-scale-in",
+          contentClassName,
+        )}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="ui-modal-header">
+        <div className="flex items-start justify-between gap-4 p-5 pb-3 border-b border-gray-100">
           <div>
-            {title ? <h3 className="ui-modal-title">{title}</h3> : null}
-            {description ? <p className="ui-modal-description">{description}</p> : null}
+            {title && <h3 className="text-lg font-extrabold text-gray-900">{title}</h3>}
+            {description && <p className="text-sm text-gray-500 mt-1">{description}</p>}
           </div>
-          <button className="ui-modal-close" onClick={onClose} aria-label="Close modal">
+          <button
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 transition-all duration-200 hover:bg-pink-50 hover:text-pink-500"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
             <X size={18} />
           </button>
         </div>
-        <div className="ui-modal-body">{children}</div>
+        <div className="p-5">{children}</div>
       </div>
     </div>,
     document.body,

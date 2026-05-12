@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Plus, Search } from "lucide-react";
-import "./css/EmptyState.css";
 
 export default function EmptyState({ 
   type = "no-events", 
@@ -15,6 +14,7 @@ export default function EmptyState({
       description: "Events bring people together. Start creating memorable experiences today.",
       btnText: "Create Event",
       btnIcon: Plus,
+      btnLink: "/create-event",
     },
     "no-search-results": {
       icon: "🔍",
@@ -23,6 +23,7 @@ export default function EmptyState({
       description: "Try adjusting your search terms or browse all events.",
       btnText: "Clear Search",
       btnIcon: Search,
+      btnLink: "/",
     },
     "no-live-events": {
       icon: "📡",
@@ -38,46 +39,43 @@ export default function EmptyState({
   const BtnIcon = config.btnIcon;
 
   return (
-    <div className="empty-state-wrapper">
-      <div className="empty-state-container">
+    <div className="flex min-h-[400px] items-center justify-center p-8">
+      <div className="relative max-w-md text-center">
+        {/* Floating decorative dots */}
+        <div className="absolute -top-6 -left-6 h-3 w-3 rounded-full bg-pink-200 opacity-60 animate-pulse" />
+        <div className="absolute -bottom-4 -right-4 h-2 w-2 rounded-full bg-pink-300 opacity-40 animate-pulse delay-300" />
+        <div className="absolute top-1/2 -right-8 h-1.5 w-1.5 rounded-full bg-pink-400 opacity-30 animate-pulse delay-700" />
+
         {/* Icon */}
-        <div className="empty-state-icon">{config.icon}</div>
+        <div className="mb-5 text-6xl">{config.icon}</div>
 
         {/* Title */}
-        <h2 className="empty-state-title">{config.title}</h2>
+        <h2 className="mb-2 text-xl font-extrabold text-gray-900">{config.title}</h2>
 
         {/* Subtitle */}
-        <p className="empty-state-subtitle">{config.subtitle}</p>
+        <p className="mb-2 text-sm font-medium text-gray-600">{config.subtitle}</p>
 
         {/* Description */}
-        <p className="empty-state-description">{config.description}</p>
-
-        {/* Decorative elements */}
-        <div className="empty-state-decorative">
-          <div className="decoration-dot dot-1"></div>
-          <div className="decoration-dot dot-2"></div>
-          <div className="decoration-dot dot-3"></div>
-        </div>
+        <p className="mx-auto mb-6 max-w-sm text-sm text-gray-400">{config.description}</p>
 
         {/* CTA Button */}
         {config.btnText && (
-          type === "no-search-results" ? (
-            <Link to="/" className="empty-state-btn primary">
-              <BtnIcon size={18} />
-              {config.btnText}
-            </Link>
-          ) : (
-            <Link to="/create-event" className="empty-state-btn primary">
-              <BtnIcon size={18} />
-              {config.btnText}
-            </Link>
-          )
+          <Link
+            to={config.btnLink}
+            className="inline-flex items-center gap-2 rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/25"
+          >
+            <BtnIcon size={18} />
+            {config.btnText}
+          </Link>
         )}
 
         {/* Secondary action */}
         {type === "no-events" && (
-          <p className="empty-state-secondary">
-            or <Link to="/" className="link-secondary">browse from other organizers</Link>
+          <p className="mt-4 text-xs text-gray-400">
+            or{" "}
+            <Link to="/" className="font-semibold text-pink-500 hover:text-pink-600 transition-colors">
+              browse from other organizers
+            </Link>
           </p>
         )}
       </div>

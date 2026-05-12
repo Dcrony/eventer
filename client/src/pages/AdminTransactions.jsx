@@ -77,11 +77,11 @@ export default function AdminTransactions() {
 
     return (
         <AdminLayout title="Transaction Management" description="Track ticket purchases, filter payment history, and export revenue activity.">
-            <div className="space-y-6">
+            <div className="space-y-5">
                 <div className="grid gap-4 lg:grid-cols-[1.5fr_auto]">
                     <SurfaceCard>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <Search className="text-pink-500" />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Search className="text-pink-500" size={18} />
                             <input
                                 type="search"
                                 value={search}
@@ -90,12 +90,12 @@ export default function AdminTransactions() {
                                     if (event.key === "Enter") applySearch();
                                 }}
                                 placeholder="Search by reference, buyer, or event"
-                                className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
+                                className="min-w-0 flex-1 rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                             />
                             <button
                                 type="button"
                                 onClick={applySearch}
-                                className="rounded-2xl bg-pink-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-700"
+                                className="rounded-full bg-pink-500 px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600"
                             >
                                 Search
                             </button>
@@ -104,9 +104,9 @@ export default function AdminTransactions() {
                     <button
                         type="button"
                         onClick={exportTransactions}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-gray-800"
                     >
-                        <Download size={18} />
+                        <Download size={16} />
                         Export CSV
                     </button>
                 </div>
@@ -140,14 +140,14 @@ export default function AdminTransactions() {
 
                 <div className="grid gap-4 md:grid-cols-4">
                     <SurfaceCard>
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Status</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Status</p>
                         <select
                             value={status}
                             onChange={(event) => {
                                 setStatus(event.target.value);
                                 setPage(1);
                             }}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         >
                             <option value="">All statuses</option>
                             <option value="success">Success</option>
@@ -155,7 +155,7 @@ export default function AdminTransactions() {
                         </select>
                     </SurfaceCard>
                     <SurfaceCard>
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Start date</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Start date</p>
                         <input
                             type="date"
                             value={startDate}
@@ -163,11 +163,11 @@ export default function AdminTransactions() {
                                 setStartDate(event.target.value);
                                 setPage(1);
                             }}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         />
                     </SurfaceCard>
                     <SurfaceCard>
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">End date</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">End date</p>
                         <input
                             type="date"
                             value={endDate}
@@ -175,13 +175,13 @@ export default function AdminTransactions() {
                                 setEndDate(event.target.value);
                                 setPage(1);
                             }}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         />
                     </SurfaceCard>
                     <SurfaceCard>
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Current page</p>
-                        <p className="mt-4 text-3xl font-bold text-slate-950">{pagination.page || 1}</p>
-                        <p className="mt-2 text-sm text-slate-500">Total records: {formatNumber(pagination.total || 0)}</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Current page</p>
+                        <p className="mt-3 text-2xl font-extrabold text-gray-900">{pagination.page || 1}</p>
+                        <p className="mt-1 text-xs text-gray-500">Total records: {formatNumber(pagination.total || 0)}</p>
                     </SurfaceCard>
                 </div>
 
@@ -196,43 +196,43 @@ export default function AdminTransactions() {
                         description="Try widening your filters or search for a different buyer, event, or reference."
                     />
                 ) : (
-                    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-slate-200 text-sm">
-                            <thead className="bg-slate-50 text-slate-500">
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <table className="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead className="bg-gray-50 text-gray-500">
                                 <tr>
-                                    <th className="px-6 py-4 text-left font-semibold">Reference</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Buyer</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Event</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Qty</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Amount</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Status</th>
-                                    <th className="px-6 py-4 text-left font-semibold">Purchased</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Reference</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Buyer</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Event</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Qty</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Amount</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Status</th>
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Purchased</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-200 bg-white">
+                            <tbody className="divide-y divide-gray-200 bg-white">
                                 {transactions.map((transaction) => (
-                                    <tr key={transaction._id} className="hover:bg-slate-50">
-                                        <td className="px-6 py-4">
-                                            <div className="font-semibold text-slate-950">{transaction.reference || "N/A"}</div>
+                                    <tr key={transaction._id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm font-semibold text-gray-900">{transaction.reference || "N/A"}</div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-slate-900">
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm text-gray-800">
                                                 {transaction.buyer?.name || transaction.buyer?.username || "Unknown"}
                                             </div>
-                                            <div className="mt-1 text-xs text-slate-500">{transaction.buyer?.email || "No email"}</div>
+                                            <div className="mt-0.5 text-xs text-gray-500">{transaction.buyer?.email || "No email"}</div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-slate-900">{transaction.event?.title || "Unknown event"}</div>
-                                            <div className="mt-1 text-xs text-slate-500">{transaction.event?.category || "No category"}</div>
+                                        <td className="px-4 py-3">
+                                            <div className="text-sm text-gray-800">{transaction.event?.title || "Unknown event"}</div>
+                                            <div className="mt-0.5 text-xs text-gray-500">{transaction.event?.category || "No category"}</div>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-700">{formatNumber(transaction.quantity || 0)}</td>
-                                        <td className="px-6 py-4 font-semibold text-slate-900">{formatCurrency(transaction.amount || 0)}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3 text-sm text-gray-700">{formatNumber(transaction.quantity || 0)}</td>
+                                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(transaction.amount || 0)}</td>
+                                        <td className="px-4 py-3">
                                             <StatusBadge tone={getStatusTone(transaction.paymentStatusLabel)}>
                                                 {transaction.paymentStatusLabel || "unknown"}
                                             </StatusBadge>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500">{formatDateTime(transaction.purchasedAt)}</td>
+                                        <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(transaction.purchasedAt)}</td>
                                     </tr>
                                 ))}
                             </tbody>

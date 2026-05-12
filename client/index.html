@@ -36,6 +36,12 @@
   <link rel="manifest" href="/manifest.json" />
   <!-- <script src="https://cdn.tailwindcss.com"></script> -->
 
+   <script>
+      // Polyfill for simple-peer (WebRTC library)
+      window.global = window;
+      window.process = { env: {} };
+    </script>
+    
 </head>
 
 <body>

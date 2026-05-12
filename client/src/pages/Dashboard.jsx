@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
-import "./CSS/Dashboard.css";
 import EditEvent from "../components/EditEvent";
 import TeamManagement from "../components/TeamManagement";
 import { getCurrentUser } from "../utils/auth";
@@ -16,45 +15,36 @@ import {
   MapPin,
   Users,
   Wallet,
+  MoreVertical,
 } from "lucide-react";
 import CreateEvent from "./CreateEvent";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
-import { MoreVertical } from "lucide-react";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
-
 
 export default function Dashboard() {
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-
-
-  // 🟢 For Modal Control
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
-
   const [banks, setBanks] = useState([]);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
+  
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
-
-
-
 
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const user = useMemo(() => getCurrentUser(), []);
 
-  // 🟢 Functions
   const handleEditClick = (id) => {
     setSelectedEventId(id);
     setEditModalOpen(true);
@@ -76,7 +66,6 @@ export default function Dashboard() {
   };
 
   const handleEventUpdated = () => {
-    // Added headers to match your initial useEffect fetch logic
     API.get("/events/my-events", {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -86,16 +75,13 @@ export default function Dashboard() {
       });
   };
 
-  // 🧩 Fetch dashboard data
   useEffect(() => {
     setLoading(true);
     setError(null);
 
     Promise.all([
       API.get("/events/my-events", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       }),
       API.get("/stats/stats", {
         headers: { Authorization: `Bearer ${token}` },
@@ -121,13 +107,9 @@ export default function Dashboard() {
       .then((res) => {
         setBanks(res.data || []);
       })
-      .catch(() => {
-        // Silently handle bank fetch failure
-      });
+      .catch(() => {});
   }, []);
 
-
-  // 🟢 Toggle Live Event
   const toggleLive = async (id, currentStatus) => {
     if (!canAccessLiveStreaming) {
       promptUpgradeLive();
@@ -143,11 +125,11 @@ export default function Dashboard() {
         events.map((ev) =>
           ev._id === id
             ? {
-              ...ev,
-              liveStream: { ...ev.liveStream, isLive: !currentStatus },
-            }
-            : ev,
-        ),
+                ...ev,
+                liveStream: { ...ev.liveStream, isLive: !currentStatus },
+              }
+            : ev
+        )
       );
 
       if (!currentStatus) {
@@ -158,11 +140,10 @@ export default function Dashboard() {
     }
   };
 
-  // 🗑 Delete Event
   const handleDelete = async (id) => {
     const eventToDelete = events.find((e) => e._id === id);
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`,
+      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`
     );
 
     if (!confirmed) return;
@@ -175,17 +156,39 @@ export default function Dashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
-    <div className={`stat-tile ${color}`}>
-      <div className="stat-tile-content">
-        <div className="stat-label">{title}</div>
-        <div className="stat-value">{value}</div>
+  const StatCard = ({ title, value, icon: Icon, color }) => {
+    const colorClasses = {
+      blue: "before:bg-blue-500",
+      pink: "before:bg-pink-500",
+      green: "before:bg-green-500",
+      red: "before:bg-red-500",
+    };
+    
+    const iconBgClasses = {
+      blue: "bg-blue-50 text-blue-500",
+      pink: "bg-pink-50 text-pink-500",
+      green: "bg-green-50 text-green-500",
+      red: "bg-red-50 text-red-500",
+    };
+
+    return (
+      <div 
+        className={`group relative bg-white rounded-2xl border border-gray-200 p-5 flex justify-between items-center transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:rounded-t-2xl before:opacity-0 group-hover:before:opacity-100 ${colorClasses[color]}`}
+      >
+        <div>
+          <div className="text-[0.68rem] font-bold text-gray-400 uppercase tracking-wider mb-1.5">
+            {title}
+          </div>
+          <div className="text-[1.65rem] font-extrabold text-gray-900 tracking-tight leading-none">
+            {value}
+          </div>
+        </div>
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 ${iconBgClasses[color]}`}>
+          <Icon size={24} />
+        </div>
       </div>
-      <div className="stat-tile-icon-wrapper">
-        <Icon size={24} className="stat-tile-icon" />
-      </div>
-    </div>
-  );
+    );
+  };
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || isNaN(num)) return "0";
@@ -195,58 +198,55 @@ export default function Dashboard() {
   const latestTransactions = transactions.slice(0, 3);
 
   return (
-    <div className="dashboard-page">
+    <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] pt-8 transition-all duration-300">
       <TrialNotificationBanner />
 
-      <div className="dashboard-container">
-        <div className="dashboard-header">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 mb-8 border-b border-gray-200">
           <div>
-            <div className="dashboard-title">Organizer Dashboard</div>
-            <div className="dashboard-subtitle">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">
+              Organizer Dashboard
+            </h1>
+            <p className="text-sm text-gray-400 mt-1.5">
               Welcome back{user?.username ? `, ${user.username}` : ""}. Manage
               your events, sales, and live sessions.
-            </div>
+            </p>
           </div>
 
-          <div className="dashboard-actions">
-            <Link to="/events" className="dash-btn">
+          <div className="flex gap-2 flex-shrink-0">
+            <Link
+              to="/events"
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-semibold transition-all duration-200 hover:border-pink-500 hover:text-pink-500 hover:bg-pink-50 hover:-translate-y-0.5 shadow-sm"
+            >
               Browse events <ArrowRight size={18} />
             </Link>
             <button
-              className="dash-btn dash-btn-primary"
               onClick={() => setShowCreateEvent(true)}
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
             >
               Create event <PlusCircle size={18} />
             </button>
-
           </div>
         </div>
 
-        {/* 🔄 Loading */}
+        {/* Loading State */}
         {loading && (
-          <div className="dash-card">
-            <div className="dash-card-body">
-              <p>Loading dashboard...</p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <p className="text-gray-500">Loading dashboard...</p>
             </div>
           </div>
         )}
 
-        {/* ❌ Error */}
+        {/* Error State */}
         {error && (
-          <div className="dash-card">
-            <div className="dash-card-body">
-              <p
-                style={{
-                  color: "#dc2626",
-                  fontWeight: 800,
-                  marginBottom: "0.75rem",
-                }}
-              >
-                {error}
-              </p>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <p className="text-red-600 font-extrabold mb-3">{error}</p>
               <button
-                className="dash-btn"
                 onClick={() => window.location.reload()}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-semibold transition-all duration-200 hover:border-pink-500 hover:text-pink-500 hover:bg-pink-50"
               >
                 Try again
               </button>
@@ -254,10 +254,9 @@ export default function Dashboard() {
           </div>
         )}
 
-
-        {/* 📊 Stats */}
+        {/* Stats Grid */}
         {!loading && !error && stats && (
-          <div className="stats-container-grid">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
             <StatCard
               title="Total Events"
               value={stats.totalEvents}
@@ -297,28 +296,33 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Top Performing Events */}
         {!loading && !error && stats && stats.topEvents?.length > 0 && (
-          <div className="dash-card top-events-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title">Top Performing Events</div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-sm font-bold text-gray-900">Top Performing Events</h3>
             </div>
-            <div className="dash-card-body">
-              <div className="top-events-list">
+            <div className="p-6">
+              <div className="space-y-0">
                 {stats.topEvents.map((event, i) => (
-                  <div key={i} className="top-event-item">
-                    <div className="top-event-rank">#{i + 1}</div>
-                    <div className="top-event-info">
-                      <div className="top-event-name">{event.title}</div>
-                      <div className="top-event-sales">
-                        {formatNumber(
-                          event.quantitySold || event.ticketsSold || 0,
-                        )}{" "}
-                        tickets sold
+                  <div
+                    key={i}
+                    className="grid grid-cols-[32px_1fr_180px] items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg"
+                  >
+                    <div className="text-sm font-extrabold text-gray-400 text-center">
+                      #{i + 1}
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-900 mb-0.5 truncate">
+                        {event.title}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {formatNumber(event.quantitySold || event.ticketsSold || 0)} tickets sold
                       </div>
                     </div>
-                    <div className="top-event-progress">
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="top-event-progress-bar"
+                        className="h-full bg-gradient-to-r from-pink-500 to-pink-300 rounded-full transition-all duration-1000"
                         style={{
                           width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%`,
                         }}
@@ -331,31 +335,47 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="dash-card" style={{ marginTop: "2rem" }}>
-          <div className="dash-card-header">
-            <div className="dash-card-title">Transaction History</div>
+        {/* Transaction History */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+            <h3 className="text-sm font-bold text-gray-900">Transaction History</h3>
           </div>
-
-          <div className="dash-card-body">
+          <div className="p-6">
             {transactions.length === 0 ? (
-              <p>No transactions yet.</p>
+              <p className="text-gray-500">No transactions yet.</p>
             ) : (
-              <div className="transaction-table">
+              <div className="space-y-0">
                 {latestTransactions.map((tx) => (
-                  <div key={tx._id} className="transaction-row">
+                  <div
+                    key={tx._id}
+                    className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2"
+                  >
                     <div>
-                      <strong>{tx.type.toUpperCase()}</strong>
-                      <div className="tx-date">
+                      <strong className="text-sm text-gray-900">{tx.type.toUpperCase()}</strong>
+                      <div className="text-xs text-gray-400 mt-0.5">
                         {new Date(tx.createdAt).toLocaleDateString()}
                       </div>
                     </div>
-
-                    <div>₦{formatNumber(ticketNetToOrganizer(tx))}</div>
-
-                    <div className={`tx-status ${tx.status}`}>{tx.status}</div>
+                    <div className="text-sm font-semibold text-gray-900">
+                      ₦{formatNumber(ticketNetToOrganizer(tx))}
+                    </div>
+                    <div
+                      className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        tx.status === "success"
+                          ? "bg-green-50 text-green-600"
+                          : tx.status === "pending"
+                          ? "bg-amber-50 text-amber-600"
+                          : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      {tx.status}
+                    </div>
                   </div>
                 ))}
-                <Link to="/transactions" className="view-all-transactions">
+                <Link
+                  to="/transactions"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200"
+                >
                   View All Transactions <ArrowRight size={16} />
                 </Link>
               </div>
@@ -363,46 +383,47 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 🎫 Events */}
+        {/* Events Section */}
         {!loading && !error && (
           <>
-            <div className="section-title">Your events</div>
+            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">
+              Your events
+            </h2>
+            
             {events.length === 0 ? (
-              <div className="dash-card empty-state-card">
-                <div className="dash-card-body">
-                  <p className="empty-state-p">
-                    You haven't created any events yet. Ready to host your first
-                    one?
-                  </p>
-                  <div style={{ marginTop: "1rem" }}>
-                    <button
-                      onClick={() => setShowCreateEvent(true)}
-                      className="dash-btn dash-btn-primary"
-                    >
-                      Create Your First Event <PlusCircle size={18} />
-                    </button>
-                  </div>
-                </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm text-center py-16 px-8">
+                <p className="text-gray-400 text-sm mb-6">
+                  You haven't created any events yet. Ready to host your first one?
+                </p>
+                <button
+                  onClick={() => setShowCreateEvent(true)}
+                  className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
+                >
+                  Create Your First Event <PlusCircle size={18} />
+                </button>
               </div>
             ) : (
-              <div className="events-grid">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {events.map((event) => (
-                  <div key={event._id} className="event-card">
-                    {/* 🔥 MENU (always top right) */}
-                    <div className="event-menu-wrapper">
+                  <div
+                    key={event._id}
+                    className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
+                  >
+                    {/* Menu */}
+                    <div className="absolute top-3 right-3 z-10">
                       <button
-                        className="menu-trigger"
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMenuId(openMenuId === event._id ? null : event._id);
                         }}
+                        className="bg-white/90 backdrop-blur-sm rounded-lg p-1.5 transition-all duration-200 hover:bg-white hover:scale-105 shadow-sm"
                       >
-                        <MoreVertical size={18} />
+                        <MoreVertical size={18} className="text-gray-600" />
                       </button>
 
                       {openMenuId === event._id && (
                         <div
-                          className="event-menu"
+                          className="absolute top-10 right-0 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 z-20 animate-in fade-in slide-in-from-top-1 duration-150"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button
@@ -414,71 +435,63 @@ export default function Dashboard() {
                               }
                               setOpenMenuId(null);
                             }}
-                            className="menu-item primary"
                             disabled={!canAccessLiveStreaming}
+                            className="w-full text-left px-3 py-2 text-sm font-semibold text-pink-500 hover:bg-pink-50 transition-colors duration-200 flex items-center gap-1.5"
                           >
                             {event.liveStream?.isLive ? "Stop Live" : "Go Live"}
                             {!canAccessLiveStreaming && " 🔒"}
                           </button>
-
                           <button
                             onClick={() => {
                               handleEditClick(event._id);
                               setOpenMenuId(null);
                             }}
-                            className="menu-item"
+                            className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
                           >
                             Edit
                           </button>
-
                           <Link
                             to={`/events/${event._id}/tickets`}
-                            className="menu-item"
                             onClick={() => setOpenMenuId(null)}
+                            className="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
                           >
                             Manage Tickets
                           </Link>
-
                           {canAccessAnalytics ? (
                             <Link
                               to={`/events/${event._id}/analytics`}
-                              className="menu-item"
                               onClick={() => setOpenMenuId(null)}
+                              className="block w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
                             >
                               Analytics
                             </Link>
                           ) : (
                             <button
-                              type="button"
-                              className="menu-item"
                               onClick={() => {
                                 setOpenMenuId(null);
                                 promptUpgradeAnalytics();
                               }}
+                              className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200"
                             >
                               Analytics
                             </button>
                           )}
-
                           <button
                             onClick={() => {
                               handleTeamClick(event._id);
                               setOpenMenuId(null);
                             }}
-                            className="menu-item"
+                            className="w-full text-left px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex items-center gap-1.5"
                           >
-                            <Users size={14} style={{ marginRight: '6px' }} />
-                            Manage Team
+                            <Users size={14} /> Manage Team
                           </button>
-
-                          <div className="menu-divider" />
-
+                          <div className="h-px bg-gray-100 my-1"></div>
                           <button
                             onClick={() => {
                               handleDelete(event._id);
                               setOpenMenuId(null);
                             }}
-                            className="menu-item danger"
+                            className="w-full text-left px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors duration-200"
                           >
                             Delete
                           </button>
@@ -486,31 +499,39 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* ✅ IMAGE */}
-                    {getEventImageUrl(event) && (
+                    {/* Cover Image */}
+                    {getEventImageUrl(event) ? (
                       <img
                         src={getEventImageUrl(event)}
                         alt={event.title}
-                        className="event-cover"
+                        className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
                       />
+                    ) : (
+                      <div className="w-full h-44 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+                        <Calendar size={32} className="text-white/20" />
+                      </div>
                     )}
 
-                    {/* ✅ BODY */}
-                    <div className="event-body">
-                      <div className="event-title-row">
-                        <div className="event-title">{event.title}</div>
+                    {/* Body */}
+                    <div className="p-4 flex-1 flex flex-col gap-2.5">
+                      <div className="flex justify-between items-start gap-3">
+                        <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">
+                          {event.title}
+                        </h3>
                         {event.liveStream?.isLive && (
-                          <span className="event-badge-live">LIVE</span>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
+                            LIVE
+                          </span>
                         )}
                       </div>
 
-                      <div className="event-meta">
+                      <p className="text-xs text-gray-400 line-clamp-2">
                         {event.description || "No description provided."}
-                      </div>
+                      </p>
 
-                      <div className="event-meta-grid">
-                        <div className="event-meta-item">
-                          <Calendar size={14} className="meta-icon" />
+                      <div className="mt-auto space-y-1.5">
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Calendar size={14} className="text-pink-500 flex-shrink-0" />
                           <span>
                             {new Date(event.startDate).toLocaleDateString("en-US", {
                               weekday: "short",
@@ -520,14 +541,12 @@ export default function Dashboard() {
                             • {event.startTime}
                           </span>
                         </div>
-
-                        <div className="event-meta-item">
-                          <MapPin size={14} className="meta-icon" />
-                          <span>{event.location}</span>
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <MapPin size={14} className="text-pink-500 flex-shrink-0" />
+                          <span className="truncate">{event.location}</span>
                         </div>
-
-                        <div className="event-meta-item">
-                          <Users size={14} className="meta-icon" />
+                        <div className="flex items-center gap-2 text-xs text-gray-600">
+                          <Users size={14} className="text-pink-500 flex-shrink-0" />
                           <span>
                             {event.ticketsSold}/{event.totalTickets} tickets sold
                           </span>
@@ -541,25 +560,23 @@ export default function Dashboard() {
           </>
         )}
       </div>
-      {/* ✅ Place the EditEvent modal here once */}
+
+      {/* Modals */}
       <EditEvent
         isOpen={editModalOpen}
         onClose={handleModalClose}
         eventId={selectedEventId}
         onEventUpdated={handleEventUpdated}
       />
-      {/* ✅ Create Event Modal */}
       <CreateEvent
         isOpen={showCreateEvent}
         onClose={() => setShowCreateEvent(false)}
       />
-      {/* ✅ Team Management Modal */}
       <TeamManagement
         eventId={selectedTeamEventId}
         isOpen={teamModalOpen}
         onClose={handleTeamModalClose}
       />
-
     </div>
   );
 }

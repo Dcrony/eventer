@@ -50,7 +50,7 @@ const TeamInvitations = () => {
 
   /* Loading skeleton */
   if (loading) return (
-    <div className="min-h-screen bg-slate-50 pl-[var(--sidebar-width,0px)] pr-4 sm:pr-8 pt-8 pb-16 transition-[padding-left] duration-300 flex items-center justify-center">
+    <div className="min-h-screen bg-slate-50 lg:pl-[var(--sidebar-width,0px)] pr-4 pt-8 pb-16 transition-[padding-left] duration-300 flex items-center justify-center">
       <div className="flex flex-col items-center gap-4 text-slate-400">
         <div className="w-10 h-10 border-[3px] border-pink-200 border-t-pink-500 rounded-full animate-spin" />
         <p className="text-sm font-medium">Loading invitations…</p>
@@ -59,7 +59,7 @@ const TeamInvitations = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 pl-[var(--sidebar-width,0px)] pr-4 sm:pr-8 pt-8 pb-16 transition-[padding-left] duration-300">
+    <div className="min-h-screen bg-slate-50 lg:pl-[var(--sidebar-width,0px)] sm:px-4 pt-8 pb-16 transition-[padding-left] duration-300">
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Header */}

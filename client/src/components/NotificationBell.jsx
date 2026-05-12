@@ -1,11 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Bell } from "lucide-react";
+import { Bell, CheckCheck, X } from "lucide-react";
 import { useNotifications } from "../hooks/useNotifications";
-import "./css/NotificationBell.css";
 
-/** Below app modals (2000), above shell (sidebar ~999) */
 const NOTIFICATION_PANEL_Z = 1990;
 
 function formatNotificationTime(date) {
@@ -66,7 +64,6 @@ const NotificationBell = () => {
         left = Math.max(16, r.left - panelWidth - gap);
       }
 
-      /* Keep entire panel inside the viewport (above OS taskbar / browser chrome) */
       const maxPanelHeight = Math.min(520, vh - pad * 2);
       let top = Math.max(pad, r.top);
       if (top + maxPanelHeight > vh - pad) {
@@ -100,9 +97,7 @@ const NotificationBell = () => {
     if (!(notification.isRead ?? notification.read)) {
       await markAsRead(notification._id);
     }
-
     setOpen(false);
-
     if (notification.actionUrl) {
       navigate(notification.actionUrl);
     } else {
@@ -113,7 +108,9 @@ const NotificationBell = () => {
   const dropdown = open ? (
     <div
       ref={panelRef}
-      className={`notification-bell-dropdown ${isMobile ? "is-mobile" : "is-portal-desktop"}`}
+      className={`bg-white rounded-2xl shadow-2xl overflow-hidden animate-fade-in ${
+        isMobile ? "fixed inset-x-4 bottom-20 top-auto" : ""
+      }`}
       style={
         isMobile
           ? { zIndex: NOTIFICATION_PANEL_Z }
@@ -122,56 +119,63 @@ const NotificationBell = () => {
               top: desktopPos.top,
               left: desktopPos.left,
               maxHeight: desktopPos.maxHeight,
+              width: 360,
               zIndex: NOTIFICATION_PANEL_Z,
             }
       }
       role="dialog"
       aria-label="Notifications"
     >
-      <header className="notification-bell-header">
-        <div className="notification-bell-title-wrap">
-          <h2 className="notification-bell-title">Notifications</h2>
-          {unreadCount > 0 ? <span className="notification-bell-count">{unreadCount}</span> : null}
+      <header className="flex items-center justify-between p-4 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-extrabold text-gray-900">Notifications</h2>
+          {unreadCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-pink-500 text-white text-[0.65rem] font-bold">
+              {unreadCount}
+            </span>
+          )}
         </div>
-        {unreadCount > 0 ? (
-          <button type="button" className="notification-bell-mark-all" onClick={markAllAsRead}>
+        {unreadCount > 0 && (
+          <button
+            type="button"
+            onClick={markAllAsRead}
+            className="text-xs font-semibold text-pink-500 hover:text-pink-600 transition-colors"
+          >
             Mark all read
           </button>
-        ) : null}
+        )}
       </header>
 
-      <div className="notification-bell-list">
+      <div className="max-h-[400px] overflow-y-auto">
         {loading ? (
-          <div className="notification-bell-loading">
-            <div className="notification-bell-loading-spinner" />
-            <span className="notification-bell-loading-text">Loading...</span>
+          <div className="flex flex-col items-center justify-center gap-3 py-12">
+            <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+            <span className="text-sm text-gray-500">Loading...</span>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="notification-bell-empty">
-            <div className="notification-bell-empty-icon">
-              <Bell size={28} strokeWidth={1.5} />
-            </div>
-            <p className="notification-bell-empty-title">No notifications yet</p>
-            <p className="notification-bell-empty-subtitle">
-              We&apos;ll notify you when activity happens.
-            </p>
+          <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+            <Bell size={40} className="text-gray-300" strokeWidth={1.5} />
+            <p className="text-sm font-semibold text-gray-700 mt-2">No notifications yet</p>
+            <p className="text-xs text-gray-400">We'll notify you when activity happens.</p>
           </div>
         ) : (
           notifications.map((notification) => (
             <button
               key={notification._id}
               type="button"
-              className={`notification-bell-item ${
-                notification.isRead ?? notification.read ? "is-read" : "is-unread"
-              }`}
               onClick={() => handleNotificationClick(notification)}
+              className={`w-full text-left p-4 border-b border-gray-100 transition-colors duration-200 hover:bg-gray-50 ${
+                !(notification.isRead ?? notification.read) ? "bg-pink-50/30" : ""
+              }`}
             >
-              <span className="notification-bell-item-dot" aria-hidden="true" />
-              <div className="notification-bell-item-body">
-                <p className="notification-bell-item-message">{notification.message}</p>
-                <span className="notification-bell-item-time">
-                  {formatNotificationTime(notification.createdAt)}
-                </span>
+              <div className="flex gap-3">
+                <div className={`w-2 h-2 rounded-full mt-1.5 ${!(notification.isRead ?? notification.read) ? "bg-pink-500" : "bg-transparent"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-700 leading-relaxed">{notification.message}</p>
+                  <span className="text-xs text-gray-400 mt-1 block">
+                    {formatNotificationTime(notification.createdAt)}
+                  </span>
+                </div>
               </div>
             </button>
           ))
@@ -182,22 +186,22 @@ const NotificationBell = () => {
 
   return (
     <>
-      <div className="notification-bell-wrap">
+      <div className="relative">
         <button
           ref={triggerRef}
           type="button"
-          className="notification-bell-trigger"
           onClick={() => setOpen((prev) => !prev)}
+          className="relative p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-pink-500 transition-all duration-200"
           aria-label="Notifications"
           aria-expanded={open}
           aria-haspopup="true"
         >
-          <Bell size={22} strokeWidth={2} />
-          {unreadCount > 0 ? (
-            <span className="notification-bell-badge" aria-hidden="true">
+          <Bell size={20} strokeWidth={2} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-pink-500 text-white text-[0.6rem] font-bold shadow-md shadow-pink-500/30">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
-          ) : null}
+          )}
         </button>
       </div>
       {dropdown && createPortal(dropdown, document.body)}

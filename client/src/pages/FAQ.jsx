@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import "./CSS/FAQ.css";
+import { Search, ChevronDown, ChevronUp, MessageCircle, Headphones, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState(null);
@@ -50,52 +51,90 @@ export default function FAQ() {
   };
 
   return (
-    <div className="faq-container">
-      <div className="faq-header">
-        <h1>Frequently Asked Questions</h1>
-        <p>Find quick answers to common questions about TickiSpot</p>
+    <div className="min-h-screen bg-gray-50 font-geist">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-semibold mb-4">
+            <Sparkles size={14} />
+            Frequently Asked Questions
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-4">
+            Got questions? We've got answers
+          </h1>
+          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
+            Everything you need to know about using TickiSpot for your events
+          </p>
+
+          {/* Search Bar */}
+          <div className="relative max-w-lg mx-auto mt-8">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search FAQs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-4 py-3 rounded-full bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 shadow-lg"
+            />
+          </div>
+        </div>
       </div>
 
-      <div className="faq-search">
-        <input
-          type="text"
-          placeholder="Search FAQs..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="faq-search-input"
-        />
-      </div>
-
-      <div className="faq-list">
+      {/* FAQ List */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {filteredFaqs.length > 0 ? (
-          filteredFaqs.map((faq, index) => (
-            <div 
-              key={index} 
-              className={`faq-item ${openIndex === index ? 'active' : ''}`}
-              onClick={() => toggleFAQ(index)}
-            >
-              <div className="faq-question">
-                <h3>{faq.question}</h3>
-                <span className="faq-icon">{openIndex === index ? '−' : '+'}</span>
+          <div className="space-y-3">
+            {filteredFaqs.map((faq, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:border-pink-200"
+              >
+                <button
+                  onClick={() => toggleFAQ(index)}
+                  className="w-full flex items-center justify-between gap-4 p-5 text-left"
+                >
+                  <h3 className="text-base font-bold text-gray-900">{faq.question}</h3>
+                  <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${openIndex === index ? "bg-pink-500 text-white" : "bg-gray-100 text-gray-400"}`}>
+                    {openIndex === index ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </span>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${openIndex === index ? "max-h-96" : "max-h-0"}`}>
+                  <div className="p-5 pt-0 border-t border-gray-100">
+                    <p className="text-sm text-gray-600 leading-relaxed">{faq.answer}</p>
+                  </div>
+                </div>
               </div>
-              <div className={`faq-answer ${openIndex === index ? 'show' : ''}`}>
-                <p>{faq.answer}</p>
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <p className="no-results">No matching questions found. Try different keywords.</p>
+          <div className="text-center py-12">
+            <Search size={48} className="mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-bold text-gray-900 mb-2">No matching questions found</h3>
+            <p className="text-gray-500">Try different keywords or browse all FAQs above.</p>
+          </div>
         )}
-      </div>
 
-      <div className="faq-cta">
-        <h2>Still have questions?</h2>
-        <p>Our support team is ready to help you.</p>
-        <div className="faq-cta-buttons">
-          <a href="/contact" className="btn-primary">Contact Support</a>
-          <a href="https://wa.me/2349056911562" target="_blank" rel="noopener noreferrer" className="btn-whatsapp">
-            Chat on WhatsApp
-          </a>
+        {/* Still Need Help Section */}
+        <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-pink-100 text-pink-500 mb-4">
+            <Headphones size={24} />
+          </div>
+          <h2 className="text-xl font-extrabold text-gray-900 mb-2">Still have questions?</h2>
+          <p className="text-gray-600 mb-6">Our support team is ready to help you.</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link to="/contact" className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-semibold transition-all duration-200 hover:bg-pink-600 shadow-md">
+              Contact Support
+            </Link>
+            <a
+              href="https://wa.me/2349056911562"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-500 text-white font-semibold transition-all duration-200 hover:bg-green-600 shadow-md"
+            >
+              <MessageCircle size={16} />
+              Chat on WhatsApp
+            </a>
+          </div>
         </div>
       </div>
     </div>

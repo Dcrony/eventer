@@ -15,6 +15,7 @@ import { getCurrentUser } from "./utils/auth";
 import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
 import TickiAIChat from "./components/TickiAIChat";
 import PwaInstallModal from "./components/PwaInstallModal";
+import CreatorCard from "./components/CreatorCard";
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -206,6 +207,7 @@ function Layout() {
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/founder" element={<FounderProfile />} />
               <Route path="/discover/creators" element={<DiscoverCreators />} />
+              <Route path="/creators" element={<CreatorCard />} />
               <Route path="/user/:username" element={<Profile />} />
 
               <Route path="/ticki-ai" element={<TickiAIChat />} />

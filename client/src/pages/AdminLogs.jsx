@@ -47,24 +47,24 @@ export default function AdminLogs() {
     };
 
     const getActionColor = (action) => {
-        if (action.includes("USER_SUSPENDED")) return "text-rose-600 bg-rose-50";
-        if (action.includes("USER_ACTIVATED")) return "text-emerald-600 bg-emerald-50";
-        if (action.includes("EVENT_APPROVED")) return "text-emerald-600 bg-emerald-50";
-        if (action.includes("EVENT_REJECTED")) return "text-rose-600 bg-rose-50";
+        if (action.includes("USER_SUSPENDED")) return "text-red-600 bg-red-50";
+        if (action.includes("USER_ACTIVATED")) return "text-green-600 bg-green-50";
+        if (action.includes("EVENT_APPROVED")) return "text-green-600 bg-green-50";
+        if (action.includes("EVENT_REJECTED")) return "text-red-600 bg-red-50";
         if (action.includes("EVENT_FEATURED")) return "text-pink-600 bg-pink-50";
-        return "text-slate-600 bg-slate-50";
+        return "text-gray-600 bg-gray-50";
     };
 
     return (
         <AdminLayout title="Activity Logs" description="Audit trail of all admin actions and platform events.">
-            <div className="space-y-6">
+            <div className="space-y-5">
                 <div className="grid gap-4 md:grid-cols-[1fr_auto] items-end">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em]">Filter by action</p>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Filter by action</p>
                         <select
                             value={action}
                             onChange={(e) => setAction(e.target.value)}
-                            className="mt-4 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none"
+                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
                         >
                             <option value="">All actions</option>
                             <option value="USER_SUSPENDED">User Suspended</option>
@@ -75,10 +75,10 @@ export default function AdminLogs() {
                             <option value="ANNOUNCEMENT_SENT">Announcement Sent</option>
                         </select>
                     </div>
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <p className="text-sm font-semibold text-slate-400 uppercase tracking-[0.2em]">Total logs</p>
-                        <p className="mt-4 text-3xl font-bold text-slate-950">{logs.length}</p>
-                        <p className="mt-2 text-sm text-slate-500">Page {page} of {pagination.pages}</p>
+                    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Total logs</p>
+                        <p className="mt-3 text-2xl font-extrabold text-gray-900">{logs.length}</p>
+                        <p className="mt-1 text-xs text-gray-500">Page {page} of {pagination.pages}</p>
                     </div>
                 </div>
 
@@ -89,24 +89,24 @@ export default function AdminLogs() {
                 ) : logs.length === 0 ? (
                     <EmptyState title="No activity logs found" description="Adjust filters to see admin history." />
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {logs.map((log) => {
                             const Icon = actionIcons[log.action] || Activity;
                             return (
-                                <div key={log._id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                                    <div className="flex items-start gap-4">
-                                        <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${getActionColor(log.action)}`}>
-                                            <Icon size={20} />
+                                <div key={log._id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                                    <div className="flex items-start gap-3">
+                                        <div className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${getActionColor(log.action)}`}>
+                                            <Icon size={18} />
                                         </div>
                                         <div className="flex-1">
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="text-sm font-semibold text-slate-950">
+                                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                                <h3 className="text-sm font-bold text-gray-900">
                                                     {log.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())}
                                                 </h3>
-                                                <p className="text-xs text-slate-500">{formatDateTime(log.createdAt)}</p>
+                                                <p className="text-xs text-gray-500">{formatDateTime(log.createdAt)}</p>
                                             </div>
-                                            <p className="mt-2 text-sm text-slate-600">{log.details || "No additional details"}</p>
-                                            <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
+                                            <p className="mt-2 text-sm text-gray-600">{log.details || "No additional details"}</p>
+                                            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500">
                                                 <span>Admin: {log.adminId?.name || "Unknown"}</span>
                                                 <span>Target: {log.targetType} ({log.targetId || "N/A"})</span>
                                             </div>

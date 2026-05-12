@@ -14,39 +14,40 @@ export default function AdminLayout({ children, title = "Admin Control Center", 
     const location = useLocation();
 
     return (
-        <div className="admin-shell bg-slate-50 min-h-screen">
-            <div className="max-w-[1440px] mx-auto px-4 py-6 lg:px-8">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-h-screen bg-gray-50 font-geist pl-[var(--sidebar-width,0px)]">
+            <div className="max-w-7xl mx-auto px-4 py-6 lg:px-8">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
-                        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-pink-600">Admin</p>
-                        <h1 className="mt-2 text-3xl font-bold text-slate-950">{title}</h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{description}</p>
+                        <p className="text-xs font-bold uppercase tracking-wider text-pink-500">Admin</p>
+                        <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-gray-900">{title}</h1>
+                        <p className="mt-1 max-w-2xl text-sm text-gray-500 leading-relaxed">{description}</p>
                     </div>
-                    <div className="inline-flex flex-wrap gap-3">
+                    <div className="inline-flex flex-wrap gap-2">
                         <Link
                             to="/dashboard"
-                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-300 hover:text-pink-600"
+                            className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm transition-all duration-200 hover:border-pink-300 hover:text-pink-500"
                         >
                             Back to app
                         </Link>
                     </div>
                 </div>
 
-                <div className="mt-8 grid gap-6 lg:grid-cols-[280px_1fr]">
-                    <aside className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                        <div className="space-y-4">
-                            <div className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-600">Admin navigation</div>
-                            <nav className="space-y-2">
+                <div className="mt-6 grid gap-5 lg:grid-cols-[260px_1fr]">
+                    <aside className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <div className="space-y-3">
+                            <div className="text-xs font-bold uppercase tracking-wider text-gray-500 px-2">Admin navigation</div>
+                            <nav className="space-y-1">
                                 {adminNav.map((item) => {
                                     const active = location.pathname === item.to;
                                     return (
                                         <Link
                                             key={item.to}
                                             to={item.to}
-                                            className={`block rounded-2xl px-4 py-3 text-sm font-medium transition ${active
-                                                    ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
-                                                    : "text-slate-700 hover:bg-slate-100"
-                                                }`}
+                                            className={`block rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 ${
+                                                active
+                                                    ? "bg-pink-50 text-pink-600"
+                                                    : "text-gray-600 hover:bg-gray-100"
+                                            }`}
                                         >
                                             {item.label}
                                         </Link>
@@ -56,7 +57,7 @@ export default function AdminLayout({ children, title = "Admin Control Center", 
                         </div>
                     </aside>
 
-                    <section className="space-y-6">{children}</section>
+                    <section className="space-y-5">{children}</section>
                 </div>
             </div>
         </div>

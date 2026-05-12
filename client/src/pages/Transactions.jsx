@@ -19,7 +19,6 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import "./CSS/Transactions.css";
 import { ticketNetToOrganizer } from "../utils/transactions";
 
 export default function Transactions() {
@@ -217,204 +216,192 @@ export default function Transactions() {
         : `${matchCount} rows match your filters.`;
 
   return (
-    <div className="transactions-page">
-      <div className="tx-layout">
-        <header className="tx-top-bar">
-          <div className="tx-top-bar-main">
-            <Link to="/dashboard" className="tx-back-link">
-              <ArrowLeft size={16} strokeWidth={2.25} />
-              Dashboard
+    <div className="min-h-screen py-6 px-4 md:px-8 pb-20 font-geist pl-[calc(var(--sidebar-width,0px)+1rem)] md:pl-[calc(var(--sidebar-width,0px)+2rem)]">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <header className="flex flex-wrap items-start justify-between gap-4 mb-5">
+          <div className="max-w-md">
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-pink-500 transition-colors duration-200 mb-2">
+              <ArrowLeft size={16} strokeWidth={2.25} /> Dashboard
             </Link>
-            <h1 className="tx-page-title">Transaction history</h1>
-            <p className="tx-page-lede">
-              Naira (₦) only. Ticket rows show what you keep after fees; withdrawals show money sent to
-              your bank.
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900 mb-1">Transaction history</h1>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Naira (₦) only. Ticket rows show what you keep after fees; withdrawals show money sent to your bank.
             </p>
           </div>
           <button
             type="button"
-            className="tx-export-btn"
             onClick={exportCsv}
             disabled={loading || filteredAndSortedTransactions.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm font-bold transition-all duration-200 hover:bg-gray-800 hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
-            <Download size={18} />
-            Export CSV
+            <Download size={18} /> Export CSV
           </button>
         </header>
 
-        <section className="tx-panel" aria-label="Transactions">
-          <div className="tx-summary-strip">
-            <div className="tx-sum-item">
-              <span className="tx-sum-label">Net after withdrawals</span>
-              <span className="tx-sum-value">₦{formatNumber(netAfterWithdrawals)}</span>
-              <span className="tx-sum-meta">Successful credits minus payouts</span>
+        {/* Main Panel */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          {/* Summary Strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 border-b border-gray-200 bg-gradient-to-b from-gray-50/50 to-transparent">
+            <div className="p-4 border-r border-gray-200 md:border-r">
+              <span className="block text-[0.68rem] font-bold uppercase tracking-wider text-gray-400 mb-1">Net after withdrawals</span>
+              <span className="block text-xl font-extrabold tracking-tight text-gray-900">₦{formatNumber(netAfterWithdrawals)}</span>
+              <span className="block text-xs text-gray-400 mt-1">Successful credits minus payouts</span>
             </div>
-            <div className="tx-sum-item">
-              <span className="tx-sum-label">Ticket sales (net)</span>
-              <span className="tx-sum-value">₦{formatNumber(successfulTicketNet)}</span>
-              <span className="tx-sum-meta">Your share after platform fees</span>
+            <div className="p-4 border-r border-gray-200">
+              <span className="block text-[0.68rem] font-bold uppercase tracking-wider text-gray-400 mb-1">Ticket sales (net)</span>
+              <span className="block text-xl font-extrabold tracking-tight text-gray-900">₦{formatNumber(successfulTicketNet)}</span>
+              <span className="block text-xs text-gray-400 mt-1">Your share after platform fees</span>
             </div>
-            <div className="tx-sum-item">
-              <span className="tx-sum-label">Withdrawals paid</span>
-              <span className="tx-sum-value">₦{formatNumber(successfulWithdrawals)}</span>
-              <span className="tx-sum-meta">Completed bank transfers</span>
+            <div className="p-4 border-r border-gray-200">
+              <span className="block text-[0.68rem] font-bold uppercase tracking-wider text-gray-400 mb-1">Withdrawals paid</span>
+              <span className="block text-xl font-extrabold tracking-tight text-gray-900">₦{formatNumber(successfulWithdrawals)}</span>
+              <span className="block text-xs text-gray-400 mt-1">Completed bank transfers</span>
             </div>
-            <div className="tx-sum-item">
-              <span className="tx-sum-label">Success rate</span>
-              <span className="tx-sum-value">{successRate}%</span>
-              <span className="tx-sum-meta">
-                {pendingTransactions} pending · {failedTransactions} failed
-              </span>
+            <div className="p-4">
+              <span className="block text-[0.68rem] font-bold uppercase tracking-wider text-gray-400 mb-1">Success rate</span>
+              <span className="block text-xl font-extrabold tracking-tight text-gray-900">{successRate}%</span>
+              <span className="block text-xs text-gray-400 mt-1">{pendingTransactions} pending · {failedTransactions} failed</span>
             </div>
           </div>
 
-          <div className="tx-toolbar">
-            <div className="tx-search-field">
-              <Search size={17} className="tx-search-icon" aria-hidden />
+          {/* Toolbar */}
+          <div className="p-4 border-b border-gray-200 space-y-3">
+            <div className="relative">
+              <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               <input
                 type="search"
                 placeholder="Search reference, amount, status, type…"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 autoComplete="off"
-                aria-label="Search transactions"
+                className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 text-sm transition-all duration-200 focus:outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
               />
             </div>
-            <div className="tx-filter-rows">
-              <div className="tx-filter-row">
-                <span className="tx-filter-name">Activity</span>
-                <div className="tx-chip-list">
-                  <button
-                    type="button"
-                    className={`tx-chip ${typeFilter === "all" ? "tx-chip--on" : ""}`}
-                    onClick={() => setTypeFilter("all")}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    className={`tx-chip ${typeFilter === "ticket" ? "tx-chip--on" : ""}`}
-                    onClick={() => setTypeFilter("ticket")}
-                  >
-                    <ArrowUpRight size={13} />
-                    Sales
-                  </button>
-                  <button
-                    type="button"
-                    className={`tx-chip ${typeFilter === "withdrawal" ? "tx-chip--on" : ""}`}
-                    onClick={() => setTypeFilter("withdrawal")}
-                  >
-                    <ArrowDownLeft size={13} />
-                    Withdrawals
-                  </button>
+            
+            <div className="space-y-3">
+              {/* Type Filter */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 w-20">Activity</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "ticket", label: "Sales", icon: <ArrowUpRight size={13} /> },
+                    { value: "withdrawal", label: "Withdrawals", icon: <ArrowDownLeft size={13} /> },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setTypeFilter(type.value)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        typeFilter === type.value
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {type.icon}
+                      {type.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="tx-filter-row">
-                <span className="tx-filter-name">Status</span>
-                <div className="tx-chip-list">
-                  <button
-                    type="button"
-                    className={`tx-chip ${filter === "all" ? "tx-chip--on" : ""}`}
-                    onClick={() => setFilter("all")}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    className={`tx-chip tx-chip--success ${filter === "success" ? "tx-chip--on" : ""}`}
-                    onClick={() => setFilter("success")}
-                  >
-                    <CheckCircle size={13} />
-                    Success
-                  </button>
-                  <button
-                    type="button"
-                    className={`tx-chip tx-chip--pending ${filter === "pending" ? "tx-chip--on" : ""}`}
-                    onClick={() => setFilter("pending")}
-                  >
-                    <Clock size={13} />
-                    Pending
-                  </button>
-                  <button
-                    type="button"
-                    className={`tx-chip tx-chip--failed ${filter === "failed" ? "tx-chip--on" : ""}`}
-                    onClick={() => setFilter("failed")}
-                  >
-                    <XCircle size={13} />
-                    Failed
-                  </button>
+
+              {/* Status Filter */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 w-20">Status</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { value: "all", label: "All" },
+                    { value: "success", label: "Success", icon: <CheckCircle size={13} />, color: "success" },
+                    { value: "pending", label: "Pending", icon: <Clock size={13} />, color: "pending" },
+                    { value: "failed", label: "Failed", icon: <XCircle size={13} />, color: "failed" },
+                  ].map((status) => (
+                    <button
+                      key={status.value}
+                      type="button"
+                      onClick={() => setFilter(status.value)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        filter === status.value
+                          ? status.color === "success"
+                            ? "bg-green-600 text-white"
+                            : status.color === "pending"
+                            ? "bg-amber-600 text-white"
+                            : status.color === "failed"
+                            ? "bg-red-600 text-white"
+                            : "bg-gray-900 text-white"
+                          : "bg-white text-gray-600 border border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      {status.icon}
+                      {status.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="tx-table-headline">
-            <h2>Movements</h2>
-            <p>{matchLabel}</p>
+          {/* Table Header */}
+          <div className="px-4 pt-4 pb-2">
+            <h2 className="text-sm font-extrabold text-gray-900">Movements</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{matchLabel}</p>
           </div>
 
-          <div className="table-header" role="row">
-            <div className="header-cell type">Type</div>
+          {/* Column Headers - Desktop */}
+          <div className="hidden md:grid grid-cols-[1.35fr_0.9fr_0.95fr_0.8fr_1fr_64px] gap-3 px-5 py-2 bg-gray-50/80 border-t border-b border-gray-200 text-[0.68rem] font-bold uppercase tracking-wider text-gray-400">
+            <div className="flex items-center gap-1">Type</div>
             <button
               type="button"
-              className="header-cell date sortable"
               onClick={() => handleSort("date")}
+              className="flex items-center gap-1 text-gray-400 hover:text-gray-700 transition-colors"
             >
-              <Calendar size={14} />
-              <span>Date</span>
-              <ArrowUpDown
-                size={12}
-                className={`sort-icon ${sortConfig.key === "date" ? "active" : ""}`}
-              />
+              <Calendar size={14} /> Date
+              <ArrowUpDown size={12} className={`${sortConfig.key === "date" ? "opacity-100 text-pink-500" : "opacity-35"}`} />
             </button>
             <button
               type="button"
-              className="header-cell amount sortable"
               onClick={() => handleSort("amount")}
+              className="flex items-center gap-1 text-gray-400 hover:text-gray-700 transition-colors"
             >
-              <span className="tx-amount-heading">
-                Amount<span className="tx-amount-heading-cur">₦</span>
-              </span>
-              <ArrowUpDown
-                size={12}
-                className={`sort-icon ${sortConfig.key === "amount" ? "active" : ""}`}
-              />
+              <span>Amount <span className="font-extrabold">₦</span></span>
+              <ArrowUpDown size={12} className={`${sortConfig.key === "amount" ? "opacity-100 text-pink-500" : "opacity-35"}`} />
             </button>
-            <div className="header-cell status">Status</div>
-            <div className="header-cell reference">Reference</div>
-            <div className="header-cell actions" aria-hidden />
+            <div className="flex items-center gap-1">Status</div>
+            <div className="flex items-center gap-1">Reference</div>
+            <div aria-hidden />
           </div>
 
-          <div className="table-body">
+          {/* Table Body */}
+          <div className="min-h-[220px] bg-white">
             {loading ? (
-              <div className="loading-state">
-                <div className="spinner" />
-                <p>Loading transactions…</p>
+              <div className="flex flex-col items-center justify-center gap-3 py-12 text-gray-400">
+                <div className="w-9 h-9 border-3 border-gray-200 border-t-pink-500 rounded-full animate-spin" />
+                <p className="text-sm font-semibold">Loading transactions…</p>
               </div>
             ) : paginatedTransactions.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon-wrapper">
+              <div className="flex flex-col items-center text-center py-12 px-5 gap-2">
+                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
                   <Receipt size={40} />
                 </div>
-                <h3>No transactions match</h3>
-                <p>
+                <h3 className="text-base font-extrabold text-gray-900">No transactions match</h3>
+                <p className="text-sm text-gray-400 max-w-xs">
                   {transactions.length === 0
                     ? "Sales and withdrawals will show up here as soon as there is activity on your account."
                     : "Try clearing filters or searching with a different term."}
                 </p>
                 {transactions.length === 0 ? (
-                  <Link to="/events" className="browse-events-btn">
+                  <Link to="/events" className="mt-2 inline-flex px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-bold">
                     Browse events
                   </Link>
                 ) : (
                   <button
                     type="button"
-                    className="tx-reset-filters"
                     onClick={() => {
                       setFilter("all");
                       setTypeFilter("all");
                       setSearchTerm("");
                     }}
+                    className="mt-2 px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:border-gray-300 transition-colors"
                   >
                     Reset filters
                   </button>
@@ -424,9 +411,6 @@ export default function Transactions() {
               paginatedTransactions.map((tx) => (
                 <div
                   key={tx._id}
-                  className="table-row"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setSelectedTransaction(tx)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -434,117 +418,133 @@ export default function Transactions() {
                       setSelectedTransaction(tx);
                     }
                   }}
+                  className="group border-b border-gray-100 hover:bg-gray-50/50 cursor-pointer transition-colors"
                 >
-                  <div className="row-cell type" data-label="Type">
-                    <div className="transaction-type">
-                      <div
-                        className={`type-pill ${tx.type === "withdrawal" ? "expense" : "income"}`}
-                      >
-                        {tx.type === "withdrawal" ? (
-                          <ArrowDownLeft size={16} />
-                        ) : (
-                          <ArrowUpRight size={16} />
-                        )}
+                  {/* Desktop View */}
+                  <div className="hidden md:grid grid-cols-[1.35fr_0.9fr_0.95fr_0.8fr_1fr_64px] gap-3 px-5 py-3 items-center">
+                    {/* Type */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${tx.type === "withdrawal" ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
+                        {tx.type === "withdrawal" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                       </div>
-                      <span className="type-text">{getTypeDisplay(tx.type)}</span>
+                      <span className="font-semibold text-sm text-gray-900 truncate">{getTypeDisplay(tx.type)}</span>
                     </div>
-                  </div>
-
-                  <div className="row-cell date" data-label="Date">
-                    <span className="date-full">{formatDate(tx.createdAt)}</span>
-                    <span className="date-mobile">
-                      {new Date(tx.createdAt).toLocaleDateString("en-NG", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-
-                  <div className="row-cell amount" data-label="Amount">
-                    <span
-                      className={`amount-value ${tx.type === "withdrawal" ? "negative" : "positive"}`}
-                    >
-                      {tx.type === "withdrawal" ? "−" : "+"}₦
-                      {formatNumber(
-                        tx.type === "ticket" ? ticketNetToOrganizer(tx) : tx.amount
-                      )}
-                    </span>
-                    {tx.type === "ticket" && Number(tx.fee) > 0 && (
-                      <span className="amount-sub" title="Platform fee on this sale">
-                        Fee ₦{formatNumber(tx.fee)} · buyer paid ₦{formatNumber(tx.amount)}
+                    {/* Date */}
+                    <div className="text-sm font-semibold text-gray-500">{formatDate(tx.createdAt)}</div>
+                    {/* Amount */}
+                    <div className="flex flex-col items-end">
+                      <span className={`font-extrabold text-sm ${tx.type === "withdrawal" ? "text-red-600" : "text-green-700"}`}>
+                        {tx.type === "withdrawal" ? "−" : "+"}₦{formatNumber(tx.type === "ticket" ? ticketNetToOrganizer(tx) : tx.amount)}
                       </span>
-                    )}
-                  </div>
-
-                  <div className="row-cell status" data-label="Status">
-                    <span className={`status-badge ${tx.status}`}>
-                      {getStatusIcon(tx.status)}
-                      <span className="status-text">{tx.status}</span>
-                    </span>
-                  </div>
-
-                  <div className="row-cell reference" data-label="Reference">
-                    <div className="reference-wrapper">
-                      <span className="reference-text" title={tx.reference || undefined}>
-                        {tx.reference
-                          ? tx.reference.length > 14
-                            ? `${tx.reference.slice(0, 14)}…`
-                            : tx.reference
-                          : "—"}
+                      {tx.type === "ticket" && Number(tx.fee) > 0 && (
+                        <span className="text-[0.65rem] text-gray-400">Fee ₦{formatNumber(tx.fee)} · buyer paid ₦{formatNumber(tx.amount)}</span>
+                      )}
+                    </div>
+                    {/* Status */}
+                    <div>
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold ${
+                        tx.status === "success" ? "bg-green-50 text-green-700" :
+                        tx.status === "pending" ? "bg-amber-50 text-amber-700" :
+                        "bg-red-50 text-red-700"
+                      }`}>
+                        {getStatusIcon(tx.status)}
+                        <span className="capitalize">{tx.status}</span>
+                      </span>
+                    </div>
+                    {/* Reference */}
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="font-mono text-xs text-gray-500 truncate" title={tx.reference || undefined}>
+                        {tx.reference ? (tx.reference.length > 14 ? `${tx.reference.slice(0, 14)}…` : tx.reference) : "—"}
                       </span>
                       {tx.reference && (
                         <button
                           type="button"
-                          className="copy-btn"
-                          title="Copy reference"
                           onClick={(e) => {
                             e.stopPropagation();
                             copyToClipboard(tx.reference);
                           }}
+                          className="p-1 rounded-md text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-colors"
+                          title="Copy reference"
                         >
                           <Copy size={14} />
                         </button>
                       )}
                     </div>
+                    {/* Actions */}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTransaction(tx);
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-colors"
+                        title="Details"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="row-cell actions" data-label="">
-                    <button
-                      type="button"
-                      className="action-btn view"
-                      title="Details"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTransaction(tx);
-                      }}
-                    >
-                      <Eye size={16} />
-                    </button>
+                  {/* Mobile View */}
+                  <div className="md:hidden p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tx.type === "withdrawal" ? "bg-red-50 text-red-500" : "bg-green-50 text-green-600"}`}>
+                          {tx.type === "withdrawal" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                        </div>
+                        <span className="font-bold text-sm text-gray-900">{getTypeDisplay(tx.type)}</span>
+                      </div>
+                      <span className={`font-extrabold text-sm ${tx.type === "withdrawal" ? "text-red-600" : "text-green-700"}`}>
+                        {tx.type === "withdrawal" ? "−" : "+"}₦{formatNumber(tx.type === "ticket" ? ticketNetToOrganizer(tx) : tx.amount)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">{formatDate(tx.createdAt)}</span>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                        tx.status === "success" ? "bg-green-50 text-green-700" :
+                        tx.status === "pending" ? "bg-amber-50 text-amber-700" :
+                        "bg-red-50 text-red-700"
+                      }`}>
+                        {getStatusIcon(tx.status)} {tx.status}
+                      </span>
+                    </div>
+                    {tx.reference && (
+                      <div className="flex items-center gap-1 pt-1">
+                        <span className="font-mono text-xs text-gray-500 truncate flex-1">{tx.reference}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyToClipboard(tx.reference);
+                          }}
+                          className="p-1 rounded-md text-gray-400 hover:text-pink-500"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
             )}
           </div>
 
+          {/* Pagination */}
           {filteredAndSortedTransactions.length > 0 && !loading && (
-            <div className="table-footer">
-              <span className="showing-info">
-                Showing {(currentPage - 1) * itemsPerPage + 1}–
-                {Math.min(currentPage * itemsPerPage, filteredAndSortedTransactions.length)} of{" "}
-                {filteredAndSortedTransactions.length}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-t border-gray-200 bg-gray-50/30">
+              <span className="text-xs font-semibold text-gray-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredAndSortedTransactions.length)} of {filteredAndSortedTransactions.length}
               </span>
-              <div className="pagination">
+              <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="page-nav"
-                  aria-label="Previous page"
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
+                  className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:border-gray-300 transition-colors"
                 >
                   <ChevronLeft size={16} />
                 </button>
-
                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
                   let pageNum;
                   if (totalPages <= 5) {
@@ -556,100 +556,102 @@ export default function Transactions() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-
                   return (
                     <button
                       key={i}
                       type="button"
-                      className={`page-btn ${currentPage === pageNum ? "active" : ""}`}
                       onClick={() => setCurrentPage(pageNum)}
+                      className={`min-w-[34px] h-9 px-2 rounded-lg border text-sm font-bold transition-colors ${
+                        currentPage === pageNum
+                          ? "bg-gray-900 border-gray-900 text-white"
+                          : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                      }`}
                     >
                       {pageNum}
                     </button>
                   );
                 })}
-
                 <button
                   type="button"
-                  className="page-nav"
-                  aria-label="Next page"
                   onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
+                  className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-gray-600 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:border-gray-300 transition-colors"
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
             </div>
           )}
-        </section>
+        </div>
       </div>
 
+      {/* Transaction Details Modal */}
       {selectedTransaction && (
-        <div className="modal-overlay" role="presentation" onClick={() => setSelectedTransaction(null)}>
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          role="presentation"
+          onClick={() => setSelectedTransaction(null)}
+        >
           <div
-            className="transaction-modal"
+            className="w-full max-w-md max-h-[90vh] overflow-auto bg-white rounded-xl border border-gray-200 shadow-xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="tx-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="modal-top">
-              <h3 id="tx-modal-title">Transaction details</h3>
+            <div className="flex items-start justify-between gap-4 p-4 pb-0">
+              <h3 id="tx-modal-title" className="text-base font-extrabold text-gray-900">Transaction details</h3>
               <button
                 type="button"
-                className="modal-close"
-                aria-label="Close"
                 onClick={() => setSelectedTransaction(null)}
+                className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
               >
                 <X size={18} />
               </button>
             </div>
-            <div className="modal-content">
-              <div className="detail-row">
-                <span className="detail-label">Type</span>
-                <span className="detail-value">{getTypeDisplay(selectedTransaction.type)}</span>
+            <div className="p-4 space-y-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Type</span>
+                <span className="text-sm font-bold text-gray-900">{getTypeDisplay(selectedTransaction.type)}</span>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">
                   {selectedTransaction.type === "ticket" ? "You receive" : "Amount"}
                 </span>
-                <span
-                  className={`detail-value amount ${selectedTransaction.type === "withdrawal" ? "negative" : "positive"}`}
-                >
+                <span className={`text-base font-extrabold ${selectedTransaction.type === "withdrawal" ? "text-red-600" : "text-green-700"}`}>
                   {selectedTransaction.type === "withdrawal" ? "−" : "+"}₦
-                  {formatNumber(
-                    selectedTransaction.type === "ticket"
-                      ? ticketNetToOrganizer(selectedTransaction)
-                      : selectedTransaction.amount
-                  )}
+                  {formatNumber(selectedTransaction.type === "ticket" ? ticketNetToOrganizer(selectedTransaction) : selectedTransaction.amount)}
                 </span>
               </div>
               {selectedTransaction.type === "ticket" && Number(selectedTransaction.fee) > 0 && (
                 <>
-                  <div className="detail-row">
-                    <span className="detail-label">Buyer paid</span>
-                    <span className="detail-value">₦{formatNumber(selectedTransaction.amount)}</span>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                    <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Buyer paid</span>
+                    <span className="text-sm text-gray-700">₦{formatNumber(selectedTransaction.amount)}</span>
                   </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Platform fee</span>
-                    <span className="detail-value">₦{formatNumber(selectedTransaction.fee)}</span>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                    <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Platform fee</span>
+                    <span className="text-sm text-gray-700">₦{formatNumber(selectedTransaction.fee)}</span>
                   </div>
                 </>
               )}
-              <div className="detail-row">
-                <span className="detail-label">Status</span>
-                <span className={`status-badge ${selectedTransaction.status}`}>
-                  {getStatusIcon(selectedTransaction.status)}
-                  <span>{selectedTransaction.status}</span>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Status</span>
+                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-bold ${
+                  selectedTransaction.status === "success" ? "bg-green-50 text-green-700" :
+                  selectedTransaction.status === "pending" ? "bg-amber-50 text-amber-700" :
+                  "bg-red-50 text-red-700"
+                }`}>
+                  {getStatusIcon(selectedTransaction.status)} {selectedTransaction.status}
                 </span>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Reference</span>
-                <span className="detail-value reference">{selectedTransaction.reference || "—"}</span>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 py-3 border-b border-gray-100">
+                <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Reference</span>
+                <span className="font-mono text-xs text-gray-500 break-all text-right">{selectedTransaction.reference || "—"}</span>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Date</span>
-                <span className="detail-value">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
+                <span className="text-[0.7rem] font-bold uppercase tracking-wider text-gray-400">Date</span>
+                <span className="text-sm text-gray-600 text-right">
                   {new Date(selectedTransaction.createdAt).toLocaleString("en-US", {
                     weekday: "short",
                     year: "numeric",
@@ -661,20 +663,23 @@ export default function Transactions() {
                 </span>
               </div>
             </div>
-            <div className="modal-actions">
-              <button type="button" onClick={() => setSelectedTransaction(null)}>
+            <div className="flex flex-wrap justify-end gap-2 p-4 border-t border-gray-100 bg-gray-50/50">
+              <button
+                type="button"
+                onClick={() => setSelectedTransaction(null)}
+                className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:border-gray-300 transition-colors"
+              >
                 Close
               </button>
-              {selectedTransaction.reference ? (
+              {selectedTransaction.reference && (
                 <button
                   type="button"
-                  className="download-receipt-btn"
                   onClick={() => copyToClipboard(selectedTransaction.reference)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-semibold hover:bg-gray-800 transition-colors"
                 >
-                  <Copy size={16} />
-                  Copy reference
+                  <Copy size={16} /> Copy reference
                 </button>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
