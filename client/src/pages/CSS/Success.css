@@ -1,0 +1,141 @@
+.success-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background:
+    radial-gradient(circle at top, rgba(244, 63, 142, 0.14), transparent 32%),
+    #f8fafc;
+  font-family: Geist, sans-serif;
+}
+
+.success-container {
+  width: min(100%, 36rem);
+  border: 1px solid #e5e7eb;
+  border-radius: 1.5rem;
+  background: #ffffff;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+}
+
+.success-icon-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.success-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 999px;
+  background: #fdf2f8;
+  color: #ec4899;
+}
+
+.success-icon {
+  color: inherit;
+}
+
+.success-title {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.success-title-span {
+  display: block;
+}
+
+.success-message,
+.redirect-info {
+  color: #6b7280;
+}
+
+.success-message {
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.98rem;
+}
+
+.ticket-preview {
+  border: 1px solid #fbcfe8;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #fff1f2, #fdf2f8);
+  padding: 1rem;
+  text-align: left;
+}
+
+.ticket-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  color: #be185d;
+  font-weight: 700;
+}
+
+.ticket-preview-body {
+  color: #4b5563;
+}
+
+.ticket-preview-text {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.success-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 11rem;
+  border-radius: 999px;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.success-btn:hover {
+  transform: translateY(-1px);
+}
+
+.success-btn.primary {
+  background: #ec4899;
+  color: #ffffff;
+}
+
+.success-btn.primary:hover {
+  background: #db2777;
+}
+
+.success-btn.secondary {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+}
+
+.success-btn.secondary:hover {
+  border-color: #f9a8d4;
+  color: #db2777;
+}
+
+.redirect-info {
+  margin: 1rem 0 0;
+  font-size: 0.84rem;
+}
