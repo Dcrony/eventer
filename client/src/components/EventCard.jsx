@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, Heart, MapPin, Ticket } from "lucide-react";
+import { CalendarDays, Heart, MapPin, Ticket, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import icon from "../assets/icon.svg";
@@ -112,6 +112,13 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   const imageUrl = getEventImageUrl(eventState);
   const showPlaceholder = !imageUrl || imageFailed;
   const favorited = Boolean(eventState.isFavorited);
+  
+  // Get ticket information - use originalEvent props for totalTickets if available
+  // This ensures totalTickets never changes even if the API sends wrong data
+  const ticketsSold = Number(eventState?.ticketsSold) || 0;
+  // Use the original totalTickets from the initial event prop, not from eventState that might have been updated
+  const totalTickets = Number(event?.totalTickets) || Number(eventState?.totalTickets) || 0;
+  const soldPercentage = totalTickets > 0 ? Math.min(100, (ticketsSold / totalTickets) * 100) : 0;
 
   return (
     <>
@@ -135,22 +142,38 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
             )}
 
             {/* Topline Badges */}
-            <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+            <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2 z-10">
               {eventState.category && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[0.6rem] font-bold uppercase tracking-wide text-pink-600 shadow-sm">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[0.65rem] font-bold uppercase tracking-wide text-pink-600 shadow-sm">
                   {eventState.category}
                 </span>
               )}
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[0.6rem] font-bold uppercase tracking-wide text-gray-600 shadow-sm">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[0.65rem] font-bold uppercase tracking-wide text-gray-600 shadow-sm">
                 {eventState.eventType || "In-person"}
               </span>
             </div>
+
+            {/* Favorite Button - Top Right */}
+            <button
+              type="button"
+              onClick={handleFavorite}
+              disabled={favoriteLoading}
+              className={`absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full text-[0.65rem] font-semibold transition-all duration-200 z-10 ${
+                favorited
+                  ? "bg-pink-500 text-white shadow-md shadow-pink-500/30"
+                  : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500 border border-gray-200"
+              }`}
+              aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart size={12} className={favorited ? "fill-white" : ""} />
+              <span>{favorited ? "Saved" : "Favorite"}</span>
+            </button>
           </div>
 
           {/* Content Section */}
-          <div className="p-4">
-            <div className="mb-3">
-              <h3 className="text-base font-bold text-gray-900 line-clamp-1 mb-1">
+          <div className="p-4 pb-2">
+            <div className="mb-2">
+              <h3 className="text-sm font-bold text-gray-900 line-clamp-1 mb-1">
                 {eventState.title}
               </h3>
               <p className="text-xs text-gray-500 line-clamp-2">
@@ -159,47 +182,54 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
             </div>
 
             {/* Meta Info */}
-            <div className="space-y-1.5 mb-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
-                <span>{formatEventDate(eventState.startDate || eventState.date)}</span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
+                  <span>{formatEventDate(eventState.startDate || eventState.date)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <MapPin size={12} className="text-pink-500 flex-shrink-0" />
+                  <span className="truncate">{eventState.location || "Online event"}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <MapPin size={12} className="text-pink-500 flex-shrink-0" />
-                <span>{eventState.location || "Online event"}</span>
-              </div>
-            </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
-              <div className="flex-1 min-w-0">
+              <div className="flex-shrink-0 text-right">
                 <span className="text-[0.6rem] font-bold uppercase tracking-wider text-gray-400 block">
                   Tickets
                 </span>
-                <strong className="text-sm font-extrabold text-gray-900">
+                <strong className="text-base font-extrabold text-gray-900">
                   {formatEventPrice(eventState)}
                 </strong>
               </div>
-
-              <button
-                type="button"
-                onClick={handleFavorite}
-                disabled={favoriteLoading}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-                  favorited
-                    ? "bg-pink-50 text-pink-600 border border-pink-200"
-                    : "bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-500"
-                }`}
-                aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
-              >
-                <Heart size={14} className={favorited ? "fill-pink-500 text-pink-500" : ""} />
-                <span>{favorited ? "Saved" : "Favorite"}</span>
-              </button>
             </div>
+
+            {/* Ticket Sold Info - Always visible */}
+            {totalTickets > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <Users size={10} className="text-pink-500" />
+                    <span className="text-[0.65rem] font-medium text-gray-500">
+                      {ticketsSold} / {totalTickets} sold
+                    </span>
+                  </div>
+                  <span className="text-[0.6rem] text-gray-400">
+                    {Math.round(soldPercentage)}%
+                  </span>
+                </div>
+                <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-500"
+                    style={{ width: `${soldPercentage}%` }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Organizer Info */}
             <div
-              className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 cursor-pointer"
+              className="flex items-center gap-2 pt-2 border-t border-gray-100 cursor-pointer"
               onClick={(eventClick) => {
                 eventClick.preventDefault();
                 eventClick.stopPropagation();
@@ -215,15 +245,15 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 }
               }}
             >
-              <UserAvatar user={eventState.createdBy} className="w-8 h-8 rounded-lg" />
+              <UserAvatar user={eventState.createdBy} className="w-7 h-7 rounded-lg flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   <span className="text-xs font-semibold text-gray-900 truncate">
                     {organizer?.username || "Deleted Organizer"}
                   </span>
                   {organizer && <VerifiedBadge user={organizer} />}
                 </div>
-                <p className="text-[0.65rem] text-gray-400">Organizer</p>
+                <p className="text-[0.6rem] text-gray-400">Organizer</p>
               </div>
             </div>
           </div>

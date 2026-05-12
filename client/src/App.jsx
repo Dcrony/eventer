@@ -306,9 +306,9 @@ function Layout() {
               <Route
                 path="/events/:eventId/tickets"
                 element={
-                  <OrganizerStaffRoute>
+                  <ProtectedRoute>
                     <EventTickets />
-                  </OrganizerStaffRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
@@ -418,17 +418,17 @@ function Layout() {
               <Route
                 path="/scanner"
                 element={
-                  <OrganizerStaffRoute>
+                  <ProtectedRoute>
                     <TicketScanner />
-                  </OrganizerStaffRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/validate/:ticketId"
                 element={
-                  <OrganizerStaffRoute>
+                  <ProtectedRoute>
                     <TicketValidationPage />
-                  </OrganizerStaffRoute>
+                  </ProtectedRoute>
                 }
               />
               <Route
