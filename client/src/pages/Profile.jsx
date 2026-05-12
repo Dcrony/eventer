@@ -9,19 +9,38 @@ import {
   MessageSquare,
   UserRoundPlus,
   Sparkles,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Users,
+  BarChart3,
+  Ticket,
+  Eye,
+  Clock,
+  Radio,
 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import API from "../api/axios";
 import EventCard from "../components/EventCard";
+import EditEvent from "../components/EditEvent";
+import TeamManagement from "../components/TeamManagement";
 import Button from "../components/ui/button";
 import VerifiedBadge from "../components/ui/verified-badge";
-import { getCoverImageUrl, getProfileImageUrl } from "../utils/eventHelpers";
+import { getCoverImageUrl, getProfileImageUrl, formatEventDate, formatEventPrice, getEventImageUrl, formatCompactNumber } from "../utils/eventHelpers";
 import Avatar from "../components/ui/avatar";
+import { UserAvatar } from "../components/ui/avatar";
 import useShareLink from "../hooks/useShareLink";
+import useFeatureAccess from "../hooks/useFeatureAccess";
 import ShareModal from "@/components/ShareModal";
+import EventActionMenu from "../components/EventActionMenu";
+import {
+  canEditEvent as canEditFeaturedEvent,
+  canManageTeam as canManageFeaturedEventTeam,
+} from "../utils/eventPermissions";
 
 const TAB_ITEMS = [
   { id: "events", label: "Events", icon: CalendarDays },
+  { id: "featured", label: "Featured", icon: Sparkles },
   { id: "likes", label: "Likes", icon: Heart },
   { id: "saved", label: "Saved", icon: Bookmark },
   { id: "analytics", label: "Analytics", icon: ChartColumn, ownerOnly: true },
@@ -76,6 +95,198 @@ function AnalyticsCard({ label, value, helper }) {
   );
 }
 
+// Enhanced Featured Event Card Component
+function FeaturedEventCard({ 
+  event, 
+  onEdit, 
+  onManageTeam, 
+  onToggleLive, 
+  onDelete, 
+  onUpgradeAnalytics, 
+  onUpgradeLive, 
+  liveBusy 
+}) {
+  const imageUrl = getEventImageUrl(event);
+  const organizer = event.createdBy;
+  const isLive = event.liveStream?.isLive;
+
+  const menuItems = [
+    onToggleLive && {
+      key: "live",
+      label: isLive ? "Stop Live" : "Go Live",
+      icon: Radio,
+      onClick: () => onToggleLive(event),
+      loading: liveBusy,
+    },
+    onEdit && {
+      key: "edit",
+      label: "Edit event",
+      icon: Pencil,
+      onClick: () => onEdit(event._id),
+    },
+    {
+      key: "tickets",
+      label: "Manage tickets",
+      icon: Ticket,
+      to: `/events/${event._id}/tickets`,
+    },
+    onUpgradeAnalytics
+      ? {
+          key: "analytics-upgrade",
+          label: "Analytics (Pro)",
+          icon: BarChart3,
+          onClick: onUpgradeAnalytics,
+        }
+      : {
+          key: "analytics",
+          label: "Analytics",
+          icon: BarChart3,
+          to: `/events/${event._id}/analytics`,
+        },
+    onManageTeam && {
+      key: "team",
+      label: "Manage team",
+      icon: Users,
+      onClick: () => onManageTeam(event._id),
+    },
+    onDelete && { type: "divider" },
+    onDelete && {
+      key: "delete",
+      label: "Delete event",
+      icon: Trash2,
+      danger: true,
+      onClick: () => onDelete(event._id),
+    },
+  ].filter(Boolean);
+
+  return (
+    <article className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-pink-200/40">
+      {/* Image Section */}
+      <Link to={`/event/${event._id}`} className="block">
+        <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={event.title}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <CalendarDays size={40} className="text-white/20" />
+            </div>
+          )}
+
+          {/* Live Badge */}
+          {isLive && (
+            <span className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500 text-white text-[0.65rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              LIVE
+            </span>
+          )}
+
+          {/* Featured Badge */}
+          <span className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-md">
+            <Sparkles size={10} />
+            Featured
+          </span>
+        </div>
+      </Link>
+
+      {/* Content Section */}
+      <div className="p-4">
+        {/* Header with Title & Menu */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <Link to={`/event/${event._id}`} className="flex-1">
+            <h3 className="text-sm font-bold text-gray-900 line-clamp-2 hover:text-pink-500 transition-colors">
+              {event.title}
+            </h3>
+          </Link>
+          <div className="flex-shrink-0">
+            <EventActionMenu items={menuItems} />
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+          {event.description || "No description provided."}
+        </p>
+
+        {/* Event Details Grid */}
+        <div className="space-y-2 mb-3">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
+            <span>{formatEventDate(event.startDate || event.date)}</span>
+            <span className="text-gray-300">•</span>
+            <Clock size={12} className="text-pink-500 flex-shrink-0" />
+            <span>{event.startTime || "TBD"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <MapPin size={12} className="text-pink-500 flex-shrink-0" />
+            <span className="truncate">{event.location || "Online event"}</span>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div className="flex items-center justify-between gap-2 mb-3 p-2 rounded-lg bg-gray-50">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Ticket size={12} className="text-pink-500" />
+              <span className="text-xs font-semibold text-gray-900">{event.ticketsSold || 0}</span>
+              <span className="text-[0.6rem] text-gray-400">sold</span>
+            </div>
+            <div className="w-px h-3 bg-gray-300" />
+            <div className="flex items-center gap-1">
+              <Eye size={12} className="text-blue-500" />
+              <span className="text-xs font-semibold text-gray-900">{formatCompactNumber(event.viewCount || 0)}</span>
+            </div>
+            <div className="w-px h-3 bg-gray-300" />
+            <div className="flex items-center gap-1">
+              <Heart size={12} className="text-red-400" />
+              <span className="text-xs font-semibold text-gray-900">{formatCompactNumber(event.likeCount || 0)}</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-[0.6rem] font-bold uppercase tracking-wider text-gray-400">Price</span>
+            <p className="text-base font-extrabold text-gray-900 leading-tight">
+              {formatEventPrice(event)}
+            </p>
+          </div>
+        </div>
+
+        {/* Organizer Info */}
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <UserAvatar user={organizer} className="w-6 h-6 rounded-full flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-semibold text-gray-900 truncate">
+                {organizer?.username || organizer?.name || "Deleted Organizer"}
+              </span>
+              <VerifiedBadge user={organizer} />
+            </div>
+            <p className="text-[0.6rem] text-gray-400">Organizer</p>
+          </div>
+        </div>
+
+        {/* Capacity Progress Bar */}
+        {event.totalTickets && (
+          <div className="mt-3">
+            <div className="flex justify-between text-[0.6rem] text-gray-500 mb-1">
+              <span>Capacity</span>
+              <span>{Math.round(((event.ticketsSold || 0) / event.totalTickets) * 100)}% filled</span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-pink-400 to-pink-500 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, ((event.ticketsSold || 0) / event.totalTickets) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export default function Profile() {
   const { id, userId, username } = useParams();
   const navigate = useNavigate();
@@ -87,6 +298,12 @@ export default function Profile() {
   const [indicator, setIndicator] = useState({ width: 0, left: 0 });
   const tabsRef = useRef({});
   const [shareOpen, setShareOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [liveBusyId, setLiveBusyId] = useState(null);
+  const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
+  const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -137,10 +354,17 @@ export default function Profile() {
   }, [activeTab, visibleTabs]);
 
   const createdEvents = profile?.createdEvents || [];
+  const featuredEvents = profile?.featuredEvents || [];
   const likedEvents = profile?.likedEvents || [];
   const savedEvents = profile?.savedEvents || [];
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
+  const totalEventsCreated = profile?.stats?.totalEventsCreated ?? createdEvents.length;
+  const totalTicketsSold = profile?.stats?.totalTicketsSold ?? createdEvents.reduce(
+    (sum, event) => sum + Number(event?.ticketsSold || 0),
+    0,
+  );
+  const totalFeaturedEvents = profile?.stats?.totalFeaturedEvents ?? featuredEvents.length;
   const profileName = profile?.name || profile?.username || "Profile";
   const profileHandle = profile?.username ? `@${profile.username}` : "@tickispot";
   const location = profile?.location || profile?.country || "Lagos, Nigeria";
@@ -179,6 +403,19 @@ export default function Profile() {
             onAction: profile?.isOwner ? () => navigate("/events") : null,
           },
         };
+      case "featured":
+        return {
+          items: featuredEvents,
+          empty: {
+            icon: Sparkles,
+            title: "No featured events yet",
+            subtitle: profile?.isOwner
+              ? "Events you create, plus events you join as a collaborator, will appear here."
+              : "This user does not have any featured events to show right now.",
+            actionLabel: profile?.isOwner ? "Open dashboard" : null,
+            onAction: profile?.isOwner ? () => navigate("/dashboard") : null,
+          },
+        };
       case "analytics":
         return { items: [] };
       default:
@@ -195,7 +432,7 @@ export default function Profile() {
           },
         };
     }
-  }, [activeTab, createdEvents, likedEvents, navigate, profile?.isOwner, savedEvents]);
+  }, [activeTab, createdEvents, featuredEvents, likedEvents, navigate, profile?.isOwner, savedEvents]);
 
   const handleFollowToggle = async () => {
     if (!profile?._id || followPending) return;
@@ -221,6 +458,72 @@ export default function Profile() {
     setShareOpen(true);
   };
 
+  const handleFeaturedEventUpdated = async () => {
+    try {
+      const isSelf = resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(resolvedProfileId || ""));
+      const path = isSelf
+        ? "/users/me"
+        : isObjectId
+          ? `/users/${resolvedProfileId}`
+          : `/users/public/${resolvedProfileId}`;
+
+      const { data } = await API.get(path);
+      setProfile(data);
+    } catch {
+      // Refresh failure is non-fatal.
+    }
+  };
+
+  const openEditModal = (eventId) => {
+    setSelectedEventId(eventId);
+    setEditModalOpen(true);
+  };
+
+  const openTeamModal = (eventId) => {
+    setSelectedEventId(eventId);
+    setTeamModalOpen(true);
+  };
+
+  const handleToggleLive = async (event) => {
+    if (!canAccessLiveStreaming) {
+      promptUpgradeLive();
+      return;
+    }
+
+    setLiveBusyId(event._id);
+    try {
+      await API.patch("/events/toggle-live", {
+        eventId: event._id,
+        isLive: !event.liveStream?.isLive,
+      });
+      await handleFeaturedEventUpdated();
+      if (!event.liveStream?.isLive) {
+        navigate(`/live/${event._id}`);
+      }
+    } catch {
+      // API interceptor and page refresh cover most failure cases.
+    } finally {
+      setLiveBusyId(null);
+    }
+  };
+
+  const handleDeleteFeaturedEvent = async (eventId) => {
+    const eventToDelete = featuredEvents.find((event) => event._id === eventId);
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await API.delete(`/events/delete/${eventId}`);
+      await handleFeaturedEventUpdated();
+    } catch {
+      // Let the shared interceptor and refetch path handle the visible failure state.
+    }
+  };
+
   if (!profile) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 font-geist text-gray-400 pt-8 lg:pl-[var(--sidebar-width,0px)]">
@@ -231,7 +534,6 @@ export default function Profile() {
   }
 
   return (
-    // Only apply sidebar padding on desktop screens (lg and above)
     <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
         {/* Profile Header Card */}
@@ -328,6 +630,18 @@ export default function Profile() {
                   <strong className="text-sm font-extrabold text-gray-900">{followers}</strong>
                   <span>Followers</span>
                 </button>
+                <span className="inline-flex items-center gap-1.5 text-sm text-gray-400">
+                  <strong className="text-sm font-extrabold text-gray-900">{totalEventsCreated}</strong>
+                  <span>Events created</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-sm text-gray-400">
+                  <strong className="text-sm font-extrabold text-gray-900">{totalTicketsSold}</strong>
+                  <span>Tickets sold</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-sm text-gray-400">
+                  <strong className="text-sm font-extrabold text-gray-900">{totalFeaturedEvents}</strong>
+                  <span>Featured events</span>
+                </span>
               </div>
             </div>
 
@@ -437,8 +751,32 @@ export default function Profile() {
                   )}
                 </div>
               </div>
+            ) : activeTab === "featured" && tabContent.items.length ? (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-sm font-extrabold text-gray-900 mb-0.5">Featured event workspace</h2>
+                  <p className="text-xs text-gray-400">
+                    Created events and collaborator events live here, with access controls based on role.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {tabContent.items.map((event) => (
+                    <FeaturedEventCard
+                      key={event._id}
+                      event={event}
+                      onEdit={canEditFeaturedEvent(event) ? openEditModal : null}
+                      onManageTeam={canManageFeaturedEventTeam(event) ? openTeamModal : null}
+                      onToggleLive={handleToggleLive}
+                      onDelete={event?.eventAccess?.isOwner ? handleDeleteFeaturedEvent : null}
+                      onUpgradeAnalytics={canAccessAnalytics ? null : promptUpgradeAnalytics}
+                      onUpgradeLive={canAccessLiveStreaming ? null : promptUpgradeLive}
+                      liveBusy={liveBusyId === event._id}
+                    />
+                  ))}
+                </div>
+              </div>
             ) : tabContent.items.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {tabContent.items.map((event) => (
                   <EventCard key={event._id} event={event} />
                 ))}
@@ -458,6 +796,23 @@ export default function Profile() {
               ? `${window.location.origin}/user/${profile.username}`
               : `${window.location.origin}/profile/${profile._id}`
           }
+        />
+        <EditEvent
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedEventId(null);
+          }}
+          eventId={selectedEventId}
+          onEventUpdated={handleFeaturedEventUpdated}
+        />
+        <TeamManagement
+          eventId={selectedEventId}
+          isOpen={teamModalOpen}
+          onClose={() => {
+            setTeamModalOpen(false);
+            setSelectedEventId(null);
+          }}
         />
       </div>
     </div>

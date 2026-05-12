@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import API from "../api/axios";
-import "./CSS/home.css";
 
 const TicketValidationPage = () => {
   const { ticketId } = useParams();
