@@ -1,3 +1,4 @@
+// ChatWindow.jsx
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, MessageCircleMore, Send, Smile } from "lucide-react";
 import MessageBubble from "./MessageBubble";
@@ -20,7 +21,6 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
 
   useEffect(() => {
     if (!currentUserId || !selectedUser) return;
-
     const fetchMessages = async () => {
       try {
         setLoading(true);
@@ -37,77 +37,54 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
         setMessages(formattedMessages);
         await API.put(`/messages/read/${selectedUser._id}`);
       } catch (err) {
-        // Failed to fetch messages - UI will show empty state
       } finally {
         setLoading(false);
       }
     };
-
     fetchMessages();
   }, [currentUserId, selectedUser]);
 
   useEffect(() => {
     if (!currentUserId || !selectedUser || !socket) return;
 
-    socket.emit("join_conversation", { participantId: selectedUser._id }, (response) => {
-      if (response?.ok) {
-        setOnline(Boolean(response.online));
-      }
+    socket.emit("join_conversation", { participantId: selectedUser._id }, (res) => {
+      if (res?.ok) setOnline(Boolean(res.online));
     });
-
-    socket.emit("check_presence", { userId: selectedUser._id }, (response) => {
-      if (response?.ok) {
-        setOnline(Boolean(response.online));
-      }
+    socket.emit("check_presence", { userId: selectedUser._id }, (res) => {
+      if (res?.ok) setOnline(Boolean(res.online));
     });
 
     const handleReceiveMessage = (data) => {
       const isCurrentConversation =
         (data.senderId === selectedUser._id && data.receiverId === currentUserId) ||
         (data.senderId === currentUserId && data.receiverId === selectedUser._id);
-
       if (isCurrentConversation) {
         setMessages((prev) => {
-          const existingIndex = prev.findIndex(
-            (message) =>
-              message._id === data._id ||
-              (data.clientMessageId && message._id === data.clientMessageId) ||
-              (data.clientMessageId && message.clientMessageId === data.clientMessageId),
+          const idx = prev.findIndex(
+            (m) =>
+              m._id === data._id ||
+              (data.clientMessageId && m._id === data.clientMessageId) ||
+              (data.clientMessageId && m.clientMessageId === data.clientMessageId)
           );
-
-          if (existingIndex >= 0) {
-            return prev.map((message, index) => (index === existingIndex ? { ...data, temp: false } : message));
-          }
-
+          if (idx >= 0) return prev.map((m, i) => (i === idx ? { ...data, temp: false } : m));
           return [...prev, { ...data, temp: false }];
         });
-
         if (data.senderId === selectedUser._id) {
-          API.put(`/messages/read/${selectedUser._id}`).catch(() => {
-            // Silently handle read status update failure
-          });
+          API.put(`/messages/read/${selectedUser._id}`).catch(() => {});
         }
       }
     };
 
     const handleTyping = ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        setIsTyping(true);
-      }
+      if (senderId === selectedUser._id) setIsTyping(true);
     };
-
     const handleStopTyping = ({ senderId }) => {
-      if (senderId === selectedUser._id) {
-        setIsTyping(false);
-      }
+      if (senderId === selectedUser._id) setIsTyping(false);
     };
-
     const handleConversationUpdate = (payload) => {
       if (payload?.type === "read_receipt" && payload.readerId === selectedUser._id) {
         setMessages((prev) =>
-          prev.map((message) =>
-            message.senderId === currentUserId ? { ...message, seen: true, temp: false } : message,
-          ),
+          prev.map((m) => (m.senderId === currentUserId ? { ...m, seen: true, temp: false } : m))
         );
       }
     };
@@ -132,7 +109,6 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
 
   const handleSend = async () => {
     if (!text.trim() || !currentUserId || !selectedUser || !socket) return;
-
     const nextText = text.trim();
     const tempId = `temp-${Date.now()}`;
     const optimisticMessage = {
@@ -145,116 +121,101 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
       seen: false,
       temp: true,
     };
-
     setMessages((prev) => [...prev, optimisticMessage]);
     setText("");
-
     socket.emit(
       "send_message",
-      {
-        receiverId: selectedUser._id,
-        text: nextText,
-        clientMessageId: tempId,
-      },
+      { receiverId: selectedUser._id, text: nextText, clientMessageId: tempId },
       (response) => {
         if (!response?.ok) {
-          console.error("Failed to send message:", response?.error);
-          setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
+          setMessages((prev) => prev.filter((m) => m._id !== tempId));
           return;
         }
-
         setMessages((prev) =>
-          prev.map((msg) => (msg._id === tempId ? { ...response.message, temp: false } : msg)),
+          prev.map((m) => (m._id === tempId ? { ...response.message, temp: false } : m))
         );
-      },
+      }
     );
   };
 
   const handleTypingEmit = () => {
     if (!currentUserId || !selectedUser || !socket) return;
-
-    socket.emit("typing_start", {
-      receiverId: selectedUser._id,
-    });
-
+    socket.emit("typing_start", { receiverId: selectedUser._id });
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("typing_stop", {
-        receiverId: selectedUser._id,
-      });
+      socket.emit("typing_stop", { receiverId: selectedUser._id });
     }, 1000);
   };
 
-  if (!selectedUser) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center min-h-[300px]">
-        <div className="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
-          <MessageCircleMore size={32} strokeWidth={1.5} />
-        </div>
-        <h3 className="text-sm font-bold text-gray-900">Select a conversation</h3>
-        <p className="text-xs text-gray-400">Choose someone to start chatting with</p>
-      </div>
-    );
-  }
+  if (!selectedUser) return null;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 p-3 border-b border-gray-200 bg-white flex-shrink-0">
+    // flex-col fills full height; no overflow on this container
+    <div className="flex flex-col h-full w-full">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-white shrink-0">
         {isMobile && (
           <button
             type="button"
             onClick={onBack}
-            className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 transition-all duration-200 hover:bg-pink-50 hover:text-pink-500"
-            aria-label="Back to conversations"
+            className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-all"
           >
             <ArrowLeft size={18} />
           </button>
         )}
 
         <div
-          className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer py-1 px-2 rounded-lg transition-all duration-200 hover:bg-gray-50"
+          className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer py-1 px-2 rounded-lg hover:bg-gray-50 transition-all"
+          onClick={() => toProfile(selectedUser)}
           role="button"
           tabIndex={0}
-          onClick={() => toProfile(selectedUser)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
               toProfile(selectedUser);
             }
           }}
         >
           <div className="relative flex-shrink-0">
-            <UserAvatar user={selectedUser} className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
-            <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${online ? "bg-green-500" : "bg-gray-300"}`} />
+            <UserAvatar user={selectedUser} className="w-10 h-10 rounded-full" />
+            <span
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                online ? "bg-green-500" : "bg-gray-300"
+              }`}
+            />
           </div>
-
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-gray-900 truncate">
+            <h3 className="text-sm font-semibold text-gray-900 truncate">
               {selectedUser.name || selectedUser.username}
             </h3>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-500">
               {online ? "Online now" : `@${selectedUser.username || "user"}`}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        <div className="p-4 space-y-2 min-h-full">
+      {/* ── Messages ───────────────────────────────────────────── */}
+      <div
+        className="flex-1 overflow-y-auto bg-gray-50"
+        style={{ padding: "12px 16px" }}
+      >
+        <div className="flex flex-col gap-2 min-h-full justify-end">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12">
-              <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-              <p className="text-sm text-gray-400">Loading messages...</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 border-[3px] border-pink-200 border-t-pink-500 rounded-full animate-spin" />
+                <p className="text-sm text-gray-400">Loading messages...</p>
+              </div>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center min-h-[300px]">
-              <div className="w-14 h-14 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500 mb-3">
                 <MessageCircleMore size={32} strokeWidth={1.5} />
               </div>
               <p className="text-sm font-semibold text-gray-900">No messages yet</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 mt-1">
                 Say hello to {selectedUser.name || selectedUser.username}
               </p>
             </div>
@@ -264,22 +225,31 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
                 <MessageBubble
                   key={msg._id || index}
                   message={msg}
-                  isMe={msg.senderId === currentUserId || msg.sender?._id === currentUserId}
+                  isMe={
+                    msg.senderId === currentUserId ||
+                    msg.sender?._id === currentUserId
+                  }
                 />
               ))}
               {isTyping && (
-                <div className="flex items-start gap-2">
+                <div className="flex items-end gap-2">
                   <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden">
                     <UserAvatar user={selectedUser} className="w-full h-full" />
                   </div>
-                  <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-3 py-2 shadow-sm">
-                    <div className="flex gap-1">
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0s" }} />
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
-                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
+                  <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-3 py-2.5 shadow-sm">
+                    <div className="flex gap-1 items-center h-4">
+                      {[0, 0.2, 0.4].map((delay) => (
+                        <span
+                          key={delay}
+                          className="w-1.5 h-1.5 bg-gray-400 rounded-full"
+                          style={{
+                            animation: "typingBounce 1.4s infinite",
+                            animationDelay: `${delay}s`,
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <span className="text-xs text-gray-400">{selectedUser.name} is typing...</span>
                 </div>
               )}
             </>
@@ -288,43 +258,58 @@ export default function ChatWindow({ currentUser, selectedUser, onBack, isMobile
         </div>
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex-shrink-0 border-t border-gray-200 bg-white p-3 pb-4">
-        <div className="flex items-center gap-2">
+      {/* ── Input ──────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 border-t border-gray-200 bg-white"
+        style={{ padding: "8px 12px", paddingBottom: "calc(8px + env(safe-area-inset-bottom))" }}
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="flex items-center gap-2"
+        >
           <button
             type="button"
-            className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 transition-all duration-200 hover:bg-pink-50 hover:text-pink-500"
-            aria-label="Emoji picker"
+            className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-all flex-shrink-0"
           >
             <Smile size={18} />
           </button>
+
           <input
             value={text}
-            onChange={(event) => {
-              setText(event.target.value);
+            onChange={(e) => {
+              setText(e.target.value);
               handleTypingEmit();
             }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
                 handleSend();
               }
             }}
             placeholder="Type a message"
             disabled={!currentUserId || !selectedUser || !isConnected}
-            className="flex-1 px-4 py-2.5 rounded-full border-2 border-gray-200 bg-gray-50 text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 rounded-full border border-gray-200 bg-gray-50 text-gray-900 text-sm placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none disabled:opacity-50 transition-all"
           />
+
           <button
             type="submit"
-            onClick={handleSend}
             disabled={!text.trim() || !currentUserId || !selectedUser}
-            className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center transition-all duration-200 hover:bg-pink-600 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 shadow-md shadow-pink-500/30"
-            title="Send message"
+            className="w-10 h-10 rounded-full bg-pink-500 text-white flex items-center justify-center hover:bg-pink-600 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 shadow-md shadow-pink-500/30 transition-all flex-shrink-0"
           >
             <Send size={18} />
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
+
+      <style>{`
+        @keyframes typingBounce {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+          30% { transform: translateY(-5px); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
