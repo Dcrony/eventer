@@ -33,7 +33,7 @@ export default function AdminLayout({ children, title = "Admin Control Center", 
                 </div>
 
                 <div className="mt-6 grid gap-5 lg:grid-cols-[260px_1fr]">
-                    <aside className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <aside className="rounded-xl border h-fit border-gray-200 bg-white p-4 shadow-sm">
                         <div className="space-y-3">
                             <div className="text-xs font-bold uppercase tracking-wider text-gray-500 px-2">Admin navigation</div>
                             <nav className="space-y-1">

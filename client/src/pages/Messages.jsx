@@ -39,9 +39,9 @@ export default function Messages() {
     >
       {/* On mobile: full-screen, no padding, no card wrapper */}
       {/* On desktop: padded card layout */}
-      <div className="flex-1 overflow-hidden md:p-4 md:p-6 lg:p-8">
+      <div className="flex-1 overflow-hidden">
         <div
-          className="h-full md:rounded-2xl md:border md:border-gray-200 md:shadow-sm overflow-hidden bg-white"
+          className="h-full md:border md:border-gray-200 md:shadow-sm overflow-hidden bg-white"
           style={{ display: "flex" }}
         >
           {/* Chat List */}

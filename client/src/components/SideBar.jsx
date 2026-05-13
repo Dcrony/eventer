@@ -232,7 +232,7 @@ export default function Sidebar() {
         }
         .scrollbar-hide {
           -ms-overflow-style: none;
-          scrollbar-width: none;
+          scrollbar-width: 2px;
         }
       `}</style>
     </>

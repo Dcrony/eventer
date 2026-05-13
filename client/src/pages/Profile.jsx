@@ -528,8 +528,8 @@ export default function Profile() {
   // AFTER — replace with:
 if (!profile) {
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 animate-pulse">
+    <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="max-w-6xl mx-auto space-y-5 animate-pulse">
 
         {/* Cover + avatar skeleton */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -578,8 +578,8 @@ if (!profile) {
 }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+    <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="max-w-6xl mx-auto  space-y-5">
         {/* Profile Header Card */}
         <div className="bg-transparent overflow-hidden">
           {/* Cover Image */}
@@ -713,7 +713,7 @@ if (!profile) {
         <div className="bg-transparent p-4 sm:p-5">
           {/* Tab Strip */}
           <div className="sticky top-1 z-10 mb-4 pb-0.5 bg-transparent backdrop-blur-sm">
-            <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide">
+            <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide scrollbar-thin scrollbar-thumb-gray-300">
               <span
                 className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out shadow-[0_0_8px_rgba(244,63,142,0.3)]"
                 style={{ width: `${indicator.width}px`, transform: `translateX(${indicator.left}px)` }}
@@ -803,7 +803,7 @@ if (!profile) {
                     Created events and collaborator events live here, with access controls based on role.
                   </p>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                   {tabContent.items.map((event) => (
                     <FeaturedEventCard
                       key={event._id}
