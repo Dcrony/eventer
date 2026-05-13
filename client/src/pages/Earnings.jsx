@@ -274,8 +274,16 @@ export default function Earnings() {
 
         {/* Loading */}
         {loading && (
-          <DashCard><p style={{ color: T.muted, margin: 0 }}>Loading earnings…</p></DashCard>
-        )}
+  <div className="space-y-4 animate-pulse">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-200" />
+      ))}
+    </div>
+    <div className="h-12 bg-white rounded-xl border border-gray-200" />
+    <div className="h-64 bg-white rounded-2xl border border-gray-200" />
+  </div>
+)}
 
         {/* Error */}
         {error && (

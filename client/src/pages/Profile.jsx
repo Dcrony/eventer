@@ -524,14 +524,57 @@ export default function Profile() {
     }
   };
 
-  if (!profile) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-3 font-geist text-gray-400 pt-8 lg:pl-[var(--sidebar-width,0px)]">
-        <div className="w-10 h-10 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-        <p className="text-sm">Loading profile...</p>
+  // AFTER — replace with:
+if (!profile) {
+  return (
+    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5 animate-pulse">
+
+        {/* Cover + avatar skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="h-[180px] md:h-[220px] bg-gray-100" />
+          <div className="px-4 sm:px-6 pb-5 sm:pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div className="-mt-12 sm:-mt-14">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white" />
+              </div>
+              <div className="flex gap-2 sm:mt-4">
+                <div className="h-9 w-28 rounded-full bg-gray-100" />
+                <div className="h-9 w-28 rounded-full bg-gray-100" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="h-7 w-48 bg-gray-200 rounded-lg" />
+              <div className="h-4 w-24 bg-gray-100 rounded" />
+              <div className="h-4 w-72 bg-gray-100 rounded" />
+              <div className="h-4 w-56 bg-gray-100 rounded" />
+              <div className="flex gap-5 mt-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-4 w-20 bg-gray-100 rounded" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab + content skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+          <div className="flex gap-4 border-b border-gray-100 pb-3 mb-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-5 w-16 bg-gray-100 rounded" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-64 bg-gray-100 rounded-2xl" />
+            ))}
+          </div>
+        </div>
+
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">

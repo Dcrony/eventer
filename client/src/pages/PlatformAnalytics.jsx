@@ -200,11 +200,16 @@ export default function PlatformAnalytics() {
 
         {/* Loading & Error States */}
         {loading && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 text-center">
-            <div className="inline-block w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-            <p className="text-gray-500 mt-3">Loading analytics...</p>
-          </div>
-        )}
+  <div className="space-y-4 animate-pulse">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-24 bg-white rounded-xl border border-gray-200 shadow-sm" />
+      ))}
+    </div>
+    <div className="h-80 bg-white rounded-2xl border border-gray-200 shadow-sm" />
+    <div className="h-64 bg-white rounded-2xl border border-gray-200 shadow-sm" />
+  </div>
+)}
         
         {error && (
           <div className="bg-red-50 rounded-xl border border-red-200 shadow-sm p-8 text-center">

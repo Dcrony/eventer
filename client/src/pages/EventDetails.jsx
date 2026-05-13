@@ -225,13 +225,58 @@ export default function EventDetail() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[65vh] grid place-items-center gap-3 text-center text-gray-400 font-geist">
-        <div className="w-9 h-9 rounded-full border-3 border-pink-200 border-t-pink-500 animate-spin" />
-        <p className="text-sm">Loading event details...</p>
+  return (
+    <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] transition-all duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
+        {/* Hero panel skeleton */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:p-6 mb-5">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
+            <div className="rounded-xl bg-gray-100 min-h-[280px] lg:min-h-[340px]" />
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <div className="h-9 w-28 rounded-full bg-gray-100" />
+                <div className="h-9 w-28 rounded-full bg-gray-100" />
+              </div>
+              <div className="h-6 w-24 rounded-full bg-gray-100" />
+              <div className="space-y-2">
+                <div className="h-8 w-3/4 bg-gray-100 rounded-lg" />
+                <div className="h-4 w-full bg-gray-100 rounded" />
+                <div className="h-4 w-2/3 bg-gray-100 rounded" />
+              </div>
+              <div className="h-16 bg-gray-100 rounded-xl" />
+              <div className="h-10 bg-gray-100 rounded-xl" />
+            </div>
+          </div>
+        </div>
+
+        {/* Content skeleton */}
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-16 bg-gray-100 rounded-lg" />
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-gray-100 rounded" />
+              <div className="h-4 w-5/6 bg-gray-100 rounded" />
+              <div className="h-4 w-4/6 bg-gray-100 rounded" />
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:p-6 space-y-4 h-fit">
+            <div className="h-10 w-1/2 bg-gray-100 rounded-lg" />
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 bg-gray-100 rounded-xl" />
+              ))}
+            </div>
+            <div className="h-12 bg-gray-100 rounded-full" />
+          </div>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (!event) {
     return (
