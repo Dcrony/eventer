@@ -17,17 +17,10 @@ import TickiAIChat from "./components/TickiAIChat";
 import PwaInstallModal from "./components/PwaInstallModal";
 import CreatorCard from "./components/CreatorCard";
 
-// Loading component for Suspense fallback
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-400">Loading...</p>
-    </div>
-  </div>
-);
+
 
 // Lazy load all page components
+const PageLoader = lazy(() => import("./components/PageLoader"));
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
@@ -156,7 +149,7 @@ function Layout() {
       if (hideMobileNav) return null;
       return (
         <>
-          <Suspense fallback={null}>
+          <Suspense fallback={<PageLoader />}>
             <TopNav />
             <MobileBottomNav />
           </Suspense>
@@ -165,7 +158,7 @@ function Layout() {
     }
 
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageLoader />}>
         <Sidebar />
       </Suspense>
     );
