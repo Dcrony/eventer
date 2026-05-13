@@ -142,7 +142,7 @@ export default function LandingPageV2() {
   const featuredEvents = selectedCategory === "all" ? trendingEvents : filteredEvents.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-inter">
+    <div className="min-h-screen bg-gradient-to-br px-6 from-gray-50 via-white to-pink-50/20 font-inter">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto  sm:px-6 ">

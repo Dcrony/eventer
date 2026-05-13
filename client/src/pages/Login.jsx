@@ -146,10 +146,10 @@ export default function Login() {
 
         {/* Main Container */}
         <div className="relative z-10 w-full max-w-5xl min-h-[600px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-[600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-[600px] ">
             
             {/* Brand Panel - Left Side */}
-            <div className="relative bg-gradient-to-br from-white via-pink-50/50 to-gray-50 p-8 lg:p-10 overflow-hidden border-r border-gray-100">
+            <div className="md:block hidden relative bg-gradient-to-br from-white via-pink-50/50 to-gray-50 p-8 lg:p-10 overflow-hidden border-r border-gray-100">
               {/* Floating Blobs */}
               <div className="absolute w-44 h-44 rounded-full bg-pink-200/30 blur-3xl top-10 -right-10 animate-float" />
               <div className="absolute w-36 h-36 rounded-full bg-blue-200/20 blur-2xl bottom-10 -left-10 animate-float-delayed" />

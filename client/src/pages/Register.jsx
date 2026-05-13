@@ -165,7 +165,7 @@ export default function Register() {
           <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-[600px]">
             
             {/* Brand Panel - Left Side */}
-            <div className="relative bg-gradient-to-br from-white via-pink-50/50 to-gray-50 p-8 lg:p-10 overflow-hidden border-r border-gray-100">
+            <div className="md:block hidden relative bg-gradient-to-br from-white via-pink-50/50 to-gray-50 p-8 lg:p-10 overflow-hidden border-r border-gray-100">
               {/* Floating Blobs */}
               <div className="absolute w-44 h-44 rounded-full bg-pink-200/30 blur-3xl top-10 -right-10 animate-float" />
               <div className="absolute w-36 h-36 rounded-full bg-blue-200/20 blur-2xl bottom-10 -left-10 animate-float-delayed" />
