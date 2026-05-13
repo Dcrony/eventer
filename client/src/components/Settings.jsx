@@ -791,13 +791,35 @@ export default function Settings() {
         {/* Main Content */}
         <main className="flex flex-col gap-4 min-w-0">
           {loading ? (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-8 h-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-              <p className="text-sm text-gray-400">Loading your settings...</p>
-            </div>
-          ) : (
-            renderTabContent()
-          )}
+  <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-pulse">
+    {/* Card header skeleton */}
+    <div className="p-5 pb-4 border-b border-gray-100 flex items-start gap-3">
+      <div className="w-10 h-10 rounded-lg bg-gray-100 flex-shrink-0" />
+      <div className="flex-1 space-y-2 pt-1">
+        <div className="h-4 w-32 bg-gray-100 rounded" />
+        <div className="h-3 w-56 bg-gray-100 rounded" />
+      </div>
+      <div className="h-9 w-28 rounded-full bg-gray-100 flex-shrink-0" />
+    </div>
+    {/* Fields skeleton */}
+    <div className="p-5 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="h-2.5 w-16 bg-gray-100 rounded" />
+            <div className="h-11 bg-gray-100 rounded-xl" />
+          </div>
+        ))}
+      </div>
+      <div className="space-y-1.5">
+        <div className="h-2.5 w-10 bg-gray-100 rounded" />
+        <div className="h-24 bg-gray-100 rounded-xl" />
+      </div>
+    </div>
+  </div>
+) : (
+  renderTabContent()
+)}
         </main>
       </div>
     </div>
