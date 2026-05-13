@@ -79,7 +79,7 @@ const getProfileFeaturedEvents = async (profileUserId, viewerUser, options = {})
     },
   }).populate({
     path: "event",
-    match: eventFilter,
+    match: buildPublicEventQuery(),
     populate: {
       path: "createdBy",
       select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus",

@@ -44,7 +44,7 @@ export default function TopNav() {
 
   const goToProfile = () => {
     if (!user) return;
-    navigate(`/profile/${user._id || user.id}`);
+    navigate(`/users/${user._id || user.id}`);
     setIsMenuOpen(false);
   };
 
