@@ -18,6 +18,7 @@ import {
   Eye,
   Clock,
   Radio,
+  Share2Icon,
 } from "lucide-react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import API from "../api/axios";
@@ -580,7 +581,7 @@ if (!profile) {
     <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
         {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-transparent overflow-hidden">
           {/* Cover Image */}
           <div className="relative min-h-[180px] md:min-h-[220px] bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950">
             {getCoverImageUrl(profile) && (
@@ -611,7 +612,7 @@ if (!profile) {
                 {profile.isOwner ? (
                   <>
                     <Button variant="secondary" onClick={handleShareProfile} className="text-sm">
-                      <Link2 size={16} /> Share Profile
+                      <Share2Icon size={16} />
                     </Button>
                     <Button onClick={() => navigate("/edit-profile")} className="text-sm">
                       Edit Profile
@@ -633,7 +634,7 @@ if (!profile) {
                       onClick={() => navigate(`/messages?user=${profile._id}`)}
                       className="text-sm"
                     >
-                      <MessageSquare size={16} /> Message
+                      <MessageSquare size={16} />
                     </Button>
                   </>
                 )}
@@ -664,7 +665,7 @@ if (!profile) {
               </div>
 
               {/* Follow Stats */}
-              <div className="flex gap-5">
+              <div className="flex flex-wrap gap-2">
                 <button type="button" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
                   <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
                   <span>Following</span>
@@ -709,9 +710,9 @@ if (!profile) {
         </div>
 
         {/* Content Card */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+        <div className="bg-transparent p-4 sm:p-5">
           {/* Tab Strip */}
-          <div className="sticky top-4 z-10 mb-4 pb-0.5 bg-white/95 backdrop-blur-sm">
+          <div className="sticky top-1 z-10 mb-4 pb-0.5 bg-transparent backdrop-blur-sm">
             <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide">
               <span
                 className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out shadow-[0_0_8px_rgba(244,63,142,0.3)]"
