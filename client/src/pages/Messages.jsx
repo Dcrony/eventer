@@ -1,6 +1,7 @@
+// Messages.jsx
 import { useEffect, useState } from "react";
 import { MessageCircleMore } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ChatList from "../components/Messages/ChatList";
 import ChatWindow from "../components/Messages/ChatWindow";
 import API from "../api/axios";
@@ -12,6 +13,7 @@ export default function Messages() {
   const [searchParams] = useSearchParams();
   const userIdFromQuery = searchParams.get("user");
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -21,56 +23,81 @@ export default function Messages() {
 
   useEffect(() => {
     if (!userIdFromQuery) return;
-
     const fetchUser = async () => {
       try {
         const res = await API.get(`/users/${userIdFromQuery}`);
         setSelectedUser(res.data);
-      } catch (err) {
-        // Failed to fetch user - will show empty state
-      }
+      } catch (err) {}
     };
-
     fetchUser();
   }, [userIdFromQuery]);
 
   return (
-    // Only apply sidebar padding on desktop screens (lg and above)
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] h-[calc(100vh-6rem)] max-w-6xl mx-auto rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-md">
-          {/* Sidebar - Chat List */}
-          {(!isMobile || !selectedUser) && (
-            <aside className="flex flex-col h-full border-r border-gray-200 bg-gray-50/30">
-              <ChatList setSelectedUser={setSelectedUser} selectedUser={selectedUser} />
-            </aside>
-          )}
+    <div
+      className="lg:pl-[var(--sidebar-width,0px)] font-geist"
+      style={{ height: "100dvh", display: "flex", flexDirection: "column" }}
+    >
+      {/* On mobile: full-screen, no padding, no card wrapper */}
+      {/* On desktop: padded card layout */}
+      <div className="flex-1 overflow-hidden md:p-4 md:p-6 lg:p-8">
+        <div
+          className="h-full md:rounded-2xl md:border md:border-gray-200 md:shadow-sm overflow-hidden bg-white"
+          style={{ display: "flex" }}
+        >
+          {/* Chat List */}
+          <div
+            className={`
+              ${isMobile && selectedUser ? "hidden" : "flex"}
+              flex-col
+              w-full md:w-80 lg:w-96
+              flex-shrink-0
+              border-r border-gray-200
+              bg-white
+            `}
+            style={{ height: "100%" }}
+          >
+            <ChatList
+              setSelectedUser={setSelectedUser}
+              selectedUser={selectedUser}
+               isMobile={isMobile}
+  onBack={() => navigate(-1)}
+            />
+          </div>
 
-          {/* Main Chat Area */}
-          {(!isMobile || selectedUser) && (
-            <section className="flex flex-col h-full bg-gray-50">
-              {selectedUser ? (
-                <ChatWindow
-                  currentUser={user}
-                  selectedUser={selectedUser}
-                  isMobile={isMobile}
-                  onBack={() => setSelectedUser(null)}
-                />
-              ) : (
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <div className="flex flex-col items-center gap-3 max-w-xs text-center">
-                    <div className="w-16 h-16 rounded-xl bg-pink-50 flex items-center justify-center text-pink-500">
-                      <MessageCircleMore size={36} strokeWidth={1.5} />
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900">Select a conversation</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">
+          {/* Chat Window */}
+          <div
+            className={`
+              ${isMobile && !selectedUser ? "hidden" : "flex"}
+              flex-1 flex-col
+              w-full bg-gray-50
+            `}
+            style={{ height: "100%", minWidth: 0 }}
+          >
+            {selectedUser ? (
+              <ChatWindow
+                currentUser={user}
+                selectedUser={selectedUser}
+                isMobile={isMobile}
+                onBack={() => setSelectedUser(null)}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-6">
+                <div className="flex flex-col items-center gap-4 max-w-sm text-center">
+                  <div className="w-20 h-20 rounded-2xl bg-pink-100 flex items-center justify-center text-pink-500">
+                    <MessageCircleMore size={40} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      Select a conversation
+                    </h3>
+                    <p className="text-sm text-gray-500">
                       Choose someone from the list to read and send messages.
                     </p>
                   </div>
                 </div>
-              )}
-            </section>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import API from "../api/axios";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import UpgradeModal from "../components/UpgradeModal";
+import UpgradeModal from "../components/FeatureUpgradeModal";
 import { formatCurrency, formatDate } from "../utils/eventHelpers";
 
 // ── Design tokens ─────────────────────────────────────────────────────────
