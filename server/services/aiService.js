@@ -183,70 +183,171 @@ const loadTicketContext = async (eventId, userId) => {
   };
 };
 
+// ─── REPLACE ONLY THESE FUNCTIONS in your aiService.js ───────────────────────
+// Everything else (imports, sanitize helpers, resolveEvent, resolveUser,
+// loadTicketContext, buildEventDetails, buildAnalyticsSummary, buildUserSummary,
+// buildContextPayload, generateEventFromPrompt) stays exactly the same.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 1. Load upcoming published events for context (user concierge) ────────────
+const loadAvailableEvents = async () => {
+  try {
+    const events = await Event.find(
+      { status: "published" },
+      "title category location startDate startTime pricing isFree tags description"
+    )
+      .sort({ startDate: 1 })
+      .limit(20)
+      .lean();
+
+    return events.map((e) => {
+      const price = e.isFree
+        ? "Free"
+        : e.pricing?.[0]?.price
+        ? `₦${e.pricing[0].price.toLocaleString()}`
+        : "Paid";
+
+      return {
+        id: e._id,
+        title: e.title,
+        category: e.category || "General",
+        location: e.location || "TBA",
+        date: e.startDate
+          ? new Date(e.startDate).toDateString()
+          : "Date TBA",
+        time: e.startTime || "TBA",
+        price,
+        tags: Array.isArray(e.tags) ? e.tags.join(", ") : "",
+        description: e.description
+          ? e.description.slice(0, 120) + (e.description.length > 120 ? "…" : "")
+          : "",
+      };
+    });
+  } catch {
+    return [];
+  }
+};
+
+// ── 2. System prompts — knowledgeable, not restrictive ───────────────────────
 const getSystemPrompt = (role) => {
+  const base = [
+    "You are TickiAI, the intelligent assistant built into TickiSpot — a Nigerian event ticketing and discovery platform.",
+    "You are friendly, direct, and genuinely helpful.",
+    "You have broad knowledge about events, entertainment, event planning, ticketing, marketing, social media, pricing strategy, crowd management, logistics, Nigerian culture, and anything else relevant to running or attending events.",
+    "When platform data (events, user profile, analytics, tickets) is provided in the context, use it to give specific, accurate answers.",
+    "When no platform data is available for a question, answer from your general knowledge — do NOT say 'I don't have enough context' for questions you can answer from knowledge.",
+    "Keep answers concise and actionable. Use bullet points for lists. Avoid lengthy preambles.",
+    "If you genuinely cannot answer something (e.g. real-time data you don't have), say so briefly and suggest what the user can do instead.",
+    "Never make up specific event details, prices, or dates that weren't provided in the context.",
+  ].join(" ");
+
   if (role === "organizer") {
     return [
-      "You are TickiAI, a smart event business assistant for TickiSpot organizers.",
-      "Provide concise, actionable recommendations for event creation, pricing strategy, marketing content, and performance analysis.",
-      "Use context data when available, and keep answers professional, direct, and easy to act on.",
-      "If you cannot answer with the information provided, ask for the missing details clearly.",
+      base,
+      "",
+      "You are currently in ORGANIZER mode.",
+      "Help organizers with: event creation and planning, pricing strategy (Regular/VIP/VVIP tiers), marketing copy and social media content, audience targeting, ticket sales optimization, event logistics, vendor management, post-event analytics interpretation, growing their audience on TickiSpot, and best practices for Nigerian events.",
+      "Be proactive — if someone asks a vague question, give a complete answer and offer follow-up suggestions.",
     ].join(" ");
   }
 
   return [
-    "You are TickiAI, an event concierge for users on TickiSpot.",
-    "Help users discover events, answer event questions, recommend tickets, and guide them in friendly, direct language.",
-    "Use event and user context when available, and keep the answer simple and upbeat.",
-    "If you need more information to help, ask the user a clear follow-up question.",
+    base,
+    "",
+    "You are currently in USER/CONCIERGE mode.",
+    "Help attendees with: discovering events on TickiSpot, choosing the right ticket tier, what to expect at events, transportation and logistics tips, what to wear or bring, how Nigerian events typically work, refund and ticket policies (general best practice, since platform-specific policies depend on the organizer), group bookings, and general event etiquette.",
+    "When platform events are listed in context, recommend specific ones that match the user's interests.",
+    "Be warm, enthusiastic, and helpful — like a knowledgeable friend who knows the Lagos event scene.",
   ].join(" ");
 };
 
-const buildContextPayload = async ({ event, user, analytics }) => {
+// ── 3. Build the user-facing prompt with context ─────────────────────────────
+const buildUserPrompt = (message, context, role) => {
+  const parts = [`User: ${sanitizeText(message)}`];
+
+  // ── Specific event context (organizer viewing their event dashboard, etc.) ──
+  if (context.event) {
+    parts.push("━━ Current Event ━━");
+    parts.push(buildEventDetails(context.event));
+  }
+
+  // ── Ticket metrics ────────────────────────────────────────────────────────
+  if (context.tickets) {
+    parts.push("━━ Ticket Data ━━");
+    parts.push(
+      `Orders: ${context.tickets.totalOrders} | Sold: ${context.tickets.ticketsSold} | Revenue: ₦${(context.tickets.revenue || 0).toLocaleString()}`
+    );
+    if (context.tickets.userTickets?.length) {
+      parts.push(
+        `User has purchased ${context.tickets.userTickets.length} ticket(s) for this event.`
+      );
+    }
+  }
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+  if (context.analytics) {
+    parts.push("━━ Analytics ━━");
+    parts.push(buildAnalyticsSummary(context.analytics, context.event));
+  }
+
+  // ── User profile ──────────────────────────────────────────────────────────
+  if (context.user) {
+    parts.push("━━ User Profile ━━");
+    parts.push(buildUserSummary(context.user));
+  }
+
+  // ── Available events on platform (user concierge role) ───────────────────
+  if (role === "user" && context.availableEvents?.length) {
+    parts.push("━━ Events Currently on TickiSpot ━━");
+    parts.push(
+      context.availableEvents
+        .map(
+          (e, i) =>
+            `${i + 1}. ${e.title} (${e.category}) — ${e.location} | ${e.date} ${e.time} | ${e.price}${e.tags ? ` | Tags: ${e.tags}` : ""}${e.description ? `\n   ${e.description}` : ""}`
+        )
+        .join("\n")
+    );
+  }
+
+  // ── No context at all: just answer from knowledge ────────────────────────
+  if (
+    !context.event &&
+    !context.user &&
+    !context.availableEvents?.length
+  ) {
+    parts.push(
+      role === "organizer"
+        ? "No specific event data loaded. Answer from your knowledge of event planning, ticketing, and marketing best practices."
+        : "No specific platform data loaded. Answer from your knowledge of events, entertainment, and what's generally useful for event attendees in Nigeria."
+    );
+  }
+
+  return parts.join("\n\n");
+};
+
+// ── 4. Updated buildContextPayload (pass role so we conditionally load events) 
+const buildContextPayload = async ({ event, user, analytics }, role = "user") => {
   const resolvedEvent = await resolveEvent(event);
   const resolvedUser = await resolveUser(user);
-  const ticketContext = resolvedEvent?._id ? await loadTicketContext(resolvedEvent._id, resolvedUser?._id) : null;
+  const ticketContext =
+    resolvedEvent?._id
+      ? await loadTicketContext(resolvedEvent._id, resolvedUser?._id)
+      : null;
+
+  // Only fetch platform events for the user/concierge role
+  const availableEvents =
+    role === "user" ? await loadAvailableEvents() : [];
 
   return {
     event: resolvedEvent,
     user: resolvedUser,
     analytics: analytics || resolvedEvent?.analytics || null,
     tickets: ticketContext,
+    availableEvents,
   };
 };
 
-const buildUserPrompt = (message, context) => {
-  const promptParts = [
-    `User request: ${sanitizeText(message)}`,
-  ];
-
-  if (context.event) {
-    promptParts.push("Event details:");
-    promptParts.push(buildEventDetails(context.event));
-  }
-
-  if (context.tickets) {
-    promptParts.push("Ticket summary:");
-    promptParts.push(`Total ordered: ${context.tickets.totalOrders}\nTickets sold: ${context.tickets.ticketsSold}\nRevenue: ${context.tickets.revenue}`);
-    if (context.tickets.userTickets.length) {
-      promptParts.push(`User ticket history: ${context.tickets.userTickets.length} purchases`);
-    }
-  }
-
-  if (context.analytics) {
-    promptParts.push("Analytics summary:");
-    promptParts.push(buildAnalyticsSummary(context.analytics, context.event));
-  }
-
-  if (context.user) {
-    promptParts.push("User profile:");
-    promptParts.push(buildUserSummary(context.user));
-  }
-
-  promptParts.push("Answer based only on the provided information and keep the response aligned with the user's role.");
-
-  return promptParts.filter(Boolean).join("\n\n");
-}; 
-
+// ── 5. Main createAIResponse — updated to pass role through ──────────────────
 const createAIResponse = async ({ role, message, context = {} }) => {
   if (!GROQ_API_KEY) {
     throw new Error("Missing GROQ_API_KEY environment variable.");
@@ -255,64 +356,72 @@ const createAIResponse = async ({ role, message, context = {} }) => {
   const safeRole = role === "organizer" ? "organizer" : "user";
   const safeMessage = sanitizeText(message);
   const cleanedContext = sanitizeContextObject(context);
-  const contextPayload = await buildContextPayload(cleanedContext);
+
+  // Resolve DB context with role awareness
+  const contextPayload = await buildContextPayload(cleanedContext, safeRole);
 
   const messages = [
     { role: "system", content: getSystemPrompt(safeRole) },
-    { role: "user", content: buildUserPrompt(safeMessage, contextPayload) },
+    { role: "user", content: buildUserPrompt(safeMessage, contextPayload, safeRole) },
   ];
 
   try {
     const response = await axios.post(
-       GROQ_URL,
-  {
-    model: GROQ_MODEL,
-    messages,
-    temperature: 0.7,
-    max_tokens: 700,
-  },
-  {
-    headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-  }
-);
-    //   OPENAI_URL,
-    //   {
-    //     model: OPENAI_MODEL,
-    //     messages,
-    //     temperature: 0.7,
-    //     max_tokens: 700,
-    //   },
-    //   {
-    //     headers: {
-    //       Authorization: `Bearer ${OPENAI_API_KEY}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //     timeout: 30000,
-    //   },
-    // );
+      GROQ_URL,
+      {
+        model: GROQ_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 700,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const answer = String(response.data?.choices?.[0]?.message?.content || "").trim();
+    const answer = String(
+      response.data?.choices?.[0]?.message?.content || ""
+    ).trim();
+
     return {
       role: safeRole,
       answer,
       model: GROQ_MODEL,
       context: {
-        event: contextPayload.event ? { id: contextPayload.event._id || null, title: contextPayload.event.title } : null,
-        user: contextPayload.user ? { id: contextPayload.user._id || null, name: contextPayload.user.name || null, role: contextPayload.user.role || null } : null,
-        analytics: contextPayload.analytics ? { summary: sanitizeText(buildAnalyticsSummary(contextPayload.analytics, contextPayload.event)) } : null,
+        event: contextPayload.event
+          ? { id: contextPayload.event._id || null, title: contextPayload.event.title }
+          : null,
+        user: contextPayload.user
+          ? {
+              id: contextPayload.user._id || null,
+              name: contextPayload.user.name || null,
+              role: contextPayload.user.role || null,
+            }
+          : null,
+        analytics: contextPayload.analytics
+          ? {
+              summary: sanitizeText(
+                buildAnalyticsSummary(contextPayload.analytics, contextPayload.event)
+              ),
+            }
+          : null,
       },
     };
   } catch (error) {
-    const messageOverride = error.response?.data?.error?.message || error.message || "AI service unavailable.";
+    const messageOverride =
+      error.response?.data?.error?.message ||
+      error.message ||
+      "AI service unavailable.";
     const statusCode = error.response?.status || 502;
     const err = new Error(`AI request failed: ${messageOverride}`);
     err.status = statusCode;
     throw err;
   }
 };
+
 
 const generateEventFromPrompt = async ({ prompt }) => {
   if (!GROQ_API_KEY) {
