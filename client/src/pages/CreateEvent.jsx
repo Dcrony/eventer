@@ -46,22 +46,43 @@ export default function CreateEvent({ isOpen, onClose }) {
     totalTickets: "",
   });
 
-  const handleAIGeneration = (aiData) => {
-    setForm((prev) => ({
-      ...prev,
-      title: aiData.title || prev.title,
-      description: aiData.description || prev.description,
-      category: aiData.category || prev.category,
-      location: aiData.location || prev.location,
-      startDate: aiData.date || prev.startDate,
-      endDate: aiData.date || prev.endDate,
-      startTime: aiData.time || prev.startTime,
-      totalTickets: aiData.capacity || prev.totalTickets,
-      pricing: prev.pricing.map((tier) => ({ ...tier, price: tier.type === "Regular" ? aiData.ticketPrice : tier.price })),
-    }));
-    setIsFreeEvent(aiData.ticketPrice === 0);
-    setShowAIGen(false);
-  };
+  // Replace your existing handleAIGeneration in CreateEvent.jsx with this:
+
+const handleAIGeneration = (aiData) => {
+  setForm((prev) => ({
+    ...prev,
+    // Text fields
+    title:       aiData.title       || prev.title,
+    description: aiData.description || prev.description,
+    category:    aiData.category    || prev.category,
+    location:    aiData.location    || prev.location,
+
+    // Date/time — aiData.date is already a YYYY-MM-DD string,
+    // aiData.time is already a HH:MM string (normalized in TickiAIGenerator)
+    startDate: aiData.date || prev.startDate,
+    endDate:   aiData.date || prev.endDate,   // default end = same day
+    startTime: aiData.time || prev.startTime,
+    // endTime is not generated, leave as-is so user fills it
+
+    // Total tickets — form field expects a string
+    totalTickets: aiData.capacity ? String(aiData.capacity) : prev.totalTickets,
+
+    // Event type — already normalized to "In-person" / "Virtual" / "Hybrid"
+    eventType: aiData.eventType || prev.eventType,
+
+    // Set Regular tier price; leave VIP and VVIP blank for organizer to fill
+    pricing: prev.pricing.map((tier) =>
+      tier.type === "Regular"
+        ? { ...tier, price: aiData.ticketPrice > 0 ? String(aiData.ticketPrice) : "" }
+        : tier
+    ),
+  }));
+
+  // Toggle the free event checkbox
+  setIsFreeEvent(aiData.isFree || aiData.ticketPrice === 0);
+
+  setShowAIGen(false);
+};
 
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
