@@ -100,6 +100,10 @@ function Layout() {
     location.pathname === "/verify-otp" ||
     location.pathname.startsWith("/admin");
 
+    const hideMobileNav =
+  location.pathname === "/messages" ||
+  location.pathname === "/ticki-ai";
+
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -149,6 +153,7 @@ function Layout() {
     if (hideNavAndSidebar) return null;
 
     if (isMobile) {
+      if (hideMobileNav) return null;
       return (
         <>
           <Suspense fallback={null}>
