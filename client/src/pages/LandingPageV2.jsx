@@ -142,9 +142,9 @@ export default function LandingPageV2() {
   const featuredEvents = selectedCategory === "all" ? trendingEvents : filteredEvents.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br px-6 from-gray-50 via-white to-pink-50/20 font-inter">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-inter">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
+      <header className="sticky top-0 px-4 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <Link to="/" className="flex items-center gap-2 font-bold text-gray-900">
@@ -182,7 +182,7 @@ export default function LandingPageV2() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-12 lg:py-20">
+      <section className="py-12 lg:py-20 px-4">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-start">
             {/* Left Column */}
@@ -277,8 +277,8 @@ export default function LandingPageV2() {
       </section>
 
       {/* Process Section */}
-      <section className="py-12 bg-white">
-        <div className="max-w-6xl mx-auto  sm:px-6 ">
+      <section className="py-12 bg-white px-4">
+        <div className="max-w-6xl mx-auto ">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">How teams run events with TickiSpot</h2>
           </div>
@@ -300,7 +300,7 @@ export default function LandingPageV2() {
       </section>
 
       {/* Core Capabilities */}
-      <section className="py-12">
+      <section className="py-12 px-4">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Core capabilities</h2>
@@ -321,7 +321,7 @@ export default function LandingPageV2() {
       </section>
 
       {/* Events Section */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12 bg-gray-50 px-4">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="flex flex-wrap justify-between items-center mb-6">
             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">
@@ -422,7 +422,7 @@ export default function LandingPageV2() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-12 bg-gray-50">
+      <section className="py-12 bg-gray-50 px-4">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="text-center mb-8">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">What organizers say</h2>
@@ -481,7 +481,7 @@ export default function LandingPageV2() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
+      <footer className="bg-gray-900 text-gray-400 py-12 px-4">
         <div className="max-w-6xl mx-auto  sm:px-6 ">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             <div>

@@ -49,7 +49,7 @@ export default function UpgradeExperienceModal({ open, onClose, featureName = ""
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in scrolling-touch"
       role="presentation"
       onClick={onClose}
     >
