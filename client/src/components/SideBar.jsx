@@ -106,7 +106,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto py-4 scrolling-touch scrollbar-thin">
           <nav className="space-y-1 px-2">
             {menuItems.map((item, idx) => {
               const isActive = location.pathname === item.to;
@@ -117,7 +117,7 @@ export default function Sidebar() {
                   <Link
                     key={idx}
                     to={item.to}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
                       isActive
                         ? "bg-pink-50 text-pink-500"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -137,7 +137,7 @@ export default function Sidebar() {
                   <button
                     key={idx}
                     onClick={item.action}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 w-full ${
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 w-full ${
                       item.primary
                         ? "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -154,7 +154,7 @@ export default function Sidebar() {
                 <Link
                   key={idx}
                   to={item.to}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 ${
                     isActive
                       ? "bg-pink-50 text-pink-500"
                       : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -168,7 +168,7 @@ export default function Sidebar() {
             })}
 
             {/* Notifications */}
-            <div className="flex items-center gap-3 px-3 py-2.5 text-gray-600">
+            <div className="flex items-center gap-3 px-2 py-2.5 text-gray-600">
               <span className="flex-shrink-0">
                 <NotificationBell />
               </span>
@@ -178,7 +178,7 @@ export default function Sidebar() {
             {/* Profile */}
             <Link
               to={profileUrl}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               title={!expand ? "Profile" : ""}
             >
               <span className="flex-shrink-0"><User size={20} /></span>
@@ -188,7 +188,7 @@ export default function Sidebar() {
             {/* Settings */}
             <Link
               to="/settings"
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               title={!expand ? "Settings" : ""}
             >
               <span className="flex-shrink-0"><Settings size={20} /></span>
@@ -198,7 +198,7 @@ export default function Sidebar() {
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-red-500 hover:bg-red-50 w-full"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-red-500 hover:bg-red-50 w-full"
               title={!expand ? "Logout" : ""}
             >
               <span className="flex-shrink-0"><LogOut size={20} /></span>
