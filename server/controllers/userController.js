@@ -64,12 +64,8 @@ const buildProfileEventPayload = (event, currentUserId, extras = {}) => {
 
 const getProfileFeaturedEvents = async (profileUserId, viewerUser, options = {}) => {
   const includePrivate = Boolean(options.includePrivate);
-  const createdEvents = await Event.find({
-    createdBy: profileUserId,
-  })
-    .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
-    .sort({ createdAt: -1 });
 
+  // ✅ Only fetch events where user is a collaborator, NOT owner
   const collaboratorTeams = await EventTeam.find({
     members: {
       $elemMatch: {
@@ -79,7 +75,10 @@ const getProfileFeaturedEvents = async (profileUserId, viewerUser, options = {})
     },
   }).populate({
     path: "event",
-    match: buildPublicEventQuery(),
+    match: {
+      ...buildPublicEventQuery(),
+      createdBy: { $ne: profileUserId }, // 🔒 exclude events they own
+    },
     populate: {
       path: "createdBy",
       select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus",
@@ -88,16 +87,8 @@ const getProfileFeaturedEvents = async (profileUserId, viewerUser, options = {})
 
   const featuredMap = new Map();
 
-  createdEvents.forEach((event) => {
-    featuredMap.set(String(event._id), {
-      event,
-      featuredRole: null,
-      featuredSource: "owner",
-    });
-  });
-
   collaboratorTeams.forEach((team) => {
-    if (!team.event) return;
+    if (!team.event) return; // filtered out by match above
 
     const member = team.members.find(
       (item) =>

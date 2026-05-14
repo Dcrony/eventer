@@ -256,6 +256,23 @@ exports.verifyBilling = async (req, res) => {
       ),
     }).catch((err) => console.error("Billing email failed:", err));
 
+    // In verifyBilling, make email errors visible during debugging:
+try {
+  await sendEmail({
+    to: updatedUser.email,
+      subject: "Your TickiSpot Subscription is Active",
+      html: billingSuccessEmail(
+        updatedUser.name || "User",
+        normalizedPlan,
+        amount,
+        normalizedInterval,
+        reference,
+      ),
+   }); // temporarily await instead of fire-and-forget
+} catch (err) {
+  console.error("Billing email failed:", err); // you'll see the real error
+}
+
     return res.json({
       message: "Billing verified successfully",
       user: sanitizeUser(updatedUser),

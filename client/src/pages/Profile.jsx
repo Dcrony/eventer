@@ -404,19 +404,20 @@ export default function Profile() {
             onAction: profile?.isOwner ? () => navigate("/events") : null,
           },
         };
-      case "featured":
-        return {
-          items: featuredEvents,
-          empty: {
-            icon: Sparkles,
-            title: "No featured events yet",
-            subtitle: profile?.isOwner
-              ? "Events you create, plus events you join as a collaborator, will appear here."
-              : "This user does not have any featured events to show right now.",
-            actionLabel: profile?.isOwner ? "Open dashboard" : null,
-            onAction: profile?.isOwner ? () => navigate("/dashboard") : null,
-          },
-        };
+      // In Profile.jsx tabContent for "featured":
+case "featured":
+  return {
+    items: featuredEvents,
+    empty: {
+      icon: Sparkles,
+      title: "No team events yet",
+      subtitle: profile?.isOwner
+        ? "Events you've been invited to collaborate on will appear here."
+        : "This user hasn't joined any events as a collaborator yet.",
+      actionLabel: null,
+      onAction: null,
+    },
+  };
       case "analytics":
         return { items: [] };
       default:
