@@ -32,15 +32,24 @@ export default function TopNav() {
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
   const isAdmin = user?.role === "admin" || user?.isAdmin === true;
 
-  const closeMenu = () => setIsMenuOpen(false);
+  const closeMenu = () => {
+  setIsMenuOpen(false);
+  document.body.style.overflow = "";
+};
+
+const openMenu = () => {
+  setIsMenuOpen(true);
+  document.body.style.overflow = "hidden";
+};
 
   const handleLogout = () => {
-    if (window.confirm("Logout from your account?")) {
-      logout();
-      navigate("/login");
-      setIsMenuOpen(false);
-    }
-  };
+  if (window.confirm("Logout from your account?")) {
+    logout();
+    navigate("/login");
+    setIsMenuOpen(false);
+    document.body.style.overflow = ""; // ← add this
+  }
+};
 
   const goToProfile = () => {
     if (!user) return;
@@ -65,7 +74,7 @@ export default function TopNav() {
             {/* Profile Button */}
             <button
               className="flex items-center gap-2 p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-all duration-200"
-              onClick={() => setIsMenuOpen(true)}
+              onClick={openMenu}
               aria-label="Open Menu"
             >
               <Avatar
@@ -85,7 +94,7 @@ export default function TopNav() {
 
       {/* Slide Menu */}
       <aside
-        className={`fixed top-0 right-0 z-50 h-full w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 z-[100]  h-full w-80 max-w-[85vw] bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

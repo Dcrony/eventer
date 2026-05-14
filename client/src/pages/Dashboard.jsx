@@ -141,7 +141,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 transition-all duration-300 lg:pl-[var(--sidebar-width,0px)]">
+    <div className="min-h-screen bg-gray-50 font-geist pt-8 pb-16 transition-all duration-300 lg:pl-[var(--sidebar-width,0px)]">
       <TrialNotificationBanner />
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
