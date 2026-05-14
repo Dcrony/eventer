@@ -23,7 +23,7 @@ export default function VerifyEmail() {
       try {
         await API.post("/auth/verify-email", { token });
         setMessage("Email verified successfully! You can now log in.");
-        setTimeout(() => navigate("/login"), 3000);
+        setTimeout(() => navigate("/events"), 3000);
       } catch (err) {
         setError(err.response?.data?.message || "Verification failed.");
       } finally {

@@ -77,7 +77,7 @@ const VerifyEmailOtp = () => {
       localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.removeItem("verifyEmail");
       sessionStorage.removeItem(PENDING_CODE_KEY);
-      setTimeout(() => navigate("/dashboard"), 1500);
+      setTimeout(() => navigate("/events"), 1500);
     } catch (err) {
       const message = err.response?.data?.message || "Failed to verify OTP. Please try again.";
       setError(message);
