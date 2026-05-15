@@ -119,37 +119,26 @@ export default function Register() {
   };
 
   const handleGoogleSignup = async () => {
-    setError("");
-    setSuccess("");
-    setLoading(true);
-    try {
-      const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
-      const idToken = await signInWithGoogleAndGetIdToken();
-      const result = await emailService.firebaseSync(idToken);
-      
-      if (!result.success) throw new Error(result.error);
+  setError("");
+  setSuccess("");
+  setLoading(true);
+  try {
+    const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
+    const idToken = await signInWithGoogleAndGetIdToken();
+    const result = await emailService.firebaseSync(idToken);
 
-      if (result.data.user.isVerified) {
-        login(result.data.user, result.data.token);
-        setSuccess("Google sign-up successful! Redirecting...");
-        setTimeout(() => navigate("/dashboard"), 1500);
-      } else {
-        const emailAddr = result.data.user.email;
-        const code = result.data.verificationCode;
-        localStorage.setItem("verifyEmail", emailAddr);
-        if (code) sessionStorage.setItem("pendingVerificationCode", code);
-        else sessionStorage.removeItem("pendingVerificationCode");
-        navigate("/verify-otp", {
-          replace: true,
-          state: { email: emailAddr, verificationCode: code },
-        });
-      }
-    } catch (err) {
-      setError(err.message || "Google sign-up failed. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    if (!result.success) throw new Error(result.error);
+
+    // Google users are always verified — log in directly, no OTP
+    login(result.data.user, result.data.token);
+    setSuccess("Google sign-up successful! Redirecting...");
+    setTimeout(() => navigate("/dashboard"), 1500);
+  } catch (err) {
+    setError(err.message || "Google sign-up failed. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-white font-inter">
