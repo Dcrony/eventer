@@ -19,9 +19,7 @@ const buildPublicEventQuery = (extra = {}) => {
     ...query,
     $and: [
       ...existingAnd,
-      {
-        $or: [{ visibility: { $exists: false } }, { visibility: "public" }],
-      },
+      { visibility: "public" },          // ← strict, no $exists escape
       {
         $or: [{ status: { $exists: false } }, { status: "approved" }],
       },

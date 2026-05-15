@@ -231,7 +231,9 @@ exports.getAllEvents = async (req, res) => {
   .populate(eventPopulateOptions)
   .sort({ createdAt: -1 });
 
-const validEvents = events.filter((event) => event.createdBy);
+const validEvents = events.filter(
+  (event) => event.createdBy && event.visibility !== "private" 
+);
 
 const payload = validEvents
   .map((event) => buildEventPayload(event, currentUserId))
