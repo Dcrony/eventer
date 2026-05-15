@@ -674,7 +674,7 @@ if (!profile) {
 
               {/* Follow Stats */}
               <div className="flex flex-wrap gap-2">
-                // Replace the static Following/Followers spans with:
+            
 <button type="button" onClick={() => { setFollowersModalTab("following"); setFollowersModalOpen(true); }}
   className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
   <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
