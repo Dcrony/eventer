@@ -11,7 +11,7 @@ const TABS = [
   { id: "verified", label: "Verified", icon: BadgeCheck },
 ];
 
-function UserRow({ user, currentUserId, isAlreadyFollowing, onClose, navigate }) {
+function UserRow({ user, currentUserId, isAlreadyFollowing, onClose, navigate, onFollowToggle }){
   const [followPending, setFollowPending] = useState(false);
   const [isFollowing, setIsFollowing] = useState(isAlreadyFollowing);
   const isSelf = String(user._id) === String(currentUserId);
@@ -28,6 +28,7 @@ function UserRow({ user, currentUserId, isAlreadyFollowing, onClose, navigate })
     try {
       await API.post(`/users/${user._id}/follow`);
       setIsFollowing((v) => !v);
+      onFollowToggle?.(String(user._id), nowFollowing);
     } catch {
       // silent — interceptor handles toast
     } finally {
@@ -115,6 +116,7 @@ export default function FollowersModal({
   profileId,
   initialTab = "followers",
   myFollowingIds = [],
+  onFollowToggle,
 }) {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
@@ -303,6 +305,7 @@ export default function FollowersModal({
                   isAlreadyFollowing={myFollowingIds.includes(String(user._id))}
                   onClose={onClose}
                   navigate={navigate}
+                  onFollowToggle={onFollowToggle}
                 />
               ))}
             </div>

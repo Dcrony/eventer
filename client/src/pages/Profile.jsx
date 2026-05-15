@@ -436,27 +436,42 @@ export default function Profile() {
   }, [activeTab, createdEvents, featuredEvents, likedEvents, navigate, profile?.isOwner, savedEvents]);
 
   const handleFollowToggle = async () => {
-    if (!profile?._id || followPending) return;
-    try {
-      setFollowPending(true);
-      await API.post(`/users/${profile._id}/follow`);
-      setProfile((current) => ({
+  if (!profile?._id || followPending) return;
+  try {
+    setFollowPending(true);
+    await API.post(`/users/${profile._id}/follow`);
+    setProfile((current) => {
+      const alreadyFollowing = current.isFollowing;
+      const updatedFollowing = alreadyFollowing
+        ? (current.following || []).filter((u) => String(u._id || u) !== String(profile._id))
+        : [...(current.following || []), { _id: profile._id }];
+
+      return {
         ...current,
-        isFollowing: !current.isFollowing,
+        isFollowing: !alreadyFollowing,
+        following: updatedFollowing,
         stats: {
           ...current.stats,
-          followers: Math.max(
-            0,
-            Number(current.stats?.followers || 0) + (current.isFollowing ? -1 : 1),
-          ),
+          followers: Math.max(0, Number(current.stats?.followers || 0) + (alreadyFollowing ? -1 : 1)),
         },
-      }));
-    } catch {
-      // silent
-    } finally {
-      setFollowPending(false);
-    }
-  };
+      };
+    });
+  } catch {
+    // silent
+  } finally {
+    setFollowPending(false);
+  }
+};
+
+// Add this handler
+const handleModalFollowToggle = (userId, isNowFollowing) => {
+  setProfile((current) => {
+    const updatedFollowing = isNowFollowing
+      ? [...(current.following || []), { _id: userId }]
+      : (current.following || []).filter((u) => String(u._id || u) !== String(userId));
+    return { ...current, following: updatedFollowing };
+  });
+};
 
   const handleFeaturedEventUpdated = async () => {
     try {
@@ -824,12 +839,13 @@ export default function Profile() {
         />
 
         <FollowersModal
-          open={followersModalOpen}
-          onClose={() => setFollowersModalOpen(false)}
-          profileId={profile?._id}
-          initialTab={followersModalTab}
-          myFollowingIds={myFollowingIds}
-        />
+  open={followersModalOpen}
+  onClose={() => setFollowersModalOpen(false)}
+  profileId={profile?._id}
+  initialTab={followersModalTab}
+  myFollowingIds={myFollowingIds}
+  onFollowToggle={handleModalFollowToggle}
+/>
 
         <EditEvent
           isOpen={editModalOpen}
