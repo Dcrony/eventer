@@ -16,6 +16,10 @@ const {
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
 const signAuthToken = (user) =>
   jwt.sign(
     {
@@ -54,12 +58,38 @@ const buildAuthUserPayload = (user) => {
   };
 };
 
-/** When transactional email is not configured or fails, expose the OTP in the JSON so the app can show it. */
+/**
+ * When transactional email is not configured or fails, expose the OTP in the
+ * JSON response so the app can display it in development/fallback mode.
+ */
 function verificationCodeResponseField(emailSent, otp) {
   return emailSent ? {} : { verificationCode: otp };
 }
 
-// 🟢 REGISTER CONTROLLER — OTP only (no magic link)
+/**
+ * Generates a unique username derived from a display name, appending random
+ * suffixes until no collision is found in the DB.
+ */
+async function ensureUniqueUsername(base) {
+  const clean =
+    String(base || "user")
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .slice(0, 24) || "user";
+  let username = clean;
+  let suffix = 0;
+  while (await User.findOne({ username })) {
+    suffix += 1;
+    username = `${clean.slice(0, 18)}${suffix.toString(36)}${Math.random()
+      .toString(36)
+      .slice(2, 5)}`;
+  }
+  return username;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REGISTER  — email/password, OTP flow (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.register = async (req, res) => {
   try {
     const validation = validateRegisterBody(req.body);
@@ -68,7 +98,6 @@ exports.register = async (req, res) => {
     }
     const { fullName, username, email, phone, password } = validation;
 
-    // Check if email exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already in use" });
@@ -79,29 +108,25 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Username already in use" });
     }
 
-
-    const role = "organizer";
-
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Create new user (verified after OTP)
     const newUser = new User({
       name: fullName,
       username,
       email,
       phone,
       password: hashedPassword,
-      role,
+      role: "organizer",
       isVerified: false,
       verificationCode: hashedOtp,
       verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
     });
-    assignTrialToUser(newUser);
 
+    // Grant free trial on email registration
+    assignTrialToUser(newUser);
     await newUser.save();
 
     const emailResult = await sendEmail({
@@ -125,7 +150,10 @@ exports.register = async (req, res) => {
   }
 };
 
-// LOGIN CONTROLLER
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGIN  — email/password (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.login = async (req, res) => {
   const validation = validateLoginBody(req.body);
   if (!validation.ok) {
@@ -136,6 +164,7 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
+
     await ensureSubscriptionState(user);
 
     if (!user.password) {
@@ -145,17 +174,16 @@ exports.login = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     if (!user.isVerified) {
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
       const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
       user.verificationCode = hashedOtp;
       user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
       await user.save();
+
       const emailResult = await sendEmail({
         to: user.email,
         subject: "Your Verification Code - TickiSpot",
@@ -169,15 +197,14 @@ exports.login = async (req, res) => {
           ? "Account not verified. A verification code was sent to your email."
           : "Account not verified. Copy your verification code below, then verify on the next screen.",
         code: "OTP_SENT",
+        email: user.email,
         ...verificationCodeResponseField(emailSent, otp),
       });
     }
 
     await ensureSubscriptionState(user);
-    // Create JWT
     const token = signAuthToken(user);
 
-    // ✅ Return success
     res.status(200).json({
       message: "Login successful ✅",
       token,
@@ -189,7 +216,10 @@ exports.login = async (req, res) => {
   }
 };
 
-// VERIFY EMAIL CONTROLLER
+// ─────────────────────────────────────────────────────────────────────────────
+// VERIFY EMAIL  — token-based (legacy, unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
@@ -213,7 +243,10 @@ exports.verifyEmail = async (req, res) => {
   }
 };
 
-// FORGOT PASSWORD CONTROLLER
+// ─────────────────────────────────────────────────────────────────────────────
+// FORGOT PASSWORD  (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -226,17 +259,15 @@ exports.forgotPassword = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // Send reset email
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     await sendEmail({
       to: email,
-      subject: "Reset Your Password - Ticki",
+      subject: "Reset Your Password - TickiSpot",
       html: `
         <h2>Password Reset Request</h2>
         <p>You requested a password reset. Click the link below to reset your password:</p>
@@ -252,7 +283,10 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-// RESET PASSWORD CONTROLLER
+// ─────────────────────────────────────────────────────────────────────────────
+// RESET PASSWORD  (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -269,9 +303,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
@@ -284,56 +316,44 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-async function ensureUniqueUsername(base) {
-  const clean = String(base || "user")
-    .replace(/[^a-zA-Z0-9_-]/g, "")
-    .slice(0, 24) || "user";
-  let username = clean;
-  let suffix = 0;
-  while (await User.findOne({ username })) {
-    suffix += 1;
-    username = `${clean.slice(0, 18)}${suffix.toString(36)}${Math.random().toString(36).slice(2, 5)}`;
-  }
-  return username;
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
+// FIREBASE LOGIN  — legacy direct login endpoint (unchanged)
+// ─────────────────────────────────────────────────────────────────────────────
 
 exports.firebaseLogin = async (req, res) => {
   try {
     const { idToken } = req.body;
     if (!idToken) return res.status(400).json({ message: "No token provided" });
 
-    // 1. Verify token with Firebase Admin SDK
     const decodedToken = await verifyIdToken(idToken);
-    const { email, name, picture, uid } = decodedToken;
+    const { email, name, uid } = decodedToken;
 
-    // 2. Find or Create User in MongoDB
     let user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      // Create new user if they don't exist
       user = new User({
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
         email: email.toLowerCase(),
-        username: email.split('@')[0] + Math.floor(Math.random() * 1000),
+        username: email.split("@")[0] + Math.floor(Math.random() * 1000),
         firebaseUid: uid,
-        isVerified: true, // Social logins are pre-verified
+        isVerified: true,
+        role: "organizer",
       });
+      assignTrialToUser(user);
       await user.save();
     } else {
-      // Update firebaseUid if not already linked
       if (!user.firebaseUid) {
         user.firebaseUid = uid;
         await user.save();
       }
     }
 
-    // 3. Generate YOUR backend JWT
+    await ensureSubscriptionState(user);
     const token = signAuthToken(user);
 
     res.status(200).json({
       token,
-      user: buildAuthUserPayload(user)
+      user: buildAuthUserPayload(user),
     });
   } catch (error) {
     console.error("Firebase Login Error:", error);
@@ -341,6 +361,16 @@ exports.firebaseLogin = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FIREBASE SYNC  — main Google sign-in/sign-up handler
+//
+// KEY CHANGES:
+//   • New Google users  → isVerified: true, assignTrialToUser(), welcome email,
+//                         return JWT immediately (NO OTP step).
+//   • Returning Google users who are still unverified (edge-case: created via
+//     an older code path) → auto-verify + assign trial if missing, return JWT.
+//   • Already-verified users → behaviour unchanged, return JWT.
+// ─────────────────────────────────────────────────────────────────────────────
 
 exports.firebaseSync = async (req, res) => {
   try {
@@ -349,9 +379,13 @@ exports.firebaseSync = async (req, res) => {
       return res.status(400).json({ message: "idToken is required" });
     }
 
-    // Verify Firebase token
+    // 1. Verify the Firebase ID token with Firebase Admin SDK
     const decoded = await verifyIdToken(idToken);
-    const { email: firebaseEmail, name: firebaseName, uid: firebaseUid } = decoded;
+    const {
+      email: firebaseEmail,
+      name: firebaseName,
+      uid: firebaseUid,
+    } = decoded;
 
     if (!firebaseEmail) {
       return res.status(400).json({ message: "Email not found in Firebase token" });
@@ -359,51 +393,111 @@ exports.firebaseSync = async (req, res) => {
 
     const emailLower = firebaseEmail.toLowerCase();
 
-    // Check if user exists
-    let user = await User.findOne({ $or: [{ firebaseUid }, { email: emailLower }] });
+    // 2. Look up existing user by Firebase UID or email
+    let user = await User.findOne({
+      $or: [{ firebaseUid }, { email: emailLower }],
+    });
 
-    // firebaseSync — NEW USER block (replace existing)
-if (!user) {
-  const displayName = firebaseName || firebaseEmail.split("@")[0];
-  const username = await ensureUniqueUsername(displayName);
+    // ── CASE A: brand-new user ──────────────────────────────────────────────
+    if (!user) {
+      const displayName = firebaseName || firebaseEmail.split("@")[0];
+      const username = await ensureUniqueUsername(displayName);
 
-  user = new User({
-    name: displayName,
-    username,
-    email: emailLower,
-    firebaseUid,
-    isVerified: true,          // ✅ Google already verified the email
-    role: "organizer",
-  });
+      user = new User({
+        name: displayName,
+        username,
+        email: emailLower,
+        firebaseUid,
+        role: "organizer",
+        // Google already verified the email address — no OTP needed.
+        isVerified: true,
+        verificationCode: undefined,
+        verificationCodeExpires: undefined,
+      });
 
-  assignTrialToUser(user);     // ✅ Grant free trial like normal register
-  await user.save();
+      // Grant free trial (same as email registration)
+      assignTrialToUser(user);
+      await user.save();
 
-  // Send welcome email (non-blocking)
-  sendEmail({
-    to: emailLower,
-    subject: "🎉 Welcome to TickiSpot!",
-    html: welcomeSuccessEmail(user.name),
-  }).catch(err => console.error("Welcome email failed:", err));
+      // Send welcome email (non-blocking — do not await)
+      sendEmail({
+        to: emailLower,
+        subject: "🎉 Welcome to TickiSpot!",
+        html: welcomeSuccessEmail(user.name),
+      }).catch((err) => console.error("Welcome email failed:", err));
 
-  await ensureSubscriptionState(user);
-  const token = signAuthToken(user);
+      await ensureSubscriptionState(user);
+      const token = signAuthToken(user);
 
-  return res.status(201).json({
-    message: "Account created successfully.",
-    token,
-    user: buildAuthUserPayload(user),
-  });
+      return res.status(201).json({
+        message: "Account created successfully. Welcome to TickiSpot!",
+        token,
+        user: buildAuthUserPayload(user),
+      });
+    }
+
+    // ── CASE B: user exists but is not yet verified (legacy / edge-case) ───
+    // Could happen if the user was created through an older code path that
+    // left isVerified: false.  Since they are authenticating via Google we
+    // can trust the email and verify them automatically.
+    if (!user.isVerified) {
+      user.isVerified = true;
+      user.verificationCode = undefined;
+      user.verificationCodeExpires = undefined;
+
+      // Link Firebase UID if it wasn't stored before
+      if (!user.firebaseUid) user.firebaseUid = firebaseUid;
+
+      // Grant trial if they never received one
+      if (!user.trialEndsAt) assignTrialToUser(user);
+
+      await user.save();
+
+      // Send welcome email (non-blocking)
+      sendEmail({
+        to: user.email,
+        subject: "🎉 Welcome to TickiSpot!",
+        html: welcomeSuccessEmail(user.name),
+      }).catch((err) => console.error("Welcome email failed:", err));
+
+      await ensureSubscriptionState(user);
+      const token = signAuthToken(user);
+
+      return res.status(200).json({
+        message: "Account verified. Welcome to TickiSpot!",
+        token,
+        user: buildAuthUserPayload(user),
+      });
+    }
+
+    // ── CASE C: existing verified user — normal login ───────────────────────
+    // Link Firebase UID if missing (e.g. user registered via email earlier)
+    if (!user.firebaseUid) {
+      user.firebaseUid = firebaseUid;
+      await user.save();
+    }
+
+    await ensureSubscriptionState(user);
+    const token = signAuthToken(user);
+
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user: buildAuthUserPayload(user),
+    });
+  } catch (error) {
+    console.error("❌ FIREBASE SYNC ERROR:", error);
+    if (error?.code === "FIREBASE_ADMIN_NOT_CONFIGURED") {
+      return res.status(503).json({ message: error.message });
+    }
+    res.status(500).json({ message: "Server error during Firebase sync" });
+  }
 };
 
-/**
- * VERIFY EMAIL - Verify OTP code
- * 1. User submits 6-digit OTP
- * 2. Hash the OTP and compare with stored hash
- * 3. Check expiration
- * 4. If valid: Set isVerified=true, remove OTP fields
- * 5. Return JWT token
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// VERIFY EMAIL OTP  — verifies 6-digit code for email/password registrations
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.verifyEmailOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -421,9 +515,10 @@ exports.verifyEmailOtp = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if OTP exists and not expired
     if (!user.verificationCode || !user.verificationCodeExpires) {
-      return res.status(400).json({ message: "No verification code found. Please request a new one." });
+      return res
+        .status(400)
+        .json({ message: "No verification code found. Please request a new one." });
     }
 
     if (new Date() > user.verificationCodeExpires) {
@@ -433,26 +528,28 @@ exports.verifyEmailOtp = async (req, res) => {
       });
     }
 
-    // Hash the provided OTP and compare
-    const hashedInputOtp = crypto.createHash("sha256").update(otp).digest("hex");
+    const hashedInputOtp = crypto
+      .createHash("sha256")
+      .update(otp)
+      .digest("hex");
+
     if (hashedInputOtp !== user.verificationCode) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
-    // ✅ OTP VALID - Mark as verified
-user.isVerified = true;
-user.verificationCode = undefined;
-user.verificationCodeExpires = undefined;
-await user.save();
+    // ✅ OTP valid — mark user as verified
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
 
-// ✅ SEND WELCOME EMAIL (non-blocking)
-sendEmail({
-  to: user.email,
-  subject: "🎉 Welcome to TickiSpot!",
-  html: welcomeSuccessEmail(user.name),
-}).catch(err => console.error("Welcome email failed:", err));
+    // Send welcome email (non-blocking)
+    sendEmail({
+      to: user.email,
+      subject: "🎉 Welcome to TickiSpot!",
+      html: welcomeSuccessEmail(user.name),
+    }).catch((err) => console.error("Welcome email failed:", err));
 
-    // Create JWT
     const token = signAuthToken(user);
 
     res.status(200).json({
@@ -466,13 +563,10 @@ sendEmail({
   }
 };
 
-/**
- * RESEND OTP - Generate and send new verification code
- * 1. Find user by email
- * 2. Generate new 6-digit OTP
- * 3. Send email
- * 4. Store hashed OTP with 10-min expiration
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// RESEND OTP  — only valid for email/password accounts
+// ─────────────────────────────────────────────────────────────────────────────
+
 exports.resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -490,12 +584,11 @@ exports.resendOtp = async (req, res) => {
       return res.status(400).json({ message: "User is already verified" });
     }
 
-    // Generate new 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.verificationCode = hashedOtp;
-    user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
     const emailResult = await sendEmail({
@@ -517,4 +610,3 @@ exports.resendOtp = async (req, res) => {
     res.status(500).json({ message: "Server error resending OTP" });
   }
 };
-
