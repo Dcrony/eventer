@@ -39,6 +39,9 @@ import {
   canManageTeam as canManageFeaturedEventTeam,
 } from "../utils/eventPermissions";
 
+import FollowersModal from "../components/FollowersModal";
+
+
 const TAB_ITEMS = [
   { id: "events", label: "Events", icon: CalendarDays },
   { id: "featured", label: "Featured", icon: Sparkles },
@@ -305,6 +308,10 @@ export default function Profile() {
   const [liveBusyId, setLiveBusyId] = useState(null);
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
+
+const [followersModalOpen, setFollowersModalOpen] = useState(false);
+const [followersModalTab, setFollowersModalTab] = useState("followers");
+
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -667,14 +674,17 @@ if (!profile) {
 
               {/* Follow Stats */}
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
-                  <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
-                  <span>Following</span>
-                </button>
-                <button type="button" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
-                  <strong className="text-sm font-extrabold text-gray-900">{followers}</strong>
-                  <span>Followers</span>
-                </button>
+                // Replace the static Following/Followers spans with:
+<button type="button" onClick={() => { setFollowersModalTab("following"); setFollowersModalOpen(true); }}
+  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
+  <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
+  <span>Following</span>
+</button>
+<button type="button" onClick={() => { setFollowersModalTab("followers"); setFollowersModalOpen(true); }}
+  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
+  <strong className="text-sm font-extrabold text-gray-900">{followers}</strong>
+  <span>Followers</span>
+</button>
                 <span className="inline-flex items-center gap-1.5 text-sm text-gray-400">
                   <strong className="text-sm font-extrabold text-gray-900">{totalEventsCreated}</strong>
                   <span>Events created</span>
@@ -842,6 +852,13 @@ if (!profile) {
               : `${window.location.origin}/profile/${profile._id}`
           }
         />
+
+<FollowersModal
+  open={followersModalOpen}
+  onClose={() => setFollowersModalOpen(false)}
+  profileId={profile?._id}
+  initialTab={followersModalTab}
+/>
         <EditEvent
           isOpen={editModalOpen}
           onClose={() => {
