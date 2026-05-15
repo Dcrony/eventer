@@ -1,3 +1,4 @@
+
 const Ticket = require("../models/Ticket");
 const Event = require("../models/Event");
 const Transaction = require("../models/Transaction");
@@ -14,8 +15,6 @@ const {
   ticketPurchaseEmail,
   organizerTicketAlertEmail,
 } = require("../utils/emailTemplates");
-
-
 
 exports.getMyTickets = async (req, res) => {
   try {
@@ -52,6 +51,7 @@ exports.createTicket = async (req, res) => {
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
+
     const visibility = await canViewEvent(event, req.user, {
       allowPrivateLink: true,
     });
@@ -61,11 +61,11 @@ exports.createTicket = async (req, res) => {
 
     const requestedFreeTicket = isFree === true || isFree === "true";
     const eventIsFree = event.isFree === true || event.isFreeEvent === true;
+
     if (!eventIsFree) {
       if (requestedFreeTicket) {
         return res.status(400).json({ message: "Paid events require payment before ticket creation" });
       }
-
       return res.status(400).json({ message: "This endpoint only supports free events" });
     }
 
@@ -73,14 +73,32 @@ exports.createTicket = async (req, res) => {
       return res.status(400).json({ message: "Free ticket request must be marked as free" });
     }
 
+    // ── FREE TICKET DUPLICATE GUARD ──────────────────────────────────────────
+    // A user may only hold one free ticket per event. Paid tickets are
+    // unrestricted and go through the checkout/payment flow separately.
+    // Refunded or cancelled tickets do not count — the user may re-reserve.
+    const existingFreeTicket = await Ticket.findOne({
+      event: event._id,
+      buyer: req.user.id,
+      isFree: true,
+      status: { $nin: ["refunded", "cancelled"] },
+    });
+
+    if (existingFreeTicket) {
+      return res.status(409).json({
+        message: "You already have a free ticket for this event.",
+      });
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     const remainingTickets = Number(event.totalTickets || 0);
     if (remainingTickets <= 0) {
       return res.status(400).json({ message: "Event is sold out" });
     }
 
-    if (remainingTickets < parsedQuantity) {
-      return res.status(400).json({ message: "Not enough tickets available" });
-    }
+    // Free tickets are always quantity 1 — enforced server-side regardless
+    // of what the client sends.
+    const freeQuantity = 1;
 
     const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
     const normalizedRequestedType = String(ticketType || "").trim();
@@ -88,6 +106,7 @@ exports.createTicket = async (req, res) => {
     const matchingFreeTier = normalizedRequestedType
       ? eventPricing.find((pricing) => pricing.type === normalizedRequestedType)
       : null;
+
     if (normalizedRequestedType && eventPricing.length > 0 && !matchingFreeTier) {
       return res.status(400).json({ message: "Invalid ticket type for this event" });
     }
@@ -101,7 +120,7 @@ exports.createTicket = async (req, res) => {
     const ticket = new Ticket({
       buyer: req.user.id,
       event: event._id,
-      quantity: parsedQuantity,
+      quantity: freeQuantity,
       ticketType: resolvedTicketType,
       price: 0,
       amount: 0,
@@ -113,10 +132,9 @@ exports.createTicket = async (req, res) => {
 
     await ticket.save();
 
-
-    event.ticketsSold = Number(event.ticketsSold || 0) + parsedQuantity;
-    event.totalTickets = Math.max(0, remainingTickets - parsedQuantity);
-    recordTicketPurchaseMetrics(event, parsedQuantity, 0);
+    event.ticketsSold = Number(event.ticketsSold || 0) + freeQuantity;
+    event.totalTickets = Math.max(0, remainingTickets - freeQuantity);
+    recordTicketPurchaseMetrics(event, freeQuantity, 0);
     await event.save();
 
     const qrDir = path.join(__dirname, "../uploads/qrcodes");
@@ -128,8 +146,6 @@ exports.createTicket = async (req, res) => {
     const qrPath = path.join(qrDir, qrFileName);
     await QRCode.toFile(qrPath, qrData);
 
-
-
     ticket.qrCode = `qrcodes/${qrFileName}`;
     await ticket.save();
 
@@ -140,11 +156,9 @@ exports.createTicket = async (req, res) => {
 
     const qrBase64 = fileToBase64(qrPath);
 
-    // 🟢 GET USERS
     const buyer = await User.findById(req.user.id).select("name email");
     const organizer = await User.findById(event.createdBy).select("name email");
 
-    // 🟢 SEND EMAIL TO BUYER
     if (buyer?.email) {
       try {
         await sendEmail({
@@ -153,13 +167,13 @@ exports.createTicket = async (req, res) => {
           html: ticketPurchaseEmail(
             buyer.name || "Guest",
             event.title,
-            parsedQuantity
+            freeQuantity
           ),
           attachments: [
             {
               filename: "ticket-qr.png",
               content: qrBase64,
-              cid: "ticketqr", // matches HTML
+              cid: "ticketqr",
             },
           ],
         });
@@ -168,7 +182,6 @@ exports.createTicket = async (req, res) => {
       }
     }
 
-    // 🟢 SEND EMAIL TO ORGANIZER
     if (organizer?.email) {
       try {
         await sendEmail({
@@ -178,7 +191,7 @@ exports.createTicket = async (req, res) => {
             organizer.name || "Organizer",
             event.title,
             buyer?.name || "Someone",
-            parsedQuantity
+            freeQuantity
           ),
         });
       } catch (err) {
@@ -314,23 +327,16 @@ exports.refundTicket = async (req, res) => {
       return res.status(400).json({ message: "Cannot refund checked-in ticket" });
     }
 
-    // Update ticket status
     ticket.status = "refunded";
     await ticket.save();
 
-    // Update event metrics (reverse the purchase)
     ticket.event.ticketsSold = Math.max(0, Number(ticket.event.ticketsSold || 0) - ticket.quantity);
     ticket.event.totalTickets = Number(ticket.event.totalTickets || 0) + ticket.quantity;
     await ticket.event.save();
 
-    // If paid ticket, handle refund via payment processor
     if (!ticket.isFree && ticket.amountPaid > 0) {
-      // Find the transaction
       const transaction = await Transaction.findOne({ ticket: ticketId });
       if (transaction) {
-        // Process refund through payment provider (Paystack/Stripe)
-        // This would need integration with the payment service
-        // For now, mark as refunded
         transaction.status = "refunded";
         await transaction.save();
       }
@@ -371,7 +377,6 @@ exports.resendTicketEmail = async (req, res) => {
       return res.status(400).json({ message: "Buyer email not found" });
     }
 
-    // Generate QR code if not exists
     let qrBase64 = null;
     if (ticket.qrCode) {
       const qrPath = path.join(__dirname, "../uploads", ticket.qrCode);
@@ -380,7 +385,6 @@ exports.resendTicketEmail = async (req, res) => {
       }
     }
 
-    // Send email
     await sendEmail({
       to: ticket.buyer.email,
       subject: "🎟️ Your Ticket - Resent",
@@ -389,13 +393,9 @@ exports.resendTicketEmail = async (req, res) => {
         ticket.event.title,
         ticket.quantity
       ),
-      attachments: qrBase64 ? [
-        {
-          filename: "ticket-qr.png",
-          content: qrBase64,
-          cid: "ticketqr",
-        },
-      ] : [],
+      attachments: qrBase64
+        ? [{ filename: "ticket-qr.png", content: qrBase64, cid: "ticketqr" }]
+        : [],
     });
 
     res.status(200).json({ message: "Ticket email resent successfully" });
@@ -438,7 +438,6 @@ exports.manualCheckIn = async (req, res) => {
       return res.status(400).json({ message: "Cannot check in refunded ticket" });
     }
 
-    // Update ticket status
     ticket.status = "checked-in";
     ticket.used = true;
     ticket.usedAt = new Date();
