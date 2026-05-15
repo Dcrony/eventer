@@ -341,18 +341,7 @@ exports.firebaseLogin = async (req, res) => {
   }
 };
 
-// =====================================================================
-// 📧 EMAIL VERIFICATION WITH OTP (Firebase + OTP Flow)
-// =====================================================================
 
-/**
- * FIREBASE SYNC - Handle user signup via Firebase
- * 1. Verify Firebase ID token
- * 2. Extract email/name from token
- * 3. Create or update user in DB
- * 4. If new user: Generate 6-digit OTP & send email
- * 5. Return user verification status
- */
 exports.firebaseSync = async (req, res) => {
   try {
     const { idToken } = req.body;
@@ -373,99 +362,38 @@ exports.firebaseSync = async (req, res) => {
     // Check if user exists
     let user = await User.findOne({ $or: [{ firebaseUid }, { email: emailLower }] });
 
-    if (!user) {
-      // 🆕 CREATE NEW USER with unverified status
-      const displayName = firebaseName || firebaseEmail.split("@")[0];
-      const username = await ensureUniqueUsername(displayName);
+    // firebaseSync — NEW USER block (replace existing)
+if (!user) {
+  const displayName = firebaseName || firebaseEmail.split("@")[0];
+  const username = await ensureUniqueUsername(displayName);
 
-      // Generate 6-digit OTP
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
+  user = new User({
+    name: displayName,
+    username,
+    email: emailLower,
+    firebaseUid,
+    isVerified: true,          // ✅ Google already verified the email
+    role: "organizer",
+  });
 
-      user = new User({
-        name: displayName,
-        username,
-        email: emailLower,
-        firebaseUid,
-         isVerified: false,
-  verificationCode: hashedOtp,
-  verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
-  plan: "trial",
-  subscriptionStatus: "trialing",
-      });
+  assignTrialToUser(user);     // ✅ Grant free trial like normal register
+  await user.save();
 
-      await user.save();
+  // Send welcome email (non-blocking)
+  sendEmail({
+    to: emailLower,
+    subject: "🎉 Welcome to TickiSpot!",
+    html: welcomeSuccessEmail(user.name),
+  }).catch(err => console.error("Welcome email failed:", err));
 
-      const emailResult = await sendEmail({
-        to: emailLower,
-        subject: "Verify Your Email - TickiSpot",
-        html: otpEmail(otp),
-      });
+  await ensureSubscriptionState(user);
+  const token = signAuthToken(user);
 
-      const emailSent = Boolean(emailResult.success);
-
-      return res.status(201).json({
-        message: emailSent
-          ? "User created. Check your email for your verification code."
-          : "User created. Copy your verification code below, then enter it to verify.",
-        user: {
-          id: user._id,
-          email: user.email,
-          name: user.name,
-          isVerified: false,
-        },
-        ...verificationCodeResponseField(emailSent, otp),
-      });
-    } else {
-      // 👤 USER EXISTS
-      // If they haven't verified yet, regenerate OTP
-      if (!user.isVerified) {
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-        user.verificationCode = hashedOtp;
-        user.verificationCodeExpires = new Date(Date.now() + 10 * 60 * 1000);
-        await user.save();
-
-        const emailResult = await sendEmail({
-          to: user.email,
-          subject: "Your New Verification Code - TickiSpot",
-          html: otpEmail(otp),
-        });
-
-        const emailSent = Boolean(emailResult.success);
-
-        return res.status(200).json({
-          message: emailSent
-            ? "A new verification code was sent to your email."
-            : "Copy your new verification code below.",
-          user: {
-            id: user._id,
-            email: user.email,
-            name: user.name,
-            isVerified: false,
-          },
-          ...verificationCodeResponseField(emailSent, otp),
-        });
-      }
-
-      // ✅ USER ALREADY VERIFIED - Return JWT
-      await ensureSubscriptionState(user);
-      const token = signAuthToken(user);
-
-      return res.status(200).json({
-        message: "User verified. Login successful.",
-        token,
-        user: buildAuthUserPayload(user),
-      });
-    }
-  } catch (error) {
-    console.error("❌ FIREBASE SYNC ERROR:", error);
-    if (error?.code === "FIREBASE_ADMIN_NOT_CONFIGURED") {
-      return res.status(503).json({ message: error.message });
-    }
-    res.status(500).json({ message: "Server error during Firebase sync" });
-  }
+  return res.status(201).json({
+    message: "Account created successfully.",
+    token,
+    user: buildAuthUserPayload(user),
+  });
 };
 
 /**
