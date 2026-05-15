@@ -96,7 +96,7 @@ export default function PlatformAnalytics() {
 
   const basicStats = {
     totalEvents: stats?.totalEvents || 0,
-    totalViews: stats?.totalViews || 1240,
+    totalViews: stats?.totalViews || 0,
     totalTicketsSold: stats?.totalTicketsSold || 0,
   };
 

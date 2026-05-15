@@ -268,18 +268,6 @@ const updateMyProfile = async (req, res) => {
       user.email = email;
     }
 
-    // Check for duplicate phone (if phone is being changed)
-    if (phone && phone !== user.phone) {
-      const existingUser = await User.findOne({ phone });
-      if (existingUser) {
-        return res.status(400).json({ 
-          message: "Phone number already in use. Please use another number.",
-          field: "phone"
-        });
-      }
-      user.phone = phone;
-    }
-
     // Update other fields
     if (name) user.name = name;
     if (bio) user.bio = bio;

@@ -8,11 +8,13 @@ import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import EventCard from "../components/EventCard";
 import useDemoEvents from "../hooks/useDemoEvents";
+import {useAuth} from "../context/AuthContext";
 
 import {
   Music, Zap, Briefcase, UtensilsCrossed, Trophy, Globe,
   Search, ArrowRight, AlertCircle, SearchX, Sparkles, X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const CHIPS = [
   { id: "all", label: "All", icon: null },
@@ -138,6 +140,8 @@ export default function Home() {
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("newest");
   const [showAI, setShowAI] = useState(false);
+  const { user } = useAuth()
+  const navigate = useNavigate();
 
   const { toProfile } = useProfileNavigation();
   const demoEvents = useDemoEvents(events, error && !useDemoData);
@@ -310,7 +314,13 @@ export default function Home() {
             </div>
           )}
           <button
-            onClick={() => setShowAI((v) => !v)}
+            onClick={() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    setShowAI((v) => !v);
+  }}
             className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg shadow-pink-500/30 transition-all duration-300 hover:scale-110 ${
               showAI
                 ? "bg-gray-900 rotate-90"
