@@ -178,7 +178,7 @@ const getMyProfile = async (req, res) => {
 
     const user = await User.findById(uid).select("-password").populate({
       path: "favorites",
-      populate: { path: "createdBy", select: "name username profilePic role billing isVerified role" },
+      populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
     });
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -520,28 +520,25 @@ const getUserProfile = async (req, res) => {
         path: "favorites",
         populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
       })
-      .populate("followers", "_id name username profilePic isVerified role")
-      .populate("following", "_id name username profilePic isVerified role");
+      .populate("followers", "_id name username profilePic ")
+      .populate("following", "_id name username profilePic");
 
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
     }
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
-    const createdEventDocs = await Event.find({
-  createdBy: userId,
-  ...(isOwner ? {} : { visibility: "public" }), 
-})
-  .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus");
+    const createdEventDocs = await Event.find({ createdBy: userId })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus");
     const likedEventDocs = await Event.find({ likes: userId })
       .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
       .sort({ createdAt: -1 });
     const isOwner = String(currentUserId) === String(userId);
     const createdEvents = isOwner
-  ? createdEventDocs  
-  : await filterViewableEvents(createdEventDocs, req.user, {
-      allowPrivateLink: false,
-    });
+      ? createdEventDocs
+      : await filterViewableEvents(createdEventDocs, req.user, {
+          allowPrivateLink: false,
+        });
     const likedEvents = await filterViewableEvents(likedEventDocs, req.user, {
       allowPrivateLink: false,
     });
@@ -593,23 +590,17 @@ const getPublicProfile = async (req, res) => {
         path: "favorites",
         populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
       })
-      .populate("followers", "_id name username profilePic isVerified role")
-      .populate("following", "_id name username profilePic isVerified role");
+      .populate("followers", "_id name username profilePic")
+      .populate("following", "_id name username profilePic");
 
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    const createdEvents = await Event.find({
-  createdBy: user._id,
-  visibility: "public",  // 👈 public profiles never expose private events
-})
-  .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
-  .sort({ createdAt: -1 });
-    const likedEventDocs = await Event.find({
-  likes: user._id,
-  visibility: "public",  // 👈 add this
-})
-  .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
-  .sort({ createdAt: -1 });
+    const createdEvents = await Event.find({ createdBy: user._id })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .sort({ createdAt: -1 });
+    const likedEventDocs = await Event.find({ likes: user._id })
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .sort({ createdAt: -1 });
     const visibleCreatedEvents = await filterViewableEvents(createdEvents, null, {
       allowPrivateLink: false,
     });

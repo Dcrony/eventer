@@ -79,10 +79,6 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Username already in use" });
     }
 
-    const existingPhone = await User.findOne({ phone });
-    if (existingPhone) {
-      return res.status(400).json({ message: "Phone number already in use" });
-    }
 
     const role = "organizer";
 
