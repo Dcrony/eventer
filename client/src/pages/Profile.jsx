@@ -4,12 +4,10 @@ import {
   CalendarDays,
   ChartColumn,
   Heart,
-  Link2,
   MapPin,
   MessageSquare,
   UserRoundPlus,
   Sparkles,
-  MoreVertical,
   Pencil,
   Trash2,
   Users,
@@ -27,20 +25,24 @@ import EditEvent from "../components/EditEvent";
 import TeamManagement from "../components/TeamManagement";
 import Button from "../components/ui/button";
 import VerifiedBadge from "../components/ui/verified-badge";
-import { getCoverImageUrl, getProfileImageUrl, formatEventDate, formatEventPrice, getEventImageUrl, formatCompactNumber } from "../utils/eventHelpers";
+import {
+  getCoverImageUrl,
+  getProfileImageUrl,
+  formatEventDate,
+  formatEventPrice,
+  getEventImageUrl,
+  formatCompactNumber,
+} from "../utils/eventHelpers";
 import Avatar from "../components/ui/avatar";
 import { UserAvatar } from "../components/ui/avatar";
-import useShareLink from "../hooks/useShareLink";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import ShareModal from "@/components/ShareModal";
 import EventActionMenu from "../components/EventActionMenu";
+import FollowersModal from "../components/FollowersModal";
 import {
   canEditEvent as canEditFeaturedEvent,
   canManageTeam as canManageFeaturedEventTeam,
 } from "../utils/eventPermissions";
-
-import FollowersModal from "../components/FollowersModal";
-
 
 const TAB_ITEMS = [
   { id: "events", label: "Events", icon: CalendarDays },
@@ -99,16 +101,15 @@ function AnalyticsCard({ label, value, helper }) {
   );
 }
 
-// Enhanced Featured Event Card Component
-function FeaturedEventCard({ 
-  event, 
-  onEdit, 
-  onManageTeam, 
-  onToggleLive, 
-  onDelete, 
-  onUpgradeAnalytics, 
-  onUpgradeLive, 
-  liveBusy 
+function FeaturedEventCard({
+  event,
+  onEdit,
+  onManageTeam,
+  onToggleLive,
+  onDelete,
+  onUpgradeAnalytics,
+  onUpgradeLive,
+  liveBusy,
 }) {
   const imageUrl = getEventImageUrl(event);
   const organizer = event.createdBy;
@@ -135,18 +136,8 @@ function FeaturedEventCard({
       to: `/events/${event._id}/tickets`,
     },
     onUpgradeAnalytics
-      ? {
-          key: "analytics-upgrade",
-          label: "Analytics (Pro)",
-          icon: BarChart3,
-          onClick: onUpgradeAnalytics,
-        }
-      : {
-          key: "analytics",
-          label: "Analytics",
-          icon: BarChart3,
-          to: `/events/${event._id}/analytics`,
-        },
+      ? { key: "analytics-upgrade", label: "Analytics (Pro)", icon: BarChart3, onClick: onUpgradeAnalytics }
+      : { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` },
     onManageTeam && {
       key: "team",
       label: "Manage team",
@@ -165,7 +156,6 @@ function FeaturedEventCard({
 
   return (
     <article className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-pink-200/40">
-      {/* Image Section */}
       <Link to={`/event/${event._id}`} className="block">
         <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
           {imageUrl ? (
@@ -179,16 +169,12 @@ function FeaturedEventCard({
               <CalendarDays size={40} className="text-white/20" />
             </div>
           )}
-
-          {/* Live Badge */}
           {isLive && (
             <span className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500 text-white text-[0.65rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               LIVE
             </span>
           )}
-
-          {/* Featured Badge */}
           <span className="absolute top-3 right-3 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-md">
             <Sparkles size={10} />
             Featured
@@ -196,9 +182,7 @@ function FeaturedEventCard({
         </div>
       </Link>
 
-      {/* Content Section */}
       <div className="p-4">
-        {/* Header with Title & Menu */}
         <div className="flex items-start justify-between gap-2 mb-2">
           <Link to={`/event/${event._id}`} className="flex-1">
             <h3 className="text-sm font-bold text-gray-900 line-clamp-2 hover:text-pink-500 transition-colors">
@@ -210,12 +194,10 @@ function FeaturedEventCard({
           </div>
         </div>
 
-        {/* Description */}
         <p className="text-xs text-gray-500 line-clamp-2 mb-3">
           {event.description || "No description provided."}
         </p>
 
-        {/* Event Details Grid */}
         <div className="space-y-2 mb-3">
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
@@ -230,7 +212,6 @@ function FeaturedEventCard({
           </div>
         </div>
 
-        {/* Stats Row */}
         <div className="flex items-center justify-between gap-2 mb-3 p-2 rounded-lg bg-gray-50">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
@@ -257,7 +238,6 @@ function FeaturedEventCard({
           </div>
         </div>
 
-        {/* Organizer Info */}
         <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
           <UserAvatar user={organizer} className="w-6 h-6 rounded-full flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -271,7 +251,6 @@ function FeaturedEventCard({
           </div>
         </div>
 
-        {/* Capacity Progress Bar */}
         {event.totalTickets && (
           <div className="mt-3">
             <div className="flex justify-between text-[0.6rem] text-gray-500 mb-1">
@@ -296,44 +275,52 @@ export default function Profile() {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
   const resolvedProfileId = username || userId || id || storedUser?._id || storedUser?.id;
+
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("events");
   const [followPending, setFollowPending] = useState(false);
   const [indicator, setIndicator] = useState({ width: 0, left: 0 });
   const tabsRef = useRef({});
+
+  // Modals
   const [shareOpen, setShareOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [liveBusyId, setLiveBusyId] = useState(null);
+
+  // Followers modal
+  const [followersModalOpen, setFollowersModalOpen] = useState(false);
+  const [followersModalTab, setFollowersModalTab] = useState("followers");
+
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-const [followersModalOpen, setFollowersModalOpen] = useState(false);
-const [followersModalTab, setFollowersModalTab] = useState("followers");
-
+  const openFollowersModal = (tab) => {
+    setFollowersModalTab(tab);
+    setFollowersModalOpen(true);
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const isSelf = resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
+        const isSelf =
+          resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
         const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(resolvedProfileId || ""));
         const path = isSelf
           ? "/users/me"
           : isObjectId
-            ? `/users/${resolvedProfileId}`
-            : `/users/public/${resolvedProfileId}`;
+          ? `/users/${resolvedProfileId}`
+          : `/users/public/${resolvedProfileId}`;
 
         const { data } = await API.get(path);
         setProfile(data);
-      } catch (error) {
-        // Failed to load profile - will show error state
+      } catch {
+        // will show error state
       }
     };
 
-    if (resolvedProfileId) {
-      fetchProfile();
-    }
+    if (resolvedProfileId) fetchProfile();
   }, [resolvedProfileId, storedUser?._id, storedUser?.id]);
 
   const visibleTabs = useMemo(
@@ -351,10 +338,7 @@ const [followersModalTab, setFollowersModalTab] = useState("followers");
     const updateIndicator = () => {
       const currentTab = tabsRef.current[activeTab];
       if (!currentTab) return;
-      setIndicator({
-        width: currentTab.offsetWidth,
-        left: currentTab.offsetLeft,
-      });
+      setIndicator({ width: currentTab.offsetWidth, left: currentTab.offsetLeft });
     };
     updateIndicator();
     window.addEventListener("resize", updateIndicator);
@@ -368,14 +352,23 @@ const [followersModalTab, setFollowersModalTab] = useState("followers");
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
   const totalEventsCreated = profile?.stats?.totalEventsCreated ?? createdEvents.length;
-  const totalTicketsSold = profile?.stats?.totalTicketsSold ?? createdEvents.reduce(
-    (sum, event) => sum + Number(event?.ticketsSold || 0),
-    0,
-  );
+  const totalTicketsSold =
+    profile?.stats?.totalTicketsSold ??
+    createdEvents.reduce((sum, event) => sum + Number(event?.ticketsSold || 0), 0);
   const totalFeaturedEvents = profile?.stats?.totalFeaturedEvents ?? featuredEvents.length;
   const profileName = profile?.name || profile?.username || "Profile";
   const profileHandle = profile?.username ? `@${profile.username}` : "@tickispot";
   const location = profile?.location || profile?.country || "Lagos, Nigeria";
+
+  // Derive the current user's following IDs to pass to FollowersModal
+  // When viewing own profile, profile.following is populated; for others we use storedUser
+  const myFollowingIds = useMemo(() => {
+    const list = profile?.isOwner
+      ? profile?.following || []
+      : storedUser?.following || [];
+    return list.map((u) => String(u._id || u));
+  }, [profile?.isOwner, profile?.following, storedUser?.following]);
+
   const analyticsSummary = [
     { label: "Events", value: profile?.stats?.events || 0, helper: "Published on TickiSpot" },
     { label: "Followers", value: followers, helper: "People tracking this profile" },
@@ -411,20 +404,19 @@ const [followersModalTab, setFollowersModalTab] = useState("followers");
             onAction: profile?.isOwner ? () => navigate("/events") : null,
           },
         };
-      // In Profile.jsx tabContent for "featured":
-case "featured":
-  return {
-    items: featuredEvents,
-    empty: {
-      icon: Sparkles,
-      title: "No team events yet",
-      subtitle: profile?.isOwner
-        ? "Events you've been invited to collaborate on will appear here."
-        : "This user hasn't joined any events as a collaborator yet.",
-      actionLabel: null,
-      onAction: null,
-    },
-  };
+      case "featured":
+        return {
+          items: featuredEvents,
+          empty: {
+            icon: Sparkles,
+            title: "No team events yet",
+            subtitle: profile?.isOwner
+              ? "Events you've been invited to collaborate on will appear here."
+              : "This user hasn't joined any events as a collaborator yet.",
+            actionLabel: null,
+            onAction: null,
+          },
+        };
       case "analytics":
         return { items: [] };
       default:
@@ -453,53 +445,41 @@ case "featured":
         isFollowing: !current.isFollowing,
         stats: {
           ...current.stats,
-          followers: Math.max(0, Number(current.stats?.followers || 0) + (current.isFollowing ? -1 : 1)),
+          followers: Math.max(
+            0,
+            Number(current.stats?.followers || 0) + (current.isFollowing ? -1 : 1),
+          ),
         },
       }));
-    } catch (error) {
-      // Silently handle follow state update failure
+    } catch {
+      // silent
     } finally {
       setFollowPending(false);
     }
   };
 
-  const handleShareProfile = async () => {
-    setShareOpen(true);
-  };
-
   const handleFeaturedEventUpdated = async () => {
     try {
-      const isSelf = resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
+      const isSelf =
+        resolvedProfileId === storedUser?._id || resolvedProfileId === storedUser?.id;
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(resolvedProfileId || ""));
       const path = isSelf
         ? "/users/me"
         : isObjectId
-          ? `/users/${resolvedProfileId}`
-          : `/users/public/${resolvedProfileId}`;
-
+        ? `/users/${resolvedProfileId}`
+        : `/users/public/${resolvedProfileId}`;
       const { data } = await API.get(path);
       setProfile(data);
     } catch {
-      // Refresh failure is non-fatal.
+      // non-fatal
     }
   };
 
-  const openEditModal = (eventId) => {
-    setSelectedEventId(eventId);
-    setEditModalOpen(true);
-  };
-
-  const openTeamModal = (eventId) => {
-    setSelectedEventId(eventId);
-    setTeamModalOpen(true);
-  };
+  const openEditModal = (eventId) => { setSelectedEventId(eventId); setEditModalOpen(true); };
+  const openTeamModal = (eventId) => { setSelectedEventId(eventId); setTeamModalOpen(true); };
 
   const handleToggleLive = async (event) => {
-    if (!canAccessLiveStreaming) {
-      promptUpgradeLive();
-      return;
-    }
-
+    if (!canAccessLiveStreaming) { promptUpgradeLive(); return; }
     setLiveBusyId(event._id);
     try {
       await API.patch("/events/toggle-live", {
@@ -507,90 +487,79 @@ case "featured":
         isLive: !event.liveStream?.isLive,
       });
       await handleFeaturedEventUpdated();
-      if (!event.liveStream?.isLive) {
-        navigate(`/live/${event._id}`);
-      }
+      if (!event.liveStream?.isLive) navigate(`/live/${event._id}`);
     } catch {
-      // API interceptor and page refresh cover most failure cases.
+      // interceptor handles
     } finally {
       setLiveBusyId(null);
     }
   };
 
   const handleDeleteFeaturedEvent = async (eventId) => {
-    const eventToDelete = featuredEvents.find((event) => event._id === eventId);
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`,
-    );
-
-    if (!confirmed) return;
-
+    const eventToDelete = featuredEvents.find((e) => e._id === eventId);
+    if (!window.confirm(`Are you sure you want to delete "${eventToDelete?.title}"?\n\nThis action cannot be undone.`)) return;
     try {
       await API.delete(`/events/delete/${eventId}`);
       await handleFeaturedEventUpdated();
     } catch {
-      // Let the shared interceptor and refetch path handle the visible failure state.
+      // interceptor handles
     }
   };
 
-  // AFTER — replace with:
-if (!profile) {
-  return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
-      <div className="max-w-6xl mx-auto space-y-5 animate-pulse">
-
-        {/* Cover + avatar skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="h-[180px] md:h-[220px] bg-gray-100" />
-          <div className="px-4 sm:px-6 pb-5 sm:pb-6">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="-mt-12 sm:-mt-14">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white" />
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
+        <div className="max-w-6xl mx-auto space-y-5 animate-pulse">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="h-[180px] md:h-[220px] bg-gray-100" />
+            <div className="px-4 sm:px-6 pb-5 sm:pb-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="-mt-12 sm:-mt-14">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-200 border-4 border-white" />
+                </div>
+                <div className="flex gap-2 sm:mt-4">
+                  <div className="h-9 w-28 rounded-full bg-gray-100" />
+                  <div className="h-9 w-28 rounded-full bg-gray-100" />
+                </div>
               </div>
-              <div className="flex gap-2 sm:mt-4">
-                <div className="h-9 w-28 rounded-full bg-gray-100" />
-                <div className="h-9 w-28 rounded-full bg-gray-100" />
+              <div className="mt-4 space-y-3">
+                <div className="h-7 w-48 bg-gray-200 rounded-lg" />
+                <div className="h-4 w-24 bg-gray-100 rounded" />
+                <div className="h-4 w-72 bg-gray-100 rounded" />
+                <div className="h-4 w-56 bg-gray-100 rounded" />
+                <div className="flex gap-5 mt-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-4 w-20 bg-gray-100 rounded" />
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="mt-4 space-y-3">
-              <div className="h-7 w-48 bg-gray-200 rounded-lg" />
-              <div className="h-4 w-24 bg-gray-100 rounded" />
-              <div className="h-4 w-72 bg-gray-100 rounded" />
-              <div className="h-4 w-56 bg-gray-100 rounded" />
-              <div className="flex gap-5 mt-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-4 w-20 bg-gray-100 rounded" />
-                ))}
-              </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+            <div className="flex gap-4 border-b border-gray-100 pb-3 mb-5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-5 w-16 bg-gray-100 rounded" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 bg-gray-100 rounded-2xl" />
+              ))}
             </div>
           </div>
         </div>
-
-        {/* Tab + content skeleton */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
-          <div className="flex gap-4 border-b border-gray-100 pb-3 mb-5">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-5 w-16 bg-gray-100 rounded" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-64 bg-gray-100 rounded-2xl" />
-            ))}
-          </div>
-        </div>
-
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
-      <div className="max-w-6xl mx-auto  space-y-5">
-        {/* Profile Header Card */}
+      <div className="max-w-6xl mx-auto space-y-5">
+
+        {/* ── Profile Header ── */}
         <div className="bg-transparent overflow-hidden">
-          {/* Cover Image */}
+          {/* Cover */}
           <div className="relative min-h-[180px] md:min-h-[220px] bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950">
             {getCoverImageUrl(profile) && (
               <img
@@ -602,9 +571,8 @@ if (!profile) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </div>
 
-          {/* Profile Header Body */}
+          {/* Body */}
           <div className="px-4 sm:px-6 pb-5 sm:pb-6">
-            {/* Identity Row */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="-mt-12 sm:-mt-14 flex-shrink-0">
                 <div className="w-24 h-24 sm:w-32 sm:h-32 p-1 rounded-full bg-white shadow-lg">
@@ -619,7 +587,7 @@ if (!profile) {
               <div className="flex flex-wrap gap-2 sm:mt-4">
                 {profile.isOwner ? (
                   <>
-                    <Button variant="secondary" onClick={handleShareProfile} className="text-sm">
+                    <Button variant="secondary" onClick={() => setShareOpen(true)} className="text-sm">
                       <Share2Icon size={16} />
                     </Button>
                     <Button onClick={() => navigate("/edit-profile")} className="text-sm">
@@ -649,7 +617,7 @@ if (!profile) {
               </div>
             </div>
 
-            {/* Profile Summary */}
+            {/* Name / handle / bio */}
             <div className="mt-4 space-y-3">
               <div className="flex items-center flex-wrap gap-2">
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
@@ -662,7 +630,7 @@ if (!profile) {
                 {profile.bio || "Building community through memorable events and conversations."}
               </p>
 
-              {/* Meta Row */}
+              {/* Meta */}
               <div className="flex flex-wrap gap-4">
                 <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
                   <MapPin size={14} className="text-pink-500" /> {location}
@@ -672,19 +640,24 @@ if (!profile) {
                 </span>
               </div>
 
-              {/* Follow Stats */}
+              {/* ── Follow stats — clickable to open FollowersModal ── */}
               <div className="flex flex-wrap gap-2">
-            
-<button type="button" onClick={() => { setFollowersModalTab("following"); setFollowersModalOpen(true); }}
-  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
-  <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
-  <span>Following</span>
-</button>
-<button type="button" onClick={() => { setFollowersModalTab("followers"); setFollowersModalOpen(true); }}
-  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors">
-  <strong className="text-sm font-extrabold text-gray-900">{followers}</strong>
-  <span>Followers</span>
-</button>
+                <button
+                  type="button"
+                  onClick={() => openFollowersModal("following")}
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  <strong className="text-sm font-extrabold text-gray-900">{following}</strong>
+                  <span>Following</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openFollowersModal("followers")}
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors"
+                >
+                  <strong className="text-sm font-extrabold text-gray-900">{followers}</strong>
+                  <span>Followers</span>
+                </button>
                 <span className="inline-flex items-center gap-1.5 text-sm text-gray-400">
                   <strong className="text-sm font-extrabold text-gray-900">{totalEventsCreated}</strong>
                   <span>Events created</span>
@@ -700,7 +673,7 @@ if (!profile) {
               </div>
             </div>
 
-            {/* Plan Badge */}
+            {/* Plan badge */}
             <div className="mt-3">
               <span className={`inline-flex items-center h-6 px-2 rounded-full text-[0.6rem] font-extrabold tracking-wide ${
                 profile.plan === "free"
@@ -720,11 +693,11 @@ if (!profile) {
           </div>
         </div>
 
-        {/* Content Card */}
+        {/* ── Content Card ── */}
         <div className="bg-transparent p-4 sm:p-5">
-          {/* Tab Strip */}
+          {/* Tab strip */}
           <div className="sticky top-1 z-10 mb-4 pb-0.5 bg-transparent backdrop-blur-sm">
-            <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide scrollbar-thin scrollbar-thumb-gray-300">
+            <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide">
               <span
                 className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out shadow-[0_0_8px_rgba(244,63,142,0.3)]"
                 style={{ width: `${indicator.width}px`, transform: `translateX(${indicator.left}px)` }}
@@ -752,18 +725,15 @@ if (!profile) {
             </div>
           </div>
 
-          {/* Tab Content */}
+          {/* Tab content */}
           <div className="min-h-[260px]">
             {activeTab === "analytics" ? (
               <div className="space-y-4">
-                {/* Analytics Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {analyticsSummary.map((item) => (
                     <AnalyticsCard key={item.label} {...item} />
                   ))}
                 </div>
-
-                {/* Analytics Events */}
                 <div>
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                     <div>
@@ -771,7 +741,6 @@ if (!profile) {
                       <p className="text-xs text-gray-400">Jump into each event to review its deeper analytics.</p>
                     </div>
                   </div>
-
                   {createdEvents.length ? (
                     <div className="space-y-2">
                       {createdEvents.map((event) => (
@@ -811,7 +780,7 @@ if (!profile) {
                 <div>
                   <h2 className="text-sm font-extrabold text-gray-900 mb-0.5">Featured event workspace</h2>
                   <p className="text-xs text-gray-400">
-                    Created events and collaborator events live here, with access controls based on role.
+                    Events you've been invited to collaborate on, with access controls based on role.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -842,6 +811,7 @@ if (!profile) {
           </div>
         </div>
 
+        {/* ── Modals ── */}
         <ShareModal
           open={shareOpen}
           onClose={() => setShareOpen(false)}
@@ -853,28 +823,25 @@ if (!profile) {
           }
         />
 
-<FollowersModal
-  open={followersModalOpen}
-  onClose={() => setFollowersModalOpen(false)}
-  profileId={profile?._id}
-  initialTab={followersModalTab}
-/>
+        <FollowersModal
+          open={followersModalOpen}
+          onClose={() => setFollowersModalOpen(false)}
+          profileId={profile?._id}
+          initialTab={followersModalTab}
+          myFollowingIds={myFollowingIds}
+        />
+
         <EditEvent
           isOpen={editModalOpen}
-          onClose={() => {
-            setEditModalOpen(false);
-            setSelectedEventId(null);
-          }}
+          onClose={() => { setEditModalOpen(false); setSelectedEventId(null); }}
           eventId={selectedEventId}
           onEventUpdated={handleFeaturedEventUpdated}
         />
+
         <TeamManagement
           eventId={selectedEventId}
           isOpen={teamModalOpen}
-          onClose={() => {
-            setTeamModalOpen(false);
-            setSelectedEventId(null);
-          }}
+          onClose={() => { setTeamModalOpen(false); setSelectedEventId(null); }}
         />
       </div>
     </div>
