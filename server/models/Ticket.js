@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const ticketSchema = new mongoose.Schema({
@@ -54,12 +55,12 @@ const ticketSchema = new mongoose.Schema({
   qrCode: {
     type: String,
   },
-  used: { 
-    type: Boolean, 
-    default: false 
+  used: {
+    type: Boolean,
+    default: false,
   },
-  usedAt: { 
-    type: Date 
+  usedAt: {
+    type: Date,
   },
   status: {
     type: String,
