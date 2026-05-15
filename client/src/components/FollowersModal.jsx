@@ -11,10 +11,15 @@ const TABS = [
   { id: "verified", label: "Verified", icon: BadgeCheck },
 ];
 
-function UserRow({ user, currentUserId, onClose, navigate }) {
+function UserRow({ user, currentUserId, isAlreadyFollowing, onClose, navigate }) {
   const [followPending, setFollowPending] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(user.isFollowing || false);
+  const [isFollowing, setIsFollowing] = useState(isAlreadyFollowing);
   const isSelf = String(user._id) === String(currentUserId);
+
+  // Re-sync when parent prop changes (modal re-opens or myFollowingIds updates)
+  useEffect(() => {
+    setIsFollowing(isAlreadyFollowing);
+  }, [isAlreadyFollowing]);
 
   const handleFollow = async (e) => {
     e.stopPropagation();
@@ -24,7 +29,7 @@ function UserRow({ user, currentUserId, onClose, navigate }) {
       await API.post(`/users/${user._id}/follow`);
       setIsFollowing((v) => !v);
     } catch {
-      // silent
+      // silent — interceptor handles toast
     } finally {
       setFollowPending(false);
     }
@@ -36,14 +41,12 @@ function UserRow({ user, currentUserId, onClose, navigate }) {
   };
 
   return (
-    <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors duration-150 cursor-pointer group">
-      {/* Avatar */}
-      <div onClick={goToProfile} className="flex-shrink-0">
+    <div className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors duration-150">
+      <div onClick={goToProfile} className="flex-shrink-0 cursor-pointer">
         <UserAvatar user={user} className="w-10 h-10 rounded-full ring-2 ring-white shadow-sm" />
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0" onClick={goToProfile}>
+      <div className="flex-1 min-w-0 cursor-pointer" onClick={goToProfile}>
         <div className="flex items-center gap-1.5">
           <span className="text-sm font-bold text-gray-900 truncate">
             {user.name || user.username}
@@ -55,7 +58,6 @@ function UserRow({ user, currentUserId, onClose, navigate }) {
         </p>
       </div>
 
-      {/* Actions */}
       {!isSelf && (
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
@@ -77,7 +79,9 @@ function UserRow({ user, currentUserId, onClose, navigate }) {
                 : "bg-pink-500 text-white hover:bg-pink-600 shadow-sm shadow-pink-500/25"
             }`}
           >
-            {isFollowing ? (
+            {followPending ? (
+              <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            ) : isFollowing ? (
               "Following"
             ) : (
               <>
@@ -105,7 +109,13 @@ function SkeletonRow() {
   );
 }
 
-export default function FollowersModal({ open, onClose, profileId, initialTab = "followers" }) {
+export default function FollowersModal({
+  open,
+  onClose,
+  profileId,
+  initialTab = "followers",
+  myFollowingIds = [],
+}) {
   const navigate = useNavigate();
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
   const currentUserId = storedUser?._id || storedUser?.id;
@@ -118,7 +128,6 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
   const [indicator, setIndicator] = useState({ width: 0, left: 0 });
   const overlayRef = useRef(null);
 
-  // Fetch followers + following once
   useEffect(() => {
     if (!open || !profileId) return;
     setLoading(true);
@@ -133,19 +142,19 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
       .finally(() => setLoading(false));
   }, [open, profileId]);
 
-  // Sync initialTab when modal opens
   useEffect(() => {
-    if (open) setActiveTab(initialTab);
+    if (open) {
+      setActiveTab(initialTab);
+      setSearch("");
+    }
   }, [open, initialTab]);
 
-  // Animated tab indicator
   useEffect(() => {
     const node = tabsRef.current[activeTab];
     if (!node) return;
     setIndicator({ width: node.offsetWidth, left: node.offsetLeft });
   }, [activeTab, open]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const handler = (e) => { if (e.key === "Escape") onClose(); };
@@ -153,7 +162,6 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -163,7 +171,9 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
     followers: data.followers,
     following: data.following,
     verified: [...data.followers, ...data.following].filter(
-      (u, idx, arr) => u?.isVerified && arr.findIndex((x) => x._id === u._id) === idx,
+      (u, idx, arr) =>
+        u?.isVerified &&
+        arr.findIndex((x) => String(x._id) === String(u._id)) === idx,
     ),
   }), [data]);
 
@@ -215,7 +225,7 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
 
         {/* Tabs */}
         <div className="relative px-5 flex-shrink-0 border-b border-gray-100">
-          <div className="relative flex gap-0">
+          <div className="relative flex">
             <span
               className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out"
               style={{ width: `${indicator.width}px`, transform: `translateX(${indicator.left}px)` }}
@@ -237,7 +247,7 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
                   <Icon size={13} />
                   {tab.label}
                   {count > 0 && (
-                    <span className={`inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full text-[0.6rem] font-bold ${
+                    <span className={`inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full text-[0.6rem] font-bold ${
                       activeTab === tab.id
                         ? "bg-pink-100 text-pink-600"
                         : "bg-gray-100 text-gray-500"
@@ -290,6 +300,7 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
                   key={user._id}
                   user={user}
                   currentUserId={currentUserId}
+                  isAlreadyFollowing={myFollowingIds.includes(String(user._id))}
                   onClose={onClose}
                   navigate={navigate}
                 />
@@ -298,7 +309,7 @@ export default function FollowersModal({ open, onClose, profileId, initialTab = 
           )}
         </div>
 
-        {/* Count footer */}
+        {/* Footer count */}
         {!loading && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-gray-100 flex-shrink-0 bg-gray-50">
             <p className="text-xs text-gray-400 text-center">
