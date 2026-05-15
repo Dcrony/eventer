@@ -56,6 +56,7 @@ export default function EventDetail() {
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamError, setTeamError] = useState("");
   const [error, setError] = useState("");
+const [alreadyHasFreeTicket, setAlreadyHasFreeTicket] = useState(false);
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isEventFree = event?.isFreeEvent || event?.isFree;
@@ -66,13 +67,19 @@ export default function EventDetail() {
         setLoading(true);
         const { data } = await API.get(`/events/${eventId}`);
         setEvent(data);
-        setSelectedTicketType(data.pricing?.[0] || ((data.isFreeEvent || data.isFree) ? { type: "Free", price: 0 } : null));
-      } catch (error) {
-        setError("Failed to load event");
-      } finally {
-        setLoading(false);
-      }
-    };
+setSelectedTicketType(data.pricing?.[0] || ((data.isFreeEvent || data.isFree) ? { type: "Free", price: 0 } : null));
+
+if ((data.isFreeEvent || data.isFree) && isLoggedIn) {
+  try {
+    const { data: myTickets } = await API.get("/tickets/my-tickets");
+    const hasOne = myTickets.some(
+      (t) => String(t.event?._id || t.event) === String(data._id) && t.isFree
+    );
+    setAlreadyHasFreeTicket(hasOne);
+  } catch {
+    // non-critical — fail silently
+  }
+};
 
     fetchEvent();
   }, [eventId]);
@@ -181,7 +188,8 @@ export default function EventDetail() {
         isFree: true,
       });
 
-      toast.success("Ticket reserved successfully");
+toast.success("Ticket reserved successfully");
+setAlreadyHasFreeTicket(true);
       setEvent((current) =>
         current
           ? {
@@ -595,10 +603,10 @@ export default function EventDetail() {
                         backgroundPosition: "right 0.75rem center",
                       }}
                     >
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <option key={value} value={value}>{value}</option>
-                      ))}
-                    </select>
+       
+{(isEventFree ? [1] : [1, 2, 3, 4, 5]).map((value) => (
+  <option key={value} value={value}>{value}</option>
+))}                    </select>
                   </div>
 
                   {/* Availability Stats */}
@@ -615,18 +623,22 @@ export default function EventDetail() {
 
                   {/* Buy Button */}
                   <button
-                    type="button"
-                    onClick={handleBuy}
-                    disabled={remainingTickets <= 0}
-                    className={`w-full flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-all duration-200 ${
-                      remainingTickets > 0
-                        ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-xl"
-                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    <Ticket size={18} />
-                    {remainingTickets > 0 ? "Get tickets" : "Sold out"}
-                  </button>
+  type="button"
+  onClick={handleBuy}
+  disabled={remainingTickets <= 0 || (isEventFree && alreadyHasFreeTicket)}
+  className={`w-full flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-all duration-200 ${
+    remainingTickets <= 0 || (isEventFree && alreadyHasFreeTicket)
+      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+      : "bg-pink-500 text-white shadow-lg shadow-pink-500/30 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-xl"
+  }`}
+>
+  <Ticket size={18} />
+  {remainingTickets <= 0
+    ? "Sold out"
+    : isEventFree && alreadyHasFreeTicket
+    ? "Already reserved"
+    : "Get tickets"}
+</button>
 
                   {/* Trust Badges */}
                   <div className="flex flex-wrap justify-center gap-3 pt-2">
