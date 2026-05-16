@@ -21,32 +21,42 @@ const {
   getEventAnalytics,
 } = require("../controllers/eventController");
 
+// Create event (authenticated, verified, plan-limited)
 router.post(
   "/create",
   authMiddleware,
   requireEmailVerification,
   checkPlanLimit,
   uploadImageMemory.single("image"),
-  createEvent,
+  createEvent
 );
 
-// Public route - fetch all events
+// Public — fetch all events
 router.get("/", getAllEvents);
 
-// Authenticated routes
+// Authenticated routes (specific paths before :id wildcard)
 router.get("/my-events", authMiddleware, getMyEvents);
 router.get("/buyers/:eventId", authMiddleware, getEventBuyers);
-router.get("/:eventId/tickets", authMiddleware, getEventBuyers); // Alias for buyers
+router.get("/:eventId/tickets", authMiddleware, getEventBuyers); // alias
+
 router.patch("/toggle-live", authMiddleware, toggleLiveStream);
+
 router.get("/:id/comments", getEventComments);
 router.post("/:id/comments", authMiddleware, addEventComment);
 router.post("/:id/like", authMiddleware, toggleEventLike);
 router.post("/:id/share", trackEventShare);
 router.post("/:id/view", trackEventView);
 router.get("/:id/analytics", authMiddleware, getEventAnalytics);
-router.put("/update/:eventId", authMiddleware, uploadImageMemory.single("image"), updateEvent);
+
+router.put(
+  "/update/:eventId",
+  authMiddleware,
+  uploadImageMemory.single("image"),
+  updateEvent
+);
 router.delete("/delete/:eventId", authMiddleware, deleteEvent);
 
+// Wildcard — must be last
 router.get("/:id", getEventById);
 
 module.exports = router;
