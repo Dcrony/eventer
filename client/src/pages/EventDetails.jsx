@@ -99,7 +99,7 @@ export default function EventDetail() {
             // Non-critical — if this fails, the server will still reject duplicates
           }
         }
-      } catch (error) {
+      } catch (_) {
         setError("Failed to load event");
       } finally {
         setLoading(false);
