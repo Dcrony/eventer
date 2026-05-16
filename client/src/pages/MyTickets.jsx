@@ -6,7 +6,6 @@ import {
 import { Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import API from "../api/axios";
-import { PORT_URL } from "../utils/config";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
@@ -19,6 +18,20 @@ const fmtTime = (d) =>
   new Date(d).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
 const fmtMoney = (n) => `₦${Number(n ?? 0).toLocaleString("en-NG")}`;
+
+/**
+ * Resolves a QR code value to a usable <img> src.
+ * - Full Cloudinary / http URL  → use as-is (same pattern as getEventImageUrl)
+ * - Legacy relative path        → prepend PORT_URL/uploads/
+ * - Null / undefined            → null
+ */
+const getQrUrl = (qrCode) => {
+  if (!qrCode) return null;
+  if (typeof qrCode === "string" && qrCode.startsWith("http")) return qrCode;
+  // legacy local fallback
+  const base = (import.meta.env.VITE_PORT_URL || "").replace(/\/$/, "");
+  return `${base}/uploads/${qrCode}`;
+};
 
 /* ── shared input class ── */
 const pillInput =
@@ -90,7 +103,6 @@ export default function MyTickets() {
 
         {/* ── Search + filter bar ── */}
         <div className="flex flex-wrap gap-3">
-          {/* Search */}
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
@@ -102,7 +114,6 @@ export default function MyTickets() {
             />
           </div>
 
-          {/* Filter pills */}
           <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-full p-1">
             {["all", "upcoming", "past"].map((f) => (
               <button
@@ -181,8 +192,10 @@ export default function MyTickets() {
               {filteredTickets.map((ticket) => {
                 const event = ticket?.event;
                 if (!event) return null;
-                const isPast = new Date(event.startDate) < new Date();
-                const imgSrc = getEventImageUrl(event);
+
+                const isPast  = new Date(event.startDate) < new Date();
+                const imgSrc  = getEventImageUrl(event);
+                const qrSrc   = getQrUrl(ticket.qrCode);          // ← Cloudinary-aware
 
                 return (
                   <article
@@ -195,12 +208,10 @@ export default function MyTickets() {
                   >
                     {/* Image / cover */}
                     <div className="relative h-44 overflow-hidden bg-gradient-to-br from-slate-800 to-slate-900 shrink-0">
-                      {imgSrc
-                        ? <img src={imgSrc} alt={event.title} className="w-full h-full object-cover" />
-                        : null
-                      }
+                      {imgSrc && (
+                        <img src={imgSrc} alt={event.title} className="w-full h-full object-cover" />
+                      )}
 
-                      {/* Live badge */}
                       {event.liveStream?.isLive && !isPast && (
                         <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-red-500 text-white text-[11px] font-extrabold px-2.5 py-1 rounded-full shadow-md shadow-red-300 animate-pulse">
                           <span className="w-1.5 h-1.5 rounded-full bg-white" />
@@ -208,10 +219,8 @@ export default function MyTickets() {
                         </span>
                       )}
 
-                      {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
 
-                      {/* Title + organizer over image */}
                       <div className="absolute bottom-0 left-0 right-0 p-4">
                         <h3 className="text-white font-extrabold text-sm leading-tight line-clamp-2 mb-1.5">
                           {event.title}
@@ -233,7 +242,6 @@ export default function MyTickets() {
 
                     {/* Body */}
                     <div className="p-4 flex flex-col gap-3 flex-1">
-                      {/* Details */}
                       <div className="space-y-2">
                         {/* When */}
                         <div className="flex items-start gap-2">
@@ -281,13 +289,16 @@ export default function MyTickets() {
 
                       {/* Footer — QR + actions */}
                       <div className="flex items-center gap-2.5 mt-auto pt-3 border-t border-slate-100 flex-wrap">
-                        {/* QR */}
-                        {ticket.qrCode && (
+
+                        {/* QR — rendered exactly like EventCard's image */}
+                        {qrSrc && (
                           <div className="flex flex-col items-center gap-0.5 p-2 border border-slate-200 rounded-xl bg-slate-50 shrink-0">
                             <img
-                              src={`${PORT_URL}/uploads/${ticket.qrCode}`}
+                              src={qrSrc}
                               alt="QR code"
                               className="w-14 h-14 object-contain"
+                              loading="lazy"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
                             />
                             <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Show at entry</span>
                           </div>
@@ -295,10 +306,12 @@ export default function MyTickets() {
 
                         {/* Action buttons */}
                         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                          {ticket.qrCode && (
+                          {qrSrc && (
                             <a
-                              href={`${PORT_URL}/uploads/${ticket.qrCode}`}
+                              href={qrSrc}
                               download={`ticket-${ticket._id}.png`}
+                              target="_blank"
+                              rel="noreferrer"
                               className="inline-flex items-center justify-center gap-1.5 h-8 rounded-lg bg-pink-500 text-white text-xs font-bold hover:bg-pink-600 transition-all"
                             >
                               <Download size={13} /> Download

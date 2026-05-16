@@ -11,6 +11,10 @@ const sendEmail = require("../utils/email");
 const { authorizeEventAction, getEventAccessForUser } = require("../utils/eventPermissions");
 const { canViewEvent } = require("../utils/eventVisibility");
 const {
+  isConfigured,
+  uploadImageBuffer,
+} = require("../utils/cloudinaryMedia");
+const {
   ticketPurchaseEmail,
   organizerTicketAlertEmail,
 } = require("../utils/emailTemplates");
@@ -39,7 +43,6 @@ exports.getMyTickets = async (req, res) => {
 exports.createTicket = async (req, res) => {
   try {
     const { eventId, ticketType, quantity = 1, isFree } = req.body;
-    // parsedQuantity retained for context; free tickets are always locked to 1
     const parsedQuantity = Math.max(1, Number(quantity) || 1); // eslint-disable-line no-unused-vars
 
     if (!eventId) {
@@ -78,10 +81,7 @@ exports.createTicket = async (req, res) => {
         .json({ message: "Free ticket request must be marked as free" });
     }
 
-    // ── FREE TICKET DUPLICATE GUARD ─────────────────────────────────────────
-    // Each user may hold at most ONE free ticket per event.
-    // Refunded / cancelled tickets do not count — the user may re-reserve.
-    // Paid tickets go through the checkout flow and are unrestricted.
+    // Free ticket duplicate guard — one per user per event
     const existingFreeTicket = await Ticket.findOne({
       event: event._id,
       buyer: req.user.id,
@@ -94,15 +94,12 @@ exports.createTicket = async (req, res) => {
         message: "You already have a free ticket for this event.",
       });
     }
-    // ────────────────────────────────────────────────────────────────────────
 
     const remainingTickets = Number(event.totalTickets || 0);
     if (remainingTickets <= 0) {
       return res.status(400).json({ message: "Event is sold out" });
     }
 
-    // Free tickets are always quantity 1 — enforced server-side regardless
-    // of what the client sends.
     const freeQuantity = 1;
 
     if (remainingTickets < freeQuantity) {
@@ -146,21 +143,44 @@ exports.createTicket = async (req, res) => {
     recordTicketPurchaseMetrics(event, freeQuantity, 0);
     await event.save();
 
-    // Generate QR code
-    const qrDir = path.join(__dirname, "../uploads/qrcodes");
-    if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
-
+    // ── Generate QR code and upload to Cloudinary ─────────────────────────
     const frontendUrl = process.env.FRONTEND_URL || "";
     const qrData = `${frontendUrl}/validate/${ticket._id}`;
-    const qrFileName = `${ticket._id}.png`;
-    const qrPath = path.join(qrDir, qrFileName);
-    await QRCode.toFile(qrPath, qrData);
 
-    ticket.qrCode = `qrcodes/${qrFileName}`;
-    await ticket.save();
+    // Generate QR code as a PNG buffer (no local file needed)
+    const qrBuffer = await QRCode.toBuffer(qrData, {
+      type: "png",
+      width: 400,
+      margin: 2,
+    });
 
-    const fileToBase64 = (filePath) => fs.readFileSync(filePath).toString("base64");
-    const qrBase64 = fileToBase64(qrPath);
+    let qrUrl = null;
+    let qrBase64 = qrBuffer.toString("base64");
+
+    if (isConfigured()) {
+      try {
+        const uploaded = await uploadImageBuffer(qrBuffer, {
+          folder: "eventer/qrcodes",
+        });
+        qrUrl = uploaded.secure_url;
+        ticket.qrCode = qrUrl;
+        await ticket.save();
+      } catch (err) {
+        // Cloudinary upload failed — fall back gracefully.
+        // The ticket is still valid; QR is sent via email attachment.
+        console.error("QR Cloudinary upload failed:", err.message);
+      }
+    } else {
+      // Cloudinary not configured — fall back to local storage
+      const qrDir = path.join(__dirname, "../uploads/qrcodes");
+      if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
+      const qrFileName = `${ticket._id}.png`;
+      const qrPath = path.join(qrDir, qrFileName);
+      fs.writeFileSync(qrPath, qrBuffer);
+      ticket.qrCode = `qrcodes/${qrFileName}`;
+      await ticket.save();
+    }
+    // ──────────────────────────────────────────────────────────────────────
 
     const buyer = await User.findById(req.user.id).select("name email");
     const organizer = await User.findById(event.createdBy).select("name email");
@@ -175,6 +195,7 @@ exports.createTicket = async (req, res) => {
             {
               filename: "ticket-qr.png",
               content: qrBase64,
+              encoding: "base64",
               cid: "ticketqr",
             },
           ],
@@ -387,13 +408,54 @@ exports.resendTicketEmail = async (req, res) => {
       return res.status(400).json({ message: "Buyer email not found" });
     }
 
+    // ── Resolve QR for email attachment ───────────────────────────────────
     let qrBase64 = null;
+
     if (ticket.qrCode) {
-      const qrPath = path.join(__dirname, "../uploads", ticket.qrCode);
-      if (fs.existsSync(qrPath)) {
-        qrBase64 = fs.readFileSync(qrPath).toString("base64");
+      const isCloudinaryUrl =
+        typeof ticket.qrCode === "string" &&
+        ticket.qrCode.startsWith("http");
+
+      if (isCloudinaryUrl) {
+        // Re-fetch from Cloudinary URL as buffer
+        try {
+          const https = require("https");
+          const http = require("http");
+          const client = ticket.qrCode.startsWith("https") ? https : http;
+          qrBase64 = await new Promise((resolve, reject) => {
+            client.get(ticket.qrCode, (res) => {
+              const chunks = [];
+              res.on("data", (chunk) => chunks.push(chunk));
+              res.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
+              res.on("error", reject);
+            }).on("error", reject);
+          });
+        } catch (err) {
+          console.error("Failed to fetch QR from Cloudinary for resend:", err.message);
+        }
+      } else {
+        // Legacy local file path
+        const qrPath = path.join(__dirname, "../uploads", ticket.qrCode);
+        if (fs.existsSync(qrPath)) {
+          qrBase64 = fs.readFileSync(qrPath).toString("base64");
+        }
       }
     }
+
+    // If QR image is unavailable for any reason, regenerate it on the fly
+    if (!qrBase64) {
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || "";
+        const qrBuffer = await QRCode.toBuffer(
+          `${frontendUrl}/validate/${ticket._id}`,
+          { type: "png", width: 400, margin: 2 }
+        );
+        qrBase64 = qrBuffer.toString("base64");
+      } catch (err) {
+        console.error("QR regeneration failed:", err.message);
+      }
+    }
+    // ──────────────────────────────────────────────────────────────────────
 
     await sendEmail({
       to: ticket.buyer.email,
@@ -404,7 +466,7 @@ exports.resendTicketEmail = async (req, res) => {
         ticket.quantity
       ),
       attachments: qrBase64
-        ? [{ filename: "ticket-qr.png", content: qrBase64, cid: "ticketqr" }]
+        ? [{ filename: "ticket-qr.png", content: qrBase64, encoding: "base64", cid: "ticketqr" }]
         : [],
     });
 
