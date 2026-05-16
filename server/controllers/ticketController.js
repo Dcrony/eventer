@@ -1,4 +1,3 @@
-
 const Ticket = require("../models/Ticket");
 const Event = require("../models/Event");
 const Transaction = require("../models/Transaction");
@@ -18,14 +17,13 @@ const {
 
 exports.getMyTickets = async (req, res) => {
   try {
-    const tickets = await Ticket.find({ buyer: req.user.id })
-      .populate({
-        path: "event",
-        populate: {
-          path: "createdBy",
-          select: "username profilePic",
-        },
-      });
+    const tickets = await Ticket.find({ buyer: req.user.id }).populate({
+      path: "event",
+      populate: {
+        path: "createdBy",
+        select: "username profilePic",
+      },
+    });
 
     if (!tickets || tickets.length === 0) {
       return res.status(200).json([]);
@@ -41,7 +39,8 @@ exports.getMyTickets = async (req, res) => {
 exports.createTicket = async (req, res) => {
   try {
     const { eventId, ticketType, quantity = 1, isFree } = req.body;
-    const parsedQuantity = Math.max(1, Number(quantity) || 1);
+    // parsedQuantity retained for context; free tickets are always locked to 1
+    const parsedQuantity = Math.max(1, Number(quantity) || 1); // eslint-disable-line no-unused-vars
 
     if (!eventId) {
       return res.status(400).json({ message: "Event ID is required" });
@@ -64,19 +63,25 @@ exports.createTicket = async (req, res) => {
 
     if (!eventIsFree) {
       if (requestedFreeTicket) {
-        return res.status(400).json({ message: "Paid events require payment before ticket creation" });
+        return res
+          .status(400)
+          .json({ message: "Paid events require payment before ticket creation" });
       }
-      return res.status(400).json({ message: "This endpoint only supports free events" });
+      return res
+        .status(400)
+        .json({ message: "This endpoint only supports free events" });
     }
 
     if (!requestedFreeTicket) {
-      return res.status(400).json({ message: "Free ticket request must be marked as free" });
+      return res
+        .status(400)
+        .json({ message: "Free ticket request must be marked as free" });
     }
 
-    // ── FREE TICKET DUPLICATE GUARD ──────────────────────────────────────────
-    // A user may only hold one free ticket per event. Paid tickets are
-    // unrestricted and go through the checkout/payment flow separately.
-    // Refunded or cancelled tickets do not count — the user may re-reserve.
+    // ── FREE TICKET DUPLICATE GUARD ─────────────────────────────────────────
+    // Each user may hold at most ONE free ticket per event.
+    // Refunded / cancelled tickets do not count — the user may re-reserve.
+    // Paid tickets go through the checkout flow and are unrestricted.
     const existingFreeTicket = await Ticket.findOne({
       event: event._id,
       buyer: req.user.id,
@@ -99,6 +104,10 @@ exports.createTicket = async (req, res) => {
     // Free tickets are always quantity 1 — enforced server-side regardless
     // of what the client sends.
     const freeQuantity = 1;
+
+    if (remainingTickets < freeQuantity) {
+      return res.status(400).json({ message: "Not enough tickets available" });
+    }
 
     const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
     const normalizedRequestedType = String(ticketType || "").trim();
@@ -137,6 +146,7 @@ exports.createTicket = async (req, res) => {
     recordTicketPurchaseMetrics(event, freeQuantity, 0);
     await event.save();
 
+    // Generate QR code
     const qrDir = path.join(__dirname, "../uploads/qrcodes");
     if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
 
@@ -149,11 +159,7 @@ exports.createTicket = async (req, res) => {
     ticket.qrCode = `qrcodes/${qrFileName}`;
     await ticket.save();
 
-    const fileToBase64 = (filePath) => {
-      const file = fs.readFileSync(filePath);
-      return file.toString("base64");
-    };
-
+    const fileToBase64 = (filePath) => fs.readFileSync(filePath).toString("base64");
     const qrBase64 = fileToBase64(qrPath);
 
     const buyer = await User.findById(req.user.id).select("name email");
@@ -164,11 +170,7 @@ exports.createTicket = async (req, res) => {
         await sendEmail({
           to: buyer.email,
           subject: "🎟️ Your Ticket is Confirmed",
-          html: ticketPurchaseEmail(
-            buyer.name || "Guest",
-            event.title,
-            freeQuantity
-          ),
+          html: ticketPurchaseEmail(buyer.name || "Guest", event.title, freeQuantity),
           attachments: [
             {
               filename: "ticket-qr.png",
@@ -266,7 +268,7 @@ exports.validateTicket = async (req, res) => {
 };
 
 /**
- * Get all tickets for an event (for organizers)
+ * Get all tickets for an event (organizers only)
  */
 exports.getEventTickets = async (req, res) => {
   try {
@@ -316,7 +318,9 @@ exports.refundTicket = async (req, res) => {
 
     const eventAccess = await getEventAccessForUser(ticket.event, req.user);
     if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
-      return res.status(403).json({ message: "You do not have permission to refund tickets for this event" });
+      return res
+        .status(403)
+        .json({ message: "You do not have permission to refund tickets for this event" });
     }
 
     if (ticket.status === "refunded") {
@@ -330,8 +334,12 @@ exports.refundTicket = async (req, res) => {
     ticket.status = "refunded";
     await ticket.save();
 
-    ticket.event.ticketsSold = Math.max(0, Number(ticket.event.ticketsSold || 0) - ticket.quantity);
-    ticket.event.totalTickets = Number(ticket.event.totalTickets || 0) + ticket.quantity;
+    ticket.event.ticketsSold = Math.max(
+      0,
+      Number(ticket.event.ticketsSold || 0) - ticket.quantity
+    );
+    ticket.event.totalTickets =
+      Number(ticket.event.totalTickets || 0) + ticket.quantity;
     await ticket.event.save();
 
     if (!ticket.isFree && ticket.amountPaid > 0) {
@@ -350,7 +358,7 @@ exports.refundTicket = async (req, res) => {
 };
 
 /**
- * Resend ticket email to buyer
+ * Resend ticket email to buyer (organizer only)
  */
 exports.resendTicketEmail = async (req, res) => {
   try {
@@ -370,7 +378,9 @@ exports.resendTicketEmail = async (req, res) => {
 
     const eventAccess = await getEventAccessForUser(ticket.event, req.user);
     if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
-      return res.status(403).json({ message: "You do not have permission to resend tickets for this event" });
+      return res
+        .status(403)
+        .json({ message: "You do not have permission to resend tickets for this event" });
     }
 
     if (!ticket.buyer?.email) {
@@ -427,7 +437,9 @@ exports.manualCheckIn = async (req, res) => {
 
     const eventAccess = await getEventAccessForUser(ticket.event, req.user);
     if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
-      return res.status(403).json({ message: "You do not have permission to check in tickets for this event" });
+      return res
+        .status(403)
+        .json({ message: "You do not have permission to check in tickets for this event" });
     }
 
     if (ticket.status === "checked-in") {
