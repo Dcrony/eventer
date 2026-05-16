@@ -18,7 +18,7 @@ const eventCommentSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { _id: true },
+  { _id: true }
 );
 
 const eventDailyMetricSchema = new mongoose.Schema(
@@ -52,7 +52,7 @@ const eventDailyMetricSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const eventSchema = new mongoose.Schema({
@@ -147,7 +147,10 @@ const eventSchema = new mongoose.Schema({
 
   liveStream: {
     isLive: { type: Boolean, default: false },
-    streamType: { type: String, enum: ["YouTube", "Facebook", "Custom", "Camera"] },
+    streamType: {
+      type: String,
+      enum: ["YouTube", "Facebook", "Custom", "Camera"],
+    },
     streamURL: String,
   },
 
