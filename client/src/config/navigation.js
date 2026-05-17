@@ -55,6 +55,7 @@ export function buildNavSections(ctx) {
       items: [
         // { type: "link", to: "/community", label: "Community", icon: Users },
         // { type: "link", to: "/favorites", label: "Favorites", icon: Heart },
+        { type: "link", to: "/messages", label: "Messages", icon: MessageSquare, component: "MessageIndicator" },
         { type: "link", to: "/live/events", label: "Live", icon: Radio },
       ],
     },
@@ -76,7 +77,6 @@ export function buildNavSections(ctx) {
       label: "Account",
       items: [
         { type: "link", to: "/billing", label: "Billing", icon: CreditCard },
-        { type: "link", to: "/messages", label: "Messages", icon: MessageSquare, component: "MessageIndicator" },
       ],
     },
     ...(isFreeUser
