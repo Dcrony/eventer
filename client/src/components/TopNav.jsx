@@ -78,7 +78,7 @@ export default function TopNav() {
       )}
 
       <aside
-        className={`fixed top-0 right-0 z-[100] h-full w-80 max-w-[85vw] transform bg-white shadow-2xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 z-[100] flex flex-col h-full w-80 max-w-[85vw] transform bg-white shadow-2xl transition-transform duration-300 ease-out ${
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
