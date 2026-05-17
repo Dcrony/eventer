@@ -30,7 +30,9 @@ export function buildNavSections(ctx) {
   const canOrganize = isAdmin || isOrganizer;
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
 
-  const profileUrl = user?.username ? `/user/${user.username}` : "/profile/me";
+  // const profileUrl = user?.username ? `/user/${user.username}` : "/profile/me";
+  const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
+
 
   const sections = [
     {
