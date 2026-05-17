@@ -22,4 +22,10 @@ export const CreateEventProvider = ({ children }) => {
   );
 };
 
-export const useCreateEvent = () => useContext(CreateEventContext);
+export const useCreateEvent = () => {
+  const context = useContext(CreateEventContext);
+  if (!context) {
+    throw new Error("useCreateEvent must be used within CreateEventProvider");
+  }
+  return context;
+};

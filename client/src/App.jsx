@@ -170,6 +170,7 @@ function Layout() {
   };
 
   return (
+    <CreateEventProvider>
     <div className="flex flex-col min-h-screen">
       <SEO />
       <PwaInstallModal />
@@ -184,7 +185,6 @@ function Layout() {
           </div>
         ) : null}
 
-        <CreateEventProvider>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               {/* Public Routes */}
@@ -481,7 +481,6 @@ function Layout() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </CreateEventProvider>
       </main>
 
       <Suspense fallback={null}>
@@ -492,6 +491,7 @@ function Layout() {
         />
       </Suspense>
     </div>
+    </CreateEventProvider>
   );
 }
 

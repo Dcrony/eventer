@@ -44,6 +44,7 @@ export default function Dashboard() {
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const user = useMemo(() => getCurrentUser(), []);
+  const { openCreateEvent } = useCreateEvent();
 
   const handleEditClick = (id) => { setSelectedEventId(id); setEditModalOpen(true); };
   const handleModalClose = () => { setEditModalOpen(false); setSelectedEventId(null); };
