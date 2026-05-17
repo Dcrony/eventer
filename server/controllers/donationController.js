@@ -7,24 +7,34 @@ const Donation = require("../models/Donation");
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
-
+const MIN_DONATION_NAIRA = Number(process.env.MIN_DONATION_NAIRA) || 500;
+const MAX_DONATION_NAIRA = Number(process.env.MAX_DONATION_NAIRA) || 5000000;
 
 exports.initiateDonation = async (req, res) => {
   const { name, email, amount, message } = req.body;
 
-  if (!name || !email || !amount) {
+  if (!name || !email || amount == null) {
     return res.status(400).json({ message: "All fields required" });
+  }
+
+  const donationAmount = Math.round(Number(amount));
+  if (!Number.isFinite(donationAmount) || donationAmount < MIN_DONATION_NAIRA) {
+    return res.status(400).json({
+      message: `Minimum donation is ₦${MIN_DONATION_NAIRA.toLocaleString()}`,
+    });
+  }
+  if (donationAmount > MAX_DONATION_NAIRA) {
+    return res.status(400).json({ message: "Donation amount exceeds maximum allowed" });
   }
 
   try {
     const reference = `don_${Date.now()}`;
 
-    // ✅ SAVE as pending FIRST
     await Donation.create({
-      name,
-      email,
-      amount,
-      message,
+      name: String(name).trim().slice(0, 120),
+      email: String(email).trim().toLowerCase().slice(0, 254),
+      amount: donationAmount,
+      message: message ? String(message).trim().slice(0, 500) : "",
       reference,
       status: "pending",
     });
@@ -33,7 +43,7 @@ exports.initiateDonation = async (req, res) => {
       "https://api.paystack.co/transaction/initialize",
       {
         email,
-        amount: Math.round(amount * 100),
+        amount: donationAmount * 100,
         reference,
         callback_url: `${BACKEND_URL}/api/donations/verify`,
         metadata: { name, message },
@@ -83,15 +93,19 @@ exports.verifyDonation = async (req, res) => {
     }
 
     if (data.status === "success") {
-      // ✅ UPDATE DB
       if (donation) {
+        const paidNaira = data.amount / 100;
+        if (Math.abs(paidNaira - donation.amount) > 1) {
+          console.error("Donation amount mismatch", { paid: paidNaira, expected: donation.amount });
+          return res.redirect(`${FRONTEND_URL}/donation?status=failed`);
+        }
         donation.status = "success";
         await donation.save();
       }
 
-      const name = data.metadata?.name || "Supporter";
+      const name = data.metadata?.name || donation?.name || "Supporter";
       const email = data.customer.email;
-      const amount = data.amount / 100;
+      const amount = donation?.amount ?? data.amount / 100;
 
       // ✅ SEND EMAIL
       sendEmail({

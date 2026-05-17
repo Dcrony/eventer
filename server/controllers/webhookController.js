@@ -20,6 +20,10 @@ const {
   syncUserBillingState,
   upsertBillingHistory,
 } = require("../services/billingService");
+const {
+  computeTicketOrderTotal,
+  amountsMatch,
+} = require("../utils/ticketPricing");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -126,11 +130,9 @@ exports.handlePaystackWebhook = async (req, res) => {
         return res.sendStatus(200);
       }
 
-      let { eventId, userId, quantity, price, pricingType } = data.metadata;
+      let { eventId, userId, quantity, pricingType } = data.metadata;
 
-      // Convert quantity and price
       quantity = parseInt(quantity, 10);
-      price = parseFloat(price);
 
       // Handle missing userId by email
       let finalUserId = userId;
@@ -164,17 +166,17 @@ exports.handlePaystackWebhook = async (req, res) => {
         return res.sendStatus(200);
       }
 
-      // Determine final ticket price
-      let ticketPrice = price;
-      if (!ticketPrice && eventDoc.pricing?.length > 0) {
-        const selectedPricing = eventDoc.pricing.find(
-          (p) => p.type === pricingType
-        );
-        ticketPrice = selectedPricing?.price || eventDoc.pricing[0].price || 0;
+      const order = computeTicketOrderTotal(eventDoc, { pricingType, quantity });
+      if (!amountsMatch(data.amount, order.totalKobo)) {
+        console.error("❌ Webhook payment amount mismatch", {
+          paid: data.amount,
+          expected: order.totalKobo,
+          reference,
+        });
+        return res.sendStatus(200);
       }
 
-      if (!ticketPrice || ticketPrice === 0)
-        ticketPrice = data.amount / 100 / quantity;
+      const ticketPrice = order.unitPrice;
 
       // Create ticket
       const ticket = new Ticket({

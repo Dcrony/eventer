@@ -59,7 +59,16 @@ export default function EmptyState({
         <p className="mx-auto mb-6 max-w-sm text-sm text-gray-400">{config.description}</p>
 
         {/* CTA Button */}
-        {config.btnText && (
+        {config.btnText && (onCreateClick ? (
+          <button
+            type="button"
+            onClick={onCreateClick}
+            className="inline-flex items-center gap-2 rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/25"
+          >
+            <BtnIcon size={18} />
+            {config.btnText}
+          </button>
+        ) : config.btnLink ? (
           <Link
             to={config.btnLink}
             className="inline-flex items-center gap-2 rounded-full bg-pink-500 px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/25"
@@ -67,7 +76,7 @@ export default function EmptyState({
             <BtnIcon size={18} />
             {config.btnText}
           </Link>
-        )}
+        ) : null)}
 
         {/* Secondary action */}
         {type === "no-events" && (

@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/**/*.test.js",
     "dev": "nodemon server.js",
     "build": "node -e \"console.log('Backend build: no compile step required (Node.js runtime).')\"",
     "start": "node server.js"
@@ -23,6 +23,7 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.7.0",
     "form-data": "^4.0.5",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mailgun.js": "^12.7.1",
     "mongoose": "^8.16.0",

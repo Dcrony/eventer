@@ -93,6 +93,7 @@ const parseOauthState = (state, integrationKey) => {
 const buildIntegrationCloseWindowResponse = (res, message, succeeded = true) => {
   const safeMessage = JSON.stringify(message);
   const safeStatus = JSON.stringify(succeeded ? "success" : "error");
+  const targetOrigin = JSON.stringify(process.env.FRONTEND_URL || "http://localhost:5173");
   return res.send(`<!doctype html>
 <html>
   <body style="font-family:Arial,sans-serif;padding:24px;">
@@ -100,7 +101,7 @@ const buildIntegrationCloseWindowResponse = (res, message, succeeded = true) => 
     <p>${message}</p>
     <script>
       if (window.opener) {
-        window.opener.postMessage({ source: "tickispot-integration", status: ${safeStatus}, message: ${safeMessage} }, "*");
+        window.opener.postMessage({ source: "tickispot-integration", status: ${safeStatus}, message: ${safeMessage} }, ${targetOrigin});
       }
       setTimeout(() => window.close(), 1200);
     </script>

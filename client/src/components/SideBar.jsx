@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { logout, getCurrentUser } from "../utils/auth";
-import CreateEvent from "../pages/CreateEvent";
+import { useCreateEvent } from "../context/CreateEventContext";
 import NotificationBell from "./NotificationBell";
 import MessageIndicator from "./MessageIndicator";
 import icon from "../assets/icon.svg";
@@ -22,13 +22,16 @@ import {
   Banknote,
   DollarSign,
   Shield,
+  Heart,
+  CreditCard,
+  Users,
 } from "lucide-react";
 
 export default function Sidebar() {
   const [user, setUser] = useState(null);
   const [expand, setExpand] = useState(false);
   const location = useLocation();
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const { openCreateEvent } = useCreateEvent();
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -64,16 +67,22 @@ export default function Sidebar() {
     ...(canOrganize ? [{
       label: "Create",
       icon: <PlusCircle size={20} />,
-      action: () => setShowCreateEvent(true),
+      action: () => openCreateEvent(),
       primary: true,
     }] : []),
+    { to: "/community", label: "Community", icon: <MessageSquare size={20} /> },
+    { to: "/favorites", label: "Favorites", icon: <Heart size={20} /> },
+    { to: "/billing", label: "Billing", icon: <CreditCard size={20} /> },
+    { to: "/team/invitations", label: "Team", icon: <Users size={20} /> },
     { to: "/analytics", label: "Analytics", icon: <LineChart size={20} /> },
     ...(canOrganize ? [{ to: "/earnings", label: "Earnings", icon: <Banknote size={20} /> }] : []),
     { to: "/messages", label: "Messages", icon: <MessageSquare size={20} />, component: MessageIndicator },
     { to: "/live/events", label: "Live", icon: <Radio size={20} /> },
   ];
 
-  const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
+  const profileUrl = user?.username
+    ? `/user/${user.username}`
+    : "/profile/me";
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -223,8 +232,6 @@ export default function Sidebar() {
           </div>
         )}
       </aside>
-
-      <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
 
         <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {

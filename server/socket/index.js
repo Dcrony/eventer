@@ -57,9 +57,19 @@ const buildSocketServer = (httpServer, { allowedOrigins = [] } = {}) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.id).select("_id name username role");
-      if (!user) {
+      const user = await User.findById(decoded.id).select(
+        "_id name username role security isDeleted isSuspended",
+      );
+      if (!user || user.isDeleted) {
         return next(new Error("User not found"));
+      }
+      if (user.isSuspended) {
+        return next(new Error("Account suspended"));
+      }
+      const tokenSessionVersion = Number(decoded.sv || 0);
+      const userSessionVersion = Number(user.security?.sessionVersion || 0);
+      if (tokenSessionVersion !== userSessionVersion) {
+        return next(new Error("Session expired"));
       }
 
       socket.user = {

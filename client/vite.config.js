@@ -60,7 +60,7 @@ export default defineConfig({
             name: "Create Event",
             short_name: "Create",
             description: "Start selling tickets and managing your event",
-            url: "/events/create",
+            url: "/create-event",
           },
         ],
         icons: [

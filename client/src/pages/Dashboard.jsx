@@ -19,7 +19,8 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import CreateEvent from "./CreateEvent";
+import { useCreateEvent } from "../context/CreateEventContext";
+import { useSearchParams } from "react-router-dom";
 import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
@@ -164,7 +165,7 @@ export default function Dashboard() {
               Browse events <ArrowRight size={18} />
             </Link>
             <button
-              onClick={() => setShowCreateEvent(true)}
+              onClick={() => openCreateEvent()}
               className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
             >
               Create event <PlusCircle size={18} />
@@ -291,7 +292,7 @@ export default function Dashboard() {
                   You haven't created any events yet. Ready to host your first one?
                 </p>
                 <button
-                  onClick={() => setShowCreateEvent(true)}
+                  onClick={() => openCreateEvent()}
                   className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
                 >
                   Create Your First Event <PlusCircle size={18} />
@@ -375,7 +376,6 @@ export default function Dashboard() {
 
       {/* Modals */}
       <EditEvent isOpen={editModalOpen} onClose={handleModalClose} eventId={selectedEventId} onEventUpdated={handleEventUpdated} />
-      <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
       <TeamManagement eventId={selectedTeamEventId} isOpen={teamModalOpen} onClose={handleTeamModalClose} />
     </div>
   );

@@ -221,6 +221,17 @@ exports.verifyBilling = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const requesterId = String(req.user?._id || req.user?.id || "");
+    if (requesterId && String(metadata.userId) !== requesterId) {
+      return res.status(403).json({ message: "You cannot verify another user's billing" });
+    }
+
+    const paidKobo = Number(data.amount || 0);
+    const expectedKobo = Math.round(amount * 100);
+    if (paidKobo > 0 && expectedKobo > 0 && Math.abs(paidKobo - expectedKobo) > 1) {
+      return res.status(400).json({ message: "Payment amount does not match plan price" });
+    }
+
     const { user: updatedUser, nextBillingDate } = await syncUserBillingState({
       user,
       plan: normalizedPlan,
@@ -296,18 +307,10 @@ exports.handleBillingRedirect = async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/billing?status=failed`);
     }
 
-    const verifyUrl = `${BACKEND_URL}/api/billing/verify/${encodeURIComponent(reference)}`;
-    try {
-      await axios.get(verifyUrl);
-      return res.redirect(
-        `${FRONTEND_URL}/billing?status=success&reference=${encodeURIComponent(reference)}`,
-      );
-    } catch (err) {
-      console.error("VERIFY ERROR:", err.response?.data || err.message);
-      return res.redirect(
-        `${FRONTEND_URL}/billing?status=failed&reference=${encodeURIComponent(reference)}`,
-      );
-    }
+    // Paystack redirect — client completes verification with auth on /billing page
+    return res.redirect(
+      `${FRONTEND_URL}/billing?status=pending&reference=${encodeURIComponent(reference)}`,
+    );
   } catch {
     return res.redirect(`${FRONTEND_URL}/billing?status=failed`);
   }

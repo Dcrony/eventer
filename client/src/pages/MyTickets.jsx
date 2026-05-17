@@ -9,7 +9,7 @@ import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
-import CreateEvent from "./CreateEvent";
+import { useCreateEvent } from "../context/CreateEventContext";
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
@@ -42,7 +42,7 @@ export default function MyTickets() {
   const [loading,         setLoading]         = useState(true);
   const [searchQuery,     setSearchQuery]     = useState("");
   const [filter,          setFilter]          = useState("all");
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const { openCreateEvent } = useCreateEvent();
 
   const user        = getCurrentUser();
   const { toProfile } = useProfileNavigation();
@@ -83,7 +83,7 @@ export default function MyTickets() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
-              onClick={() => setShowCreateEvent(true)}
+              onClick={() => openCreateEvent()}
               className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-pink-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:bg-pink-600 transition-all"
             >
               <PlusCircle size={16} />
@@ -170,7 +170,7 @@ export default function MyTickets() {
                   Browse events
                 </Link>
                 <button
-                  onClick={() => setShowCreateEvent(true)}
+                  onClick={() => openCreateEvent()}
                   className="inline-flex items-center gap-1.5 h-10 px-5 rounded-full border border-pink-300 text-pink-500 text-sm font-bold hover:bg-pink-50 transition-all"
                 >
                   <PlusCircle size={15} />
@@ -342,7 +342,6 @@ export default function MyTickets() {
         )}
       </div>
 
-      <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
     </div>
   );
 }

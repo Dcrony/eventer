@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { EventDetailRedirect, ProfileMeRedirect } from "./components/RouteRedirects";
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import { lazy, Suspense, useEffect, useState } from "react";
 import SEO from "./components/SEO";
@@ -74,6 +75,10 @@ const AdminLogs = lazy(() => import("./pages/AdminLogs"));
 const AdminControls = lazy(() => import("./pages/AdminControls"));
 const EventTickets = lazy(() => import("./pages/EventTickets"));
 const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const CreateEventRedirect = lazy(() => import("./pages/CreateEventRedirect"));
+const HelpArticle = lazy(() => import("./pages/HelpArticle"));
+const Community = lazy(() => import("./pages/Community"));
 
 // Layout component with route definitions
 function Layout() {
@@ -198,6 +203,17 @@ function Layout() {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/donation" element={<Donation />} />
               <Route path="/help" element={<HelpCenter />} />
+              <Route path="/help/:slug" element={<HelpArticle />} />
+              <Route path="/create-event" element={<CreateEventRedirect />} />
+              <Route path="/events/create" element={<CreateEventRedirect />} />
+              <Route
+                path="/community"
+                element={
+                  <ProtectedRoute>
+                    <Community />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/docs" element={<Documentation />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -292,7 +308,8 @@ function Layout() {
                 }
               />
               <Route path="/event/:eventId" element={<EventDetail />} />
-              <Route path="/Eventdetail/:eventId" element={<EventDetail />} />
+              <Route path="/Eventdetail/:eventId" element={<EventDetailRedirect />} />
+              <Route path="/profile/me" element={<ProfileMeRedirect />} />
               <Route
                 path="/events/:eventId/analytics"
                 element={
@@ -461,6 +478,7 @@ function Layout() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </CreateEventProvider>

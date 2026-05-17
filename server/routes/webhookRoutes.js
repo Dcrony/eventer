@@ -13,6 +13,11 @@ router.post("/webhooks/resend", async (req, res) => {
   const rawBody = req.rawBody || JSON.stringify(req.body);
 
   try {
+    if (process.env.NODE_ENV === "production" && !WEBHOOK_SECRET) {
+      console.error("RESEND_WEBHOOK_SECRET is required in production");
+      return res.status(500).send("Webhook not configured");
+    }
+
     // Verify webhook signature
     if (WEBHOOK_SECRET) {
       resend.webhooks.verify({

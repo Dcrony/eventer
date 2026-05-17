@@ -11,11 +11,12 @@ export const useDemoEvents = (events = [], hasError = false) => {
   const [displayEvents, setDisplayEvents] = useState(events);
 
   useEffect(() => {
-    // If no events from API or error, use demo events
-    if (!events || events.length === 0 || hasError) {
+    const allowDemo =
+      import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_EVENTS !== "false";
+    if (allowDemo && (!events || events.length === 0 || hasError)) {
       setDisplayEvents(DEMO_EVENTS);
     } else {
-      setDisplayEvents(events);
+      setDisplayEvents(events || []);
     }
   }, [events, hasError]);
 

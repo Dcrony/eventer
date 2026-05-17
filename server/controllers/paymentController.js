@@ -12,6 +12,10 @@ const Notification = require("../models/Notification");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
 const { canViewEvent } = require("../utils/eventVisibility");
+const {
+  computeTicketOrderTotal,
+  amountsMatch,
+} = require("../utils/ticketPricing");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -31,13 +35,7 @@ exports.initiatePayment = async (req, res) => {
       return res.status(500).json({ message: "Payment provider not configured" });
     }
 
-    const { email, amount, metadata } = req.body;
-
-    console.log("📤 Payment initiation request received:", {
-      email,
-      amount,
-      metadata,
-    });
+    const { email, metadata } = req.body;
 
     if (!metadata?.eventId) {
       return res.status(400).json({ message: "Missing eventId in metadata" });
@@ -65,30 +63,46 @@ exports.initiatePayment = async (req, res) => {
       return res.status(400).json({ message: "Organizer account no longer exists" });
     }
 
-    if (event.totalTickets < Number(metadata.quantity)) {
+    const pricingType = metadata.pricingType || metadata.ticketType;
+    const order = computeTicketOrderTotal(event, {
+      pricingType,
+      quantity: metadata.quantity,
+    });
+
+    if (event.totalTickets < order.quantity) {
       return res.status(400).json({
         message: "Not enough tickets available",
       });
     }
 
-    // Convert metadata safely
-    const processedMetadata = {};
-    Object.keys(metadata || {}).forEach((key) => {
-      processedMetadata[key] = String(metadata[key]);
-    });
+    if (order.totalKobo <= 0) {
+      return res.status(400).json({
+        message: "This event is free. Use the free ticket flow instead.",
+      });
+    }
 
-    let paystackEmail = email;
+    const processedMetadata = {
+      eventId: String(metadata.eventId),
+      userId: String(req.user?.id || req.user?._id || metadata.userId || ""),
+      quantity: String(order.quantity),
+      price: String(order.unitPrice),
+      pricingType: String(order.pricingType),
+    };
 
-    if (req.user) {
-      processedMetadata.userId = String(req.user.id);
-      paystackEmail = req.user.email || email;
+    if (!processedMetadata.userId) {
+      return res.status(401).json({ message: "Authentication required to purchase tickets" });
+    }
+
+    const paystackEmail = req.user?.email || email;
+    if (!paystackEmail) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
     const response = await axios.post(
       "https://api.paystack.co/transaction/initialize",
       {
         email: paystackEmail,
-        amount: amount * 100,
+        amount: order.totalKobo,
         callback_url: PAYSTACK_CALLBACK,
         metadata: processedMetadata,
       },
@@ -191,17 +205,17 @@ exports.verifyPayment = async (req, res) => {
           .status(400)
           .json({ message: "Not enough tickets available" });
 
-      // Determine final ticket price
-      let ticketPrice = price;
-      if (!ticketPrice && event.pricing?.length > 0) {
-        const selectedPricing = event.pricing.find(
-          (p) => p.type === pricingType
-        );
-        ticketPrice = selectedPricing?.price || event.pricing[0].price || 0;
+      const order = computeTicketOrderTotal(event, { pricingType, quantity });
+      if (!amountsMatch(data.amount, order.totalKobo)) {
+        console.error("Payment amount mismatch", {
+          paid: data.amount,
+          expected: order.totalKobo,
+          reference,
+        });
+        return res.redirect(failedURL);
       }
 
-      if (!ticketPrice || ticketPrice === 0)
-        ticketPrice = data.amount / 100 / quantity;
+      const ticketPrice = order.unitPrice;
 
       // Create ticket
       const ticket = new Ticket({

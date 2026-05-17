@@ -9,7 +9,6 @@ const {
   verifyBilling,
   handleBillingRedirect,
 } = require("../controllers/billingController");
-const { handlePaystackWebhook } = require("../controllers/webhookController");
 
 const router = express.Router();
 const billingWriteLimiter = rateLimitByUser({
@@ -23,13 +22,8 @@ router.get("/current-plan", authMiddleware, getCurrentPlan);
 router.get("/history", authMiddleware, getBillingHistory);
 router.post("/initialize", authMiddleware, billingWriteLimiter, initializeBilling);
 router.post("/upgrade", authMiddleware, billingWriteLimiter, upgradePlan);
-router.get("/verify", verifyBilling);
-router.get("/verify/:reference", verifyBilling);
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handlePaystackWebhook,
-);
+router.get("/verify", authMiddleware, verifyBilling);
+router.get("/verify/:reference", authMiddleware, verifyBilling);
 router.get("/redirect/:reference", handleBillingRedirect);
 
 module.exports = router;

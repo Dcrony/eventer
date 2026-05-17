@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import icon from "../assets/icon.svg";
 import emailService from "../api/emailVerificationService";
@@ -53,6 +53,7 @@ export default function Register() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -130,7 +131,7 @@ export default function Register() {
     if (!result.success) throw new Error(result.error);
 
     // Google users are always verified — log in directly, no OTP
-    login(result.data.user, result.data.token);
+    authLogin(result.data.user, result.data.token);
     setSuccess("Google sign-up successful! Redirecting...");
     setTimeout(() => navigate("/dashboard"), 1500);
   } catch (err) {

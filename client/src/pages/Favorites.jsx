@@ -6,19 +6,22 @@ import { Heart, SearchX } from "lucide-react";
 export default function Favorites() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchFavorites = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const { data } = await API.get("/favorites");
+      setEvents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not load favorites");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchFavorites = async () => {
-      try {
-        const { data } = await API.get("/favorites");
-        setEvents(Array.isArray(data) ? data : []);
-      } catch (error) {
-        // Failed to load favorites - will show empty state
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFavorites();
   }, []);
 
@@ -35,6 +38,19 @@ export default function Favorites() {
           </div>
           <p className="text-sm text-gray-500">Your saved events in one place.</p>
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-center">
+            <p className="text-sm text-red-700">{error}</p>
+            <button
+              type="button"
+              onClick={fetchFavorites}
+              className="mt-3 text-sm font-semibold text-pink-600"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         {loading ? (

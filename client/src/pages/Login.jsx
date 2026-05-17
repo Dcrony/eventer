@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import icon from "../assets/icon.svg";
@@ -42,13 +42,15 @@ export default function Login() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, login } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/events", { replace: true });
+      const from = location.state?.from?.pathname;
+      navigate(from || "/events", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,7 +79,13 @@ export default function Login() {
       const res = await API.post("/auth/login", payload);
       login(res.data.user, res.data.token);
       setSuccess("Login successful ✅ Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      const from = location.state?.from?.pathname;
+      const target =
+        from ||
+        (res.data.user?.role === "organizer" || res.data.user?.role === "admin"
+          ? "/dashboard"
+          : "/events");
+      setTimeout(() => navigate(target), 800);
     } catch (err) {
       const data = err.response?.data;
       if (err.response?.status === 403 && data?.code === "OTP_SENT") {

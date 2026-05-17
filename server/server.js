@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const helmet = require("helmet");
 const multer = require("multer");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -23,7 +24,6 @@ const billingRoutes = require("./routes/billingRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const donationRoutes = require("./routes/donationRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const tickiAiRoutes = require("./routes/tickiAiRoutes");
 const liveStreamRoutes = require("./routes/liveStreamRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const privateEventRoutes = require("./routes/privateEventRoutes");
@@ -49,6 +49,13 @@ const ALLOWED_ORIGINS = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGIN
 const app = express();
 
 app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+app.use(
   cors({
     origin(origin, callback) {
       if (!origin || ALLOWED_ORIGINS.includes(origin)) {
@@ -62,6 +69,14 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
 
 app.use("/api/webhook", webhookRoutes);
 app.use(express.json());
@@ -116,7 +131,7 @@ app.use("/api/ai", (req, res, next) => {
   next();
 }, aiRoutes);
 app.use("/api/analytics", analyticsRoutes);
-app.use("/api/tickiai", tickiAiRoutes);
+app.use("/api/tickiai", aiRoutes);
 app.use("/api/live-stream", liveStreamRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/private-events", privateEventRoutes);
@@ -139,21 +154,29 @@ app.use((err, req, res, next) => {
 
 app.get("/event/:id", async (req, res) => {
   const event = await Event.findById(req.params.id);
+  if (!event) {
+    return res.status(404).send("Event not found");
+  }
 
-  const image = event.coverImage?.startsWith("http")
-  ? event.coverImage
-  : `${process.env.BACKEND_URL}/${event.coverImage}`;
- 
+  const title = escapeHtml(event.title);
+  const description = escapeHtml(event.description || "");
+  const image = escapeHtml(
+    event.coverImage?.startsWith("http")
+      ? event.coverImage
+      : `${process.env.BACKEND_URL}/${event.coverImage || ""}`,
+  );
+  const eventId = escapeHtml(String(event._id));
+
   res.send(`
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${event.title}</title>
+        <title>${title}</title>
 
-        <meta property="og:title" content="${event.title}" />
-        <meta property="og:description" content="${event.description}" />
+        <meta property="og:title" content="${title}" />
+        <meta property="og:description" content="${description}" />
         <meta property="og:image" content="${image}" />
-        <meta property="og:url" content="https://tickispot.com/event/${event._id}" />
+        <meta property="og:url" content="https://tickispot.com/event/${eventId}" />
         <meta property="og:type" content="website" />
 
         <meta name="twitter:card" content="summary_large_image" />
@@ -162,7 +185,7 @@ app.get("/event/:id", async (req, res) => {
 
       <body>
         <script>
-          window.location.href = "/event/${event._id}";
+          window.location.href = "/event/${eventId}";
         </script>
       </body>
     </html>
@@ -171,19 +194,25 @@ app.get("/event/:id", async (req, res) => {
 
 app.get("/users/:id", async (req, res) => {
   const user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).send("User not found");
+  }
 
-  const image = user.avatar;
+  const name = escapeHtml(user.name);
+  const bio = escapeHtml(user.bio || "");
+  const image = escapeHtml(user.avatar || user.profilePic || "");
+  const userId = escapeHtml(String(user._id));
 
   res.send(`
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${user.name}</title>
+        <title>${name}</title>
 
-        <meta property="og:title" content="${user.name}" />
-        <meta property="og:description" content="${user.bio}" />
+        <meta property="og:title" content="${name}" />
+        <meta property="og:description" content="${bio}" />
         <meta property="og:image" content="${image}" />
-        <meta property="og:url" content="https://tickispot.com/users/${user._id}" />
+        <meta property="og:url" content="https://tickispot.com/users/${userId}" />
         <meta property="og:type" content="website" />
 
         <meta name="twitter:card" content="summary_large_image" />
@@ -192,7 +221,7 @@ app.get("/users/:id", async (req, res) => {
 
       <body>
         <script>
-          window.location.href = "/users/${user._id}";
+          window.location.href = "/users/${userId}";
         </script>
       </body>
     </html>

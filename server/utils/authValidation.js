@@ -8,7 +8,7 @@ const FULL_NAME_MIN_LENGTH = 2;
 const FULL_NAME_MAX_LENGTH = 100;
 const USERNAME_MIN_LENGTH = 2;
 const USERNAME_MAX_LENGTH = 30;
-const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_MAX_LENGTH = 128;
 const PHONE_DIGITS_MIN = 10;
 const PHONE_DIGITS_MAX = 15;
@@ -114,7 +114,7 @@ function validateRegisterBody(body) {
   }
 
   if (!password) return { ok: false, message: "Password is required" };
-  if (password.length < PASSWORD_MIN_LENGTH) return { ok: false, message: "Password must be at least 6 characters" };
+  if (password.length < PASSWORD_MIN_LENGTH) return { ok: false, message: "Password must be at least 8 characters" };
   if (password.length > PASSWORD_MAX_LENGTH) return { ok: false, message: "Password is too long" };
 
   return {
@@ -127,7 +127,15 @@ function validateRegisterBody(body) {
   };
 }
 
+function validateEmailOnly(rawEmail) {
+  const email = rawEmail != null ? sanitizeString(String(rawEmail), EMAIL_MAX_LENGTH).toLowerCase() : "";
+  if (!email) return { ok: false, message: "Email is required" };
+  if (!EMAIL_REGEX.test(email)) return { ok: false, message: "Invalid email format" };
+  return { ok: true, email };
+}
+
 module.exports = {
   validateLoginBody,
   validateRegisterBody,
+  validateEmailOnly,
 };

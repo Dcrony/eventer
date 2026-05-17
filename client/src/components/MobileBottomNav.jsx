@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Plus, Ticket, LayoutDashboard, LineChart, MessageCircle, X, Sparkles, CalendarPlus } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser } from "../utils/auth";
-import CreateEvent from "../pages/CreateEvent";
+import { useCreateEvent } from "../context/CreateEventContext";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 
 const NAV_HEIGHT = 64; // px — keep in sync with the nav's actual rendered height
@@ -11,7 +11,7 @@ export default function MobileBottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const { openCreateEvent } = useCreateEvent();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
@@ -45,11 +45,11 @@ export default function MobileBottomNav() {
   const canOrganize = isAdmin || isOrganizer;
 
   const navItems = [
-    ...(canOrganize ? [{ to: "/dashboard", icon: <LayoutDashboard size={22} /> }] : []),
-    { to: "/events", icon: <Home size={22} /> },
-    { to: "/my-tickets", icon: <Ticket size={22} /> },
-    { to: "/analytics", icon: <LineChart size={22} /> },
-    { to: "/messages", icon: <MessageCircle size={22} /> },
+    ...(canOrganize ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={22} /> }] : []),
+    { to: "/events", label: "Events", icon: <Home size={22} /> },
+    { to: "/my-tickets", label: "My tickets", icon: <Ticket size={22} /> },
+    { to: "/analytics", label: "Analytics", icon: <LineChart size={22} /> },
+    { to: "/messages", label: "Messages", icon: <MessageCircle size={22} /> },
   ];
 
   const handleAiClick = () => {
@@ -119,7 +119,7 @@ export default function MobileBottomNav() {
             </span>
             <button
               onClick={() => {
-                setShowCreateEvent(true);
+                openCreateEvent();
                 setIsMenuOpen(false);
               }}
               className="w-12 h-12 rounded-full bg-pink-500 text-white shadow-lg hover:scale-110 transition-transform duration-200 flex items-center justify-center flex-shrink-0"
@@ -161,6 +161,7 @@ export default function MobileBottomNav() {
                 <Link
                   key={item.to}
                   to={item.to}
+                  aria-label={item.label || item.to}
                   className={`flex items-center justify-center px-3 py-1.5 rounded-xl transition-all duration-200 ${
                     isActive
                       ? "text-pink-500 bg-pink-50"
@@ -175,7 +176,6 @@ export default function MobileBottomNav() {
         </nav>
       </div>
 
-      <CreateEvent isOpen={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
     </>
   );
 }

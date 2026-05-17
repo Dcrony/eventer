@@ -80,7 +80,6 @@ export default function Checkout() {
 
       const res = await API.post("/payment/initiate", {
         email: user.email,
-        amount: lineTotal,
         metadata: {
           eventId: event._id,
           userId: user._id,

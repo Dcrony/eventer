@@ -80,7 +80,7 @@ export default function Billing() {
   useEffect(() => {
     const status    = searchParams.get("status");
     const reference = searchParams.get("reference");
-    if (status === "success" && reference) {
+    if ((status === "success" || status === "pending") && reference) {
       verifyBilling(reference)
         .then(() => { toast.success("Subscription verified"); loadBilling(); })
         .catch((e) => toast.error(e.response?.data?.message || "Failed to verify payment"));

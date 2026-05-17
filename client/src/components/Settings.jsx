@@ -193,12 +193,6 @@ export default function Settings() {
   const integrations = useMemo(
     () => [
       {
-        key: "stripe",
-        name: "Stripe",
-        description: "Accept payments and payouts for your events.",
-        status: user?.integrations?.stripe?.label || "Not connected",
-      },
-      {
         key: "googleCalendar",
         name: "Google Calendar",
         description: "Push event schedules into your calendar workflow.",

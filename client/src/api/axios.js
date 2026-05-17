@@ -53,6 +53,14 @@ API.interceptors.response.use(
       );
     }
 
+    if (status === 429) {
+      window.dispatchEvent(
+        new CustomEvent("apiRateLimited", {
+          detail: { message: message || "Too many requests. Please wait and try again." },
+        }),
+      );
+    }
+
     return Promise.reject(error);
   },
 );

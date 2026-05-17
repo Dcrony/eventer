@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const sendEmail = require("../utils/email");
-const { validateLoginBody, validateRegisterBody } = require("../utils/authValidation");
+const { validateLoginBody, validateRegisterBody, validateEmailOnly } = require("../utils/authValidation");
 const { verifyIdToken } = require("../utils/firebaseAdmin");
 const { otpEmail } = require("../utils/emailTemplates");
 const { welcomeSuccessEmail } = require("../utils/emailTemplates");
@@ -59,11 +59,13 @@ const buildAuthUserPayload = (user) => {
 };
 
 /**
- * When transactional email is not configured or fails, expose the OTP in the
- * JSON response so the app can display it in development/fallback mode.
+ * Only expose OTP in non-production when email could not be sent (local dev).
  */
 function verificationCodeResponseField(emailSent, otp) {
-  return emailSent ? {} : { verificationCode: otp };
+  if (emailSent || process.env.NODE_ENV === "production") {
+    return {};
+  }
+  return { verificationCode: otp };
 }
 
 /**
@@ -249,10 +251,11 @@ exports.verifyEmail = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+    const validated = validateEmailOnly(req.body?.email);
+    if (!validated.ok) {
+      return res.status(400).json({ message: validated.message });
     }
+    const { email } = validated;
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -294,6 +297,11 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token and new password are required" });
     }
 
+    const password = String(newPassword).replace(/[\x00-\x1F\x7F]/g, "");
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
     const user = await User.findOne({
       resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
@@ -303,7 +311,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
