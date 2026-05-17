@@ -16,7 +16,7 @@ import VerifiedBadge from "./ui/verified-badge";
 import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
 import ShareModal from "./ShareModal";
-
+  
 export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
   const [eventState, setEventState] = useState(event);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -113,12 +113,18 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   const showPlaceholder = !imageUrl || imageFailed;
   const favorited = Boolean(eventState.isFavorited);
   
-  // Get ticket information - use originalEvent props for totalTickets if available
-  // This ensures totalTickets never changes even if the API sends wrong data
-  const ticketsSold = Number(eventState?.ticketsSold) || 0;
-  // Use the original totalTickets from the initial event prop, not from eventState that might have been updated
-  const totalTickets = Number(event?.totalTickets) || Number(eventState?.totalTickets) || 0;
-  const soldPercentage = totalTickets > 0 ? Math.min(100, (ticketsSold / totalTickets) * 100) : 0;
+const ticketsSold = Number(eventState?.ticketsSold) || 0;
+
+// ✅ Use capacity (original total) as denominator, fall back to totalTickets for old events
+const totalTickets =
+  Number(event?.capacity) ||
+  Number(eventState?.capacity) ||
+  Number(event?.totalTickets) ||
+  Number(eventState?.totalTickets) ||
+  0;
+
+const soldPercentage =
+  totalTickets > 0 ? Math.min(100, (ticketsSold / totalTickets) * 100) : 0;
 
   return (
     <>

@@ -25,6 +25,32 @@ const {
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+exports.fixEventCapacity = async (req, res) => {
+  try {
+    const events = await Event.find({
+      $or: [
+        { capacity: { $exists: false } },
+        { capacity: 0 },
+      ],
+    });
+
+    let fixed = 0;
+    for (const event of events) {
+      const remaining = Number(event.totalTickets || 0);
+      const sold = Number(event.ticketsSold || 0);
+      if (remaining > 0 || sold > 0) {
+        event.capacity = remaining + sold;
+        await event.save();
+        fixed++;
+      }
+    }
+
+    res.json({ message: "Capacity fix complete", fixed });
+  } catch (err) {
+    res.status(500).json({ message: "Fix failed", error: err.message });
+  }
+};
+
 const getCurrentUserIdFromRequest = (req) => {
   try {
     if (req.user?.id) return String(req.user.id);

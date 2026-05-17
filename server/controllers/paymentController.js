@@ -256,10 +256,14 @@ exports.verifyPayment = async (req, res) => {
       await organizer.save();
 
       // Update event tickets
-      event.ticketsSold += quantity;
-      event.totalTickets -= quantity;
-      recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
-      await event.save();
+      // ✅ Snapshot capacity if not already set, then decrement only totalTickets
+if (!event.capacity || event.capacity === 0) {
+  event.capacity = Number(event.totalTickets || 0) + Number(event.ticketsSold || 0);
+}
+event.ticketsSold += quantity;
+event.totalTickets = Math.max(0, Number(event.totalTickets || 0) - quantity);
+recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
+await event.save();
 
       // Create transaction record (amount = buyer total; fee = platform commission)
       await Transaction.create({
