@@ -244,7 +244,7 @@ const updateMyProfile = async (req, res) => {
 
     const { name, username, email, phone, bio, location, currentPassword, newPassword } = req.body;
 
-    // Check for duplicate username (if username is being changed)
+   
     if (username && username !== user.username) {
       const existingUser = await User.findOne({ username });
       if (existingUser) {

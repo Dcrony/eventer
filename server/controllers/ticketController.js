@@ -43,7 +43,7 @@ exports.getMyTickets = async (req, res) => {
 exports.createTicket = async (req, res) => {
   try {
     const { eventId, ticketType, quantity = 1, isFree } = req.body;
-    const parsedQuantity = Math.max(1, Number(quantity) || 1); // eslint-disable-line no-unused-vars
+    const parsedQuantity = Math.max(1, Number(quantity) || 1);
 
     if (!eventId) {
       return res.status(400).json({ message: "Event ID is required" });
@@ -66,22 +66,16 @@ exports.createTicket = async (req, res) => {
 
     if (!eventIsFree) {
       if (requestedFreeTicket) {
-        return res
-          .status(400)
-          .json({ message: "Paid events require payment before ticket creation" });
+        return res.status(400).json({ message: "Paid events require payment before ticket creation" });
       }
-      return res
-        .status(400)
-        .json({ message: "This endpoint only supports free events" });
+      return res.status(400).json({ message: "This endpoint only supports free events" });
     }
 
     if (!requestedFreeTicket) {
-      return res
-        .status(400)
-        .json({ message: "Free ticket request must be marked as free" });
+      return res.status(400).json({ message: "Free ticket request must be marked as free" });
     }
 
-    // Free ticket duplicate guard — one per user per event
+    // Duplicate guard — one free ticket per user per event
     const existingFreeTicket = await Ticket.findOne({
       event: event._id,
       buyer: req.user.id,
@@ -110,7 +104,7 @@ exports.createTicket = async (req, res) => {
     const normalizedRequestedType = String(ticketType || "").trim();
     const eventPricing = Array.isArray(event.pricing) ? event.pricing : [];
     const matchingFreeTier = normalizedRequestedType
-      ? eventPricing.find((pricing) => pricing.type === normalizedRequestedType)
+      ? eventPricing.find((p) => p.type === normalizedRequestedType)
       : null;
 
     if (normalizedRequestedType && eventPricing.length > 0 && !matchingFreeTier) {
@@ -138,23 +132,25 @@ exports.createTicket = async (req, res) => {
 
     await ticket.save();
 
+    // ✅ Snapshot capacity if not already set, then decrement only totalTickets
+    if (!event.capacity || event.capacity === 0) {
+      event.capacity = remainingTickets + Number(event.ticketsSold || 0);
+    }
     event.ticketsSold = Number(event.ticketsSold || 0) + freeQuantity;
     event.totalTickets = Math.max(0, remainingTickets - freeQuantity);
     recordTicketPurchaseMetrics(event, freeQuantity, 0);
     await event.save();
 
-    // ── Generate QR code and upload to Cloudinary ─────────────────────────
+    // Generate QR code
     const frontendUrl = process.env.FRONTEND_URL || "";
     const qrData = `${frontendUrl}/validate/${ticket._id}`;
 
-    // Generate QR code as a PNG buffer (no local file needed)
     const qrBuffer = await QRCode.toBuffer(qrData, {
       type: "png",
       width: 400,
       margin: 2,
     });
 
-    let qrUrl = null;
     let qrBase64 = qrBuffer.toString("base64");
 
     if (isConfigured()) {
@@ -162,16 +158,12 @@ exports.createTicket = async (req, res) => {
         const uploaded = await uploadImageBuffer(qrBuffer, {
           folder: "eventer/qrcodes",
         });
-        qrUrl = uploaded.secure_url;
-        ticket.qrCode = qrUrl;
+        ticket.qrCode = uploaded.secure_url;
         await ticket.save();
       } catch (err) {
-        // Cloudinary upload failed — fall back gracefully.
-        // The ticket is still valid; QR is sent via email attachment.
         console.error("QR Cloudinary upload failed:", err.message);
       }
     } else {
-      // Cloudinary not configured — fall back to local storage
       const qrDir = path.join(__dirname, "../uploads/qrcodes");
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
       const qrFileName = `${ticket._id}.png`;
@@ -180,7 +172,6 @@ exports.createTicket = async (req, res) => {
       ticket.qrCode = `qrcodes/${qrFileName}`;
       await ticket.save();
     }
-    // ──────────────────────────────────────────────────────────────────────
 
     const buyer = await User.findById(req.user.id).select("name email");
     const organizer = await User.findById(event.createdBy).select("name email");

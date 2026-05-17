@@ -19,6 +19,7 @@ const {
   addEventComment,
   trackEventShare,
   getEventAnalytics,
+  fixEventCapacity,
 } = require("../controllers/eventController");
 
 // Create event (authenticated, verified, plan-limited)
@@ -55,8 +56,10 @@ router.put(
   updateEvent
 );
 router.delete("/delete/:eventId", authMiddleware, deleteEvent);
-
+router.get("/fix-capacity", fixEventCapacity);
 // Wildcard — must be last
 router.get("/:id", getEventById);
+
+
 
 module.exports = router;
