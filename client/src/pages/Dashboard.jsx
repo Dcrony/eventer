@@ -153,14 +153,14 @@ export default function Dashboard() {
       <div className="mb-6 flex flex-wrap justify-end gap-2">
         <Link
           to="/events"
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
         >
           Browse events <ArrowRight size={18} />
         </Link>
         <button
           type="button"
           onClick={() => openCreateEvent()}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
         >
           Create event <PlusCircle size={18} />
         </button>
