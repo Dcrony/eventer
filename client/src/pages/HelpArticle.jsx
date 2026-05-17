@@ -59,7 +59,7 @@ export default function HelpArticle() {
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-gray-50 px-4 py-12 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="min-h-screen bg-gray-50 px-4 py-12 ">
         <p className="text-center text-gray-600">Article not found.</p>
         <p className="mt-4 text-center">
           <Link to="/help" className="font-semibold text-pink-500">
@@ -71,7 +71,7 @@ export default function HelpArticle() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <article className="mx-auto max-w-2xl px-4 sm:px-6">
         <Link
           to="/help"

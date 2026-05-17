@@ -252,7 +252,7 @@ export default function Earnings() {
   };
 
   return (
-        <div className="min-h-screen w-screen bg-[#f7f7f9] pt-8 lg:pl-[var(--sidebar-width,0px)]">
+        <div className="min-h-screen w-full bg-[#f7f7f9] pt-8 ">
 
       <div style={{ maxWidth: 1300, margin: "0 auto", padding: "2rem 1rem 4rem" }}>
 

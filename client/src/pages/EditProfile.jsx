@@ -221,7 +221,7 @@ export default function EditProfile() {
   const profileSrc = profilePreview || getProfileImageUrl(user) || null;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist py-6 sm:py-8 px-4 sm:px-6 pb-20 pl-[calc(var(--sidebar-width,0px)+1rem)] sm:pl-[calc(var(--sidebar-width,0px)+1.5rem)]">
+    <div className="min-h-screen bg-gray-50 font-geist py-6 sm:py-8 px-4 sm:px-6 pb-20 ">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <header className="mb-6">

@@ -128,7 +128,7 @@ const soldPercentage =
 
   return (
     <>
-      <article className={cn("group relative bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40", className)}>
+      <article className={cn("group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40", className)}>
         <Link to={`/event/${eventState._id}`} className="block">
           {/* Media Section */}
           <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">

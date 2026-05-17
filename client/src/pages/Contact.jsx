@@ -18,7 +18,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pl-[var(--sidebar-width,0px)] transition-[padding-left] duration-300 flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-lg">
 
         {/* Header */}

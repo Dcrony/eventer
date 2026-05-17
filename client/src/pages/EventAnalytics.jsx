@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import AppPage from "../components/layout/AppPage";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   BarChart3,
@@ -109,12 +110,7 @@ export default function EventAnalytics() {
   ];
 
   return (
-    /*
-      pl-[var(--sidebar-width)] ensures the content never sits under the sidebar.
-      The CSS variable --sidebar-width is set dynamically by the Sidebar component
-      (5rem collapsed / 15rem expanded).
-    */
-    <div className="min-h-screen bg-slate-50 pl-[var(--sidebar-width,0px)] pr-4 sm:pr-8 pt-6 pb-16 transition-[padding-left] duration-300">
+    <AppPage background="bg-slate-50" contentClassName="space-y-6">
       <div className="max-w-6xl mx-auto space-y-6">
 
         {/* ── Header ── */}
@@ -298,6 +294,6 @@ export default function EventAnalytics() {
           </>
         )}
       </div>
-    </div>
+    </AppPage>
   );
 }

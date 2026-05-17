@@ -1,4 +1,7 @@
-/** Merge class names; falsy values are skipped. */
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+/** Merge class names with Tailwind conflict resolution. */
 export function cn(...inputs) {
-  return inputs.filter(Boolean).join(" ");
+  return twMerge(clsx(inputs));
 }

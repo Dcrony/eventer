@@ -187,7 +187,7 @@ export default function TicketScanner() {
   const showErrorBanner = Boolean(error) && !result;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">

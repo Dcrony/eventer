@@ -181,7 +181,7 @@ export default function Pricing() {
   ];
 
   return (
-    <div className="min-h-screen bg-white relative lg:pl-[var(--sidebar-width,0px)] px-4 sm:px-8 pt-20 pb-16 transition-all duration-300">
+    <div className="min-h-screen bg-white relative px-4 sm:px-8 pt-20 pb-16 ">
       {/* Radial background gradient */}
       <div
         className="pointer-events-none absolute inset-x-0 top-0 h-[600px] z-0"
@@ -264,7 +264,7 @@ export default function Pricing() {
                 return (
                   <div
                     key={plan.id}
-                    className={`relative flex flex-col rounded-2xl border p-8 transition-all duration-300 hover:-translate-y-2 ${
+                    className={`relative flex flex-col rounded-2xl border p-8 hover:-translate-y-2 ${
                       plan.highlight
                         ? "border-pink-400 shadow-xl shadow-pink-100 bg-gradient-to-b from-pink-50/40 to-white"
                         : "border-gray-200 bg-white hover:shadow-lg hover:shadow-gray-100"

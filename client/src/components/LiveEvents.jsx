@@ -152,7 +152,7 @@ export default function LiveEvent() {
     const isGenericEmpty = !loading && !error && liveEvents.length === 0 && searchQuery.trim() === "" && !categoryFilter && !locationFilter;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist lg:pl-[var(--sidebar-width,0px)] pt-8 sm:px-6 lg:px-18 py-2 sm:py-12 pb-20 transition-[padding-left] duration-300">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist pt-8 sm:px-6 lg:px-8 py-2 sm:py-12 pb-20 ">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 {/* Header */}
                 <header className="mb-8">
@@ -404,7 +404,7 @@ export default function LiveEvent() {
                                     }}
                                     role="button"
                                     tabIndex={0}
-                                    className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40"
+                                    className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40"
                                 >
                                     {/* Thumbnail */}
                                     <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">

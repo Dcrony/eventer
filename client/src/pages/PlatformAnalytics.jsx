@@ -165,7 +165,7 @@ export default function PlatformAnalytics() {
   const donutColors = ["#ec4899", "#3b82f6"];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist lg:pl-[calc(var(--sidebar-width,0px)+1.5rem)] py-6">
+    <div className="min-h-screen bg-gray-50 font-geist py-6">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <div className="relative mb-6 p-5 sm:p-6 md:p-8 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-xl overflow-hidden">

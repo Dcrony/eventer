@@ -25,6 +25,7 @@ import { ticketNetToOrganizer } from "../utils/transactions";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
+import AppPage from "../components/layout/AppPage";
 
 export default function Dashboard() {
   const [events, setEvents] = useState([]);
@@ -143,36 +144,27 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 pb-16 transition-all duration-300 lg:pl-[var(--sidebar-width,0px)]">
+    <AppPage
+      title="Organizer Dashboard"
+      description={`Welcome back${user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.`}
+    >
       <TrialNotificationBanner />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        {/* ── Header — always visible ── */}
-        <div className="flex flex-wrap items-end justify-between gap-6 pb-6 mb-8 border-b border-gray-200">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">
-              Organizer Dashboard
-            </h1>
-            <p className="text-sm text-gray-400 mt-1.5">
-              Welcome back{user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.
-            </p>
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <Link
-              to="/events"
-              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-semibold transition-all duration-200 hover:border-pink-500 hover:text-pink-500 hover:bg-pink-50 hover:-translate-y-0.5 shadow-sm"
-            >
-              Browse events <ArrowRight size={18} />
-            </Link>
-            <button
-              onClick={() => openCreateEvent()}
-              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
-            >
-              Create event <PlusCircle size={18} />
-            </button>
-          </div>
-        </div>
+      <div className="mb-6 flex flex-wrap justify-end gap-2">
+        <Link
+          to="/events"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
+        >
+          Browse events <ArrowRight size={18} />
+        </Link>
+        <button
+          type="button"
+          onClick={() => openCreateEvent()}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
+        >
+          Create event <PlusCircle size={18} />
+        </button>
+      </div>
 
         {/* ── Loading skeleton ── */}
         {loading && <Skeleton />}
@@ -304,7 +296,7 @@ export default function Dashboard() {
                 {events.map((event) => (
                   <div
                     key={event._id}
-                    className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
+                    className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
                   >
                     <div className="absolute top-3 right-3 z-10">
                       <EventActionMenu
@@ -373,11 +365,9 @@ export default function Dashboard() {
             )}
           </>
         )}
-      </div>
 
-      {/* Modals */}
       <EditEvent isOpen={editModalOpen} onClose={handleModalClose} eventId={selectedEventId} onEventUpdated={handleEventUpdated} />
       <TeamManagement eventId={selectedTeamEventId} isOpen={teamModalOpen} onClose={handleTeamModalClose} />
-    </div>
+    </AppPage>
   );
 }

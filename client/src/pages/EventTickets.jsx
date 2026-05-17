@@ -260,7 +260,7 @@ export default function EventTickets() {
   const refundedCount  = tickets.filter((t) => t.status === "refunded").length;
 
   return (
-            <div className="min-h-screen w-screen bg-[#f7f7f9] pl-[var(--sidebar-width,0px)]">
+            <div className="min-h-screen w-full bg-[#f7f7f9] ">
 
       <div style={{ maxWidth: 1300, margin: "0 auto", padding: "2rem 1rem 4rem" }}>
 

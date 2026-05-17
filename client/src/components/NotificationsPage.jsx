@@ -33,7 +33,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pb-8 lg:pl-[var(--sidebar-width,0px)]">
+    <div className="min-h-screen bg-gray-50 font-geist pb-8 ">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-2xl mx-auto px-4">

@@ -51,7 +51,7 @@ export default function FAQ() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -96,7 +96,7 @@ export default function FAQ() {
                     {openIndex === index ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </span>
                 </button>
-                <div className={`overflow-hidden transition-all duration-300 ${openIndex === index ? "max-h-96" : "max-h-0"}`}>
+                <div className={`overflow-hidden ${openIndex === index ? "max-h-96" : "max-h-0"}`}>
                   <div className="p-5 pt-0 border-t border-gray-100">
                     <p className="text-sm text-gray-600 leading-relaxed">{faq.answer}</p>
                   </div>

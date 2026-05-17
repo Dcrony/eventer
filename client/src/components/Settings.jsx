@@ -728,7 +728,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[calc(var(--sidebar-width,0px)+0.5rem)] px-4 sm:px-6 lg:px-8 pb-16 transition-all duration-300">
+    <div className="min-h-full w-full bg-gray-50 font-geist px-4 sm:px-6 lg:px-8 pb-16 ">
       {/* Mobile Header */}
       <div className="sticky top-0 z-20 flex items-center justify-between gap-4 py-3 px-1 bg-gray-50/95 backdrop-blur-sm md:hidden">
         <div>

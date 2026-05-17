@@ -180,7 +180,7 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] pt-8">
+    <div className="min-h-full w-full bg-gray-50 font-geist">
       <TrialNotificationBanner />
 
       <SEO

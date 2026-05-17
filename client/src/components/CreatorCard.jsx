@@ -30,7 +30,7 @@ export default function CreatorCard({ creator, onFollowToggle }) {
   const eventCount = creator.eventsCount || 0;
 
   return (
-    <article className="group bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
+    <article className="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start gap-3">

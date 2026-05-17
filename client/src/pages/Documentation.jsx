@@ -4,7 +4,7 @@ import { Code2, Package, Webhook, ArrowRight, Shield, Zap, Server, Clock, Sparkl
 
 export default function Documentation() {
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section - Light Theme */}
         <div className="text-center mb-12">
@@ -51,7 +51,7 @@ export default function Documentation() {
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {/* REST API Card - Available Now */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
             <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center text-pink-500 mb-4">
               <Server size={24} />
             </div>
@@ -73,7 +73,7 @@ export default function Documentation() {
           </div>
 
           {/* SDKs Card - Coming Soon */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 relative overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 relative overflow-hidden">
             {/* Coming Soon Overlay */}
             <div className="absolute top-0 right-0">
               <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[0.6rem] font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl flex items-center gap-1">
@@ -96,7 +96,7 @@ export default function Documentation() {
           </div>
 
           {/* Webhooks Card - Available Now */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
             <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center text-pink-500 mb-4">
               <Webhook size={24} />
             </div>
@@ -130,7 +130,7 @@ export default function Documentation() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Mobile SDKs */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-lg">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-600">
                   <Sparkles size={20} />
@@ -152,7 +152,7 @@ export default function Documentation() {
             </div>
 
             {/* GraphQL API */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-lg">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
                   <Code2 size={20} />
@@ -174,7 +174,7 @@ export default function Documentation() {
             </div>
 
             {/* WebSocket Events */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-lg">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
                   <Zap size={20} />
@@ -196,7 +196,7 @@ export default function Documentation() {
             </div>
 
             {/* Webhook Simulator */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 transition-all duration-300 hover:shadow-lg">
+            <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-pink-600">
                   <Webhook size={20} />

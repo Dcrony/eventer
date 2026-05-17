@@ -88,7 +88,7 @@ export default function Community() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pb-20 lg:pl-[var(--sidebar-width,0px)]">
+    <div className="min-h-screen bg-gray-50 font-geist pb-20 ">
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <h1 className="text-2xl font-extrabold text-gray-900">Community</h1>
         <p className="mt-1 text-sm text-gray-500">Share updates with organizers and attendees.</p>

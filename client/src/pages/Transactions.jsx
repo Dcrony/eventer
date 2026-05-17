@@ -216,7 +216,7 @@ export default function Transactions() {
         : `${matchCount} rows match your filters.`;
 
   return (
-    <div className="min-h-screen py-6 px-4 md:px-8 pb-20 font-geist pl-[calc(var(--sidebar-width,0px)+1rem)] md:pl-[calc(var(--sidebar-width,0px)+2rem)]">
+    <div className="min-h-screen py-6 px-4 md:px-8 pb-20 font-geist ">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="flex flex-wrap items-start justify-between gap-4 mb-5">

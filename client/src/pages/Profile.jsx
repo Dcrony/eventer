@@ -155,7 +155,7 @@ function FeaturedEventCard({
   ].filter(Boolean);
 
   return (
-    <article className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-pink-200/40">
+    <article className="group relative bg-white rounded-xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-pink-200/40">
       <Link to={`/event/${event._id}`} className="block">
         <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
           {imageUrl ? (
@@ -524,7 +524,7 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
   // ── Loading skeleton ──────────────────────────────────────────────────────
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
+      <div className="min-h-full w-full bg-gray-50 font-geist ">
         <div className="max-w-6xl mx-auto space-y-5 animate-pulse">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="h-[180px] md:h-[220px] bg-gray-100" />
@@ -569,7 +569,7 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-2 lg:pl-[var(--sidebar-width,0px)]">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-6xl mx-auto space-y-5">
 
         {/* ── Profile Header ── */}
@@ -714,7 +714,7 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
           <div className="sticky top-1 z-10 mb-4 pb-0.5 bg-transparent backdrop-blur-sm">
             <div className="relative flex gap-0.5 overflow-x-auto border-b border-gray-200 scrollbar-hide">
               <span
-                className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out shadow-[0_0_8px_rgba(244,63,142,0.3)]"
+                className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 ease-out shadow-[0_0_8px_rgba(244,63,142,0.3)]"
                 style={{ width: `${indicator.width}px`, transform: `translateX(${indicator.left}px)` }}
                 aria-hidden="true"
               />

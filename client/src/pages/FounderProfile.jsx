@@ -24,7 +24,7 @@ So I started building a platform that brings ticketing, event management, analyt
 
 export default function FounderProfile() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist pt-8 pb-16">
       <Helmet>
         <title>{`${founder.name} - Founder of TickiSpot`}</title>
         <meta name="description" content="Public founder profile for Ibrahim Abdulmajeed, founder of TickiSpot." />

@@ -271,7 +271,7 @@ export default function EventDetail() {
   // ── Loading skeleton ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] transition-all duration-300">
+      <div className="min-h-screen bg-gray-50 font-geist ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:p-6 mb-5">
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
@@ -353,7 +353,7 @@ export default function EventDetail() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="min-h-screen bg-gray-50 font-geist lg:pl-[var(--sidebar-width,0px)] transition-all duration-300">
+      <div className="min-h-screen bg-gray-50 font-geist ">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="space-y-5">
 

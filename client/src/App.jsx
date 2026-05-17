@@ -14,6 +14,7 @@ import { NotificationsProvider } from "./hooks/useNotifications";
 import { CreateEventProvider } from "./context/CreateEventContext";
 import { getCurrentUser } from "./utils/auth";
 import { getTrialDaysRemaining, isTrialEndingSoon } from "./utils/planAccess";
+import { useSidebarWidth } from "./hooks/useSidebarWidth";
 import TickiAIChat from "./components/TickiAIChat";
 import PwaInstallModal from "./components/PwaInstallModal";
 import CreatorCard from "./components/CreatorCard";
@@ -103,6 +104,8 @@ function Layout() {
   location.pathname === "/ticki-ai";
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useSidebarWidth(hideNavAndSidebar);
 
   useEffect(() => {
     const handleResize = () => {

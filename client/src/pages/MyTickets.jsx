@@ -10,6 +10,7 @@ import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
 import { useCreateEvent } from "../context/CreateEventContext";
+import AppPage from "../components/layout/AppPage";
 
 const fmtDate = (d) =>
   new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
@@ -70,8 +71,7 @@ export default function MyTickets() {
   const canScan = user?.role === "organizer" || user?.role === "admin";
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:pl-[var(--sidebar-width,0px)] pt-10 pb-20 transition-[padding-left] duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <AppPage title="My Tickets" description="Manage your event access and digital passes" background="bg-slate-50" contentClassName="space-y-6">
 
         {/* ── Page header ── */}
         <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-slate-200">
@@ -340,8 +340,6 @@ export default function MyTickets() {
             </div>
           </>
         )}
-      </div>
-
-    </div>
+    </AppPage>
   );
 }

@@ -20,7 +20,7 @@ export default function HelpCenter() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)] pb-16">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -54,9 +54,9 @@ export default function HelpCenter() {
             <Link
               key={index}
               to={topic.link}
-              className="group bg-white rounded-xl border border-gray-200 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40"
+              className="group bg-white rounded-xl border border-gray-200 p-5 hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40"
             >
-              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center text-pink-500 mb-4 group-hover:bg-pink-500 group-hover:text-white transition-all duration-300">
+              <div className="w-12 h-12 rounded-xl bg-pink-100 flex items-center justify-center text-pink-500 mb-4 group-hover:bg-pink-500 group-hover:text-white ">
                 {topic.icon}
               </div>
               <h3 className="text-base font-bold text-gray-900 mb-2 group-hover:text-pink-500 transition-colors">

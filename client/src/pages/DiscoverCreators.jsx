@@ -292,7 +292,7 @@ export default function DiscoverCreators() {
 
   return (
 
-        <div className="min-h-screen w-screen bg-[#f7f7f9] pl-[var(--sidebar-width,0px)]">
+        <div className="min-h-screen w-full bg-[#f7f7f9] ">
 
     <div style={{
       fontFamily: T.font,

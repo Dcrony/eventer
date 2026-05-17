@@ -26,7 +26,7 @@ export default function Favorites() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist pt-8 lg:pl-[var(--sidebar-width,0px)]">
+    <div className="min-h-full w-full bg-gray-50 font-geist ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">

@@ -23,7 +23,7 @@ export default function AboutUs() {
   const { openCreateEvent } = useCreateEvent();
 
   return (
-    <div className="min-h-screen bg-white pl-[var(--sidebar-width,0px)] transition-[padding-left] duration-300">
+    <div className="min-h-screen bg-white ">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 space-y-14">
 
         {/* ── Header ── */}

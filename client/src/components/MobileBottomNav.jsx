@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Home, Plus, Ticket, LayoutDashboard, LineChart, MessageCircle, X, Sparkles, CalendarPlus } from "lucide-react";
+import { Plus, X, Sparkles, CalendarPlus } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { getCurrentUser } from "../utils/auth";
 import { useCreateEvent } from "../context/CreateEventContext";
+import { buildNavSections } from "../config/navigation";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 
 const NAV_HEIGHT = 64; // px — keep in sync with the nav's actual rendered height
@@ -40,17 +41,12 @@ export default function MobileBottomNav() {
   const isAiPage = location.pathname === "/ticki-ai";
   if (!user || isAiPage) return null;
 
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
-  const isOrganizer = user?.role === "organizer" || user?.isOrganizer === true;
-  const canOrganize = isAdmin || isOrganizer;
-
-  const navItems = [
-    ...(canOrganize ? [{ to: "/dashboard", label: "Dashboard", icon: <LayoutDashboard size={22} /> }] : []),
-    { to: "/events", label: "Events", icon: <Home size={22} /> },
-    { to: "/my-tickets", label: "My tickets", icon: <Ticket size={22} /> },
-    { to: "/analytics", label: "Analytics", icon: <LineChart size={22} /> },
-    { to: "/messages", label: "Messages", icon: <MessageCircle size={22} /> },
-  ];
+  const { mobileTabs } = buildNavSections({ user, openCreateEvent });
+  const navItems = mobileTabs.map((tab) => ({
+    to: tab.to,
+    label: tab.label,
+    icon: <tab.icon size={22} />,
+  }));
 
   const handleAiClick = () => {
     if (!canAI) {
@@ -132,7 +128,7 @@ export default function MobileBottomNav() {
         {/* ── FAB Toggle Button (sits on top of the nav bar) ── */}
 <button
   onClick={() => setIsMenuOpen((prev) => !prev)}
-  className={`absolute right-4 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center z-10 transition-all duration-300 ${
+  className={`absolute right-4 w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center z-10 ${
     isMenuOpen ? "bg-gray-800" : "bg-pink-500"
   }`}
   style={{ bottom: `${NAV_HEIGHT + 8}px` }}

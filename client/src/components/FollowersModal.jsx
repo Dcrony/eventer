@@ -229,7 +229,7 @@ export default function FollowersModal({
         <div className="relative px-5 flex-shrink-0 border-b border-gray-100">
           <div className="relative flex">
             <span
-              className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 transition-all duration-300 ease-out"
+              className="absolute bottom-0 h-0.5 rounded-full bg-pink-500 ease-out"
               style={{ width: `${indicator.width}px`, transform: `translateX(${indicator.left}px)` }}
               aria-hidden="true"
             />

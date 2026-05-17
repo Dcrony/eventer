@@ -34,7 +34,7 @@ export default function Messages() {
 
   return (
     <div
-      className="lg:pl-[var(--sidebar-width,0px)] font-geist"
+      className="font-geist"
       style={{ height: "100dvh", display: "flex", flexDirection: "column" }}
     >
       {/* On mobile: full-screen, no padding, no card wrapper */}
