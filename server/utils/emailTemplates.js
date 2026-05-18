@@ -287,7 +287,8 @@ const baseLayout = ({ thumbnail, content, footerNote = "" }) => `
 
             <!-- Footer Note -->
             ${footerNote ? `
-            <div class="footer-note">
+            <div class="
+            ">
               <p>${footerNote}</p>
             </div>` : ""}
 

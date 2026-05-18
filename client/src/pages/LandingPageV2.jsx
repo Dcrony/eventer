@@ -419,7 +419,7 @@ export default function LandingPageV2() {
         </div>
 
         {/* Metrics */}
-        <div className="relative mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+        {/* <div className="relative mx-auto mt-14 grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           {METRICS.map((metric) => (
             <div
               key={metric.label}
@@ -429,7 +429,7 @@ export default function LandingPageV2() {
               <p className="mt-0.5 text-xs font-medium text-gray-500 sm:text-sm">{metric.label}</p>
             </div>
           ))}
-        </div>
+        </div> */}
       </section>
 
       {/* Pillars */}
