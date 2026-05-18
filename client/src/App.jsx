@@ -104,7 +104,7 @@ function Layout() {
   location.pathname === "/ticki-ai";
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
+ 
   useSidebarWidth(hideNavAndSidebar);
 
   useEffect(() => {
