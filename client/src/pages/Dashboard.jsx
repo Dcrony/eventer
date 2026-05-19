@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import EditEvent from "../components/EditEvent";
@@ -53,31 +53,32 @@ export default function Dashboard() {
   const handleTeamClick = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true); };
   const handleTeamModalClose = () => { setTeamModalOpen(false); setSelectedTeamEventId(null); };
 
-  const handleEventUpdated = () => {
-    API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => setEvents(res.data))
-      .catch(() => setError("Failed to refresh events"));
-  };
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
-      API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
-      API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
-    ])
-      .then(([eventsRes, statsRes, transactionRes]) => {
-        setEvents(eventsRes.data || []);
-        setStats(statsRes.data || null);
-        setTransactions(transactionRes.data || []);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Failed to load dashboard data");
-        setLoading(false);
-      });
-  }, [token, user]);
+  const fetchDashboardData = useCallback(() => {
+  setLoading(true);
+  setError(null);
+  Promise.all([
+    API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
+    API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
+    API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
+  ])
+    .then(([eventsRes, statsRes, transactionRes]) => {
+      setEvents(eventsRes.data || []);
+      setStats(statsRes.data || null);
+      setTransactions(transactionRes.data || []);
+      setLoading(false);
+    })
+    .catch(() => {
+      setError("Failed to load dashboard data");
+      setLoading(false);
+    });
+}, [token]);
+
+useEffect(() => {
+  fetchDashboardData();
+}, [fetchDashboardData]);
+
+const handleEventUpdated = () => fetchDashboardData();
 
   const toggleLive = async (id, currentStatus) => {
     if (!canAccessLiveStreaming) { promptUpgradeLive(); return; }
@@ -102,6 +103,16 @@ export default function Dashboard() {
       setError("Failed to delete event. Please try again.");
     }
   };
+
+  const handleDeleteDraft = async (id, title) => {
+  if (!window.confirm(`Delete draft "${title || "Untitled draft"}"?\n\nThis cannot be undone.`)) return;
+  try {
+    await API.delete(`/events/delete/${id}`);
+    setEvents((prev) => prev.filter((e) => e._id !== id));
+  } catch {
+    setError("Failed to delete draft. Please try again.");
+  }
+};
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || Number.isNaN(num)) return "0";
@@ -287,6 +298,7 @@ export default function Dashboard() {
                     <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Saved drafts</h2>
                     <p className="text-sm text-gray-500">Jump back into unfinished events without losing your progress.</p>
                   </div>
+                  
                   <button
                     type="button"
                     onClick={() => openCreateEvent({ resumeLatest: true })}
@@ -313,6 +325,13 @@ export default function Dashboard() {
                             {event.description || "This draft is waiting for its final details."}
                           </p>
                         </div>
+                        <button
+    type="button"
+    onClick={() => handleDeleteDraft(event._id, event.title)}
+    className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 text-sm font-semibold text-red-500 shadow-sm transition-colors hover:bg-red-50"
+  >
+    <Trash2 size={15} />
+  </button>
                   <button
                     type="button"
                     onClick={() => openCreateEvent({ draftEvent: event })}

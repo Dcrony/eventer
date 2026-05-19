@@ -439,7 +439,7 @@ exports.createEvent = async (req, res) => {
       totalTickets,
       eventType,
       visibility: normalizedVisibility,
-      status: requireApproval ? "pending" : "approved",
+      status: "approved",
       liveStream: {
         isLive: false,
         streamType,
