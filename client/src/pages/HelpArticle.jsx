@@ -23,8 +23,9 @@ const ARTICLES = {
     title: "Live Streaming Setup",
     body: [
       "Pro plans can enable live streaming on an event.",
-      "Choose YouTube, Facebook, a custom URL, or in-browser camera streaming.",
-      "Toggle live status when you are ready for attendees to join.",
+      "Choose YouTube, Facebook, a custom URL, or TickiSpot Live (in-app camera via Agora).",
+      "TickiSpot Live requires a valid ticket to watch; hosts need Pro and Agora configured on the server.",
+      "Toggle live status when you are ready for ticket holders to join.",
     ],
   },
   analytics: {

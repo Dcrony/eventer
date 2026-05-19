@@ -149,6 +149,11 @@ const soldPercentage =
 
             {/* Topline Badges */}
             <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2 z-10">
+              {eventState.status === "pending" && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/95 text-[0.65rem] font-bold uppercase tracking-wide text-white shadow-sm">
+                  Pending review
+                </span>
+              )}
               {eventState.category && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/90 backdrop-blur-sm text-[0.65rem] font-bold uppercase tracking-wide text-pink-600 shadow-sm">
                   {eventState.category}

@@ -144,7 +144,12 @@ const handleAIGeneration = (aiData) => {
         const failed = results.filter((r) => r.status === "rejected");
         if (failed.length) toast.error(`Event created, but ${failed.length} invitation(s) failed.`);
       }
-      toast.success("Event created successfully!");
+      const pendingReview = createdEvent?.status === "pending";
+      toast.success(
+        pendingReview
+          ? "Event created! It’s visible to you while pending admin review."
+          : "Event created successfully!",
+      );
       navigate("/events");
       onClose();
     } catch (err) {
@@ -458,7 +463,7 @@ const handleAIGeneration = (aiData) => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none cursor-pointer mb-3"
                 >
-                  <option value="Camera">Camera (Native Live Stream)</option>
+                  <option value="Camera">Camera (TickiSpot Live)</option>
                   <option value="YouTube">YouTube</option>
                   <option value="Facebook">Facebook</option>
                   <option value="Custom">Custom</option>
@@ -476,7 +481,7 @@ const handleAIGeneration = (aiData) => {
             ) : (
               <>
                 <select className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-100 text-gray-400 text-sm cursor-not-allowed mb-3" disabled>
-                  <option>Camera (Native Live Stream)</option>
+                  <option>Camera (TickiSpot Live)</option>
                 </select>
                 <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
                   Live streaming is a Pro feature. Upgrade to attach your live broadcast.

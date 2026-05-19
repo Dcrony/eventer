@@ -95,7 +95,17 @@ const buildSocketServer = (httpServer, { allowedOrigins = [] } = {}) => {
       const room = io.sockets.adapter.rooms.get(eventId);
       const viewerCount = room ? room.size : 0;
       io.to(eventId).emit("viewerCount", viewerCount);
-      socket.to(eventId).emit("userJoined", socket.id);
+    });
+
+    socket.on("sendMessage", (msg) => {
+      const room = msg?.eventId;
+      if (!room || typeof room !== "string") return;
+
+      io.to(room).emit("receiveMessage", {
+        ...msg,
+        user: socket.user?.username || msg?.user || "Guest",
+        isAdmin: Boolean(msg?.isAdmin),
+      });
     });
 
     socket.on("join_conversation", ({ participantId }, callback) => {
@@ -175,13 +185,6 @@ const buildSocketServer = (httpServer, { allowedOrigins = [] } = {}) => {
       callback?.({ ok: true, online: io.isUserOnline(userId) });
     });
 
-    socket.on("signal", (data) => {
-      io.to(data.to).emit("signal", {
-        signal: data.signal,
-        from: socket.id,
-      });
-    });
-
     socket.on("disconnecting", () => {
       socket.rooms.forEach((room) => {
         const occupancy = io.sockets.adapter.rooms.get(room);
@@ -190,7 +193,6 @@ const buildSocketServer = (httpServer, { allowedOrigins = [] } = {}) => {
 
         if (!isPresenceRoom && occupancy) {
           io.to(room).emit("viewerCount", occupancy.size - 1);
-          io.to(room).emit("userLeft", socket.id);
         }
       });
     });

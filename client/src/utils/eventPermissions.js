@@ -51,6 +51,36 @@ export const canModerateLivestream = (event) => {
   const access = getEventAccess(event);
   return access.permissions.canManageLivestream && access.featureAccess.liveStream;
 };
+
+/** Resolve event owner / team id for comparison with the logged-in user. */
+export const getEventOwnerId = (event) =>
+  String(event?.createdBy?._id || event?.createdBy?.id || event?.createdBy || "").trim();
+
+export const normalizeUserId = (userId) =>
+  String(userId?._id || userId?.id || userId || "").trim();
+
+/**
+ * Whether the current user should broadcast (host UI + Agora publisher).
+ * Event creators and livestream moderators always get host controls on the live page.
+ */
+export const isEventBroadcaster = (event, userId) => {
+  if (!event || !userId) return false;
+
+  const uid = normalizeUserId(userId);
+  if (!uid) return false;
+
+  const ownerId = getEventOwnerId(event);
+  if (ownerId && ownerId === uid) return true;
+
+  const access = getEventAccess(event);
+  if (access.isOwner || access.isAdmin) return true;
+
+  if (canModerateLivestream(event)) return true;
+
+  if (access.permissions.canManageLivestream) return true;
+
+  return false;
+};
 export const canManageTeam = (event) => {
   const access = getEventAccess(event);
   return access.permissions.canManageTeam && access.featureAccess.teamMembers;

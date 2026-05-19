@@ -310,6 +310,7 @@ module.exports = {
   getRolePermissions,
   toSerializableAccess,
   findActiveMember,
+  getFeatureAccessForOwner,
   getEventAccessForUser,
   authorizeEventAction,
   canEditEvent,

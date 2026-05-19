@@ -32,6 +32,7 @@ const User = require("./models/User");
 const Event = require("./models/Event");
 const { PLAN_TYPES } = require("./services/subscriptionService");
 const { buildSocketServer } = require("./socket");
+const { bootstrapAdmin } = require("./utils/bootstrapAdmin");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -83,7 +84,34 @@ app.use(express.json());
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(async () => {
+    console.log("MongoDB connected");
+
+    if (process.env.BOOTSTRAP_ADMIN_ON_START === "true") {
+      const email = process.env.ADMIN_EMAIL;
+      const password = process.env.ADMIN_PASSWORD;
+      if (!email || !password) {
+        console.warn("BOOTSTRAP_ADMIN_ON_START is set but ADMIN_EMAIL or ADMIN_PASSWORD is missing.");
+        return;
+      }
+      try {
+        const result = await bootstrapAdmin({
+          email,
+          password,
+          name: process.env.ADMIN_NAME || "Admin User",
+          username: process.env.ADMIN_USERNAME || "tickispotadmin",
+          phone: process.env.ADMIN_PHONE,
+        });
+        console.log(
+          result.created
+            ? `Admin bootstrap: created ${result.email}`
+            : `Admin bootstrap: promoted ${result.email}`,
+        );
+      } catch (error) {
+        console.error("Admin bootstrap failed:", error.message);
+      }
+    }
+  })
   .catch((err) => console.log(err));
 
 const downgradeExpiredTrials = async () => {

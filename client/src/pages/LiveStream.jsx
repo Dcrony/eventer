@@ -1,21 +1,11 @@
-// Add polyfill at the very top
-if (typeof window !== 'undefined') {
-  window.global = window;
-  window.process = { env: {} };
-}
-
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useParams, Link } from "react-router-dom";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import {
     Users,
     Heart,
     Share2,
     MessageCircle,
-    Play,
-    Pause,
-    Volume2,
-    VolumeX,
     Settings as SettingsIcon,
     Maximize,
     Flag,
@@ -35,13 +25,13 @@ import {
     X
 } from "lucide-react";
 import io from "socket.io-client";
-import Peer from "simple-peer";
 import API from "../api/axios";
-import { getEventImageUrl } from "../utils/eventHelpers";
+import { useAuth } from "../context/AuthContext";
+import useAgoraLive from "../hooks/useAgoraLive";
 import { UserAvatar } from "../components/ui/avatar";
 import {
     canManageTickets as canManageEventTickets,
-    canModerateLivestream as canModerateEventLivestream,
+    isEventBroadcaster,
 } from "../utils/eventPermissions";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
@@ -55,11 +45,14 @@ export default function LiveStream() {
     const [viewerCount, setViewerCount] = useState(0);
     const [chatMessage, setChatMessage] = useState("");
     const [messages, setMessages] = useState([]);
-    const [hasRemoteStream, setHasRemoteStream] = useState(false);
-    const navigate = useNavigate();
-    const user = JSON.parse(localStorage.getItem("user"));
+    const { user } = useAuth();
     const currentUserId = user?.id || user?._id;
     const { toProfile } = useProfileNavigation();
+
+    const isBroadcaster = useMemo(
+        () => isEventBroadcaster(event, currentUserId),
+        [event, currentUserId]
+    );
 
     // Host panel state
     const [hostPanelTab, setHostPanelTab] = useState("chat");
@@ -68,51 +61,33 @@ export default function LiveStream() {
     const [attendeesError, setAttendeesError] = useState(null);
     const [endStreamConfirm, setEndStreamConfirm] = useState(false);
     const [endingStream, setEndingStream] = useState(false);
+    const [startingStream, setStartingStream] = useState(false);
 
-    // WebRTC & Socket States
-    const [stream, setStream] = useState(null);
-    const [isBroadcaster, setIsBroadcaster] = useState(false);
-    const [isMuted, setIsMuted] = useState(false);
-    const [isVideoOff, setIsVideoOff] = useState(false);
-    const [mediaError, setMediaError] = useState(null);
-    const [viewerMuted, setViewerMuted] = useState(false);
-    const [viewerPaused, setViewerPaused] = useState(false);
     const socketRef = useRef();
-    const myVideo = useRef();
-    const remoteVideo = useRef();
     const videoContainerRef = useRef();
-    const streamRef = useRef(null);
-    const peersRef = useRef([]);
 
-    const requestCameraAndMic = useCallback(() => {
-        setMediaError(null);
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then((currentStream) => {
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach((track) => track.stop());
-                }
-                streamRef.current = currentStream;
-                setStream(currentStream);
-                if (myVideo.current) myVideo.current.srcObject = currentStream;
-                const socket = socketRef.current;
-                if (socket) {
-                    socket.off("userJoined");
-                    socket.on("userJoined", (userId) => {
-                        const peer = createPeer(userId, socket.id, currentStream);
-                        peersRef.current.push({ peerId: userId, peer });
-                    });
-                    socket.off("userLeft");
-                    socket.on("userLeft", (userId) => {
-                        const peerObj = peersRef.current.find(p => p.peerId === userId);
-                        if (peerObj) peerObj.peer.destroy();
-                        peersRef.current = peersRef.current.filter(p => p.peerId !== userId);
-                    });
-                }
-            })
-            .catch((err) => {
-                setMediaError(err?.message || "Camera or microphone access denied.");
-            });
-    }, []);
+    const isCameraStream =
+        !event?.liveStream?.streamType || event.liveStream.streamType === "Camera";
+    const agoraEnabled =
+        Boolean(eventId && isCameraStream && event && (isBroadcaster || event.liveStream?.isLive));
+
+    const {
+        localContainerRef,
+        remoteContainerRef,
+        isReady: agoraReady,
+        hasRemoteStream,
+        isMuted,
+        isVideoOff,
+        mediaError,
+        accessError,
+        toggleAudio,
+        toggleVideo,
+        retry: retryAgora,
+    } = useAgoraLive({
+        eventId,
+        isHost: isBroadcaster,
+        enabled: agoraEnabled,
+    });
 
     useEffect(() => {
         if (!eventId) return;
@@ -122,9 +97,6 @@ export default function LiveStream() {
                 const eventData = res.data;
                 setEvent(eventData);
                 setLoading(false);
-
-                const canModerate = canModerateEventLivestream(eventData);
-                setIsBroadcaster(canModerate);
                 setHostPanelTab(canManageEventTickets(eventData) ? "attendees" : "chat");
 
                 socketRef.current = io(SOCKET_URL, {
@@ -133,22 +105,6 @@ export default function LiveStream() {
                     withCredentials: true,
                 });
                 socketRef.current.emit("joinRoom", eventId);
-
-                if (canModerate && eventData.liveStream?.streamType === "Camera") {
-                    requestCameraAndMic();
-                } else if (!canModerate && eventData.liveStream?.streamType === "Camera") {
-                    socketRef.current.on("signal", (data) => {
-                        const peer = new Peer({ initiator: false, trickle: false });
-                        peer.on("signal", (signal) => {
-                            socketRef.current.emit("signal", { to: data.from, from: socketRef.current.id, signal });
-                        });
-                        peer.on("stream", (incomingStream) => {
-                            if (remoteVideo.current) remoteVideo.current.srcObject = incomingStream;
-                            setHasRemoteStream(true);
-                        });
-                        peer.signal(data.signal);
-                    });
-                }
 
                 socketRef.current.on("receiveMessage", (msg) => {
                     setMessages((prev) => [...prev, msg]);
@@ -161,28 +117,8 @@ export default function LiveStream() {
 
         return () => {
             if (socketRef.current) socketRef.current.disconnect();
-            if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop());
-                streamRef.current = null;
-            }
         };
-    }, [currentUserId, eventId, requestCameraAndMic]);
-
-    useEffect(() => {
-        if (isBroadcaster && myVideo.current && stream) {
-            myVideo.current.srcObject = stream;
-        }
-    }, [isBroadcaster, stream]);
-
-    function createPeer(userToSignal, callerID, stream) {
-        const peer = new Peer({ initiator: true, trickle: false, stream });
-        peer.on("signal", (signal) => {
-            socketRef.current.emit("signal", { to: userToSignal, from: callerID, signal });
-        });
-        return peer;
-    }
-
-    // Rest of your component remains the same...
+    }, [currentUserId, eventId]);
     const sendMessage = (e) => {
         if (e.key === "Enter" || e.type === "click") {
             if (!chatMessage.trim()) return;
@@ -198,26 +134,6 @@ export default function LiveStream() {
         }
     };
 
-    const toggleAudio = () => {
-        if (stream) {
-            const audioTrack = stream.getAudioTracks()[0];
-            if (audioTrack) {
-                audioTrack.enabled = !audioTrack.enabled;
-                setIsMuted(!audioTrack.enabled);
-            }
-        }
-    };
-
-    const toggleVideo = () => {
-        if (stream) {
-            const videoTrack = stream.getVideoTracks()[0];
-            if (videoTrack) {
-                videoTrack.enabled = !videoTrack.enabled;
-                setIsVideoOff(!videoTrack.enabled);
-            }
-        }
-    };
-
     const toggleFullscreen = () => {
         const el = videoContainerRef.current;
         if (!el) return;
@@ -226,25 +142,6 @@ export default function LiveStream() {
         } else {
             document.exitFullscreen?.();
         }
-    };
-
-    const toggleViewerPlayPause = () => {
-        const video = remoteVideo.current;
-        if (!video) return;
-        if (video.paused) {
-            video.play();
-            setViewerPaused(false);
-        } else {
-            video.pause();
-            setViewerPaused(true);
-        }
-    };
-
-    const toggleViewerMute = () => {
-        const video = remoteVideo.current;
-        if (!video) return;
-        video.muted = !video.muted;
-        setViewerMuted(video.muted);
     };
 
     useEffect(() => {
@@ -266,11 +163,35 @@ export default function LiveStream() {
         if (!eventId || !endStreamConfirm) return;
         setEndingStream(true);
         API.patch("/events/toggle-live", { eventId, isLive: false })
-            .then(() => navigate(`/event/${eventId}`))
+            .then(() => {
+                setEvent((prev) => ({
+                    ...prev,
+                    liveStream: { ...(prev?.liveStream || {}), isLive: false },
+                }));
+                setEndStreamConfirm(false);
+                retryAgora();
+            })
             .catch(() => {
-                setEndingStream(false);
                 alert("Failed to end stream. Please try again.");
-            });
+            })
+            .finally(() => setEndingStream(false));
+    };
+
+    const handleGoLive = () => {
+        if (!eventId || startingStream) return;
+        setStartingStream(true);
+        API.patch("/events/toggle-live", { eventId, isLive: true })
+            .then(() => {
+                setEvent((prev) => ({
+                    ...prev,
+                    liveStream: { ...(prev?.liveStream || {}), isLive: true },
+                }));
+                retryAgora();
+            })
+            .catch(() => {
+                alert("Failed to go live. Please try again.");
+            })
+            .finally(() => setStartingStream(false));
     };
 
     if (loading) {
@@ -293,18 +214,90 @@ export default function LiveStream() {
 
     const renderVideoContent = () => {
         // ... your existing renderVideoContent logic
-        if (event.liveStream?.streamType === "Camera") {
+        if (isCameraStream) {
+            if (accessError?.code === "TICKET_REQUIRED") {
+                return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/90 text-white p-6 text-center">
+                        <Ticket size={40} className="text-pink-400" />
+                        <h3 className="text-lg font-bold">Ticket required</h3>
+                        <p className="text-sm text-white/60 max-w-sm">{accessError.message}</p>
+                        <Link
+                            to={`/event/${eventId}`}
+                            className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-bold hover:bg-pink-600 transition"
+                        >
+                            Get tickets
+                        </Link>
+                    </div>
+                );
+            }
+
+            if (accessError?.code === "STREAM_NOT_LIVE") {
+                if (isBroadcaster) {
+                    return (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/90 text-white p-6 text-center">
+                            <div
+                                ref={localContainerRef}
+                                className="absolute inset-0 w-full h-full opacity-0 pointer-events-none [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+                                aria-hidden
+                            />
+                            <Radio size={40} className="text-pink-400 relative z-10" />
+                            <h3 className="text-lg font-bold relative z-10">Ready to go live</h3>
+                            <p className="text-sm text-white/60 max-w-sm relative z-10">
+                                Start your broadcast when you are ready. Viewers will see you once you go live.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={handleGoLive}
+                                disabled={startingStream}
+                                className="relative z-10 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-pink-500 text-white font-bold hover:bg-pink-600 transition disabled:opacity-50"
+                            >
+                                {startingStream ? (
+                                    <Loader2 size={18} className="animate-spin" />
+                                ) : (
+                                    <Radio size={18} />
+                                )}
+                                {startingStream ? "Going live…" : "Go live"}
+                            </button>
+                        </div>
+                    );
+                }
+                return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/85 text-white p-6 text-center">
+                        <Radio size={40} className="text-white/40" />
+                        <h3 className="text-lg font-bold">Stream not live yet</h3>
+                        <p className="text-sm text-white/60 max-w-sm">Check back when the host goes live.</p>
+                    </div>
+                );
+            }
+
+            if (accessError) {
+                return (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/85 text-white p-6 text-center">
+                        <p className="text-sm text-white/70">{accessError.message}</p>
+                        <button
+                            type="button"
+                            onClick={retryAgora}
+                            className="px-4 py-2 rounded-full bg-white/20 text-white text-sm font-semibold hover:bg-white/30"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                );
+            }
+
             if (isBroadcaster) {
-                return <video ref={myVideo} autoPlay muted playsInline className="w-full h-full object-cover" />;
+                return (
+                    <div
+                        ref={localContainerRef}
+                        className="w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+                    />
+                );
             }
             return (
                 <>
-                    <video
-                        ref={remoteVideo}
-                        autoPlay
-                        playsInline
-                        poster={getEventImageUrl(event) || undefined}
-                        className="w-full h-full object-cover"
+                    <div
+                        ref={remoteContainerRef}
+                        className="w-full h-full [&_video]:w-full [&_video]:h-full [&_video]:object-cover"
                     />
                     {!hasRemoteStream && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/85 text-white">
@@ -351,8 +344,8 @@ export default function LiveStream() {
         );
     };
 
-    const showControls = (event.liveStream?.streamType === "Camera" && (isBroadcaster || hasRemoteStream)) ||
-        (event.liveStream?.streamType !== "Camera" && event.liveStream?.streamURL);
+    const showControls = (isCameraStream && (isBroadcaster ? agoraReady : hasRemoteStream)) ||
+        (!isCameraStream && event.liveStream?.streamURL);
 
     // Return the JSX (same as your existing component)
     return (
@@ -363,39 +356,56 @@ export default function LiveStream() {
                     <div className="relative w-full h-full bg-black">
                         {renderVideoContent()}
 
+                        {/* Pre-live: host preview before viewers can join */}
+                        {isBroadcaster && isCameraStream && agoraReady && !event.liveStream?.isLive && !accessError && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-[2px] z-15 p-6 text-center">
+                                <p className="text-sm text-white/80 max-w-sm">
+                                    Preview mode — viewers cannot see you until you go live.
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleGoLive}
+                                    disabled={startingStream}
+                                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-pink-500 text-white font-bold hover:bg-pink-600 transition disabled:opacity-50 shadow-lg shadow-pink-500/30"
+                                >
+                                    {startingStream ? (
+                                        <Loader2 size={18} className="animate-spin" />
+                                    ) : (
+                                        <Radio size={18} />
+                                    )}
+                                    {startingStream ? "Going live…" : "Go live"}
+                                </button>
+                            </div>
+                        )}
+
                         {/* Device Status for Host */}
-                        {isBroadcaster && event.liveStream?.streamType === "Camera" && (
+                        {isBroadcaster && isCameraStream && agoraReady && (
                             <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
                                 <div className="flex items-center gap-2">
                                     <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                                        stream && !isVideoOff ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        agoraReady && !isVideoOff ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
                                     }`}>
-                                        <VideoIcon size={12} /> {stream && !isVideoOff ? "Camera on" : "Camera off"}
+                                        <VideoIcon size={12} /> {agoraReady && !isVideoOff ? "Camera on" : "Camera off"}
                                     </span>
                                     <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
-                                        stream && !isMuted ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
+                                        agoraReady && !isMuted ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-red-500/20 text-red-400 border border-red-500/30"
                                     }`}>
-                                        <Mic size={12} /> {stream && !isMuted ? "Mic on" : "Mic muted"}
+                                        <Mic size={12} /> {agoraReady && !isMuted ? "Mic on" : "Mic muted"}
                                     </span>
                                 </div>
-                                {!stream && (
-                                    <button onClick={requestCameraAndMic} className="px-2 py-1 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur-sm hover:bg-white/30 transition">
-                                        Enable devices
-                                    </button>
-                                )}
                             </div>
                         )}
 
                         {/* Camera Request Overlay for Host */}
-                        {isBroadcaster && event.liveStream?.streamType === "Camera" && !stream && (
+                        {isBroadcaster && isCameraStream && !agoraReady && !accessError && (
                             <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-20">
                                 <div className="text-center max-w-sm p-6">
                                     <VideoIcon size={48} className="mx-auto mb-4 text-white/40" />
-                                    <h3 className="text-lg font-bold text-white mb-2">Camera & microphone</h3>
-                                    <p className="text-sm text-white/60 mb-4">Enable camera and voice so viewers can see and hear you.</p>
+                                    <h3 className="text-lg font-bold text-white mb-2">Connecting broadcast…</h3>
+                                    <p className="text-sm text-white/60 mb-4">Allow camera and microphone when prompted.</p>
                                     {mediaError && <p className="text-sm text-red-400 mb-3">{mediaError}</p>}
-                                    <button onClick={requestCameraAndMic} className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-bold hover:bg-pink-600 transition-all shadow-lg shadow-pink-500/30">
-                                        Enable camera & microphone
+                                    <button type="button" onClick={retryAgora} className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-bold hover:bg-pink-600 transition-all shadow-lg shadow-pink-500/30">
+                                        Retry connection
                                     </button>
                                 </div>
                             </div>
@@ -421,27 +431,27 @@ export default function LiveStream() {
                                     <div className="flex items-center gap-2">
                                         {isBroadcaster ? (
                                             <>
-                                                <button onClick={toggleAudio} disabled={!stream} className={`flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25 disabled:opacity-40 ${isMuted ? "bg-red-500/80 hover:bg-red-600" : ""}`}>
+                                                <button onClick={toggleAudio} disabled={!agoraReady} className={`flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25 disabled:opacity-40 ${isMuted ? "bg-red-500/80 hover:bg-red-600" : ""}`}>
                                                     {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
                                                     <span className="hidden sm:inline">{isMuted ? "Unmute" : "Mic"}</span>
                                                 </button>
-                                                <button onClick={toggleVideo} disabled={!stream} className={`flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25 disabled:opacity-40 ${isVideoOff ? "bg-red-500/80 hover:bg-red-600" : ""}`}>
+                                                <button onClick={toggleVideo} disabled={!agoraReady} className={`flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25 disabled:opacity-40 ${isVideoOff ? "bg-red-500/80 hover:bg-red-600" : ""}`}>
                                                     {isVideoOff ? <VideoOff size={16} /> : <VideoIcon size={16} />}
                                                     <span className="hidden sm:inline">{isVideoOff ? "Start camera" : "Camera"}</span>
                                                 </button>
+                                                {event.liveStream?.isLive && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setEndStreamConfirm(true)}
+                                                        disabled={endingStream}
+                                                        className="flex items-center gap-1 px-3 py-2 rounded-full bg-red-500/90 text-white text-xs font-semibold transition-all hover:bg-red-600 disabled:opacity-40"
+                                                    >
+                                                        {endingStream ? <Loader2 size={16} className="animate-spin" /> : <Radio size={16} />}
+                                                        <span className="hidden sm:inline">End live</span>
+                                                    </button>
+                                                )}
                                             </>
-                                        ) : (
-                                            <>
-                                                <button onClick={toggleViewerPlayPause} className="flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25">
-                                                    {viewerPaused ? <Play size={16} /> : <Pause size={16} />}
-                                                    <span className="hidden sm:inline">{viewerPaused ? "Play" : "Pause"}</span>
-                                                </button>
-                                                <button onClick={toggleViewerMute} className={`flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25 ${viewerMuted ? "bg-red-500/80" : ""}`}>
-                                                    {viewerMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                                                    <span className="hidden sm:inline">{viewerMuted ? "Unmute" : "Volume"}</span>
-                                                </button>
-                                            </>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button onClick={toggleFullscreen} className="flex items-center gap-1 px-3 py-2 rounded-full bg-white/15 text-white text-xs font-semibold transition-all hover:bg-white/25">
@@ -467,7 +477,39 @@ export default function LiveStream() {
                                 <span>{isBroadcaster ? "You are broadcasting" : `Started ${new Date(event.startDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}</span>
                             </div>
                         </div>
-                        {!isBroadcaster && (
+                        {isBroadcaster ? (
+                            <div className="flex flex-wrap gap-2">
+                                {event.liveStream?.isLive ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setEndStreamConfirm(true)}
+                                        disabled={endingStream}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-red-500 text-white text-sm font-bold transition-all hover:bg-red-600 disabled:opacity-50 shadow-md shadow-red-500/25"
+                                    >
+                                        {endingStream ? (
+                                            <Loader2 size={14} className="animate-spin" />
+                                        ) : (
+                                            <Radio size={14} />
+                                        )}
+                                        End live
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleGoLive}
+                                        disabled={startingStream}
+                                        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold transition-all hover:bg-pink-600 disabled:opacity-50 shadow-md shadow-pink-500/25"
+                                    >
+                                        {startingStream ? (
+                                            <Loader2 size={14} className="animate-spin" />
+                                        ) : (
+                                            <Radio size={14} />
+                                        )}
+                                        Go live
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
                             <div className="flex gap-2">
                                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 text-sm font-semibold transition-all hover:border-pink-300 hover:text-pink-500">
                                     <Share2 size={14} /> Share
@@ -512,7 +554,7 @@ export default function LiveStream() {
 
             {/* Host Panel or Chat Sidebar */}
             {isBroadcaster ? (
-                <aside className="w-[360px] min-w-[300px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+                <aside className="relative w-[360px] min-w-[300px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
                     {/* Tabs */}
                     <div className="flex p-1.5 gap-1 border-b border-gray-200 bg-gray-50/80">
                         {canManageEventTickets(event) && (
@@ -625,21 +667,6 @@ export default function LiveStream() {
                         )}
                     </div>
 
-                    {/* End Stream Modal */}
-                    {endStreamConfirm && (
-                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-20">
-                            <div className="bg-white rounded-xl border border-gray-200 p-5 max-w-xs w-full shadow-xl">
-                                <h3 className="font-bold text-gray-900 mb-2">End stream?</h3>
-                                <p className="text-sm text-gray-500 mb-4">This will end the stream for everyone. You can go live again later from your dashboard.</p>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setEndStreamConfirm(false)} disabled={endingStream} className="flex-1 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-700 text-sm font-semibold hover:bg-gray-100">Cancel</button>
-                                    <button onClick={handleEndStream} disabled={endingStream} className="flex-1 flex items-center justify-center gap-1 py-2 rounded-full bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50">
-                                        {endingStream ? <Loader2 size={14} className="animate-spin" /> : null} End stream
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </aside>
             ) : (
                 <aside className="w-[360px] min-w-[300px] bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
@@ -673,6 +700,36 @@ export default function LiveStream() {
                         </div>
                     </div>
                 </aside>
+            )}
+
+            {isBroadcaster && endStreamConfirm && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl border border-gray-200 p-5 max-w-xs w-full shadow-xl">
+                        <h3 className="font-bold text-gray-900 mb-2">End stream?</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            This will end the stream for everyone. You can start it again from this page with Go live.
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setEndStreamConfirm(false)}
+                                disabled={endingStream}
+                                className="flex-1 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-700 text-sm font-semibold hover:bg-gray-100"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleEndStream}
+                                disabled={endingStream}
+                                className="flex-1 flex items-center justify-center gap-1 py-2 rounded-full bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50"
+                            >
+                                {endingStream ? <Loader2 size={14} className="animate-spin" /> : null}
+                                End stream
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
