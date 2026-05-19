@@ -9,28 +9,10 @@ const activityLogSchema = new mongoose.Schema(
     },
     action: {
       type: String,
-      enum: [
-        "USER_SUSPENDED",
-        "USER_ACTIVATED",
-        "USER_DELETED",
-        "USER_ROLE_CHANGED",
-        "EVENT_APPROVED",
-        "EVENT_REJECTED",
-        "EVENT_EDITED",
-        "EVENT_DELETED",
-        "EVENT_FEATURED",
-        "EVENT_UNFEATURED",
-        "ANNOUNCEMENT_SENT",
-        "SETTING_CHANGED",
-        "FEATURE_TOGGLED",
-        "WITHDRAWAL_APPROVED",
-        "WITHDRAWAL_REJECTED",
-      ],
       required: true,
     },
     targetType: {
       type: String,
-      enum: ["User", "Event", "Announcement", "Setting", "Other"],
       required: true,
     },
     targetId: {
@@ -45,6 +27,10 @@ const activityLogSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    meta: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -52,5 +38,9 @@ const activityLogSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+activityLogSchema.index({ createdAt: -1 });
+activityLogSchema.index({ adminId: 1, createdAt: -1 });
+activityLogSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("ActivityLog", activityLogSchema);

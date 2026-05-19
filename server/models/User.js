@@ -64,7 +64,7 @@ const UserSchema = new mongoose.Schema(
     googleId: String,
     role: {
       type: String,
-      enum: ["admin", "organizer", "user"],
+      enum: ["super_admin", "admin", "moderator", "finance_admin", "support_admin", "organizer", "user"],
       default: "organizer",
     },
     isSuspended: {
@@ -285,7 +285,7 @@ favorites: {
 
 // 🔑 Virtual boolean fields for quick checks
 UserSchema.virtual("isAdmin").get(function () {
-  return this.role === "admin";
+  return ["super_admin", "admin", "moderator", "finance_admin", "support_admin"].includes(this.role);
 });
 
 UserSchema.virtual("isOrganizer").get(function () {
