@@ -1,4 +1,5 @@
 const { normalizePlan, isTrialActive, ensureSubscriptionState } = require("./subscriptionService");
+const { isAdminRole } = require("../middleware/adminAccess");
 
 const FEATURES = Object.freeze({
   TEAM_MEMBERS: ["free", "pro"],
@@ -46,7 +47,7 @@ const requireFeature = (featureName) => {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      if (req.user.role === "admin") {
+      if (isAdminRole(req.user.role)) {
         return next();
       }
 
