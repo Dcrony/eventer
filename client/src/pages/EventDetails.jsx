@@ -354,7 +354,7 @@ export default function EventDetail() {
   return (
     <>
       <div className="min-h-screen bg-gray-50 font-geist ">
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:pb-6">
           <div className="space-y-5">
 
             {/* ── Hero Panel ─────────────────────────────────────────────────── */}
@@ -665,7 +665,7 @@ export default function EventDetail() {
               </div>
 
               {/* ── Sidebar ──────────────────────────────────────────────────── */}
-              <aside className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 lg:p-6 h-fit">
+              <aside className="h-fit bg-white rounded-2xl border border-gray-200 p-4 shadow-sm sm:p-5 lg:sticky lg:top-6 lg:p-6">
                 <div className="space-y-4">
                   <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-pink-500">
                     <Ticket size={14} /> Tickets
@@ -811,6 +811,34 @@ export default function EventDetail() {
               </aside>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
+              {selectedTicketType?.type || "Tickets"}
+            </div>
+            <div className="truncate text-lg font-extrabold tracking-tight text-gray-900">
+              {selectedTicketType?.price > 0
+                ? formatCurrency(selectedTicketType.price)
+                : ticketStartingPrice}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleBuy}
+            disabled={buyDisabled}
+            className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold transition-all duration-200 ${
+              buyDisabled
+                ? "bg-gray-200 text-gray-400"
+                : "bg-pink-500 text-white shadow-lg shadow-pink-500/25 hover:bg-pink-600"
+            }`}
+          >
+            <Ticket size={18} />
+            {buyLabel}
+          </button>
         </div>
       </div>
 

@@ -18,6 +18,8 @@ import {
   Wallet,
   Pencil,
   Trash2,
+  Copy,
+  FileClock,
 } from "lucide-react";
 import { useCreateEvent } from "../context/CreateEventContext";
 import { useSearchParams } from "react-router-dom";
@@ -36,7 +38,6 @@ export default function Dashboard() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [transactions, setTransactions] = useState([]);
 
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
@@ -53,7 +54,7 @@ export default function Dashboard() {
   const handleTeamModalClose = () => { setTeamModalOpen(false); setSelectedTeamEventId(null); };
 
   const handleEventUpdated = () => {
-    API.get("/events/my-events", { headers: { Authorization: `Bearer ${token}` } })
+    API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => setEvents(res.data))
       .catch(() => setError("Failed to refresh events"));
   };
@@ -62,7 +63,7 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     Promise.all([
-      API.get("/events/my-events", { headers: { Authorization: `Bearer ${token}` } }),
+      API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
       API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
       API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
     ])
@@ -124,6 +125,8 @@ export default function Dashboard() {
   };
 
   const latestTransactions = transactions.slice(0, 3);
+  const draftEvents = events.filter((event) => event.isDraft);
+  const publishedEvents = events.filter((event) => !event.isDraft);
 
   // ── Skeleton ────────────────────────────────────────────────────────────────
   const Skeleton = () => (
@@ -277,9 +280,72 @@ export default function Dashboard() {
             </div>
 
             {/* Your Events */}
-            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Your events</h2>
+            {draftEvents.length > 0 && (
+              <div className="mb-8">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Saved drafts</h2>
+                    <p className="text-sm text-gray-500">Jump back into unfinished events without losing your progress.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openCreateEvent({ resumeLatest: true })}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
+                  >
+                    Resume latest draft <ArrowRight size={16} />
+                  </button>
+                </div>
 
-            {events.length === 0 ? (
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  {draftEvents.map((event) => (
+                    <div
+                      key={event._id}
+                      className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm"
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-amber-700">
+                            <FileClock size={14} />
+                            Draft
+                          </div>
+                          <h3 className="text-base font-bold text-gray-900">{event.title || "Untitled draft"}</h3>
+                          <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                            {event.description || "This draft is waiting for its final details."}
+                          </p>
+                        </div>
+                  <button
+                    type="button"
+                    onClick={() => openCreateEvent({ draftEvent: event })}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
+                  >
+                          Resume draft <ArrowRight size={16} />
+                        </button>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl bg-white p-3">
+                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Last saved</div>
+                          <div className="mt-1 text-sm font-semibold text-gray-900">
+                            {new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl bg-white p-3">
+                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Progress</div>
+                          <div className="mt-1 text-sm font-semibold text-gray-900">Step {event.draftStep || 1} of 5</div>
+                        </div>
+                        <div className="rounded-2xl bg-white p-3">
+                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Format</div>
+                          <div className="mt-1 text-sm font-semibold text-gray-900">{event.eventType || "In-person"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Published events</h2>
+
+            {publishedEvents.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm text-center py-16 px-8">
                 <p className="text-gray-400 text-sm mb-6">
                   You haven't created any events yet. Ready to host your first one?
@@ -293,7 +359,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {events.map((event) => (
+                {publishedEvents.map((event) => (
                   <div
                     key={event._id}
                     className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
@@ -314,6 +380,7 @@ export default function Dashboard() {
                             ? { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
                             : { key: "analytics-upgrade", label: "Analytics", icon: BarChart3, onClick: promptUpgradeAnalytics },
                           { key: "team", label: "Manage team", icon: Users, onClick: () => handleTeamClick(event._id) },
+                          { key: "duplicate", label: "Duplicate event", icon: Copy, onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
                           { key: "divider-delete", type: "divider" },
                           { key: "delete", label: "Delete event", icon: Trash2, danger: true, onClick: () => handleDelete(event._id) },
                         ]}

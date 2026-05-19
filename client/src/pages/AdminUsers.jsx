@@ -259,10 +259,14 @@ export default function AdminUsers() {
                             className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
                         >
                             <option value="">All roles</option>
-                            <option value="user">Users</option>
-                            <option value="organizer">Organizers</option>
-                            <option value="admin">Admins</option>
-                        </select>
+                                                    <option value="user">Users</option>
+                                                    <option value="organizer">Organizers</option>
+                                                    <option value="admin">Admins</option>
+                                                    <option value="moderator">Moderators</option>
+                                                    <option value="finance_admin">Finance Admins</option>
+                                                    <option value="support_admin">Support Admins</option>
+                                                    <option value="super_admin">Super Admins</option>
+                                                </select>
                     </SurfaceCard>
                     <SurfaceCard>
                         <select
@@ -290,9 +294,9 @@ export default function AdminUsers() {
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <StatCard icon={Users} label="Total Users" value={formatNumber(summary?.total || 0)} detail="Active admin scope" />
-                    <StatCard icon={UserCheck} label="Organizers" value={formatNumber(summary?.organizers || 0)} detail="Event creators" />
+                    <StatCard icon={UserCheck} label="Organizers" value={formatNumber(summary?.organizers || 0)} detail={`${formatNumber(summary?.verifiedOrganizers || 0)} verified`} />
                     <StatCard icon={Shield} label="Admins" value={formatNumber(summary?.admins || 0)} detail="Platform managers" />
-                    <StatCard icon={Shield} label="Suspended" value={formatNumber(summary?.suspended || 0)} detail="Restricted accounts" />
+                    <StatCard icon={Shield} label="Suspended" value={formatNumber(summary?.suspended || 0)} detail={`${formatNumber(summary?.proUsers || 0)} pro accounts`} />
                 </div>
 
                 {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
@@ -341,6 +345,10 @@ export default function AdminUsers() {
                                                         <option value="user">User</option>
                                                         <option value="organizer">Organizer</option>
                                                         <option value="admin">Admin</option>
+                                                        <option value="moderator">Moderator</option>
+                                                        <option value="finance_admin">Finance Admin</option>
+                                                        <option value="support_admin">Support Admin</option>
+                                                        <option value="super_admin">Super Admin</option>
                                                     </select>
                                                 </td>
                                                 <td className="px-5 py-4">
@@ -416,6 +424,72 @@ export default function AdminUsers() {
                                         </p>
                                     </div>
                                 </div>
+
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Verification</p>
+                                        <div className="mt-2 flex items-center justify-between gap-3">
+                                            <p className="text-sm font-semibold text-gray-900">{selectedUser.user.isVerified ? "Verified" : "Not verified"}</p>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    try {
+                                                        await adminService.updateUserVerification(selectedUser.user._id, !selectedUser.user.isVerified);
+                                                        toast.success("Verification status updated.");
+                                                        openUserDetails(selectedUser.user._id);
+                                                        fetchUsers(filters, page);
+                                                    } catch (err) {
+                                                        setError(err.response?.data?.message || "Failed to update verification.");
+                                                    }
+                                                }}
+                                                className={`rounded-full px-3 py-1.5 text-xs font-semibold text-white ${selectedUser.user.isVerified ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                                            >
+                                                {selectedUser.user.isVerified ? "Remove" : "Verify"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
+                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Subscription</p>
+                                        <div className="mt-2 flex items-center justify-between gap-3">
+                                            <p className="text-sm font-semibold text-gray-900 uppercase">{selectedUser.user.plan || "free"}</p>
+                                            <select
+                                                value={selectedUser.user.plan || "free"}
+                                                onChange={async (event) => {
+                                                    try {
+                                                        await adminService.updateUserSubscription(selectedUser.user._id, {
+                                                            plan: event.target.value,
+                                                            interval: "monthly",
+                                                            status: event.target.value === "free" ? "inactive" : "active",
+                                                        });
+                                                        toast.success("Subscription updated.");
+                                                        openUserDetails(selectedUser.user._id);
+                                                        fetchUsers(filters, page);
+                                                    } catch (err) {
+                                                        setError(err.response?.data?.message || "Failed to update subscription.");
+                                                    }
+                                                }}
+                                                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none"
+                                            >
+                                                <option value="free">Free</option>
+                                                <option value="trial">Trial</option>
+                                                <option value="pro">Pro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedUser.riskIndicators?.length ? (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900">Risk indicators</h4>
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {selectedUser.riskIndicators.map((indicator) => (
+                                                <StatusBadge key={indicator.label} tone={indicator.tone}>
+                                                    {indicator.label}
+                                                </StatusBadge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 {/* Recent Transactions */}
                                 <div>

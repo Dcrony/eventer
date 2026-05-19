@@ -203,7 +203,7 @@ export default function Home() {
         </script>
       </Helmet>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl px-4 sm:px-6 lg:px-8">
 
         {/* ── Hero — always visible ── */}
         <div className="mb-8 pb-6 border-b border-gray-200">

@@ -9,6 +9,7 @@ import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { getCurrentUser } from "../utils/auth";
+import { isAdminRole } from "../utils/adminAccess";
 import { useCreateEvent } from "../context/CreateEventContext";
 import AppPage from "../components/layout/AppPage";
 
@@ -68,10 +69,10 @@ export default function MyTickets() {
     });
   }, [tickets, searchQuery, filter]);
 
-  const canScan = user?.role === "organizer" || user?.role === "admin";
+  const canScan = user?.role === "organizer" || isAdminRole(user?.role);
 
   return (
-    <AppPage title="My Tickets" description="Manage your event access and digital passes" background="bg-slate-50" contentClassName="space-y-6">
+    <AppPage background="bg-slate-50" contentClassName="space-y-6">
 
         {/* ── Page header ── */}
         <div className="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-slate-200">

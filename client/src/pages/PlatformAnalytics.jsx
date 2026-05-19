@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
+import { isAdminRole } from "../utils/adminAccess";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import { promptUpgrade } from "../utils/planAccess";
 import {
@@ -70,7 +71,7 @@ export default function PlatformAnalytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const canOrganize = user?.role === "organizer" || user?.isOrganizer === true || user?.role === "admin";
+  const canOrganize = user?.role === "organizer" || user?.isOrganizer === true || isAdminRole(user?.role);
 
   useEffect(() => {
     if (!hasFullAccess) {

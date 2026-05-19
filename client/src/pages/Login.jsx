@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../api/axios";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { isAdminRole } from "../utils/adminAccess";
 import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import icon from "../assets/icon.svg";
 import emailService from "../api/emailVerificationService";
@@ -82,7 +83,7 @@ export default function Login() {
       const from = location.state?.from?.pathname;
       const target =
         from ||
-        (res.data.user?.role === "organizer" || res.data.user?.role === "admin"
+        (res.data.user?.role === "organizer" || isAdminRole(res.data.user?.role)
           ? "/dashboard"
           : "/events");
       setTimeout(() => navigate(target), 800);

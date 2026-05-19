@@ -60,7 +60,7 @@ const TeamInvitations = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 sm:px-4 pt-8 pb-16 ">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-3xl space-y-6">
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-200">
