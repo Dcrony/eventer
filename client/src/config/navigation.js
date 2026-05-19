@@ -16,6 +16,7 @@ import {
   CreditCard,
   Users,
 } from "lucide-react";
+import { hasAdminAccess } from "../utils/adminAccess";
 
 /**
  * Build navigation sections for sidebar / mobile drawer.
@@ -25,7 +26,7 @@ export function buildNavSections(ctx) {
   const { user, openCreateEvent } = ctx;
   if (!user) return { sections: [], footer: [], mobileTabs: [] };
 
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isAdmin = hasAdminAccess(user);
   const isOrganizer = user?.role === "organizer" || user?.isOrganizer === true;
   const canOrganize = isAdmin || isOrganizer;
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
