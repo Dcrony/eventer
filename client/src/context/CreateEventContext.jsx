@@ -5,9 +5,16 @@ const CreateEventContext = createContext();
 
 export const CreateEventProvider = ({ children }) => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [initialOptions, setInitialOptions] = useState(null);
 
-  const openCreateEvent = () => setIsCreateModalOpen(true);
-  const closeCreateEvent = () => setIsCreateModalOpen(false);
+  const openCreateEvent = (options = null) => {
+    setInitialOptions(options);
+    setIsCreateModalOpen(true);
+  };
+  const closeCreateEvent = () => {
+    setIsCreateModalOpen(false);
+    setInitialOptions(null);
+  };
 
   return (
     <CreateEventContext.Provider value={{ openCreateEvent, closeCreateEvent }}>
@@ -17,6 +24,7 @@ export const CreateEventProvider = ({ children }) => {
       <CreateEvent
         isOpen={isCreateModalOpen}
         onClose={closeCreateEvent}
+        initialOptions={initialOptions}
       />
     </CreateEventContext.Provider>
   );
