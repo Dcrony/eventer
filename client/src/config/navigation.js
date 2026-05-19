@@ -30,7 +30,9 @@ export function buildNavSections(ctx) {
   const canOrganize = isAdmin || isOrganizer;
   const isFreeUser = user?.plan?.toLowerCase() === "free" || !user?.plan;
 
-  const profileUrl = user?.username ? `/user/${user.username}` : "/profile/me";
+  // //const profileUrl = user?.username ? `/user/${user.username}` : "/profile/me";
+  const profileUrl = `/users/${user?.id ?? user?._id ?? ""}`;
+
 
   const sections = [
     {
@@ -51,8 +53,9 @@ export function buildNavSections(ctx) {
       id: "discover",
       label: "Discover",
       items: [
-        { type: "link", to: "/community", label: "Community", icon: Users },
-        { type: "link", to: "/favorites", label: "Favorites", icon: Heart },
+        // { type: "link", to: "/community", label: "Community", icon: Users },
+        // { type: "link", to: "/favorites", label: "Favorites", icon: Heart },
+        { type: "link", to: "/messages", label: "Messages", icon: MessageSquare, component: "MessageIndicator" },
         { type: "link", to: "/live/events", label: "Live", icon: Radio },
       ],
     },
@@ -74,7 +77,6 @@ export function buildNavSections(ctx) {
       label: "Account",
       items: [
         { type: "link", to: "/billing", label: "Billing", icon: CreditCard },
-        { type: "link", to: "/messages", label: "Messages", icon: MessageSquare, component: "MessageIndicator" },
       ],
     },
     ...(isFreeUser

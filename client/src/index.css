@@ -35,17 +35,6 @@
   transition: padding-left 300ms ease;
 }
 
-.mobile-padded {
-  padding-top: var(--header-mobile, 4rem);
-  padding-bottom: 5.5rem;
-}
-
-@media (min-width: 768px) {
-  .mobile-padded {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
-}
 
 .trial-banner {
   background: linear-gradient(90deg, #fdf2f8, #fce7f3);

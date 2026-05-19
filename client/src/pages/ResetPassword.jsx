@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import API from "../api/axios";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import PasswordInput from "../components/PasswordInput";
 import icon from "../assets/icon.svg";
 import { ArrowLeft, CheckCircle, AlertCircle, Lock } from "lucide-react";
@@ -31,8 +31,8 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 

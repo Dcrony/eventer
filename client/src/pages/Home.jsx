@@ -216,7 +216,7 @@ export default function Home() {
           <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg">
             Browse social-first experiences across music, tech, culture, and community on TickiSpot.
           </p>
-          <div className="flex flex-wrap gap-2 mt-3">
+          {/* <div className="flex flex-wrap gap-2 mt-3">
             {["50K+ active organizers", "500K+ tickets sold", "99.9% uptime"].map((badge) => (
               <span
                 key={badge}
@@ -225,7 +225,7 @@ export default function Home() {
                 {badge}
               </span>
             ))}
-          </div>
+          </div> */}
         </div>
 
         {/* ── Toolbar — always visible ── */}

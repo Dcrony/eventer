@@ -602,10 +602,10 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
               <div className="flex flex-wrap gap-2 sm:mt-4">
                 {profile.isOwner ? (
                   <>
-                    <Button variant="secondary" onClick={() => setShareOpen(true)} className="text-sm">
+                    <Button variant="secondary" onClick={() => setShareOpen(true)} className="text-sm rounded-full">
                       <Share2Icon size={16} />
                     </Button>
-                    <Button onClick={() => navigate("/edit-profile")} className="text-sm">
+                    <Button onClick={() => navigate("/edit-profile")} className="text-sm rounded-full">
                       Edit Profile
                     </Button>
                   </>
@@ -615,7 +615,7 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
                       variant={profile.isFollowing ? "secondary" : "primary"}
                       onClick={handleFollowToggle}
                       disabled={followPending}
-                      className="text-sm"
+                      className="text-sm rounded-full"
                     >
                       <UserRoundPlus size={16} />
                       {profile.isFollowing ? "Following" : "Follow"}
@@ -623,7 +623,7 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
                     <Button
                       variant="secondary"
                       onClick={() => navigate(`/messages?user=${profile._id}`)}
-                      className="text-sm"
+                      className="text-sm rounded-full"
                     >
                       <MessageSquare size={16} />
                     </Button>

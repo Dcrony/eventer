@@ -28,7 +28,7 @@ export default function AdminLayout({
         </div>
         <Link
           to="/dashboard"
-          className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
+          className="inline-flex rounded-full items-center justify-center border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
         >
           Back to app
         </Link>

@@ -241,11 +241,14 @@ const soldPercentage =
             {/* Organizer Info */}
             <div
               className="flex items-center gap-2 pt-2 border-t border-gray-100 cursor-pointer"
-              onClick={(eventClick) => {
-                eventClick.preventDefault();
-                eventClick.stopPropagation();
-                if (organizer?._id) onOrganizerClick?.(organizer);
-              }}
+             // Replace the organizer div's onClick:
+onClick={(e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (organizer?._id) {
+    navigate(`/users/${ organizer._id}`);
+  }
+}}
               role={onOrganizerClick ? "button" : undefined}
               tabIndex={onOrganizerClick ? 0 : undefined}
               onKeyDown={(eventClick) => {
