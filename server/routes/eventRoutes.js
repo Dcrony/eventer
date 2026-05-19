@@ -6,6 +6,9 @@ const { uploadImageMemory } = require("../middleware/imageUploadMemory");
 const { checkPlanLimit } = require("../middleware/planLimitMiddleware");
 const {
   createEvent,
+  saveEventDraft,
+  getLatestEventDraft,
+  duplicateEvent,
   getAllEvents,
   getEventById,
   getMyEvents,
@@ -31,12 +34,20 @@ router.post(
   uploadImageMemory.single("image"),
   createEvent
 );
+router.post(
+  "/drafts",
+  authMiddleware,
+  uploadImageMemory.single("image"),
+  saveEventDraft
+);
+router.get("/drafts/latest", authMiddleware, getLatestEventDraft);
 
 // Public — fetch all events
 router.get("/", getAllEvents);
 
 // Authenticated routes (specific paths before :id wildcard)
 router.get("/my-events", authMiddleware, getMyEvents);
+router.post("/:eventId/duplicate", authMiddleware, duplicateEvent);
 router.get("/buyers/:eventId", authMiddleware, getEventBuyers);
 router.get("/:eventId/tickets", authMiddleware, getEventBuyers); // alias
 
