@@ -13,6 +13,7 @@ const {
   getTrialDaysRemaining,
   isTrialActive,
 } = require("../services/subscriptionService");
+const { isAdminRole } = require("../middleware/adminAccess");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -27,7 +28,7 @@ const signAuthToken = (user) =>
       username: user.username,
       email: user.email,
       role: user.role,
-      isAdmin: user.role === "admin",
+      isAdmin: isAdminRole(user.role),
       isOrganizer: user.role === "organizer",
       sv: Number(user.security?.sessionVersion || 0),
     },
@@ -45,7 +46,7 @@ const buildAuthUserPayload = (user) => {
     username: user.username,
     email: user.email,
     role: user.role,
-    isAdmin: user.role === "admin",
+    isAdmin: isAdminRole(user.role),
     isOrganizer: user.role === "organizer",
     profilePic: user.profilePic,
     plan: user.plan || "free",
