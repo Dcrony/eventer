@@ -60,6 +60,7 @@ const notificationSchema = new mongoose.Schema(
         'password_changed',
         'verification_successful',
         'verification_failed',
+        'livestream_stopped',
 
       ],
       default: "system",

@@ -210,4 +210,5 @@ module.exports = {
   buildPublicEventQuery,
   canViewEvent,
   filterViewableEvents,
+  isAttendeeForEvent,
 };

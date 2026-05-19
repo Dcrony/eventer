@@ -129,6 +129,11 @@ By default the API listens on **port 8080** unless `PORT` is set. Point the clie
 | `RESEND_API_KEY` | For email | Transactional email (see `server/utils/email.js`) |
 | `PLATFORM_TICKET_FEE_PERCENT` | No | Platform fee (see `server/utils/platformFee.js`) |
 | `WITHDRAWAL_PROCESSING_FEE_PERCENT`, `MIN_WITHDRAWAL_NGN` | No | Withdrawal rules |
+| `AGORA_APP_ID` | For native live | Agora RTC App ID (from [Agora Console](https://console.agora.io/)) |
+| `AGORA_APP_CERTIFICATE` | For native live | Agora App Certificate (server-only; used to mint RTC tokens) |
+| `EVENT_REQUIRE_APPROVAL` | No | Set to `true` to keep new public events in `pending` until an admin approves them (default: auto-approve) |
+
+Native **Camera (TickiSpot Live)** streams use Agora. Create an Agora project with **App Certificate** enabled, then set both variables on the server. The client receives short-lived tokens from `GET /api/live-stream/:eventId/token`; only ticket holders (or stream moderators) may join as audience.
 
 Example **minimal** `server/.env`:
 
@@ -138,6 +143,8 @@ MONGO_URI=mongodb://localhost:27017/tickispot
 JWT_SECRET=change-me-to-a-long-random-secret
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:8080
+# AGORA_APP_ID=
+# AGORA_APP_CERTIFICATE=
 ```
 
 ### Client environment

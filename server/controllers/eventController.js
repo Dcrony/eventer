@@ -11,6 +11,7 @@ const {
   getEventAccessForUser,
   authorizeEventAction,
   toSerializableAccess,
+  FULL_PERMISSIONS,
 } = require("../utils/eventPermissions");
 const {
   buildPublicEventQuery,
@@ -62,7 +63,8 @@ const getCurrentUserIdFromRequest = (req) => {
     if (!token) return null;
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    return decoded?.id ? String(decoded.id) : null;
+    const id = decoded?.id || decoded?._id || decoded?.userId;
+    return id ? String(id) : null;
   } catch {
     return null;
   }
@@ -437,6 +439,7 @@ exports.createEvent = async (req, res) => {
       totalTickets,
       eventType,
       visibility: normalizedVisibility,
+      status: requireApproval ? "pending" : "approved",
       liveStream: {
         isLive: false,
         streamType,
@@ -468,12 +471,33 @@ exports.getAllEvents = async (req, res) => {
   try {
     const { liveOnly } = req.query;
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const filter = buildPublicEventQuery(
-      liveOnly === "true" ? { "liveStream.isLive": true } : {}
-    );
-    const events = await Event.find(filter)
+    const liveFilter =
+      liveOnly === "true" ? { "liveStream.isLive": true } : {};
+    const filter = buildPublicEventQuery(liveFilter);
+    let events = await Event.find(filter)
       .populate(eventPopulateOptions)
       .sort({ createdAt: -1 });
+
+    if (currentUserId) {
+      const ownedPending = await Event.find({
+        createdBy: currentUserId,
+        visibility: "public",
+        status: "pending",
+        ...liveFilter,
+      })
+        .populate(eventPopulateOptions)
+        .sort({ createdAt: -1 });
+
+      const seen = new Set(events.map((event) => String(event._id)));
+      for (const event of ownedPending) {
+        const id = String(event._id);
+        if (!seen.has(id)) {
+          events.push(event);
+          seen.add(id);
+        }
+      }
+      events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
 
     const validEvents = events.filter(
       (event) => event.createdBy && event.visibility !== "private"
@@ -553,7 +577,7 @@ exports.getMyEvents = async (req, res) => {
             isAdmin: Boolean(req.user?.isAdmin),
             isCollaborator: false,
             role: "owner",
-            permissions: null,
+            permissions: FULL_PERMISSIONS,
             featureAccess: {
               analytics: hasAccess(req.user, "ANALYTICS_ADVANCED"),
               liveStream: hasAccess(req.user, "LIVE_STREAM"),
@@ -618,6 +642,21 @@ exports.toggleLiveStream = async (req, res) => {
         message: lookup.error.message,
         ...(lookup.error.code ? { code: lookup.error.code } : {}),
       });
+    }
+
+    const streamType = lookup.event.liveStream?.streamType || "Camera";
+    if (
+      isLive === true &&
+      streamType === "Camera"
+    ) {
+      const { getAgoraConfig } = require("../services/agoraService");
+      if (!getAgoraConfig().isConfigured) {
+        return res.status(503).json({
+          code: "AGORA_NOT_CONFIGURED",
+          message:
+            "Native live streaming is not configured. Set AGORA_APP_ID and AGORA_APP_CERTIFICATE on the server.",
+        });
+      }
     }
 
     lookup.event.liveStream.isLive = isLive;
