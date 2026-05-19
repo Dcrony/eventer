@@ -45,7 +45,13 @@ export default function AdminEvents() {
     const updateEventStatus = async (eventId, nextStatus) => {
         try {
             setLoading(true);
-            await adminService[nextStatus === "approved" ? "approveEvent" : "rejectEvent"](eventId, "Review updated by admin");
+            if (nextStatus === "approved") {
+                await adminService.approveEvent(eventId, "Review updated by admin");
+            } else if (nextStatus === "rejected") {
+                await adminService.rejectEvent(eventId, "Review updated by admin");
+            } else {
+                await adminService.updateEventStatus(eventId, nextStatus, "Review updated by admin");
+            }
             toast.success(`Event ${nextStatus} successfully.`);
             refresh();
         } catch (err) {
@@ -106,6 +112,7 @@ export default function AdminEvents() {
                             <option value="pending">Pending</option>
                             <option value="approved">Approved</option>
                             <option value="rejected">Rejected</option>
+                            <option value="suspended">Suspended</option>
                         </select>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -196,6 +203,16 @@ export default function AdminEvents() {
                                                 >
                                                     <Slash size={12} />
                                                     Reject
+                                                </button>
+                                            )}
+                                            {event.status !== "suspended" && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateEventStatus(event._id, "suspended")}
+                                                    className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-amber-600"
+                                                >
+                                                    <FileSearch size={12} />
+                                                    Suspend
                                                 </button>
                                             )}
                                         </td>
