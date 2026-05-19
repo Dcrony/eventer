@@ -56,7 +56,13 @@ const eventDailyMetricSchema = new mongoose.Schema(
 );
 
 const eventSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: {
+    type: String,
+    required() {
+      return this.isDraft !== true;
+    },
+    default: "",
+  },
   description: String,
   category: String,
 
@@ -127,9 +133,27 @@ capacity: { type: Number, default: 0 },
   },
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["pending", "approved", "rejected", "suspended"],
     default: "pending",
   },
+  isDraft: {
+    type: Boolean,
+    default: false,
+  },
+  draftStep: {
+    type: Number,
+    default: 1,
+  },
+  draftUpdatedAt: {
+    type: Date,
+    default: null,
+  },
+  draftTeamMembers: [
+    {
+      email: { type: String, trim: true },
+      role: { type: String, trim: true, default: "Viewer" },
+    },
+  ],
   isFeatured: {
     type: Boolean,
     default: false,
@@ -174,6 +198,11 @@ capacity: { type: Number, default: 0 },
     default: Date.now,
   },
 });
+
+eventSchema.index({ status: 1, createdAt: -1 });
+eventSchema.index({ createdBy: 1, createdAt: -1 });
+eventSchema.index({ createdBy: 1, isDraft: 1, draftUpdatedAt: -1 });
+eventSchema.index({ "liveStream.isLive": 1, startDate: 1 });
 
 eventSchema.pre("validate", function syncFreeFlags(next) {
   const isMarkedFree = this.isFree === true || this.isFreeEvent === true;
