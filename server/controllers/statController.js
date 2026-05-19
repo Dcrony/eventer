@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Withdrawal = require("../models/Withdrawal");
 const { getPlatformTicketFeePercent } = require("../utils/platformFee");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
+const { isAdminRole } = require("../middleware/adminAccess");
 
 exports.getStats = async (req, res) => {
   try {
@@ -71,7 +72,7 @@ exports.getStats = async (req, res) => {
       pendingBalance: user?.pendingBalance || 0,
     };
 
-    if (userRole === "admin") {
+    if (isAdminRole(userRole)) {
       const totalUsers = await User.countDocuments();
       const organizers = await User.countDocuments({ role: "organizer" });
       const buyers = await User.countDocuments({ role: "user" });
