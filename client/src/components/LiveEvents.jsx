@@ -278,7 +278,7 @@ export default function LiveEvent() {
 
                 {/* Your Live Event Banner */}
                 {myLiveEvent && (
-                    <div className="mb-6  rounded-xl bg-gradient-to-r from-pink-400 via-pink-400 to-pink-400 text-white p-4 shadow-lg">
+                    <div className="mb-6  rounded-xl bg-gradient-to-r from-pink-500 via-pink-500 to-pink-500 text-white p-4 shadow-lg">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/20 text-xs font-bold">
