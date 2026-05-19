@@ -360,6 +360,27 @@ export default function Checkout() {
           </aside>
         </div>
       </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-6xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
+              Total
+            </div>
+            <div className="truncate text-lg font-extrabold tracking-tight text-gray-900">
+              {isFreeEvent ? "Free reservation" : ctaCopy}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleConfirmPayment}
+            disabled={loading}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-pink-500 px-5 text-sm font-bold text-white shadow-lg shadow-pink-500/25 transition-all duration-200 hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Processing..." : isFreeEvent ? "Reserve" : "Pay now"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
