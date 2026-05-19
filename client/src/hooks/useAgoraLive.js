@@ -61,6 +61,45 @@ export default function useAgoraLive({ eventId, isHost, enabled }) {
       setIsReady(false);
       setHasRemoteStream(false);
 
+      // ── Pre-flight: verify camera/mic permissions before touching Agora ──
+      if (isHost) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true,
+          });
+          // Release the test tracks immediately — Agora will re-acquire them
+          stream.getTracks().forEach((t) => t.stop());
+        } catch (err) {
+          if (cancelled) return;
+
+          const isPermissionDenied =
+            err.name === "NotAllowedError" ||
+            err.name === "PermissionDeniedError" ||
+            err.message?.toLowerCase().includes("permission denied") ||
+            err.message?.toLowerCase().includes("notallowederror");
+
+          const isNotFound =
+            err.name === "NotFoundError" ||
+            err.name === "DevicesNotFoundError";
+
+          if (isPermissionDenied) {
+            setMediaError(
+              "Camera and microphone access was denied. Click the camera icon in your browser's address bar, allow access, then try again."
+            );
+          } else if (isNotFound) {
+            setMediaError(
+              "No camera or microphone was found. Please connect a device and try again."
+            );
+          } else {
+            setMediaError(
+              err.message || "Failed to access camera or microphone."
+            );
+          }
+          return;
+        }
+      }
+
       try {
         const role = isHost ? "publisher" : "subscriber";
         const { data } = await API.get(`/live-stream/${eventId}/token`, {
@@ -85,26 +124,84 @@ export default function useAgoraLive({ eventId, isHost, enabled }) {
           return;
         }
 
+        // ── Host: acquire tracks ──────────────────────────────────────────
         if (isHost) {
-          const [audioTrack, videoTrack] =
-            await AgoraRTC.createMicrophoneAndCameraTracks();
+          let audioTrack, videoTrack;
+
+          try {
+            [audioTrack, videoTrack] =
+              await AgoraRTC.createMicrophoneAndCameraTracks();
+          } catch (err) {
+            if (cancelled) return;
+
+            const isPermissionDenied =
+              err.code === "PERMISSION_DENIED" ||
+              err.name === "NotAllowedError" ||
+              err.message?.toLowerCase().includes("permission denied") ||
+              err.message?.toLowerCase().includes("notallowederror");
+
+            const isNotFound =
+              err.name === "NotFoundError" ||
+              err.code === "DEVICE_NOT_FOUND";
+
+            if (isPermissionDenied) {
+              setMediaError(
+                "Camera and microphone access was denied. Click the camera icon in your browser's address bar, allow access, then try again."
+              );
+            } else if (isNotFound) {
+              setMediaError(
+                "No camera or microphone was found. Please connect a device and try again."
+              );
+            } else {
+              setMediaError(
+                err.message || "Failed to access camera or microphone."
+              );
+            }
+
+            // Leave the Agora channel cleanly before bailing out
+            try {
+              await client.leave();
+            } catch {
+              // ignore
+            }
+            client.removeAllListeners();
+            clientRef.current = null;
+            return;
+          }
+
+          if (cancelled) {
+            audioTrack.stop();
+            audioTrack.close();
+            videoTrack.stop();
+            videoTrack.close();
+            await client.leave();
+            return;
+          }
+
           localAudioRef.current = audioTrack;
           localVideoRef.current = videoTrack;
+
           await client.publish([audioTrack, videoTrack]);
 
           if (localContainerRef.current) {
             videoTrack.play(localContainerRef.current);
           }
+
           setIsReady(true);
           setIsMuted(!audioTrack.enabled);
           setIsVideoOff(!videoTrack.enabled);
           return;
         }
 
+        // ── Audience: subscribe to remote tracks ──────────────────────────
         client.on("user-published", async (user, mediaType) => {
           if (cancelled) return;
           await client.subscribe(user, mediaType);
-          if (mediaType === "video" && user.videoTrack && remoteContainerRef.current) {
+          if (
+            mediaType === "video" &&
+            user.videoTrack &&
+            remoteContainerRef.current
+          ) {
             user.videoTrack.play(remoteContainerRef.current);
             setHasRemoteStream(true);
           }
@@ -120,6 +217,7 @@ export default function useAgoraLive({ eventId, isHost, enabled }) {
         setIsReady(true);
       } catch (err) {
         if (cancelled) return;
+
         const code = err.response?.data?.code;
         const message =
           err.response?.data?.message ||
@@ -142,7 +240,7 @@ export default function useAgoraLive({ eventId, isHost, enabled }) {
     };
   }, [cleanup, enabled, eventId, isHost, joinAttempt]);
 
-  // Host preview: re-attach when the container mounts after async join.
+  // Host preview: re-attach video when the container mounts after async join.
   useEffect(() => {
     if (!enabled || !isHost || !isReady) return undefined;
     const videoTrack = localVideoRef.current;
