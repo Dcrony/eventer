@@ -19,7 +19,7 @@ export default function AppPage({
     <div className={cn("min-h-full w-full font-geist", background, className)}>
       <div
         className={cn(
-          fullWidth ? "w-full" : "page-container max-w-7xl mx-auto",
+          fullWidth ? "w-full" : "page-container max-w-7xl",
           !noPadding && "py-6",
           contentClassName,
         )}
