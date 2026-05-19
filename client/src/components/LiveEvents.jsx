@@ -153,7 +153,7 @@ export default function LiveEvent() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist pt-8 sm:px-6 lg:px-8 py-2 sm:py-12 pb-20 ">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+            <div className="max-w-7xl px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <header className="mb-8">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">

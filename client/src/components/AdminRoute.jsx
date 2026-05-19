@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { hasAdminAccess } from "../utils/adminAccess";
 
 export default function AdminRoute({ children }) {
   const location = useLocation();
@@ -13,7 +14,7 @@ export default function AdminRoute({ children }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const isAdmin = user?.role === "admin" || user?.isAdmin === true;
+  const isAdmin = hasAdminAccess(user);
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;

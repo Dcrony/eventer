@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { hasAdminAccess } from "../utils/adminAccess";
 
 /** Only users who can run check-in: organizers and admins. */
 export default function OrganizerStaffRoute({ children }) {
@@ -17,8 +18,7 @@ export default function OrganizerStaffRoute({ children }) {
   const role = user?.role;
   const ok =
     role === "organizer" ||
-    role === "admin" ||
-    user?.isAdmin === true ||
+    hasAdminAccess(user) ||
     user?.isOrganizer === true;
 
   if (!ok) {
