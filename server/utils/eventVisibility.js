@@ -1,6 +1,7 @@
 const Event = require("../models/Event");
 const EventTeam = require("../models/EventTeam");
 const Ticket = require("../models/Ticket");
+const { isAdminRole } = require("../middleware/adminAccess");
 
 const normalizeVisibility = (value) =>
   String(value || "public").trim().toLowerCase() === "private" ? "private" : "public";
@@ -89,7 +90,7 @@ const canViewEvent = async (eventOrId, viewerOrId, options = {}) => {
   }
 
   const viewerId = getViewerId(viewerOrId);
-  const isAdmin = viewerOrId?.role === "admin";
+  const isAdmin = isAdminRole(viewerOrId?.role);
   const isOwner = isEventOwner(event, viewerId);
   const approved = isApprovedEvent(event);
   const visibility = normalizeVisibility(event.visibility);

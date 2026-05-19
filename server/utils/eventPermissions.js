@@ -2,6 +2,7 @@ const Event = require("../models/Event");
 const EventTeam = require("../models/EventTeam");
 const User = require("../models/User");
 const { hasAccess, getFeatureLabel } = require("../services/featureService");
+const { isAdminRole } = require("../middleware/adminAccess");
 
 const OWNER_USER_SELECT = "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus";
 
@@ -186,7 +187,7 @@ const getEventAccessForUser = async (eventOrId, userOrId, options = {}) => {
 
   const userId = String(userOrId?.id || userOrId?._id || userOrId || "");
   const userRole = userOrId?.role || options.userRole || null;
-  const isAdmin = userRole === "admin";
+  const isAdmin = isAdminRole(userRole);
   const ownerId = String(event.createdBy?._id || event.createdBy || "");
   const isOwner = Boolean(userId) && ownerId === userId;
 
