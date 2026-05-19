@@ -72,6 +72,10 @@ const ticketSchema = new mongoose.Schema({
   },
 });
 
+ticketSchema.index({ purchasedAt: -1, paymentStatus: 1 });
+ticketSchema.index({ buyer: 1, purchasedAt: -1 });
+ticketSchema.index({ event: 1, purchasedAt: -1 });
+
 ticketSchema.pre("validate", function normalizeTicketForValidation(next) {
   if (this.isFree) {
     this.price = 0;
