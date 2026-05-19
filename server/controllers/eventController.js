@@ -164,9 +164,194 @@ const resolveEventPricing = (pricing, isFree) => {
   return normalizedPricing;
 };
 
+const sanitizeDraftTeamMembers = (value) => {
+  if (!value) return [];
+
+  let parsedValue = value;
+  if (typeof value === "string") {
+    parsedValue = JSON.parse(value);
+  }
+
+  if (!Array.isArray(parsedValue)) return [];
+
+  return parsedValue
+    .map((member) => ({
+      email: String(member?.email || "").trim().toLowerCase(),
+      role: String(member?.role || "Viewer").trim() || "Viewer",
+    }))
+    .filter((member) => member.email);
+};
+
+const buildEventDraftUpdate = (body, imagePath) => {
+  const isFree =
+    parseBooleanFlag(body.isFree) || parseBooleanFlag(body.isFreeEvent);
+  const normalizedVisibility = normalizeVisibility(body.visibility);
+  let normalizedPricing = [];
+
+  try {
+    normalizedPricing = isFree ? DEFAULT_FREE_PRICING : normalizePricingInput(body.pricing);
+  } catch {
+    normalizedPricing = isFree ? DEFAULT_FREE_PRICING : [];
+  }
+
+  return {
+    title: String(body.title || "").trim(),
+    description: String(body.description || "").trim(),
+    category: String(body.category || "").trim(),
+    startDate: body.startDate || null,
+    startTime: body.startTime || "",
+    endDate: body.endDate || null,
+    endTime: body.endTime || "",
+    location: String(body.location || "").trim(),
+    ...(imagePath ? { image: imagePath } : {}),
+    pricing: normalizedPricing,
+    isFree,
+    isFreeEvent: isFree,
+    totalTickets: Number(body.totalTickets || 0),
+    eventType: body.eventType || "In-person",
+    visibility: normalizedVisibility,
+    liveStream: {
+      isLive: false,
+      streamType: body.streamType || "",
+      streamURL: body.streamURL || "",
+    },
+    draftStep: Math.max(1, Number(body.draftStep || 1)),
+    draftUpdatedAt: new Date(),
+    draftTeamMembers: sanitizeDraftTeamMembers(body.teamMembers),
+  };
+};
+
+exports.saveEventDraft = async (req, res) => {
+  try {
+    let imagePath = null;
+    if (req.file) {
+      if (!isConfigured()) {
+        return res
+          .status(503)
+          .json({ message: "Image storage is not configured on the server." });
+      }
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "eventer/events",
+      });
+      imagePath = uploaded.secure_url;
+    }
+
+    const updates = buildEventDraftUpdate(req.body, imagePath);
+    const draftId = String(req.body.draftId || "").trim();
+    let draft = null;
+
+    if (draftId) {
+      draft = await Event.findOne({
+        _id: draftId,
+        createdBy: req.user.id,
+        isDraft: true,
+      });
+    }
+
+    if (!draft) {
+      draft = new Event({
+        ...updates,
+        createdBy: req.user.id,
+        isDraft: true,
+        status: "pending",
+      });
+    } else {
+      Object.assign(draft, updates);
+    }
+
+    await draft.save();
+
+    return res.status(200).json({
+      message: "Draft saved",
+      draft,
+    });
+  } catch (error) {
+    console.error("Save draft error:", error);
+    return res.status(500).json({
+      message: "Failed to save draft",
+      error: error.message,
+    });
+  }
+};
+
+exports.getLatestEventDraft = async (req, res) => {
+  try {
+    const draft = await Event.findOne({
+      createdBy: req.user.id,
+      isDraft: true,
+    })
+      .populate(eventPopulateOptions)
+      .sort({ draftUpdatedAt: -1, createdAt: -1 });
+
+    return res.status(200).json({ draft });
+  } catch (error) {
+    console.error("Get latest draft error:", error);
+    return res.status(500).json({
+      message: "Failed to fetch draft",
+      error: error.message,
+    });
+  }
+};
+
+exports.duplicateEvent = async (req, res) => {
+  try {
+    const source = await Event.findOne({
+      _id: req.params.eventId,
+      createdBy: req.user.id,
+    });
+
+    if (!source) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const duplicate = new Event({
+      title: `${source.title} Copy`,
+      description: source.description,
+      category: source.category,
+      startDate: source.startDate,
+      startTime: source.startTime,
+      endDate: source.endDate,
+      endTime: source.endTime,
+      location: source.location,
+      image: source.image,
+      pricing: Array.isArray(source.pricing)
+        ? source.pricing.map((tier) => ({
+            type: tier.type,
+            price: tier.price,
+          }))
+        : [],
+      isFree: source.isFree,
+      isFreeEvent: source.isFreeEvent,
+      totalTickets: source.totalTickets,
+      eventType: source.eventType,
+      visibility: source.visibility,
+      liveStream: source.liveStream,
+      team: source.team || null,
+      createdBy: req.user.id,
+      isDraft: true,
+      draftStep: 1,
+      draftUpdatedAt: new Date(),
+    });
+
+    await duplicate.save();
+
+    return res.status(201).json({
+      message: "Event duplicated into draft",
+      draft: duplicate,
+    });
+  } catch (error) {
+    console.error("Duplicate event error:", error);
+    return res.status(500).json({
+      message: "Failed to duplicate event",
+      error: error.message,
+    });
+  }
+};
+
 exports.createEvent = async (req, res) => {
   try {
     const {
+      draftId,
       title,
       description,
       category,
@@ -218,7 +403,25 @@ exports.createEvent = async (req, res) => {
       imagePath = uploaded.secure_url;
     }
 
-    const newEvent = new Event({
+    let event = null;
+    let wasDraft = false;
+
+    if (draftId) {
+      event = await Event.findOne({
+        _id: draftId,
+        createdBy: req.user.id,
+        isDraft: true,
+      });
+      wasDraft = Boolean(event);
+    }
+
+    if (!event) {
+      event = new Event({
+        createdBy: req.user.id,
+      });
+    }
+
+    Object.assign(event, {
       title,
       description,
       category,
@@ -227,7 +430,7 @@ exports.createEvent = async (req, res) => {
       endDate,
       endTime,
       location,
-      image: imagePath,
+      ...(imagePath ? { image: imagePath } : {}),
       pricing: resolvedPricing,
       isFree,
       isFreeEvent: isFree,
@@ -239,18 +442,22 @@ exports.createEvent = async (req, res) => {
         streamType,
         streamURL,
       },
-      createdBy: req.user.id,
+      isDraft: false,
+      draftStep: 5,
+      draftUpdatedAt: null,
     });
 
-    await newEvent.save();
+    await event.save();
 
-    await User.findByIdAndUpdate(req.user._id || req.user.id, {
-      $inc: { eventCount: 1 },
-    });
+    if (!wasDraft) {
+      await User.findByIdAndUpdate(req.user._id || req.user.id, {
+        $inc: { eventCount: 1 },
+      });
+    }
 
     res
       .status(201)
-      .json({ message: "Event created successfully", event: newEvent });
+      .json({ message: "Event created successfully", event });
   } catch (err) {
     console.error("Event creation error:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -317,12 +524,21 @@ exports.getEventById = async (req, res) => {
 exports.getMyEvents = async (req, res) => {
   try {
     const userId = req.user.id;
+    const includeDrafts = parseBooleanFlag(req.query.includeDrafts);
+    const onlyDrafts = parseBooleanFlag(req.query.onlyDrafts);
 
     console.log("Fetching events for:", userId);
 
-    const events = await Event.find({ createdBy: userId })
+    const filter = { createdBy: userId };
+    if (onlyDrafts) {
+      filter.isDraft = true;
+    } else if (!includeDrafts) {
+      filter.isDraft = { $ne: true };
+    }
+
+    const events = await Event.find(filter)
       .populate(eventPopulateOptions)
-      .sort({ createdAt: -1 });
+      .sort({ draftUpdatedAt: -1, createdAt: -1 });
 
     console.log("Found events:", events.length);
 
@@ -334,7 +550,7 @@ exports.getMyEvents = async (req, res) => {
           eventAccess: toSerializableAccess({
             hasAccess: true,
             isOwner: true,
-            isAdmin: req.user.role === "admin",
+            isAdmin: Boolean(req.user?.isAdmin),
             isCollaborator: false,
             role: "owner",
             permissions: null,
