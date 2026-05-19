@@ -1,4 +1,5 @@
 import { PORT_URL } from "./config";
+import { isAdminRole } from "./adminAccess";
 
 export const formatCompactNumber = (value) =>
   new Intl.NumberFormat("en-NG", { notation: "compact", maximumFractionDigits: 1 }).format(
@@ -67,7 +68,7 @@ export const getCoverImageUrl = (user) => {
 };
 
 export const isVerifiedOrganizer = (user) =>
-  user?.role === "admin" || (user?.role === "organizer" && user?.billing?.plan !== "Free");
+  isAdminRole(user?.role) || (user?.role === "organizer" && user?.billing?.plan !== "Free");
 
 export const formatEventDate = (value, options = { month: "short", day: "numeric", year: "numeric" }) => {
   if (!value) return "Date TBD";

@@ -74,6 +74,9 @@ const AdminEvents = lazy(() => import("./pages/AdminEvents"));
 const AdminTransactions = lazy(() => import("./pages/AdminTransactions"));
 const AdminLogs = lazy(() => import("./pages/AdminLogs"));
 const AdminControls = lazy(() => import("./pages/AdminControls"));
+const AdminFinance = lazy(() => import("./pages/AdminFinance"));
+const AdminModeration = lazy(() => import("./pages/AdminModeration"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const EventTickets = lazy(() => import("./pages/EventTickets"));
 const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -295,6 +298,22 @@ function Layout() {
                 }
               />
               <Route
+                path="/admin/finance"
+                element={
+                  <AdminRoute>
+                    <AdminFinance />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/moderation"
+                element={
+                  <AdminRoute>
+                    <AdminModeration />
+                  </AdminRoute>
+                }
+              />
+              <Route
                 path="/admin/logs"
                 element={
                   <AdminRoute>
@@ -307,6 +326,14 @@ function Layout() {
                 element={
                   <AdminRoute>
                     <AdminControls />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettings />
                   </AdminRoute>
                 }
               />

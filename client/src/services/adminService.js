@@ -24,6 +24,16 @@ const adminService = {
     return response.data;
   },
 
+  getAdminPermissions: async () => {
+    const response = await axios.get(`${ADMIN_API}/permissions`);
+    return response.data;
+  },
+
+  search: async (q) => {
+    const response = await axios.get(`${ADMIN_API}/search`, { params: { q } });
+    return response.data;
+  },
+
   getAllUsers: async (page = 1, limit = 20, filters = {}) => {
     const response = await axios.get(`${ADMIN_API}/users`, {
       params: { page, limit, ...filters },
@@ -48,6 +58,16 @@ const adminService = {
 
   updateUserRole: async (userId, role) => {
     const response = await axios.patch(`${ADMIN_API}/users/${userId}/role`, { role });
+    return response.data;
+  },
+
+  updateUserVerification: async (userId, verified) => {
+    const response = await axios.patch(`${ADMIN_API}/users/${userId}/verify`, { verified });
+    return response.data;
+  },
+
+  updateUserSubscription: async (userId, payload) => {
+    const response = await axios.patch(`${ADMIN_API}/users/${userId}/subscription`, payload);
     return response.data;
   },
 
@@ -79,8 +99,28 @@ const adminService = {
     return response.data;
   },
 
+  updateEventStatus: async (eventId, status, reason = "") => {
+    const response = await axios.patch(`${ADMIN_API}/events/${eventId}/status`, {
+      status,
+      reason,
+    });
+    return response.data;
+  },
+
   toggleEventFeatured: async (eventId) => {
     const response = await axios.patch(`${ADMIN_API}/events/${eventId}/featured`);
+    return response.data;
+  },
+
+  getLivestreams: async (page = 1, limit = 12, filters = {}) => {
+    const response = await axios.get(`${ADMIN_API}/livestreams`, {
+      params: { page, limit, ...filters },
+    });
+    return response.data;
+  },
+
+  forceStopLivestream: async (eventId) => {
+    const response = await axios.patch(`${ADMIN_API}/events/${eventId}/livestream/stop`);
     return response.data;
   },
 
@@ -133,8 +173,42 @@ const adminService = {
     return response.data;
   },
 
+  getFinanceOverview: async (filters = {}) => {
+    const response = await axios.get(`${ADMIN_API}/finance`, { params: filters });
+    return response.data;
+  },
+
+  getSubscriptions: async (page = 1, limit = 20, filters = {}) => {
+    const response = await axios.get(`${ADMIN_API}/subscriptions`, {
+      params: { page, limit, ...filters },
+    });
+    return response.data;
+  },
+
+  getModerationOverview: async () => {
+    const response = await axios.get(`${ADMIN_API}/moderation`);
+    return response.data;
+  },
+
   sendAnnouncement: async (announcement) => {
     const response = await axios.post(`${ADMIN_API}/announcement`, announcement);
+    return response.data;
+  },
+
+  getAnnouncements: async (page = 1, limit = 20, filters = {}) => {
+    const response = await axios.get(`${ADMIN_API}/announcements`, {
+      params: { page, limit, ...filters },
+    });
+    return response.data;
+  },
+
+  getSettings: async () => {
+    const response = await axios.get(`${ADMIN_API}/settings`);
+    return response.data;
+  },
+
+  updateSettings: async (payload) => {
+    const response = await axios.put(`${ADMIN_API}/settings`, payload);
     return response.data;
   },
 };
