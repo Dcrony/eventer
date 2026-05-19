@@ -1,6 +1,7 @@
 const Event = require("../models/Event");
 const User = require("../models/User");
 const { ensureSubscriptionState, hasProAccess } = require("../services/subscriptionService");
+const { isAdminRole } = require("./adminAccess");
 
 /**
  * Free plan: max 2 events created per calendar month.
@@ -16,7 +17,7 @@ exports.checkPlanLimit = async (req, res, next) => {
 
     await ensureSubscriptionState(user);
 
-    if (hasProAccess(user) || user.role === "admin") {
+    if (hasProAccess(user) || isAdminRole(user.role)) {
       return next();
     }
 
@@ -27,6 +28,7 @@ exports.checkPlanLimit = async (req, res, next) => {
     const count = await Event.countDocuments({
       createdBy: userId,
       createdAt: { $gte: start },
+      isDraft: { $ne: true },
     });
 
     if (count >= 2) {
@@ -52,7 +54,7 @@ exports.checkUserPlan = (feature) => {
         return res.status(401).json({ message: "User not found" });
       }
 
-      if (user.role === "admin") return next();
+      if (isAdminRole(user.role)) return next();
 
       await ensureSubscriptionState(user);
 
