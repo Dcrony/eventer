@@ -28,6 +28,15 @@ import {
   X,
   Zap,
   Check,
+  Tag,
+  Palette,
+  ToggleLeft,
+  ToggleRight,
+  Gift,
+  Settings2,
+  ChevronUp,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
@@ -36,14 +45,14 @@ import { useToast } from "../components/ui/toast";
 import useFeatureAccess from "../hooks/useFeatureAccess";
 import teamService from "../services/api/team";
 import { validateImageFile } from "../utils/imageUpload";
-import TickiAIGenerator from "../components/TickiAIGenerator";   
+import TickiAIGenerator from "../components/TickiAIGenerator";
 
 /* ─── Constants ─────────────────────────────────────────────────────────────── */
 
 const DRAFT_STORAGE_KEY = "tickispot-create-event-draft-v1";
 
 const eventTypes = [
-  { name: "In-person", icon: Building2, hint: "Venue-based with guests on-site." },
+  { name: "In-person", icon: Building2,   hint: "Venue-based with guests on-site." },
   { name: "Virtual",   icon: MonitorPlay, hint: "Online workshops, classes, broadcasts." },
   { name: "Hybrid",    icon: Globe2,      hint: "Physical + online livestream." },
 ];
@@ -69,6 +78,37 @@ const CATEGORY_OPTIONS = [
   "Film","Religious","Charity","Other",
 ];
 
+/* Preset accent colours for tier colour picker */
+const TIER_COLORS = [
+  { label: "Pink",   value: "#ec4899" },
+  { label: "Violet", value: "#8b5cf6" },
+  { label: "Blue",   value: "#3b82f6" },
+  { label: "Cyan",   value: "#06b6d4" },
+  { label: "Green",  value: "#22c55e" },
+  { label: "Amber",  value: "#f59e0b" },
+  { label: "Rose",   value: "#f43f5e" },
+  { label: "Slate",  value: "#64748b" },
+];
+
+/* ─── Default tier shape ─────────────────────────────────────────────────────── */
+const makeTier = (overrides = {}) => ({
+  type:        "",
+  price:       "",
+  isEnabled:   true,
+  isFree:      false,
+  label:       "",
+  color:       "",
+  description: "",
+  maxPerOrder: "",
+  ...overrides,
+});
+
+const DEFAULT_PRICING = [
+  makeTier({ type: "Regular" }),
+  makeTier({ type: "VIP" }),
+  makeTier({ type: "VVIP" }),
+];
+
 /* ─── Default state ──────────────────────────────────────────────────────────── */
 
 const defaultForm = {
@@ -76,11 +116,7 @@ const defaultForm = {
   streamType: "Camera", streamURL: "",
   eventType: "In-person", visibility: "public",
   startDate: "", startTime: "", endDate: "", endTime: "",
-  pricing: [
-    { type: "Regular", price: "" },
-    { type: "VIP",     price: "" },
-    { type: "VVIP",    price: "" },
-  ],
+  pricing: DEFAULT_PRICING,
   totalTickets: "",
 };
 
@@ -115,6 +151,20 @@ const normalizeTime = (raw) => {
   return "14:00";
 };
 
+const normalizePricingFromServer = (pricing) => {
+  if (!Array.isArray(pricing) || !pricing.length) return DEFAULT_PRICING;
+  return pricing.map((t) => makeTier({
+    type:        t?.type        || "",
+    price:       t?.price != null ? String(t.price) : "",
+    isEnabled:   t?.isEnabled  !== false,
+    isFree:      Boolean(t?.isFree),
+    label:       t?.label       || "",
+    color:       t?.color       || "",
+    description: t?.description || "",
+    maxPerOrder: t?.maxPerOrder  ? String(t.maxPerOrder) : "",
+  }));
+};
+
 const sanitizeRecoveryPayload = (value) => {
   if (!value || typeof value !== "object") return emptyRecoveryState;
   return {
@@ -123,15 +173,15 @@ const sanitizeRecoveryPayload = (value) => {
       ...(value.form || {}),
       pricing:
         Array.isArray(value.form?.pricing) && value.form.pricing.length
-          ? value.form.pricing
-          : defaultForm.pricing,
+          ? value.form.pricing.map((t) => makeTier(t))
+          : DEFAULT_PRICING,
     },
-    isFreeEvent: Boolean(value.isFreeEvent),
-    teamMembers: Array.isArray(value.teamMembers) ? value.teamMembers : [],
-    draftId: value.draftId || null,
+    isFreeEvent:  Boolean(value.isFreeEvent),
+    teamMembers:  Array.isArray(value.teamMembers) ? value.teamMembers : [],
+    draftId:      value.draftId      || null,
     imagePreview: value.imagePreview || null,
-    imageName: value.imageName || "",
-    updatedAt: value.updatedAt || null,
+    imageName:    value.imageName    || "",
+    updatedAt:    value.updatedAt    || null,
     step: Math.min(5, Math.max(1, Number(value.step || 1))),
   };
 };
@@ -140,22 +190,19 @@ const normalizeEventToWizardState = (event) =>
   sanitizeRecoveryPayload({
     form: {
       ...defaultForm,
-      title:       event?.title || "",
+      title:       event?.title       || "",
       description: event?.description || "",
-      category:    event?.category || "",
-      location:    event?.location || "",
+      category:    event?.category    || "",
+      location:    event?.location    || "",
       streamType:  event?.liveStream?.streamType || "Camera",
-      streamURL:   event?.liveStream?.streamURL || "",
-      eventType:   event?.eventType || "In-person",
-      visibility:  event?.visibility || "public",
+      streamURL:   event?.liveStream?.streamURL  || "",
+      eventType:   event?.eventType   || "In-person",
+      visibility:  event?.visibility  || "public",
       startDate:   event?.startDate ? String(event.startDate).slice(0, 10) : "",
-      startTime:   event?.startTime || "",
-      endDate:     event?.endDate ? String(event.endDate).slice(0, 10) : "",
-      endTime:     event?.endTime || "",
-      pricing:
-        Array.isArray(event?.pricing) && event.pricing.length
-          ? event.pricing.map((tier) => ({ type: tier?.type || "Regular", price: tier?.price != null ? String(tier.price) : "" }))
-          : defaultForm.pricing,
+      startTime:   event?.startTime   || "",
+      endDate:     event?.endDate   ? String(event.endDate).slice(0, 10)   : "",
+      endTime:     event?.endTime     || "",
+      pricing:     normalizePricingFromServer(event?.pricing),
       totalTickets: event?.totalTickets != null ? String(event.totalTickets) : "",
     },
     isFreeEvent:  Boolean(event?.isFree || event?.isFreeEvent),
@@ -183,8 +230,10 @@ const getStepValidation = (step, form, isFreeEvent) => {
     if (!form.totalTickets || Number(form.totalTickets) <= 0)
       return "Set how many tickets are available.";
     if (!isFreeEvent) {
-      const hasPaid = form.pricing.some((t) => Number(t.price) > 0);
-      if (!hasPaid) return "Add at least one paid ticket tier.";
+      const enabledPaid = form.pricing.filter(
+        (t) => t.isEnabled && !t.isFree && Number(t.price) > 0
+      );
+      if (!enabledPaid.length) return "Add at least one enabled paid ticket tier.";
     }
   }
   if (step === 4 && form.streamType !== "Camera" && !form.streamURL.trim())
@@ -240,6 +289,194 @@ function StepBtn({ step, activeStep, onClick }) {
       </div>
       {active && <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-pink-400" />}
     </button>
+  );
+}
+
+/* ─── TierEditor ─────────────────────────────────────────────────────────────── */
+/**
+ * Renders a single pricing tier row with:
+ *  - enable / disable toggle
+ *  - price field (locked to 0 when isFree is on)
+ *  - per-tier "free" toggle
+ *  - expandable customisation panel (label, color, description, maxPerOrder)
+ *  - delete button (only for custom tiers, i.e. non-default ones)
+ */
+function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const update = (patch) => onChange(index, { ...tier, ...patch });
+
+  const displayName = tier.label || tier.type || `Tier ${index + 1}`;
+  const accentColor = tier.color || "#ec4899";
+
+  return (
+    <div
+      className={`rounded-2xl border transition-all ${
+        tier.isEnabled
+          ? "border-gray-200 bg-white"
+          : "border-gray-100 bg-gray-50/60 opacity-60"
+      }`}
+    >
+      {/* ── Main row ── */}
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        {/* Colour dot */}
+        <div
+          className="h-3 w-3 shrink-0 rounded-full ring-2 ring-offset-1 ring-gray-100"
+          style={{ backgroundColor: accentColor }}
+        />
+
+        {/* Name */}
+        <div className="min-w-0 flex-1">
+          <div className="text-xs font-bold text-gray-900">{displayName}</div>
+          {tier.description && (
+            <div className="truncate text-[0.62rem] text-gray-400">{tier.description}</div>
+          )}
+        </div>
+
+        {/* Price */}
+        {!isEventFree && (
+          <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 px-2.5">
+            <span className="text-xs font-bold text-gray-400">₦</span>
+            <input
+              type="number"
+              min="0"
+              step="100"
+              value={tier.isFree ? "0" : tier.price}
+              disabled={!tier.isEnabled || tier.isFree}
+              onChange={(e) => update({ price: e.target.value })}
+              placeholder="0"
+              className="w-20 border-0 bg-transparent py-2 text-right text-sm font-semibold text-gray-900 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+        )}
+
+        {/* Per-tier free badge */}
+        {!isEventFree && tier.isEnabled && (
+          <button
+            type="button"
+            title={tier.isFree ? "Remove free override" : "Make this tier free"}
+            onClick={() => update({ isFree: !tier.isFree, price: !tier.isFree ? "0" : tier.price })}
+            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[0.6rem] font-bold transition ${
+              tier.isFree
+                ? "bg-green-100 text-green-700 hover:bg-green-200"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+            }`}
+          >
+            <Gift size={10} />
+            {tier.isFree ? "Free" : "Set free"}
+          </button>
+        )}
+
+        {/* Enable toggle */}
+        <button
+          type="button"
+          title={tier.isEnabled ? "Disable tier" : "Enable tier"}
+          onClick={() => update({ isEnabled: !tier.isEnabled })}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-gray-100"
+        >
+          {tier.isEnabled
+            ? <ToggleRight size={18} className="text-pink-500" />
+            : <ToggleLeft  size={18} className="text-gray-400" />
+          }
+        </button>
+
+        {/* Customise expand */}
+        <button
+          type="button"
+          title="Customise tier"
+          onClick={() => setExpanded((p) => !p)}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-gray-100 text-gray-400"
+        >
+          <Settings2 size={14} />
+        </button>
+
+        {/* Delete (only non-default custom tiers) */}
+        {onDelete && (
+          <button
+            type="button"
+            title="Remove tier"
+            onClick={() => onDelete(index)}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-red-50 text-gray-300 hover:text-red-400"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Expanded customisation ── */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-3 py-3 space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Display label */}
+            <div>
+              <FieldLabel>Display name (optional)</FieldLabel>
+              <input
+                value={tier.label}
+                onChange={(e) => update({ label: e.target.value })}
+                placeholder={`e.g. Early Bird ${tier.type}`}
+                className={F}
+              />
+              <p className="mt-1 text-[0.6rem] text-gray-400">Overrides "{tier.type}" in checkout</p>
+            </div>
+
+            {/* Max per order */}
+            <div>
+              <FieldLabel>Max per order</FieldLabel>
+              <input
+                type="number"
+                min="0"
+                value={tier.maxPerOrder}
+                onChange={(e) => update({ maxPerOrder: e.target.value })}
+                placeholder="Unlimited"
+                className={F}
+              />
+              <p className="mt-1 text-[0.6rem] text-gray-400">0 = no limit</p>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <FieldLabel>Benefit description (optional)</FieldLabel>
+            <input
+              value={tier.description}
+              onChange={(e) => update({ description: e.target.value })}
+              placeholder="e.g. Front-row seat + free drink"
+              className={F}
+            />
+          </div>
+
+          {/* Colour picker */}
+          <div>
+            <FieldLabel>Accent colour</FieldLabel>
+            <div className="flex flex-wrap items-center gap-2">
+              {TIER_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  title={c.label}
+                  onClick={() => update({ color: c.value })}
+                  className={`h-6 w-6 rounded-full transition ring-offset-1 ${
+                    tier.color === c.value ? "ring-2 ring-gray-400 scale-110" : "hover:scale-110"
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                />
+              ))}
+              {/* Custom hex */}
+              <div className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-2 py-1">
+                <Palette size={11} className="text-gray-400" />
+                <input
+                  type="text"
+                  value={tier.color}
+                  onChange={(e) => update({ color: e.target.value })}
+                  placeholder="#hex"
+                  className="w-16 border-0 bg-transparent text-xs outline-none text-gray-700"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -404,11 +641,32 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
     setForm((p) => ({ ...p, [name]: value }));
   };
 
-  const hp = (i, v) =>
+  /* Per-tier update */
+  const handleTierChange = (index, updatedTier) => {
     setForm((p) => ({
       ...p,
-      pricing: p.pricing.map((t, ti) => (ti === i ? { ...t, price: v } : t)),
+      pricing: p.pricing.map((t, ti) => (ti === index ? updatedTier : t)),
     }));
+  };
+
+  /* Delete custom tier */
+  const handleTierDelete = (index) => {
+    setForm((p) => ({
+      ...p,
+      pricing: p.pricing.filter((_, ti) => ti !== index),
+    }));
+  };
+
+  /* Add new custom tier */
+  const handleAddTier = () => {
+    setForm((p) => ({
+      ...p,
+      pricing: [
+        ...p.pricing,
+        makeTier({ type: `Tier ${p.pricing.length + 1}`, color: TIER_COLORS[p.pricing.length % TIER_COLORS.length].value }),
+      ],
+    }));
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -427,17 +685,9 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
     setNewEmail(""); setNewRole("co_organizer");
   };
 
-  /* ── handleAI ────────────────────────────────────────────────────────────────
-   *
-   * Receives the full payload from TickiAIGenerator and maps it to all wizard
-   * form fields across Steps 1–4. Also receives optional imageFile + preview.
-   *
-   * After applying, automatically navigates to Step 5 (Preview) so the
-   * user can review everything before publishing.
-   * ────────────────────────────────────────────────────────────────────────── */
+  /* ── handleAI ── */
   const handleAI = (aiData, aiImageFile = null, aiImagePreview = null) => {
     setForm((prev) => {
-      // ── Pricing merge ───────────────────────────────────────────────────
       let nextPricing = prev.pricing;
       if (Array.isArray(aiData.pricing) && aiData.pricing.length) {
         nextPricing = prev.pricing.map((slot) => {
@@ -458,25 +708,21 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
       return {
         ...prev,
-        // ── Step 1: basic info ────────────────────────────────────────────
         title:       aiData.title       || prev.title,
         description: aiData.description || prev.description,
         category:    aiData.category    || prev.category,
         location:    aiData.location    !== undefined ? aiData.location : prev.location,
         eventType:   aiData.eventType   || prev.eventType,
-        // ── Step 1: schedule ──────────────────────────────────────────────
         startDate:   aiData.startDate   || aiData.date  || prev.startDate,
         startTime:   aiData.startTime   || aiData.time  || prev.startTime,
         endDate:     aiData.endDate     || aiData.date  || prev.endDate,
         endTime:     aiData.endTime     || aiData.time  || prev.endTime,
-        // ── Step 3: tickets ───────────────────────────────────────────────
         totalTickets: aiData.totalTickets
           ? String(aiData.totalTickets)
           : aiData.capacity
           ? String(aiData.capacity)
           : prev.totalTickets,
         pricing: nextPricing,
-        // ── Step 4: settings ──────────────────────────────────────────────
         visibility:  aiData.visibility  || prev.visibility,
         streamType:  aiData.streamType  || prev.streamType,
         streamURL:   aiData.streamURL   !== undefined ? aiData.streamURL : prev.streamURL,
@@ -486,17 +732,14 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
     const inferFree = aiData.isFree ?? aiData.isFreeEvent ?? (aiData.ticketPrice === 0) ?? false;
     setIsFreeEvent(Boolean(inferFree));
 
-    // Apply AI-generated image if provided
     if (aiImageFile) {
       setImageFile(aiImageFile);
       setImagePreview(aiImagePreview || URL.createObjectURL(aiImageFile));
     } else if (aiImagePreview) {
-      // URL-only fallback (CORS prevented blob fetch)
       setImagePreview(aiImagePreview);
       setImageFile(null);
     }
 
-    // ── Automatically jump to Step 5 (Preview) ────────────────────────────
     setShowAIGen(false);
     setActiveStep(5);
     toast.success("TickiAI filled your entire event — review the preview before publishing.");
@@ -565,9 +808,10 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
     }
   };
 
+  /* Compute preview pricing (only enabled tiers) */
   const previewPricing = isFreeEvent
-    ? [{ type: "Free", price: 0 }]
-    : form.pricing.filter((t) => t.type && String(t.price).trim() !== "");
+    ? [{ type: "Free", price: 0, isEnabled: true }]
+    : form.pricing.filter((t) => t.isEnabled);
 
   const saveLabel =
     saveState === "saving" ? "Saving…"
@@ -575,6 +819,9 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
     ? `Saved ${lastSavedAt ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`
     : saveState === "error" ? "Save failed"
     : "Auto-save on";
+
+  /* Default tiers (Regular, VIP, VVIP) can't be deleted */
+  const DEFAULT_TYPES = ["Regular", "VIP", "VVIP"];
 
   if (!isOpen) return null;
 
@@ -696,11 +943,10 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                 <div className="space-y-4">
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 1 — Basic Info  (AI LIVES HERE)
+                      STEP 1 — Basic Info
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 1 && (
                     <>
-                      {/* ── TickiAI panel — collapsible, top of step 1 ── */}
                       <Card className="border-pink-100 bg-gradient-to-br from-pink-50/60 to-white">
                         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
@@ -731,22 +977,17 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
                         {showAIGen ? (
                           <div className="max-h-[60vh] overflow-y-auto overscroll-contain rounded-xl border border-gray-200 bg-white p-4">
-                            {/* TickiAIGenerator handles its own 3-step sub-flow */}
-                            <TickiAIGenerator
-                              onGenerate={handleAI}
-                              compact
-                            />
+                            <TickiAIGenerator onGenerate={handleAI} compact />
                           </div>
                         ) : (
                           <div className="rounded-xl border border-dashed border-pink-200 bg-white/70 px-4 py-3 text-center">
                             <p className="text-xs text-gray-500">
-                              Click <strong className="text-pink-600">Use TickiAI</strong> to auto-fill all 5 wizard steps title, schedule, tickets, pricing, settings, and cover image then jump straight to preview.
+                              Click <strong className="text-pink-600">Use TickiAI</strong> to auto-fill all 5 wizard steps — title, schedule, tickets, pricing, settings, and cover image — then jump straight to preview.
                             </p>
                           </div>
                         )}
                       </Card>
 
-                      {/* ── Manual fields ── */}
                       <Card>
                         <h3 className="mb-0.5 text-sm font-bold text-gray-900">Event type</h3>
                         <p className="mb-3 text-xs text-gray-500">How will people attend?</p>
@@ -809,7 +1050,6 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
                   {/* ══════════════════════════════════════════════════════
                       STEP 2 — Media
-                      (AI moved to Step 1; this step is purely cover image)
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 2 && (
                     <Card>
@@ -852,66 +1092,115 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   )}
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 3 — Tickets
+                      STEP 3 — Tickets (UPDATED)
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 3 && (
-                    <Card>
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <h3 className="text-sm font-bold text-gray-900">Tickets &amp; pricing</h3>
-                          <p className="text-xs text-gray-500">Keep it simple so buyers decide fast.</p>
-                        </div>
-                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100">
-                          <input type="checkbox" checked={isFreeEvent} onChange={(e) => setIsFreeEvent(e.target.checked)} className="accent-pink-500" />
-                          Free event
-                        </label>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-3">
+                    <div className="space-y-4">
+                      {/* Quantity + free event toggle */}
+                      <Card>
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                           <div>
-                            <FieldLabel>Total ticket quantity</FieldLabel>
-                            <input name="totalTickets" value={form.totalTickets} onChange={hc} type="number" min="1" placeholder="e.g. 250" className={F} />
+                            <h3 className="text-sm font-bold text-gray-900">Ticket quantity</h3>
+                            <p className="text-xs text-gray-500">Total seats available across all tiers.</p>
                           </div>
-                          {isFreeEvent ? (
-                            <div className="rounded-xl border border-pink-200 bg-pink-50 px-3 py-2.5 text-xs text-pink-700">
-                              Free event — attendees reserve without payment.
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {form.pricing.map((tier, i) => (
-                                <div key={tier.type} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5">
-                                  <div className="min-w-0 flex-1 text-xs font-semibold text-gray-900">{tier.type}</div>
-                                  <div className="flex items-center rounded-lg border border-gray-200 bg-white px-2.5">
-                                    <span className="text-xs font-bold text-gray-400">₦</span>
-                                    <input type="number" min="0" step="100" value={tier.price} onChange={(e) => hp(i, e.target.value)} placeholder="0"
-                                      className="w-20 border-0 bg-transparent py-2 text-right text-sm font-semibold text-gray-900 outline-none" />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100">
+                            <input type="checkbox" checked={isFreeEvent} onChange={(e) => setIsFreeEvent(e.target.checked)} className="accent-pink-500" />
+                            All tickets free
+                          </label>
+                        </div>
+                        <div>
+                          <FieldLabel>Total ticket quantity</FieldLabel>
+                          <input name="totalTickets" value={form.totalTickets} onChange={hc} type="number" min="1" placeholder="e.g. 250" className={F} />
+                        </div>
+                      </Card>
+
+                      {/* Tier editor */}
+                      <Card>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-900">Ticket tiers</h3>
+                            <p className="text-xs text-gray-500">
+                              {isFreeEvent
+                                ? "All tiers are free — toggle individual tiers on/off to control visibility."
+                                : "Enable, disable, customise or add tiers. Disabled tiers won't appear to buyers."}
+                            </p>
+                          </div>
+                          {!isFreeEvent && (
+                            <button
+                              type="button"
+                              onClick={handleAddTier}
+                              className="flex items-center gap-1.5 rounded-full border border-dashed border-pink-300 bg-pink-50 px-3 py-1.5 text-xs font-bold text-pink-600 transition hover:bg-pink-100"
+                            >
+                              <Plus size={12} /> Add tier
+                            </button>
                           )}
                         </div>
 
-                        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                          <div className="mb-1 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-gray-400">Buyer preview</div>
-                          <div className="mb-3 text-xs font-bold text-gray-800">How checkout looks</div>
-                          <div className="space-y-1.5">
-                            {previewPricing.map((tier) => (
-                              <div key={tier.type} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2">
-                                <span className="text-xs font-semibold text-gray-800">{tier.type}</span>
-                                <span className="text-xs font-bold text-gray-900">
-                                  {isFreeEvent ? "Free" : `₦${Number(tier.price || 0).toLocaleString("en-NG")}`}
-                                </span>
-                              </div>
-                            ))}
-                            <div className="rounded-lg border border-gray-100 bg-white px-3 py-1.5 text-[0.65rem] text-gray-400">
-                              <strong className="text-gray-700">{form.totalTickets || 0}</strong> tickets total
-                            </div>
+                        {isFreeEvent ? (
+                          <div className="rounded-xl border border-pink-200 bg-pink-50 px-3 py-2.5 text-xs text-pink-700">
+                            Free event mode — attendees reserve spots without payment. All pricing is hidden from buyers.
                           </div>
-                        </div>
-                      </div>
-                    </Card>
+                        ) : (
+                          <div className="space-y-2">
+                            {form.pricing.map((tier, i) => (
+                              <TierEditor
+                                key={`${tier.type}-${i}`}
+                                tier={tier}
+                                index={i}
+                                onChange={handleTierChange}
+                                onDelete={DEFAULT_TYPES.includes(tier.type) ? null : handleTierDelete}
+                                isEventFree={isFreeEvent}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </Card>
+
+                      {/* Buyer preview */}
+                      {!isFreeEvent && (
+                        <Card className="border-gray-100 bg-gray-50">
+                          <div className="mb-2 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-gray-400">
+                            Buyer preview · only enabled tiers show
+                          </div>
+                          {previewPricing.length === 0 ? (
+                            <p className="text-xs text-gray-400 italic">No enabled tiers yet.</p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {previewPricing.map((tier) => {
+                                const displayName = tier.label || tier.type;
+                                const accentColor = tier.color || "#ec4899";
+                                return (
+                                  <div
+                                    key={tier.type}
+                                    className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-2"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div
+                                        className="h-2 w-2 rounded-full"
+                                        style={{ backgroundColor: accentColor }}
+                                      />
+                                      <div>
+                                        <span className="text-xs font-semibold text-gray-800">{displayName}</span>
+                                        {tier.description && (
+                                          <span className="ml-2 text-[0.6rem] text-gray-400">{tier.description}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-900">
+                                      {tier.isFree ? "Free" : `₦${Number(tier.price || 0).toLocaleString("en-NG")}`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                              <div className="rounded-lg border border-gray-100 bg-white px-3 py-1.5 text-[0.65rem] text-gray-400">
+                                <strong className="text-gray-700">{form.totalTickets || 0}</strong> tickets total ·{" "}
+                                <strong className="text-gray-700">{form.pricing.filter((t) => !t.isEnabled).length}</strong> tier(s) hidden from buyers
+                              </div>
+                            </div>
+                          )}
+                        </Card>
+                      )}
+                    </div>
                   )}
 
                   {/* ══════════════════════════════════════════════════════
@@ -1010,9 +1299,8 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   {activeStep === 5 && (
                     <Card>
                       <h3 className="mb-0.5 text-sm font-bold text-gray-900">Preview before publish</h3>
-                      <p className="mb-4 text-xs text-gray-500">Final pass make sure everything looks clean.</p>
+                      <p className="mb-4 text-xs text-gray-500">Final pass — make sure everything looks clean.</p>
 
-                      {/* AI-filled indicator */}
                       {form.title && (
                         <div className="mb-4 flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-700">
                           <Sparkles size={13} />
@@ -1069,32 +1357,27 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                           </div>
 
                           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">
-                            <div className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-gray-400">Ticket options</div>
+                            <div className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-gray-400">
+                              Ticket options · {previewPricing.length} visible to buyers
+                            </div>
                             <div className="space-y-1.5">
-                              {previewPricing.map((tier) => (
-                                <div key={tier.type} className="flex justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs">
-                                  <span className="font-semibold text-gray-800">{tier.type}</span>
-                                  <span className="font-bold text-gray-900">
-                                    {isFreeEvent ? "Free" : `₦${Number(tier.price || 0).toLocaleString("en-NG")}`}
-                                  </span>
-                                </div>
-                              ))}
+                              {previewPricing.map((tier) => {
+                                const displayName = tier.label || tier.type;
+                                const accentColor = tier.color || "#ec4899";
+                                return (
+                                  <div key={tier.type} className="flex items-center gap-2 justify-between rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: accentColor }} />
+                                      <span className="font-semibold text-gray-800">{displayName}</span>
+                                    </div>
+                                    <span className="font-bold text-gray-900">
+                                      {isFreeEvent || tier.isFree ? "Free" : `₦${Number(tier.price || 0).toLocaleString("en-NG")}`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
-
-                          {teamMembers.length > 0 && (
-                            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3.5">
-                              <div className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-gray-400">Team</div>
-                              <div className="space-y-1">
-                                {teamMembers.map((m, i) => (
-                                  <div key={i} className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs">
-                                    <span className="truncate font-semibold text-gray-800">{m.email}</span>
-                                    <span className="ml-2 shrink-0 text-gray-400">{teamRoles.find((r) => r.value === m.role)?.label}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
 
                           {/* Step shortcuts */}
                           <div className="rounded-xl border border-gray-100 p-3">

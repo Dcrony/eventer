@@ -156,7 +156,12 @@ export default function Home() {
           : Array.isArray(res.data?.data)
             ? res.data.data
             : [];
-        setEvents(data.filter((e) => e && e.createdBy));
+        // After
+setEvents(
+  data.filter(
+    (e) => e && e.createdBy && e.status !== "pending_review" && e.status !== "pending"
+  )
+);
         setUseDemoData(false);
         setError(null);
       } catch {

@@ -212,14 +212,14 @@ const handleEventUpdated = () => fetchDashboardData();
             )}
 
             {/* Top Performing Events */}
-            {stats?.topEvents?.length > 0 && (
+            {stats?.topEvents?.filter((e) => !e.isDraft).length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
                   <h3 className="text-sm font-bold text-gray-900">Top Performing Events</h3>
                 </div>
                 <div className="p-6">
                   <div className="space-y-0">
-                    {stats.topEvents.slice(0, 3).map((event, index) => (
+                    {stats.topEvents.filter((e) => !e.isDraft).slice(0, 3).map((event, index) => (
                       <div
                         key={index}
                         className="grid grid-cols-[32px_1fr_180px] items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg"

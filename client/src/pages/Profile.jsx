@@ -345,10 +345,15 @@ export default function Profile() {
     return () => window.removeEventListener("resize", updateIndicator);
   }, [activeTab, visibleTabs]);
 
-  const createdEvents = profile?.createdEvents || [];
-  const featuredEvents = profile?.featuredEvents || [];
-  const likedEvents = profile?.likedEvents || [];
-  const savedEvents = profile?.savedEvents || [];
+  // After
+const filterPending = (events = []) =>
+  events.filter((e) => e?.status !== "pending_review" && e?.status !== "pending");
+
+const createdEvents = filterPending(profile?.createdEvents);
+const featuredEvents = filterPending(profile?.featuredEvents);
+const likedEvents = filterPending(profile?.likedEvents);
+const savedEvents = filterPending(profile?.savedEvents);
+
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
   const totalEventsCreated = profile?.stats?.totalEventsCreated ?? createdEvents.length;

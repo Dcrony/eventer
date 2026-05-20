@@ -3,7 +3,7 @@ import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { useToast } from "../components/ui/toast";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   Clock,
@@ -18,24 +18,71 @@ import {
   Sparkles,
 } from "lucide-react";
 
+/* ─── Tier helpers (mirrors EventDetail.jsx exactly) ─────────────────────── */
+const getTierDisplayName  = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
+const getTierAccentColor  = (tier) => tier?.color?.trim() || "#ec4899";
+const isTierFree          = (tier, isEventFree) =>
+  isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
+
 export default function Checkout() {
-  const { state } = useLocation();
-  const navigate = useNavigate();
-  const toast = useToast();
-  const [loading, setLoading] = useState(false);
+  const { state }  = useLocation();
+  const navigate   = useNavigate();
+  const toast      = useToast();
+  const [loading,  setLoading]  = useState(false);
+
   const { event, quantity, user, ticketType, price } = state || {};
   const isFreeEvent = event?.isFreeEvent || event?.isFree;
 
-  const [selectedPricing, setSelectedPricing] = useState(
-    event?.pricing?.find((p) => p.type === ticketType) || null
+  // Replace the existing visiblePricing useMemo
+const visiblePricing = useMemo(
+  () =>
+    (event?.pricing || []).filter(
+      (p) =>
+        p.isEnabled !== false &&
+        !p.isFree &&
+        Number(p.price || 0) > 0
+    ),
+  [event]
+);
+
+  // Replace the existing selectedPricing useState
+const [selectedPricing, setSelectedPricing] = useState(() =>
+  visiblePricing.find((p) => p.type === ticketType) ||
+  visiblePricing[0] ||
+  null
+);
+
+  /* ── If the resolved tier (or the whole event) is free, skip checkout ── */
+  useEffect(() => {
+    const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
+    if (!event || !tierIsFree) return;
+
+    API.post("/tickets/create", {
+      eventId:    event._id,
+      quantity:   1,
+      ticketType: selectedPricing?.type || "Free",
+      isFree:     true,
+    })
+      .then(() => {
+        toast.success("Ticket reserved successfully");
+        navigate("/my-tickets");
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.message || "Failed to reserve ticket");
+        navigate(`/event/${event._id}`);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+const unitPrice = useMemo(
+  () => selectedPricing?.price ?? price ?? 0,
+  [selectedPricing, price]
+);
+
+  const lineTotal = useMemo(
+    () => unitPrice * (quantity || 0),
+    [unitPrice, quantity]
   );
 
-  const unitPrice = useMemo(() => {
-    return selectedPricing?.price ?? price ?? 0;
-  }, [selectedPricing, price]);
-
-  const lineTotal = useMemo(() => unitPrice * (quantity || 0), [unitPrice, quantity]);
-
+  /* ── Guard: missing state ── */
   if (!event || !quantity || !user || !ticketType || price == null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8 pb-24 font-geist">
@@ -43,8 +90,12 @@ export default function Checkout() {
           <div className="w-16 h-16 rounded-full bg-red-50 grid place-items-center text-red-500">
             <AlertCircle size={40} strokeWidth={1.5} />
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 m-0">Couldn&apos;t load checkout</h2>
-          <p className="text-sm text-gray-400 m-0">Go back to the event and select tickets again.</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 m-0">
+            Couldn&apos;t load checkout
+          </h2>
+          <p className="text-sm text-gray-400 m-0">
+            Go back to the event and select tickets again.
+          </p>
           <button
             type="button"
             onClick={() => navigate("/events")}
@@ -57,6 +108,7 @@ export default function Checkout() {
     );
   }
 
+  /* ── Payment handler ── */
   const handleConfirmPayment = async () => {
     if (!event || !quantity || !user || !ticketType || price == null) {
       toast.error("Invalid checkout data. Please try again.");
@@ -64,14 +116,16 @@ export default function Checkout() {
       return;
     }
 
+    const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
+
     setLoading(true);
     try {
-      if (isFreeEvent) {
+      if (tierIsFree) {
         await API.post("/tickets/create", {
-          eventId: event._id,
-          quantity,
-          ticketType: selectedPricing?.type || ticketType || "Free",
-          isFree: true,
+          eventId:    event._id,
+          quantity:   1,
+          ticketType: selectedPricing?.type || "Free",
+          isFree:     true,
         });
         toast.success("Ticket reserved successfully");
         navigate("/my-tickets");
@@ -81,10 +135,10 @@ export default function Checkout() {
       const res = await API.post("/payment/initiate", {
         email: user.email,
         metadata: {
-          eventId: event._id,
-          userId: user._id,
-          quantity: quantity.toString(),
-          price: unitPrice.toString(),
+          eventId:     event._id,
+          userId:      user._id,
+          quantity:    quantity.toString(),
+          price:       unitPrice.toString(),
           pricingType: selectedPricing?.type || ticketType,
         },
       });
@@ -102,33 +156,35 @@ export default function Checkout() {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+      month:   "short",
+      day:     "numeric",
+      year:    "numeric",
     });
-  };
 
-  const eventImg = getEventImageUrl(event);
-  const topTrustCopy = isFreeEvent
-    ? "Instant ticket reservation"
-    : "Secure payment via Paystack";
-  const heroCopy = isFreeEvent
+  const eventImg      = getEventImageUrl(event);
+  const tierIsFree    = isTierFree(selectedPricing, isFreeEvent);
+  const topTrustCopy  = tierIsFree ? "Instant ticket reservation" : "Secure payment via Paystack";
+  const heroCopy      = tierIsFree
     ? "Review your ticket details and reserve your spot instantly."
     : "Review your tickets and pay securely. You'll get a confirmation by email.";
-  const ctaCopy = isFreeEvent
+  const ctaCopy = tierIsFree
     ? "Reserve Free Ticket"
     : `Pay ₦${lineTotal.toLocaleString()}`;
 
   return (
     <div className="min-h-screen bg-gray-50 font-geist relative overflow-x-hidden">
       {/* Subtle pink radial background */}
-      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_15%_25%,rgba(244,63,142,0.05)_0%,transparent_50%),radial-gradient(circle_at_85%_75%,rgba(244,63,142,0.04)_0%,transparent_50%)]" aria-hidden="true" />
+      <div
+        className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_15%_25%,rgba(244,63,142,0.05)_0%,transparent_50%),radial-gradient(circle_at_85%_75%,rgba(244,63,142,0.04)_0%,transparent_50%)]"
+        aria-hidden="true"
+      />
 
       <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-5 lg:px-6 py-5 pb-16 sm:pb-20">
-        {/* Top Bar */}
+
+        {/* ── Top Bar ── */}
         <nav className="flex items-center justify-between gap-4 flex-wrap mb-7">
           <button
             type="button"
@@ -144,7 +200,7 @@ export default function Checkout() {
           </div>
         </nav>
 
-        {/* Header */}
+        {/* ── Header ── */}
         <header className="mb-8">
           <div className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-pink-50 border border-pink-200 text-pink-500 text-[0.65rem] font-bold uppercase tracking-wider mb-3">
             <Sparkles size={14} /> Checkout
@@ -152,18 +208,18 @@ export default function Checkout() {
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900 mb-2">
             Complete your order
           </h1>
-          <p className="max-w-2xl text-sm text-gray-400 leading-relaxed">
-            {heroCopy}
-          </p>
+          <p className="max-w-2xl text-sm text-gray-400 leading-relaxed">{heroCopy}</p>
         </header>
 
-        {/* Two Column Layout */}
+        {/* ── Two Column Layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-          {/* Main Column */}
+
+          {/* ── Main Column ── */}
           <div className="min-w-0">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in-up">
+
               {/* Event Summary */}
-              <div className="checkout-event-summary relative overflow-hidden p-5 sm:p-6 bg-gradient-to-br from-pink-50/60 via-transparent to-transparent border-b border-gray-200">
+              <div className="relative overflow-hidden p-5 sm:p-6 bg-gradient-to-br from-pink-50/60 via-transparent to-transparent border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row gap-4 items-start">
                   <div className="w-20 h-20 rounded-xl bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-500 overflow-hidden flex-shrink-0">
                     {eventImg ? (
@@ -208,16 +264,21 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Ticket Type Selection */}
-              {event.pricing && event.pricing.length > 1 && (
+              {/* ── Ticket Type Selection — mirrors EventDetail visiblePricing ── */}
+              {visiblePricing.length > 1 && (
                 <section className="p-5 sm:p-6 border-b border-gray-200">
                   <div className="flex items-center gap-2 mb-4">
                     <Ticket size={20} className="text-pink-500" />
                     <h3 className="text-sm font-bold text-gray-900 m-0">Ticket type</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {event.pricing.map((p) => {
-                      const active = selectedPricing?.type === p.type;
+                    {visiblePricing.map((p) => {
+                      const active       = selectedPricing?.type === p.type;
+                      const displayName  = getTierDisplayName(p);
+                      const accentColor  = getTierAccentColor(p);
+                      const free         = isTierFree(p, isFreeEvent);
+                      const priceDisplay = free ? "Free" : `₦${Number(p.price).toLocaleString()}`;
+
                       return (
                         <button
                           key={p.type}
@@ -229,15 +290,40 @@ export default function Checkout() {
                               : "border-gray-200 bg-gray-50 hover:border-pink-200 hover:bg-pink-50/30 hover:-translate-y-0.5"
                           }`}
                         >
+                          {/* Name row */}
                           <div className="flex justify-between items-center mb-2">
-                            <span className="font-bold text-sm text-gray-900">{p.type}</span>
-                            {active && <CheckCircle size={18} className="text-pink-500" />}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: accentColor }}
+                              />
+                              <span className="font-bold text-sm text-gray-900 truncate">
+                                {displayName}
+                              </span>
+                            </div>
+                            {active && <CheckCircle size={18} className="text-pink-500 shrink-0" />}
                           </div>
-                          <div className="text-xl font-extrabold text-pink-500 tracking-tight mb-1">
-                            ₦{Number(p.price).toLocaleString()}
+
+                          {/* Price */}
+                          <div
+                            className="text-xl font-extrabold tracking-tight mb-1"
+                            style={{ color: active ? accentColor : "#ec4899" }}
+                          >
+                            {priceDisplay}
                           </div>
-                          {p.benefits && (
-                            <p className="text-xs text-gray-400 mt-2 leading-relaxed">{p.benefits}</p>
+
+                          {/* Benefit description */}
+                          {p.description && (
+                            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                              {p.description}
+                            </p>
+                          )}
+
+                          {/* Max per order */}
+                          {p.maxPerOrder > 0 && (
+                            <p className="text-[0.6rem] text-gray-400 mt-1">
+                              Max {p.maxPerOrder} per order
+                            </p>
                           )}
                         </button>
                       );
@@ -269,53 +355,88 @@ export default function Checkout() {
                   <h4 className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2">
                     About this event
                   </h4>
-                  <p className="text-sm text-gray-500 leading-relaxed m-0">
-                    {event.description}
-                  </p>
+                  <p className="text-sm text-gray-500 leading-relaxed m-0">{event.description}</p>
                 </section>
               )}
             </div>
           </div>
 
-          {/* Sidebar */}
+          {/* ── Sidebar ── */}
           <aside className="lg:sticky lg:top-5 flex flex-col gap-4">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+
               {/* Order Summary Header */}
               <div className="flex items-baseline justify-between gap-4 p-5 pb-4 bg-gradient-to-br from-pink-50/40 via-transparent to-transparent border-b border-gray-200">
                 <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
                   Order summary
                 </span>
                 <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
-                  ₦{lineTotal.toLocaleString()}
+                  {tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}
                 </span>
               </div>
 
               {/* Order Details */}
               <div className="p-5">
                 <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                  <div className="flex justify-between items-center text-sm">
+
+                  {/* Tier — show colour dot + display name */}
+                  <div className="flex justify-between items-center text-sm gap-2">
                     <span className="text-gray-400">Type</span>
-                    <span className="font-semibold text-gray-900">{selectedPricing?.type || ticketType}</span>
+                    <div className="flex items-center gap-1.5">
+                      {selectedPricing && (
+                        <div
+                          className="h-2 w-2 rounded-full shrink-0"
+                          style={{ backgroundColor: getTierAccentColor(selectedPricing) }}
+                        />
+                      )}
+                      <span className="font-semibold text-gray-900">
+                        {getTierDisplayName(selectedPricing) || ticketType}
+                      </span>
+                    </div>
                   </div>
+
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-400">Unit price</span>
-                    <span className="font-semibold text-gray-900">₦{unitPrice.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900">
+                      {tierIsFree ? "Free" : `₦${unitPrice.toLocaleString()}`}
+                    </span>
                   </div>
+
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-400">Quantity</span>
                     <span className="font-semibold text-gray-900">{quantity}</span>
                   </div>
+
+                  {selectedPricing?.maxPerOrder > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400">Max per order</span>
+                      <span className="font-semibold text-gray-900">
+                        {selectedPricing.maxPerOrder}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="h-px bg-gray-200 my-2" />
+
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-gray-900">Total</span>
                     <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
-                      ₦{lineTotal.toLocaleString()}
+                      {tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Pay Button */}
+              {/* Benefit description in sidebar too (if present) */}
+              {selectedPricing?.description && (
+                <div className="px-5 pb-3">
+                  <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-500 leading-relaxed">
+                    {selectedPricing.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Pay / Reserve Button */}
               <div className="px-5 pb-4">
                 <button
                   type="button"
@@ -325,7 +446,10 @@ export default function Checkout() {
                 >
                   {loading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden />
+                      <div
+                        className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                        aria-hidden
+                      />
                       Processing...
                     </>
                   ) : (
@@ -341,7 +465,7 @@ export default function Checkout() {
               <div className="flex justify-center gap-4 flex-wrap p-4 pt-2 border-t border-gray-200">
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400">
                   <ShieldCheck size={14} className="text-green-500" />
-                  {isFreeEvent ? "Instant confirmation" : "Encrypted checkout"}
+                  {tierIsFree ? "Instant confirmation" : "Encrypted checkout"}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400">
                   <Ticket size={14} className="text-green-500" />
@@ -350,25 +474,28 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Refund Notice */}
-            <div className="flex gap-2 p-3 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-gray-500 leading-relaxed">
-              <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="m-0">
-                Refunds may be available up to 24 hours before the event, per organizer policy.
-              </p>
-            </div>
+            {/* Refund Notice — hide for free tickets */}
+            {!tierIsFree && (
+              <div className="flex gap-2 p-3 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-gray-500 leading-relaxed">
+                <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="m-0">
+                  Refunds may be available up to 24 hours before the event, per organizer policy.
+                </p>
+              </div>
+            )}
           </aside>
         </div>
       </div>
 
+      {/* ── Mobile sticky footer ── */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <div className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
-              Total
+              {getTierDisplayName(selectedPricing) || "Tickets"}
             </div>
             <div className="truncate text-lg font-extrabold tracking-tight text-gray-900">
-              {isFreeEvent ? "Free reservation" : ctaCopy}
+              {tierIsFree ? "Free reservation" : ctaCopy}
             </div>
           </div>
           <button
@@ -377,7 +504,7 @@ export default function Checkout() {
             disabled={loading}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-pink-500 px-5 text-sm font-bold text-white shadow-lg shadow-pink-500/25 transition-all duration-200 hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Processing..." : isFreeEvent ? "Reserve" : "Pay now"}
+            {loading ? "Processing..." : tierIsFree ? "Reserve" : "Pay now"}
           </button>
         </div>
       </div>
