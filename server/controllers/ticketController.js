@@ -43,7 +43,6 @@ exports.getMyTickets = async (req, res) => {
 exports.createTicket = async (req, res) => {
   try {
     const { eventId, ticketType, quantity = 1, isFree } = req.body;
-    const parsedQuantity = Math.max(1, Number(quantity) || 1);
 
     if (!eventId) {
       return res.status(400).json({ message: "Event ID is required" });
@@ -64,90 +63,107 @@ exports.createTicket = async (req, res) => {
     const requestedFreeTicket = isFree === true || isFree === "true";
     const eventIsFree = event.isFree === true || event.isFreeEvent === true;
 
-    if (!eventIsFree) {
-      if (requestedFreeTicket) {
-        return res.status(400).json({ message: "Paid events require payment before ticket creation" });
-      }
-      return res.status(400).json({ message: "This endpoint only supports free events" });
-    }
+    // ── Resolve the specific tier being requested ──────────────────────────
+    const eventPricing = Array.isArray(event.pricing) ? event.pricing : [];
+    const normalizedRequestedType = String(ticketType || "").trim();
+
+    const matchingTier = normalizedRequestedType
+      ? eventPricing.find((p) => p.type === normalizedRequestedType)
+      : null;
+
+    // For paid events, only allow this endpoint when:
+    //   (a) the whole event is free, OR
+    //   (b) the specific requested tier is free (isFree flag or price === 0)
+    const tierIsFree =
+      eventIsFree ||
+      Boolean(matchingTier?.isFree) ||
+      Number(matchingTier?.price || 0) === 0;
 
     if (!requestedFreeTicket) {
       return res.status(400).json({ message: "Free ticket request must be marked as free" });
     }
 
-    // Duplicate guard — one free ticket per user per event
+    if (!tierIsFree) {
+      return res.status(400).json({
+        message: "This ticket tier requires payment. Please complete checkout.",
+      });
+    }
+
+    // ── Validate the tier exists on the event (for mixed-tier events) ──────
+    if (
+      !eventIsFree &&
+      normalizedRequestedType &&
+      eventPricing.length > 0 &&
+      !matchingTier
+    ) {
+      return res.status(400).json({ message: "Invalid ticket type for this event" });
+    }
+
+    // ── Duplicate guard — one free ticket per tier per user per event ───────
     const existingFreeTicket = await Ticket.findOne({
       event: event._id,
       buyer: req.user.id,
       isFree: true,
+      ...(normalizedRequestedType ? { ticketType: normalizedRequestedType } : {}),
       status: { $nin: ["refunded", "cancelled"] },
     });
 
     if (existingFreeTicket) {
       return res.status(409).json({
-        message: "You already have a free ticket for this event.",
+        message: "You already have a free ticket of this type for this event.",
       });
     }
 
+    // ── Availability check ──────────────────────────────────────────────────
     const remainingTickets = Number(event.totalTickets || 0);
     if (remainingTickets <= 0) {
       return res.status(400).json({ message: "Event is sold out" });
     }
 
     const freeQuantity = 1;
-
     if (remainingTickets < freeQuantity) {
       return res.status(400).json({ message: "Not enough tickets available" });
     }
 
-    const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
-    const normalizedRequestedType = String(ticketType || "").trim();
-    const eventPricing = Array.isArray(event.pricing) ? event.pricing : [];
-    const matchingFreeTier = normalizedRequestedType
-      ? eventPricing.find((p) => p.type === normalizedRequestedType)
-      : null;
-
-    if (normalizedRequestedType && eventPricing.length > 0 && !matchingFreeTier) {
-      return res.status(400).json({ message: "Invalid ticket type for this event" });
-    }
-
+    // ── Resolve ticket type label ───────────────────────────────────────────
     const resolvedTicketType =
-      matchingFreeTier?.type ||
+      matchingTier?.type ||
       normalizedRequestedType ||
-      eventPricing[0]?.type ||
-      "Free";
+      (eventIsFree ? eventPricing[0]?.type || "Free" : "Free");
+
+    const reference = `FREE-${event._id}-${req.user.id}-${Date.now()}`;
 
     const ticket = new Ticket({
-      buyer: req.user.id,
-      event: event._id,
-      quantity: freeQuantity,
-      ticketType: resolvedTicketType,
-      price: 0,
-      amount: 0,
-      amountPaid: 0,
+      buyer:         req.user.id,
+      event:         event._id,
+      quantity:      freeQuantity,
+      ticketType:    resolvedTicketType,
+      price:         0,
+      amount:        0,
+      amountPaid:    0,
       paymentStatus: "free",
-      isFree: true,
+      isFree:        true,
       reference,
     });
 
     await ticket.save();
 
-    // ✅ Snapshot capacity if not already set, then decrement only totalTickets
+    // ── Update event capacity ───────────────────────────────────────────────
     if (!event.capacity || event.capacity === 0) {
       event.capacity = remainingTickets + Number(event.ticketsSold || 0);
     }
-    event.ticketsSold = Number(event.ticketsSold || 0) + freeQuantity;
+    event.ticketsSold  = Number(event.ticketsSold  || 0) + freeQuantity;
     event.totalTickets = Math.max(0, remainingTickets - freeQuantity);
     recordTicketPurchaseMetrics(event, freeQuantity, 0);
     await event.save();
 
-    // Generate QR code
+    // ── Generate QR code ────────────────────────────────────────────────────
     const frontendUrl = process.env.FRONTEND_URL || "";
-    const qrData = `${frontendUrl}/validate/${ticket._id}`;
+    const qrData      = `${frontendUrl}/validate/${ticket._id}`;
 
     const qrBuffer = await QRCode.toBuffer(qrData, {
-      type: "png",
-      width: 400,
+      type:   "png",
+      width:  400,
       margin: 2,
     });
 
@@ -164,30 +180,31 @@ exports.createTicket = async (req, res) => {
         console.error("QR Cloudinary upload failed:", err.message);
       }
     } else {
-      const qrDir = path.join(__dirname, "../uploads/qrcodes");
+      const qrDir      = path.join(__dirname, "../uploads/qrcodes");
       if (!fs.existsSync(qrDir)) fs.mkdirSync(qrDir, { recursive: true });
       const qrFileName = `${ticket._id}.png`;
-      const qrPath = path.join(qrDir, qrFileName);
+      const qrPath     = path.join(qrDir, qrFileName);
       fs.writeFileSync(qrPath, qrBuffer);
-      ticket.qrCode = `qrcodes/${qrFileName}`;
+      ticket.qrCode    = `qrcodes/${qrFileName}`;
       await ticket.save();
     }
 
-    const buyer = await User.findById(req.user.id).select("name email");
+    // ── Send emails ─────────────────────────────────────────────────────────
+    const buyer     = await User.findById(req.user.id).select("name email");
     const organizer = await User.findById(event.createdBy).select("name email");
 
     if (buyer?.email) {
       try {
         await sendEmail({
-          to: buyer.email,
+          to:      buyer.email,
           subject: "🎟️ Your Ticket is Confirmed",
-          html: ticketPurchaseEmail(buyer.name || "Guest", event.title, freeQuantity),
+          html:    ticketPurchaseEmail(buyer.name || "Guest", event.title, freeQuantity),
           attachments: [
             {
               filename: "ticket-qr.png",
-              content: qrBase64,
+              content:  qrBase64,
               encoding: "base64",
-              cid: "ticketqr",
+              cid:      "ticketqr",
             },
           ],
         });
@@ -199,9 +216,9 @@ exports.createTicket = async (req, res) => {
     if (organizer?.email) {
       try {
         await sendEmail({
-          to: organizer.email,
+          to:      organizer.email,
           subject: "🎉 New Ticket Reserved",
-          html: organizerTicketAlertEmail(
+          html:    organizerTicketAlertEmail(
             organizer.name || "Organizer",
             event.title,
             buyer?.name || "Someone",
@@ -228,8 +245,8 @@ exports.createTicket = async (req, res) => {
  */
 exports.validateTicket = async (req, res) => {
   try {
-    const raw = req.params.ticketId || "";
-    const match = raw.match(/[0-9a-fA-F]{24}/);
+    const raw     = req.params.ticketId || "";
+    const match   = raw.match(/[0-9a-fA-F]{24}/);
     const ticketId = match ? match[0] : null;
 
     if (!ticketId || !mongoose.Types.ObjectId.isValid(ticketId)) {
@@ -237,7 +254,7 @@ exports.validateTicket = async (req, res) => {
     }
 
     const ticket = await Ticket.findById(ticketId).populate({
-      path: "event",
+      path:   "event",
       select: "title startDate location createdBy",
     });
 
@@ -258,20 +275,20 @@ exports.validateTicket = async (req, res) => {
       return res.json({
         success: false,
         message: "Ticket already used",
-        event: ticket.event,
+        event:   ticket.event,
       });
     }
 
-    ticket.used = true;
+    ticket.used   = true;
     ticket.status = "checked-in";
     ticket.usedAt = new Date();
     await ticket.save();
 
     return res.json({
-      success: true,
-      message: "Ticket valid",
-      event: ticket.event,
-      ticket: { id: ticket._id, quantity: ticket.quantity },
+      success:  true,
+      message:  "Ticket valid",
+      event:    ticket.event,
+      ticket:   { id: ticket._id, quantity: ticket.quantity },
     });
   } catch (err) {
     console.error("VALIDATE ERROR:", err);
@@ -292,9 +309,9 @@ exports.getEventTickets = async (req, res) => {
 
     const lookup = await authorizeEventAction({
       eventId,
-      user: req.user,
-      permission: "canManageTickets",
-      deniedMessage: "You do not have permission to manage tickets for this event",
+      user:           req.user,
+      permission:     "canManageTickets",
+      deniedMessage:  "You do not have permission to manage tickets for this event",
     });
 
     if (lookup.error) {
@@ -399,25 +416,23 @@ exports.resendTicketEmail = async (req, res) => {
       return res.status(400).json({ message: "Buyer email not found" });
     }
 
-    // ── Resolve QR for email attachment ───────────────────────────────────
+    // ── Resolve QR for email attachment ────────────────────────────────────
     let qrBase64 = null;
 
     if (ticket.qrCode) {
       const isCloudinaryUrl =
-        typeof ticket.qrCode === "string" &&
-        ticket.qrCode.startsWith("http");
+        typeof ticket.qrCode === "string" && ticket.qrCode.startsWith("http");
 
       if (isCloudinaryUrl) {
-        // Re-fetch from Cloudinary URL as buffer
         try {
-          const https = require("https");
-          const http = require("http");
+          const https  = require("https");
+          const http   = require("http");
           const client = ticket.qrCode.startsWith("https") ? https : http;
           qrBase64 = await new Promise((resolve, reject) => {
             client.get(ticket.qrCode, (res) => {
               const chunks = [];
-              res.on("data", (chunk) => chunks.push(chunk));
-              res.on("end", () => resolve(Buffer.concat(chunks).toString("base64")));
+              res.on("data",  (chunk) => chunks.push(chunk));
+              res.on("end",   () => resolve(Buffer.concat(chunks).toString("base64")));
               res.on("error", reject);
             }).on("error", reject);
           });
@@ -425,7 +440,6 @@ exports.resendTicketEmail = async (req, res) => {
           console.error("Failed to fetch QR from Cloudinary for resend:", err.message);
         }
       } else {
-        // Legacy local file path
         const qrPath = path.join(__dirname, "../uploads", ticket.qrCode);
         if (fs.existsSync(qrPath)) {
           qrBase64 = fs.readFileSync(qrPath).toString("base64");
@@ -433,11 +447,11 @@ exports.resendTicketEmail = async (req, res) => {
       }
     }
 
-    // If QR image is unavailable for any reason, regenerate it on the fly
+    // Regenerate if unavailable
     if (!qrBase64) {
       try {
         const frontendUrl = process.env.FRONTEND_URL || "";
-        const qrBuffer = await QRCode.toBuffer(
+        const qrBuffer    = await QRCode.toBuffer(
           `${frontendUrl}/validate/${ticket._id}`,
           { type: "png", width: 400, margin: 2 }
         );
@@ -446,12 +460,11 @@ exports.resendTicketEmail = async (req, res) => {
         console.error("QR regeneration failed:", err.message);
       }
     }
-    // ──────────────────────────────────────────────────────────────────────
 
     await sendEmail({
-      to: ticket.buyer.email,
+      to:      ticket.buyer.email,
       subject: "🎟️ Your Ticket - Resent",
-      html: ticketPurchaseEmail(
+      html:    ticketPurchaseEmail(
         ticket.buyer.name || "Guest",
         ticket.event.title,
         ticket.quantity
@@ -480,7 +493,7 @@ exports.manualCheckIn = async (req, res) => {
     }
 
     const ticket = await Ticket.findById(ticketId).populate({
-      path: "event",
+      path:   "event",
       select: "title startDate location createdBy",
     });
 
@@ -504,17 +517,17 @@ exports.manualCheckIn = async (req, res) => {
     }
 
     ticket.status = "checked-in";
-    ticket.used = true;
+    ticket.used   = true;
     ticket.usedAt = new Date();
     await ticket.save();
 
     res.status(200).json({
       message: "Ticket checked in successfully",
       ticket: {
-        id: ticket._id,
+        id:       ticket._id,
         quantity: ticket.quantity,
-        status: ticket.status,
-        usedAt: ticket.usedAt,
+        status:   ticket.status,
+        usedAt:   ticket.usedAt,
       },
     });
   } catch (err) {
