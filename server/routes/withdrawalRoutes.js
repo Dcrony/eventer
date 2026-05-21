@@ -36,7 +36,7 @@ const {
 router.post(
   "/organizer/withdraw",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   requestWithdrawal,
 );
 
@@ -45,7 +45,7 @@ router.get("/organizer/transactions", authMiddleware, getOrganizerTransactions);
 router.get(
   "/organizer/earnings",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   getOrganizerEarnings
 );
 
@@ -53,28 +53,28 @@ router.get(
 router.post(
   "/organizer/payout/connect",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   connectPayoutAccount,
 );
 
 router.get(
   "/organizer/payout/account",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   getPayoutAccount,
 );
 
 router.put(
   "/organizer/payout/account",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   updatePayoutAccount,
 );
 
 router.delete(
   "/organizer/payout/account",
   authMiddleware,
-  authorizeRoles("organizer", "admin"),
+  authorizeRoles("super_admin", "admin", "moderator", "finance_admin", "support_admin"),
   disconnectPayoutAccount,
 );
 
@@ -87,35 +87,35 @@ router.delete(
 router.patch(
   "/admin/withdrawals/:id",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin", "admin", "finance_admin"),
   adminUpdateWithdrawal
 );
 
 router.get(
   "/admin/withdrawals",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin", "admin", "finance_admin"),
   getAdminWithdrawals
 );
 
 router.get(
   "/admin/withdrawals/monthly",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin", "admin", "finance_admin"),
   getMonthlyWithdrawalTrend
 );
 
 router.get(
   "/admin/withdrawals/analytics",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin", "admin", "finance_admin"),
   getWithdrawalAnalytics
 );
 
 router.get(
   "/admin/withdrawals/export",
   authMiddleware,
-  authorizeRoles("admin"),
+  authorizeRoles("super_admin", "admin", "finance_admin"),
   exportAdminWithdrawals
 );
 
