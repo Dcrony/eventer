@@ -356,7 +356,7 @@ const savedEvents = filterPending(profile?.savedEvents);
 
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
-  const totalEventsCreated = profile?.stats?.totalEventsCreated ?? createdEvents.length;
+  const totalEventsCreated = createdEvents.length;
   const totalTicketsSold =
     profile?.stats?.totalTicketsSold ??
     createdEvents.reduce((sum, event) => sum + Number(event?.ticketsSold || 0), 0);
