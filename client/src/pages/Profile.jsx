@@ -365,8 +365,7 @@ const savedEvents = filterPending(profile?.savedEvents);
   const profileHandle = profile?.username ? `@${profile.username}` : "@tickispot";
   const location = profile?.location || profile?.country || "Lagos, Nigeria";
 
-  // Derive the current user's following IDs to pass to FollowersModal
-  // When viewing own profile, profile.following is populated; for others we use storedUser
+  
   const myFollowingIds = useMemo(() => {
     const list = profile?.isOwner
       ? profile?.following || []
