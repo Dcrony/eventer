@@ -731,6 +731,27 @@ const deactivateAccount = async (req, res) => {
   }
 };
 
+// Add setMyRole export
+const setMyRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!["organizer", "user"].includes(role)) {
+      return res.status(400).json({ message: "Role must be 'organizer' or 'user'." });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { role, roleConfirmed: true },
+      { new: true }
+    ).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ message: "Role updated", user });
+  } catch (err) {
+    console.error("setMyRole error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 module.exports = {
   getMyProfile,
   updateMyProfile,
@@ -748,4 +769,5 @@ module.exports = {
   getCreators,
   getFounderProfile,
   deactivateAccount,
+  setMyRole,
 };

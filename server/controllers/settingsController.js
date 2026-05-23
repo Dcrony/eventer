@@ -3,7 +3,7 @@ const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User.js");
 
-const ACCOUNT_FIELDS = ["name", "username", "email", "phone", "bio"];
+const ACCOUNT_FIELDS = ["name", "username", "email", "phone", "bio", "role"];
 const PRIVACY_FIELDS = ["showProfile", "showActivity", "searchable"];
 const NOTIFICATION_FIELDS = [
   "likes",
@@ -240,6 +240,15 @@ const updateAccount = async (req, res) => {
     if (updates.bio !== undefined && String(updates.bio).length > 280) {
       return res.status(400).json({ message: "Bio must be 280 characters or fewer" });
     }
+
+    // Add this block after the existing field validations, before Object.assign(user, updates):
+if (updates.role !== undefined) {
+  if (!["organizer", "user"].includes(updates.role)) {
+    return res.status(400).json({ message: "Role must be 'organizer' or 'user'." });
+  }
+  // roleConfirmed is set to true whenever the user explicitly saves a role
+  updates.roleConfirmed = true;
+}
 
     Object.assign(user, updates);
     await user.save();
