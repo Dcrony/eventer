@@ -33,6 +33,7 @@ const Event = require("./models/Event");
 const { PLAN_TYPES } = require("./services/subscriptionService");
 const { buildSocketServer } = require("./socket");
 const { bootstrapAdmin } = require("./utils/bootstrapAdmin");
+const ogRoutes = require("./routes/ogRoutes");
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -48,6 +49,9 @@ const EXTRA_ORIGINS = process.env.ALLOWED_ORIGINS
 const ALLOWED_ORIGINS = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...EXTRA_ORIGINS])];
 
 const app = express();
+
+
+app.use(ogRoutes);
 
 app.use(
   helmet({
@@ -180,81 +184,6 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ message: "Server error" });
 });
 
-app.get("/event/:id", async (req, res) => {
-  const event = await Event.findById(req.params.id);
-  if (!event) {
-    return res.status(404).send("Event not found");
-  }
-
-  const title = escapeHtml(event.title);
-  const description = escapeHtml(event.description || "");
-  const image = escapeHtml(
-    event.coverImage?.startsWith("http")
-      ? event.coverImage
-      : `${process.env.BACKEND_URL}/${event.coverImage || ""}`,
-  );
-  const eventId = escapeHtml(String(event._id));
-
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${title}</title>
-
-        <meta property="og:title" content="${title}" />
-        <meta property="og:description" content="${description}" />
-        <meta property="og:image" content="${image}" />
-        <meta property="og:url" content="https://tickispot.com/event/${eventId}" />
-        <meta property="og:type" content="website" />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${image}" />
-      </head>
-
-      <body>
-        <script>
-          window.location.href = "/event/${eventId}";
-        </script>
-      </body>
-    </html>
-  `);
-});
-
-app.get("/users/:id", async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) {
-    return res.status(404).send("User not found");
-  }
-
-  const name = escapeHtml(user.name);
-  const bio = escapeHtml(user.bio || "");
-  const image = escapeHtml(user.avatar || user.profilePic || "");
-  const userId = escapeHtml(String(user._id));
-
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>${name}</title>
-
-        <meta property="og:title" content="${name}" />
-        <meta property="og:description" content="${bio}" />
-        <meta property="og:image" content="${image}" />
-        <meta property="og:url" content="https://tickispot.com/users/${userId}" />
-        <meta property="og:type" content="website" />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${image}" />
-      </head>
-
-      <body>
-        <script>
-          window.location.href = "/users/${userId}";
-        </script>
-      </body>
-    </html>
-  `);
-});
 
 const server = http.createServer(app);
 const io = buildSocketServer(server, { allowedOrigins: ALLOWED_ORIGINS });
