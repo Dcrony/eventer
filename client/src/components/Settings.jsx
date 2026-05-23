@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CalendarDays, Ticket as TicketIcon } from "lucide-react";
 
 const SETTINGS_TABS = [
   { id: "account", label: "Account", icon: <User2 size={18} /> },
@@ -39,7 +40,7 @@ const SETTINGS_TABS = [
 ];
 
 const DEFAULT_STATE = {
-  account: { name: "", username: "", email: "", phone: "", bio: "", currentPassword: "" },
+  account: { name: "", username: "", email: "", phone: "", bio: "", currentPassword: "", role: "user" },
   privacy: { showProfile: true, showActivity: false, searchable: true },
   notifications: {
     likes: true,
@@ -74,6 +75,7 @@ const buildFormStateFromUser = (userData) => ({
     phone: userData?.phone || "",
     bio: userData?.bio || "",
     currentPassword: "",
+    role: userData?.role || "user", 
   },
   privacy: { ...DEFAULT_STATE.privacy, ...userData?.privacy },
   notifications: { ...DEFAULT_STATE.notifications, ...userData?.notifications },
@@ -91,6 +93,60 @@ const buildFormStateFromUser = (userData) => ({
     cycle: userData?.billing?.cycle || "monthly",
   },
 });
+
+function RoleSwitcher({ currentRole, onChange }) {
+  const options = [
+    {
+      id: "organizer",
+      label: "Event organizer",
+      desc: "Create events, sell tickets, manage check-in.",
+      icon: <CalendarDays size={18} className="text-pink-600" />,
+      iconBg: "bg-pink-100",
+    },
+    {
+      id: "user",
+      label: "Event attendee",
+      desc: "Discover events and buy tickets.",
+      icon: <TicketIcon size={18} className="text-blue-600" />,
+      iconBg: "bg-blue-100",
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {options.map((opt) => {
+        const active = currentRole === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            className={`flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all duration-150 ${
+              active
+                ? "border-pink-500 bg-pink-50"
+                : "border-gray-200 hover:border-gray-300 bg-white"
+            }`}
+          >
+            <span className={`w-9 h-9 rounded-lg ${opt.iconBg} flex items-center justify-center shrink-0`}>
+              {opt.icon}
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-bold text-gray-900 mb-0.5">{opt.label}</span>
+              <span className="block text-xs text-gray-500 leading-relaxed">{opt.desc}</span>
+            </span>
+            <span
+              className={`mt-1 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                active ? "border-pink-500 bg-pink-500" : "border-gray-300"
+              }`}
+            >
+              {active && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function SettingsToggle({ checked, onChange, label, description, icon: Icon }) {
   return (
@@ -420,58 +476,70 @@ export default function Settings() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "account":
-        return (
-          <SettingsCard
-            title="Account"
-            description="Manage your identity, contact details, and core profile information."
-            icon={<User2 size={18} />}
-            action={
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50 shadow-md shadow-pink-500/25"
-                onClick={saveAccount}
-                disabled={savingState.account}
-              >
-                <Save size={16} />
-                {savingState.account ? "Saving..." : "Save account"}
-              </button>
-            }
-          >
-            <SettingsSection title="Profile details" description="These details appear across TickiSpot wherever your account is shown.">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Name</span>
-                  <input value={formState.account.name} onChange={(e) => updateSection("account", "name", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Username</span>
-                  <input value={formState.account.username} onChange={(e) => updateSection("account", "username", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Email</span>
-                  <input type="email" value={formState.account.email} onChange={(e) => updateSection("account", "email", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Phone</span>
-                  <input value={formState.account.phone} onChange={(e) => updateSection("account", "phone", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Current password</span>
-                  <input type="password" placeholder="Required only for sensitive changes" value={formState.account.currentPassword} onChange={(e) => updateSection("account", "currentPassword", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
-                </label>
-                <label className="flex flex-col gap-1 md:col-span-2">
-                  <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Bio</span>
-                  <textarea rows={4} value={formState.account.bio} onChange={(e) => updateSection("account", "bio", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none resize-y" />
-                </label>
-              </div>
-            </SettingsSection>
-            <SettingsSection title="Password" description="Password controls live in Security so sensitive actions stay in one place.">
-              <button type="button" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-gray-200 bg-white text-gray-600 text-sm font-bold transition-all duration-200 hover:border-pink-300 hover:text-pink-500" onClick={() => setActiveTab("security")}>
-                Manage password in Security
-              </button>
-            </SettingsSection>
-          </SettingsCard>
-        );
+  return (
+    <SettingsCard
+      title="Account"
+      description="Manage your identity, contact details, and core profile information."
+      icon={<User2 size={18} />}
+      action={
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-pink-500 text-white text-sm font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50 shadow-md shadow-pink-500/25"
+          onClick={saveAccount}
+          disabled={savingState.account}
+        >
+          <Save size={16} />
+          {savingState.account ? "Saving..." : "Save account"}
+        </button>
+      }
+    >
+      <SettingsSection title="Profile details" description="These details appear across TickiSpot wherever your account is shown.">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Name</span>
+            <input value={formState.account.name} onChange={(e) => updateSection("account", "name", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Username</span>
+            <input value={formState.account.username} onChange={(e) => updateSection("account", "username", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Email</span>
+            <input type="email" value={formState.account.email} onChange={(e) => updateSection("account", "email", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Phone</span>
+            <input value={formState.account.phone} onChange={(e) => updateSection("account", "phone", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Current password</span>
+            <input type="password" placeholder="Required only for sensitive changes" value={formState.account.currentPassword} onChange={(e) => updateSection("account", "currentPassword", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none" />
+          </label>
+          <label className="flex flex-col gap-1 md:col-span-2">
+            <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Bio</span>
+            <textarea rows={4} value={formState.account.bio} onChange={(e) => updateSection("account", "bio", e.target.value)} className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none resize-y" />
+          </label>
+        </div>
+      </SettingsSection>
+
+      {/* ── Role switcher ── */}
+      <SettingsSection
+        title="Account role"
+        description="Switch between creating events and discovering them as an attendee."
+      >
+        <RoleSwitcher
+          currentRole={formState.account.role ?? user?.role ?? "user"}
+          onChange={(role) => updateSection("account", "role", role)}
+        />
+      </SettingsSection>
+
+      <SettingsSection title="Password" description="Password controls live in Security so sensitive actions stay in one place.">
+        <button type="button" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-gray-200 bg-white text-gray-600 text-sm font-bold transition-all duration-200 hover:border-pink-300 hover:text-pink-500" onClick={() => setActiveTab("security")}>
+          Manage password in Security
+        </button>
+      </SettingsSection>
+    </SettingsCard>
+  );
       case "privacy":
         return (
           <SettingsCard

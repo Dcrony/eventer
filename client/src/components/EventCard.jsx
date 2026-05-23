@@ -15,7 +15,7 @@ import EventEngagementBar from "./EventEngagementBar";
 import VerifiedBadge from "./ui/verified-badge";
 import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
-import ShareModal from "./ShareModal";
+import ShareModal from "./WhatsAppShareModal";
   
 export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
   const [eventState, setEventState] = useState(event);
@@ -26,6 +26,16 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
 
   const navigate = useNavigate();
   const toast = useToast();
+
+  const currentUserId = (() => {
+  try {
+    const u = JSON.parse(localStorage.getItem("user") || "null");
+    return u?._id || u?.id || null;
+  } catch {
+    return null;
+  }
+})();
+
 
   useEffect(() => {
     setEventState(event);
@@ -70,11 +80,11 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
     });
   };
 
-  const handleShare = async (eventClick) => {
-    eventClick?.preventDefault?.();
-    eventClick?.stopPropagation?.();
-    setShareOpen(true);
-  };
+  const handleShare = (eventClick) => {
+  eventClick?.preventDefault?.();
+  eventClick?.stopPropagation?.();
+  setShareOpen(true);
+};
 
   const handleCommentsOpen = (eventClick) => {
     eventClick.preventDefault();
@@ -300,11 +310,11 @@ onClick={(e) => {
       />
 
       <ShareModal
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        title={event.title}
-        url={getEventUrl(event._id)}
-      />
+  open={shareOpen}
+  onClose={() => setShareOpen(false)}
+  event={eventState}               
+  currentUserId={currentUserId}   
+/>
     </>
   );
 }
