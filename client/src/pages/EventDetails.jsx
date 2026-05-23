@@ -31,7 +31,7 @@ import {
   getEventUrl,
 } from "../utils/eventHelpers";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import ShareModal from "../components/ShareModal";
+import ShareModal from "../components/WhatsAppShareModal";
 import {
   canAccessAnalytics as canAccessEventAnalytics,
   canManageTeam as canManageEventTeam,
@@ -40,25 +40,24 @@ import {
 } from "../utils/eventPermissions";
 
 /* ─── Tier helpers ────────────────────────────────────────────────────────── */
-const getTierDisplayName  = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
-const getTierAccentColor  = (tier) => tier?.color?.trim() || "#ec4899";
-const isTierFree          = (tier, isEventFree) => isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
+const getTierDisplayName = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
+const getTierAccentColor = (tier) => tier?.color?.trim() || "#ec4899";
+const isTierFree = (tier, isEventFree) => isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
 
 function TicketTypeButton({ ticketType, isSelected, isEventFree, onClick }) {
-  const displayName  = getTierDisplayName(ticketType);
-  const accentColor  = getTierAccentColor(ticketType);
-  const free         = isTierFree(ticketType, isEventFree);
+  const displayName = getTierDisplayName(ticketType);
+  const accentColor = getTierAccentColor(ticketType);
+  const free = isTierFree(ticketType, isEventFree);
   const priceDisplay = free ? "Free" : formatCurrency(ticketType.price);
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex justify-between items-center gap-3 p-3 rounded-lg border-2 text-left transition-all duration-200 hover:-translate-y-0.5 ${
-        isSelected
+      className={`w-full flex justify-between items-center gap-3 p-3 rounded-lg border-2 text-left transition-all duration-200 hover:-translate-y-0.5 ${isSelected
           ? "border-pink-500 bg-pink-50 shadow-md"
           : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
-      }`}
+        }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />
@@ -82,26 +81,26 @@ function TicketTypeButton({ ticketType, isSelected, isEventFree, onClick }) {
 /* ─── Component ───────────────────────────────────────────────────────────── */
 export default function EventDetail() {
   const { eventId } = useParams();
-  const navigate    = useNavigate();
-  const shareLink   = useShareLink();
+  const navigate = useNavigate();
+  const shareLink = useShareLink();
   const { toProfile } = useProfileNavigation();
-  const toast       = useToast();
+  const toast = useToast();
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-  const [event,              setEvent]              = useState(null);
-  const [loading,            setLoading]            = useState(true);
-  const [quantity,           setQuantity]           = useState(1);
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
-  const [commentsOpen,       setCommentsOpen]       = useState(false);
-  const [shareOpen,          setShareOpen]          = useState(false);
-  const [teamMembers,        setTeamMembers]        = useState([]);
-  const [teamLoading,        setTeamLoading]        = useState(false);
-  const [teamError,          setTeamError]          = useState("");
-  const [error,              setError]              = useState("");
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [error, setError] = useState("");
   const [alreadyHasFreeTicket, setAlreadyHasFreeTicket] = useState(false);
 
-  const isLoggedIn  = Boolean(localStorage.getItem("token"));
-  const user        = JSON.parse(localStorage.getItem("user") || "null");
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const user = JSON.parse(localStorage.getItem("user") || "null");
   const isEventFree = event?.isFreeEvent || event?.isFree;
 
   // Only surface enabled tiers (server already filters, but defensive client check)
@@ -135,7 +134,7 @@ export default function EventDetail() {
                 t.status !== "cancelled"
             );
             setAlreadyHasFreeTicket(hasOne);
-          } catch {}
+          } catch { }
         }
       } catch (_) {
         setError("Failed to load event");
@@ -155,7 +154,7 @@ export default function EventDetail() {
         const { data } = await API.post(`/events/${eventId}/view`);
         setEvent(data);
         sessionStorage.setItem(sessionKey, "tracked");
-      } catch {}
+      } catch { }
     };
     if (eventId) trackView();
   }, [eventId]);
@@ -204,55 +203,55 @@ export default function EventDetail() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   // In EventDetail.jsx — replace handleBuy
-const handleBuy = () => {
-  if (!isLoggedIn) { navigate("/login"); return; }
-  
-  // Free if: whole event is free OR the selected tier is explicitly free OR price is 0
-  const selectedIsFree =
-    isEventFree ||
-    selectedTicketType?.isFree ||
-    Number(selectedTicketType?.price || 0) === 0;
+  const handleBuy = () => {
+    if (!isLoggedIn) { navigate("/login"); return; }
 
-  if (selectedIsFree) { reserveFreeTicket(); return; }
-  
-  if (!selectedTicketType) return;
-  navigate(`/checkout/${event._id}`, {
-    state: { event, quantity, ticketType: selectedTicketType.type, price: selectedTicketType.price, user },
-  });
-};
+    // Free if: whole event is free OR the selected tier is explicitly free OR price is 0
+    const selectedIsFree =
+      isEventFree ||
+      selectedTicketType?.isFree ||
+      Number(selectedTicketType?.price || 0) === 0;
+
+    if (selectedIsFree) { reserveFreeTicket(); return; }
+
+    if (!selectedTicketType) return;
+    navigate(`/checkout/${event._id}`, {
+      state: { event, quantity, ticketType: selectedTicketType.type, price: selectedTicketType.price, user },
+    });
+  };
 
   const reserveFreeTicket = async () => {
-  try {
-    await API.post("/tickets/create", {
-      eventId:    event._id,
-      quantity:   1,
-      ticketType: selectedTicketType?.type || "Free",
-      isFree:     true,
-    });
-    toast.success("Ticket reserved successfully");
-    setAlreadyHasFreeTicket(true);
-    setEvent((cur) =>
-      cur
-        ? {
+    try {
+      await API.post("/tickets/create", {
+        eventId: event._id,
+        quantity: 1,
+        ticketType: selectedTicketType?.type || "Free",
+        isFree: true,
+      });
+      toast.success("Ticket reserved successfully");
+      setAlreadyHasFreeTicket(true);
+      setEvent((cur) =>
+        cur
+          ? {
             ...cur,
-            ticketsSold:  Number(cur.ticketsSold  || 0) + 1,
+            ticketsSold: Number(cur.ticketsSold || 0) + 1,
             totalTickets: Math.max(0, Number(cur.totalTickets || 0) - 1),
           }
-        : cur
-    );
-    navigate("/my-tickets");
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Failed to reserve ticket");
-  }
-};
+          : cur
+      );
+      navigate("/my-tickets");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to reserve ticket");
+    }
+  };
 
   const handleLike = async () => {
     if (!isLoggedIn) { navigate("/login"); return; }
-    const nextLiked   = !event.isLiked;
+    const nextLiked = !event.isLiked;
     const previousEvent = event;
     setEvent((cur) => ({
       ...cur,
-      isLiked:   nextLiked,
+      isLiked: nextLiked,
       likeCount: Math.max(0, Number(cur.likeCount || 0) + (nextLiked ? 1 : -1)),
     }));
     try {
@@ -308,15 +307,15 @@ const handleBuy = () => {
     );
   }
 
-  const remainingTickets    = Number(event.totalTickets || 0);
+  const remainingTickets = Number(event.totalTickets || 0);
   const showAnalyticsAction = canAccessEventAnalytics(event);
-  const showTicketAction    = canManageEventTickets(event);
-  const showTeamAction      = canManageEventTeam(event);
-  const showLiveAction      = canManageEventLivestream(event);
-  const isSoldOut           = remainingTickets <= 0;
-  const freeTicketClaimed   = (isEventFree || selectedTicketType?.isFree) && alreadyHasFreeTicket;
-  const buyDisabled         = isSoldOut || freeTicketClaimed;
-  const buyLabel            = isSoldOut ? "Sold out" : freeTicketClaimed ? "Already reserved" : "Get tickets";
+  const showTicketAction = canManageEventTickets(event);
+  const showTeamAction = canManageEventTeam(event);
+  const showLiveAction = canManageEventLivestream(event);
+  const isSoldOut = remainingTickets <= 0;
+  const freeTicketClaimed = (isEventFree || selectedTicketType?.isFree) && alreadyHasFreeTicket;
+  const buyDisabled = isSoldOut || freeTicketClaimed;
+  const buyLabel = isSoldOut ? "Sold out" : freeTicketClaimed ? "Already reserved" : "Get tickets";
 
   return (
     <>
@@ -406,10 +405,10 @@ const handleBuy = () => {
                     <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-pink-500 mb-3"><CalendarDays size={14} /> Schedule</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                       {[
-                        { Icon: CalendarDays, label: "Date",      value: formatEventDateRange(event.startDate, event.endDate) },
-                        { Icon: Clock3,       label: "Time",      value: formatEventTimeRange(event.startTime, event.endTime) },
-                        { Icon: MapPin,       label: "Location",  value: event.location || "Online event" },
-                        { Icon: Users,        label: "Community", value: `${event.ticketsSold || 0} attendees already in` },
+                        { Icon: CalendarDays, label: "Date", value: formatEventDateRange(event.startDate, event.endDate) },
+                        { Icon: Clock3, label: "Time", value: formatEventTimeRange(event.startTime, event.endTime) },
+                        { Icon: MapPin, label: "Location", value: event.location || "Online event" },
+                        { Icon: Users, label: "Community", value: `${event.ticketsSold || 0} attendees already in` },
                       ].map(({ Icon, label, value }) => (
                         <div key={label} className="flex gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200 text-gray-400 transition-all duration-200 hover:border-pink-200 hover:bg-pink-50">
                           <Icon size={18} className="text-pink-500 flex-shrink-0 mt-0.5" />
@@ -562,11 +561,10 @@ const handleBuy = () => {
                     type="button"
                     onClick={handleBuy}
                     disabled={buyDisabled}
-                    className={`w-full flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-all duration-200 ${
-                      buyDisabled
+                    className={`w-full flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-all duration-200 ${buyDisabled
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                         : "bg-pink-500 text-white shadow-lg shadow-pink-500/30 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-xl"
-                    }`}
+                      }`}
                   >
                     <Ticket size={18} />
                     {buyLabel}
@@ -601,9 +599,8 @@ const handleBuy = () => {
             type="button"
             onClick={handleBuy}
             disabled={buyDisabled}
-            className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold transition-all duration-200 ${
-              buyDisabled ? "bg-gray-200 text-gray-400" : "bg-pink-500 text-white shadow-lg shadow-pink-500/25 hover:bg-pink-600"
-            }`}
+            className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-bold transition-all duration-200 ${buyDisabled ? "bg-gray-200 text-gray-400" : "bg-pink-500 text-white shadow-lg shadow-pink-500/25 hover:bg-pink-600"
+              }`}
           >
             <Ticket size={18} />
             {buyLabel}

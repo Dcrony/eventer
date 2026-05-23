@@ -36,7 +36,7 @@ import {
 import Avatar from "../components/ui/avatar";
 import { UserAvatar } from "../components/ui/avatar";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import ShareModal from "@/components/ShareModal";
+import ShareModal from "@/components/WhatsAppShareModal";
 import EventActionMenu from "../components/EventActionMenu";
 import FollowersModal from "../components/FollowersModal";
 import {
@@ -310,8 +310,8 @@ export default function Profile() {
         const path = isSelf
           ? "/users/me"
           : isObjectId
-          ? `/users/${resolvedProfileId}`
-          : `/users/public/${resolvedProfileId}`;
+            ? `/users/${resolvedProfileId}`
+            : `/users/public/${resolvedProfileId}`;
 
         const { data } = await API.get(path);
         setProfile(data);
@@ -346,13 +346,13 @@ export default function Profile() {
   }, [activeTab, visibleTabs]);
 
   // After
-const filterPending = (events = []) =>
-  events.filter((e) => e?.status !== "pending_review" && e?.status !== "pending");
+  const filterPending = (events = []) =>
+    events.filter((e) => e?.status !== "pending_review" && e?.status !== "pending");
 
-const createdEvents = filterPending(profile?.createdEvents);
-const featuredEvents = filterPending(profile?.featuredEvents);
-const likedEvents = filterPending(profile?.likedEvents);
-const savedEvents = filterPending(profile?.savedEvents);
+  const createdEvents = filterPending(profile?.createdEvents);
+  const featuredEvents = filterPending(profile?.featuredEvents);
+  const likedEvents = filterPending(profile?.likedEvents);
+  const savedEvents = filterPending(profile?.savedEvents);
 
   const followers = profile?.stats?.followers || profile?.followers?.length || 0;
   const following = profile?.stats?.following || profile?.following?.length || 0;
@@ -365,7 +365,7 @@ const savedEvents = filterPending(profile?.savedEvents);
   const profileHandle = profile?.username ? `@${profile.username}` : "@tickispot";
   const location = profile?.location || profile?.country || "Lagos, Nigeria";
 
-  
+
   const myFollowingIds = useMemo(() => {
     const list = profile?.isOwner
       ? profile?.following || []
@@ -440,42 +440,42 @@ const savedEvents = filterPending(profile?.savedEvents);
   }, [activeTab, createdEvents, featuredEvents, likedEvents, navigate, profile?.isOwner, savedEvents]);
 
   const handleFollowToggle = async () => {
-  if (!profile?._id || followPending) return;
-  try {
-    setFollowPending(true);
-    await API.post(`/users/${profile._id}/follow`);
+    if (!profile?._id || followPending) return;
+    try {
+      setFollowPending(true);
+      await API.post(`/users/${profile._id}/follow`);
+      setProfile((current) => {
+        const alreadyFollowing = current.isFollowing;
+        const updatedFollowing = alreadyFollowing
+          ? (current.following || []).filter((u) => String(u._id || u) !== String(profile._id))
+          : [...(current.following || []), { _id: profile._id }];
+
+        return {
+          ...current,
+          isFollowing: !alreadyFollowing,
+          following: updatedFollowing,
+          stats: {
+            ...current.stats,
+            followers: Math.max(0, Number(current.stats?.followers || 0) + (alreadyFollowing ? -1 : 1)),
+          },
+        };
+      });
+    } catch {
+      // silent
+    } finally {
+      setFollowPending(false);
+    }
+  };
+
+  // Add this handler
+  const handleModalFollowToggle = (userId, isNowFollowing) => {
     setProfile((current) => {
-      const alreadyFollowing = current.isFollowing;
-      const updatedFollowing = alreadyFollowing
-        ? (current.following || []).filter((u) => String(u._id || u) !== String(profile._id))
-        : [...(current.following || []), { _id: profile._id }];
-
-      return {
-        ...current,
-        isFollowing: !alreadyFollowing,
-        following: updatedFollowing,
-        stats: {
-          ...current.stats,
-          followers: Math.max(0, Number(current.stats?.followers || 0) + (alreadyFollowing ? -1 : 1)),
-        },
-      };
+      const updatedFollowing = isNowFollowing
+        ? [...(current.following || []), { _id: userId }]
+        : (current.following || []).filter((u) => String(u._id || u) !== String(userId));
+      return { ...current, following: updatedFollowing };
     });
-  } catch {
-    // silent
-  } finally {
-    setFollowPending(false);
-  }
-};
-
-// Add this handler
-const handleModalFollowToggle = (userId, isNowFollowing) => {
-  setProfile((current) => {
-    const updatedFollowing = isNowFollowing
-      ? [...(current.following || []), { _id: userId }]
-      : (current.following || []).filter((u) => String(u._id || u) !== String(userId));
-    return { ...current, following: updatedFollowing };
-  });
-};
+  };
 
   const handleFeaturedEventUpdated = async () => {
     try {
@@ -485,8 +485,8 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
       const path = isSelf
         ? "/users/me"
         : isObjectId
-        ? `/users/${resolvedProfileId}`
-        : `/users/public/${resolvedProfileId}`;
+          ? `/users/${resolvedProfileId}`
+          : `/users/public/${resolvedProfileId}`;
       const { data } = await API.get(path);
       setProfile(data);
     } catch {
@@ -694,13 +694,12 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
 
             {/* Plan badge */}
             <div className="mt-3">
-              <span className={`inline-flex items-center h-6 px-2 rounded-full text-[0.6rem] font-extrabold tracking-wide ${
-                profile.plan === "free"
+              <span className={`inline-flex items-center h-6 px-2 rounded-full text-[0.6rem] font-extrabold tracking-wide ${profile.plan === "free"
                   ? "bg-gray-100 text-gray-600 border border-gray-200"
                   : profile.plan === "pro"
-                  ? "bg-pink-50 text-pink-600 border border-pink-200"
-                  : "bg-gray-900 text-white"
-              }`}>
+                    ? "bg-pink-50 text-pink-600 border border-pink-200"
+                    : "bg-gray-900 text-white"
+                }`}>
                 {profile.plan?.toUpperCase()} PLAN
               </span>
               <p className="text-xs text-gray-400 mt-1">
@@ -732,9 +731,8 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
                     role="tab"
                     aria-selected={activeTab === tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`relative flex items-center gap-1.5 flex-shrink-0 min-w-[90px] px-3 py-2 pb-2.5 border-none bg-transparent text-xs font-semibold cursor-pointer transition-colors duration-200 ${
-                      activeTab === tab.id ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
-                    }`}
+                    className={`relative flex items-center gap-1.5 flex-shrink-0 min-w-[90px] px-3 py-2 pb-2.5 border-none bg-transparent text-xs font-semibold cursor-pointer transition-colors duration-200 ${activeTab === tab.id ? "text-gray-900" : "text-gray-400 hover:text-gray-600"
+                      }`}
                   >
                     <Icon size={14} />
                     <span>{tab.label}</span>
@@ -843,13 +841,13 @@ const handleModalFollowToggle = (userId, isNowFollowing) => {
         />
 
         <FollowersModal
-  open={followersModalOpen}
-  onClose={() => setFollowersModalOpen(false)}
-  profileId={profile?._id}
-  initialTab={followersModalTab}
-  myFollowingIds={myFollowingIds}
-  onFollowToggle={handleModalFollowToggle}
-/>
+          open={followersModalOpen}
+          onClose={() => setFollowersModalOpen(false)}
+          profileId={profile?._id}
+          initialTab={followersModalTab}
+          myFollowingIds={myFollowingIds}
+          onFollowToggle={handleModalFollowToggle}
+        />
 
         <EditEvent
           isOpen={editModalOpen}

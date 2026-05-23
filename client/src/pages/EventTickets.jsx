@@ -1,457 +1,432 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+/**
+ * EventDayDashboard.jsx
+ *
+ * Real-time event-day operations dashboard.
+ * Reuses:
+ *  - API (existing axios instance)
+ *  - formatDate, formatCurrency from eventHelpers
+ *  - TicketScanner component (existing)
+ *  - EventTickets table (existing)
+ *  - authMiddleware / event permissions (server-enforced)
+ */
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Search, RefreshCw, AlertTriangle,
-  CheckCircle, XCircle, Ticket,
+  ArrowLeft, Users, CheckCircle2, Clock, XCircle,
+  Search, QrCode, RefreshCw, AlertTriangle, Wifi, WifiOff,
+  BarChart2, Activity, Ticket, ChevronRight,
 } from "lucide-react";
 import API from "../api/axios";
-import useFeatureAccess from "../hooks/useFeatureAccess";
-import UpgradeModal from "../components/FeatureUpgradeModal";
-import { formatCurrency, formatDate } from "../utils/eventHelpers";
+import { formatDate } from "../utils/eventHelpers";
 
-// ── Design tokens ─────────────────────────────────────────────────────────
-const T = {
-  bg:         "#f7f7f9",
-  surface:    "#ffffff",
-  border:     "#e8e8ed",
-  borderSoft: "#f0f0f5",
-  pink:       "#f43f8e",
-  pinkDeep:   "#e11d74",
-  pinkSoft:   "rgba(244,63,142,0.08)",
-  pinkMid:    "rgba(244,63,142,0.16)",
-  pinkGlow:   "rgba(244,63,142,0.22)",
-  ink:        "#111118",
-  body:       "#374151",
-  muted:      "#9ca3af",
-  faint:      "#e5e7eb",
-  green:      "#10b981",
-  greenSoft:  "rgba(16,185,129,0.1)",
-  greenMid:   "rgba(16,185,129,0.25)",
-  red:        "#ef4444",
-  redSoft:    "rgba(239,68,68,0.08)",
-  redMid:     "rgba(239,68,68,0.2)",
-  amber:      "#f59e0b",
-  amberSoft:  "rgba(245,158,11,0.08)",
-  amberMid:   "rgba(245,158,11,0.2)",
-  radius:     "0.875rem",
-  radiusLg:   "1.25rem",
-  radiusXl:   "1.5rem",
-  pill:       "999px",
-  shadow:     "0 4px 16px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04)",
-  shadowSm:   "0 1px 3px rgba(0,0,0,0.06)",
-  font:       "'Geist', -apple-system, BlinkMacSystemFont, sans-serif",
-  t:          "180ms cubic-bezier(0.4,0,0.2,1)",
-};
+/* ─── Offline cache key ───────────────────────────────────────────────────── */
+const CACHE_KEY = (id) => `tickispot_checkin_cache_${id}`;
 
-// ── Inject styles once ────────────────────────────────────────────────────
-const etStyle = `
-  @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
-  @keyframes etSpin { to { transform: rotate(360deg); } }
-  .et-spin { animation: etSpin 0.7s linear infinite; }
-  .et-back-link:hover { color: #f43f8e !important; }
-  .et-search-input:focus {
-    outline: none;
-    border-color: #f43f8e !important;
-    box-shadow: 0 0 0 3px rgba(244,63,142,0.08) !important;
-  }
-  .et-select:focus {
-    outline: none;
-    border-color: #f43f8e !important;
-    box-shadow: 0 0 0 3px rgba(244,63,142,0.08) !important;
-  }
-  .et-table tbody tr:hover td { background: #fafafa !important; }
-  .et-checkin-btn:hover:not(:disabled) { background: #059669 !important; color: #fff !important; border-color: #059669 !important; }
-  .et-resend-btn:hover:not(:disabled)  { background: #111118 !important; color: #fff !important; border-color: #111118 !important; }
-  .et-refund-btn:hover:not(:disabled)  { background: #dc2626 !important; color: #fff !important; border-color: #dc2626 !important; }
-  .et-export-btn:hover { background: #f43f8e !important; border-color: #f43f8e !important; color: #fff !important; }
-  .et-retry-btn:hover  { background: #e11d74 !important; }
-`;
-if (typeof document !== "undefined" && !document.getElementById("et-styles")) {
-  const el = document.createElement("style");
-  el.id = "et-styles";
-  el.textContent = etStyle;
-  document.head.appendChild(el);
-}
-
-// ── Status badge ──────────────────────────────────────────────────────────
-function StatusBadge({ status }) {
-  const s = status || "active";
-  let bg, color, border, Icon;
-
-  if (s === "refunded")   { bg = T.redSoft;   color = T.red;   border = T.redMid;   Icon = XCircle;      }
-  else if (s === "checked-in") { bg = T.greenSoft; color = T.green; border = T.greenMid; Icon = CheckCircle; }
-  else if (s === "cancelled")  { bg = T.amberSoft; color = T.amber; border = T.amberMid; Icon = XCircle;    }
-  else                         { bg = T.greenSoft; color = T.green; border = T.greenMid; Icon = CheckCircle; }
-
-  const label = s === "checked-in" ? "Checked In" : s.charAt(0).toUpperCase() + s.slice(1);
-
+/* ─── Stat pill ──────────────────────────────────────────────────────────── */
+function StatPill({ label, value, color }) {
+  const colors = {
+    green:  "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pink:   "bg-pink-50 text-pink-700 border-pink-200",
+    amber:  "bg-amber-50 text-amber-700 border-amber-200",
+    red:    "bg-red-50 text-red-700 border-red-200",
+    blue:   "bg-blue-50 text-blue-700 border-blue-200",
+    gray:   "bg-gray-100 text-gray-600 border-gray-200",
+  };
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: "0.3rem",
-      height: "1.6rem", padding: "0 0.6rem", borderRadius: T.pill,
-      fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.03em",
-      background: bg, color, border: `1px solid ${border}`,
-      whiteSpace: "nowrap",
-    }}>
-      <Icon size={12} /> {label}
-    </span>
+    <div className={`flex flex-col items-center px-4 py-3 rounded-xl border ${colors[color] || colors.gray}`}>
+      <span className="text-2xl font-extrabold tracking-tight">{value}</span>
+      <span className="text-[0.65rem] font-bold uppercase tracking-wider mt-0.5 opacity-70">{label}</span>
+    </div>
   );
 }
 
-// ── Action button ─────────────────────────────────────────────────────────
-function ActionBtn({ className, onClick, disabled, children }) {
+/* ─── Activity feed item ─────────────────────────────────────────────────── */
+function ActivityItem({ item }) {
+  const icons = {
+    "checked-in": <CheckCircle2 size={14} className="text-emerald-500" />,
+    "failed":     <XCircle size={14} className="text-red-400" />,
+    "duplicate":  <AlertTriangle size={14} className="text-amber-500" />,
+    "manual":     <Users size={14} className="text-blue-500" />,
+  };
   return (
-    <button className={className} onClick={onClick} disabled={disabled}
-      style={{
-        height: "1.85rem", padding: "0 0.75rem", borderRadius: T.pill,
-        border: `1.5px solid ${T.border}`,
-        background: T.surface, color: T.body,
-        fontFamily: T.font, fontSize: "0.75rem", fontWeight: 600,
-        cursor: disabled ? "not-allowed" : "pointer",
-        transition: `all ${T.t}`, display: "inline-flex", alignItems: "center", gap: "0.3rem",
-        opacity: disabled ? 0.6 : 1,
-      }}>
-      {children}
-    </button>
+    <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+      <div className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0">
+        {icons[item.type] || icons["checked-in"]}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 truncate">{item.name || "Guest"}</p>
+        <p className="text-xs text-gray-400">{item.ticketType} · {item.time}</p>
+      </div>
+      <span className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full ${
+        item.type === "checked-in" ? "bg-emerald-50 text-emerald-700" :
+        item.type === "duplicate"  ? "bg-amber-50 text-amber-700"   :
+        item.type === "manual"     ? "bg-blue-50 text-blue-700"      :
+                                     "bg-red-50 text-red-700"
+      }`}>{item.type}</span>
+    </div>
   );
 }
 
-export default function EventTickets() {
+/* ─── Manual search row ──────────────────────────────────────────────────── */
+function AttendeeRow({ ticket, onCheckIn, checkingIn }) {
+  const statusColors = {
+    "checked-in": "bg-emerald-50 text-emerald-700",
+    "active":     "bg-gray-100 text-gray-600",
+    "refunded":   "bg-red-50 text-red-700",
+  };
+  return (
+    <tr className="hover:bg-gray-50/60 transition-colors">
+      <td className="px-4 py-3">
+        <p className="text-sm font-semibold text-gray-900">{ticket.buyer?.name || "Unknown"}</p>
+        <p className="text-xs text-gray-400">{ticket.buyer?.email}</p>
+      </td>
+      <td className="px-4 py-3 text-sm text-gray-600">{ticket.ticketType}</td>
+      <td className="px-4 py-3">
+        <span className={`text-xs font-bold px-2 py-1 rounded-full ${statusColors[ticket.status] || statusColors.active}`}>
+          {ticket.status === "checked-in" ? "Checked In" : ticket.status || "Active"}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        {(ticket.status === "active" || !ticket.status) && (
+          <button
+            onClick={() => onCheckIn(ticket._id)}
+            disabled={checkingIn === ticket._id}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-all"
+          >
+            {checkingIn === ticket._id
+              ? <RefreshCw size={11} className="animate-spin" />
+              : <CheckCircle2 size={11} />}
+            Check In
+          </button>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════════════════════════ */
+export default function EventDayDashboard() {
   const { eventId } = useParams();
-  const [tickets, setTickets] = useState([]);
-  const [event,   setEvent]   = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [event,     setEvent]     = useState(null);
+  const [tickets,   setTickets]   = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
+  const [search,    setSearch]    = useState("");
+  const [checkingIn, setCheckingIn] = useState(null);
+  const [isOnline,  setIsOnline]  = useState(navigator.onLine);
+  const [activity,  setActivity]  = useState([]);
+  const [activeTab, setActiveTab] = useState("search"); // "search" | "activity" | "stats"
+  const pollRef = useRef(null);
 
-  const [searchTerm,    setSearchTerm]    = useState("");
-  const [statusFilter,  setStatusFilter]  = useState("all");
-  const [showUpgradeModal,  setShowUpgradeModal]  = useState(false);
-  const [refundingTicket,   setRefundingTicket]   = useState(null);
-  const [checkingInTicket,  setCheckingInTicket]  = useState(null);
-  const [resendingTicket,   setResendingTicket]   = useState(null);
+  /* ─── Online / offline listener ─────────────────────────────────────────── */
+  useEffect(() => {
+    const goOnline  = () => { setIsOnline(true);  loadTickets(); };
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online",  goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
 
-  const { hasAccess: canRefund } = useFeatureAccess("refunds");
-
-  useEffect(() => { fetchEventAndTickets(); }, [eventId]);
-
-  const fetchEventAndTickets = async () => {
+  /* ─── Load tickets (with offline fallback) ──────────────────────────────── */
+  const loadTickets = useCallback(async () => {
     try {
-      setLoading(true); setError(null);
-      const [eventRes, ticketsRes] = await Promise.all([
+      const [evRes, tkRes] = await Promise.all([
         API.get(`/events/${eventId}`),
-        API.get(`/events/${eventId}/tickets`),
+        API.get(`/tickets/event/${eventId}`),
       ]);
-      setEvent(eventRes.data);
-      setTickets(ticketsRes.data || []);
+      setEvent(evRes.data);
+      setTickets(tkRes.data || []);
+      setError(null);
+      // Cache for offline use
+      try {
+        sessionStorage.setItem(CACHE_KEY(eventId), JSON.stringify({
+          event: evRes.data,
+          tickets: tkRes.data,
+          cachedAt: Date.now(),
+        }));
+      } catch { /* storage full — ignore */ }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load tickets");
+      // Try offline cache
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY(eventId)) || "null");
+        if (cached) {
+          setEvent(cached.event);
+          setTickets(cached.tickets);
+          setError(`Offline mode — showing data cached at ${new Date(cached.cachedAt).toLocaleTimeString()}`);
+        } else {
+          setError(err.response?.data?.message || "Failed to load event data");
+        }
+      } catch {
+        setError("Failed to load event data");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId]);
 
-  const handleRefund = async (ticketId) => {
-    if (!canRefund) { setShowUpgradeModal(true); return; }
-    if (!confirm("Are you sure you want to refund this ticket? This action cannot be undone.")) return;
-    try {
-      setRefundingTicket(ticketId);
-      await API.post(`/tickets/${ticketId}/refund`);
-      await fetchEventAndTickets();
-      alert("Ticket refunded successfully");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to refund ticket");
-    } finally { setRefundingTicket(null); }
-  };
+  useEffect(() => {
+    loadTickets();
+    // Poll every 15 s for live check-in count updates
+    pollRef.current = setInterval(loadTickets, 15000);
+    return () => clearInterval(pollRef.current);
+  }, [loadTickets]);
 
+  /* ─── Manual check-in ───────────────────────────────────────────────────── */
   const handleCheckIn = async (ticketId) => {
     try {
-      setCheckingInTicket(ticketId);
+      setCheckingIn(ticketId);
       await API.post(`/tickets/${ticketId}/checkin`);
-      await fetchEventAndTickets();
-      alert("Ticket checked in successfully");
+
+      // Optimistic update
+      setTickets((prev) =>
+        prev.map((t) => t._id === ticketId ? { ...t, status: "checked-in", used: true, usedAt: new Date() } : t)
+      );
+
+      const ticket = tickets.find((t) => t._id === ticketId);
+      pushActivity({
+        type:       "manual",
+        name:       ticket?.buyer?.name || "Guest",
+        ticketType: ticket?.ticketType || "—",
+      });
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to check in ticket");
-    } finally { setCheckingInTicket(null); }
+      alert(err.response?.data?.message || "Check-in failed");
+    } finally {
+      setCheckingIn(null);
+    }
   };
 
-  const handleResendEmail = async (ticketId) => {
-    try {
-      setResendingTicket(ticketId);
-      await API.post(`/tickets/${ticketId}/resend`);
-      alert("Ticket email resent successfully");
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to resend ticket email");
-    } finally { setResendingTicket(null); }
+  const pushActivity = (item) => {
+    setActivity((prev) => [
+      { ...item, time: new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" }), id: Date.now() },
+      ...prev.slice(0, 49),
+    ]);
   };
 
-  const handleExportCSV = () => {
-    const headers = ["Buyer Name", "Email", "Ticket Type", "Price", "Purchase Date", "Status"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredTickets.map((t) => [
-        `"${t.buyer?.name || "Unknown"}"`,
-        `"${t.buyer?.email || ""}"`,
-        `"${t.ticketType || ""}"`,
-        t.price || 0,
-        `"${formatDate(t.createdAt)}"`,
-        t.status || "active",
-      ].join(",")),
-    ].join("\n");
+  /* ─── Stats ─────────────────────────────────────────────────────────────── */
+  const total      = tickets.length;
+  const checkedIn  = tickets.filter((t) => t.status === "checked-in").length;
+  const remaining  = total - checkedIn;
+  const pct        = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url  = window.URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `${event?.title || "event"}-tickets.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  const filteredTickets = tickets.filter((t) => {
-    const matchesSearch =
-      t.buyer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.buyer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.ticketType?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || (t.status || "active") === statusFilter;
-    return matchesSearch && matchesStatus;
+  /* ─── Filter ─────────────────────────────────────────────────────────────── */
+  const filtered = tickets.filter((t) => {
+    const q = search.toLowerCase();
+    return !q || (
+      t.buyer?.name?.toLowerCase().includes(q)  ||
+      t.buyer?.email?.toLowerCase().includes(q) ||
+      t.ticketType?.toLowerCase().includes(q)   ||
+      String(t._id).includes(q)
+    );
   });
 
-  // ── Loading state ─────────────────────────────────────────────────────
+  /* ─── Loading / error states ─────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div style={{
-        fontFamily: T.font, minHeight: "100vh", background: T.bg,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexDirection: "column", gap: "0.85rem", color: T.muted, textAlign: "center",
-      }}>
-        <RefreshCw size={24} className="et-spin" style={{ color: T.pink }} />
-        <p style={{ margin: 0, fontSize: "0.9rem" }}>Loading tickets…</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center gap-3 font-geist">
+        <RefreshCw size={20} className="animate-spin text-pink-500" />
+        <p className="text-sm text-gray-500">Loading event day dashboard…</p>
       </div>
     );
   }
-
-  // ── Error state ───────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div style={{
-        fontFamily: T.font, minHeight: "100vh", background: T.bg,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexDirection: "column", gap: "0.85rem", color: T.muted, textAlign: "center",
-      }}>
-        <AlertTriangle size={24} style={{ color: T.amber }} />
-        <p style={{ margin: 0, fontSize: "0.9rem", color: T.body }}>{error}</p>
-        <button className="et-retry-btn" onClick={fetchEventAndTickets}
-          style={{
-            height: "2.25rem", padding: "0 1.25rem", borderRadius: T.pill,
-            border: "none", background: T.pink, color: "#fff",
-            fontFamily: T.font, fontSize: "0.82rem", fontWeight: 600,
-            cursor: "pointer", transition: `background ${T.t}`,
-          }}>
-          Try Again
-        </button>
-      </div>
-    );
-  }
-
-  // ── Ticket counts ─────────────────────────────────────────────────────
-  const totalCount     = tickets.length;
-  const activeCount    = tickets.filter((t) => (t.status || "active") === "active").length;
-  const checkedInCount = tickets.filter((t) => t.status === "checked-in").length;
-  const refundedCount  = tickets.filter((t) => t.status === "refunded").length;
 
   return (
-            <div className="min-h-screen w-full bg-[#f7f7f9] ">
+    <div className="min-h-screen bg-gray-50 font-geist">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
 
-      <div style={{ maxWidth: 1300, margin: "0 auto", padding: "2rem 1rem 4rem" }}>
-
-        {/* Page header */}
-        <div style={{ marginBottom: "1.75rem" }}>
-          <Link to={`/event/${eventId}`} className="et-back-link"
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "0.35rem",
-              fontSize: "0.82rem", fontWeight: 600, color: T.muted,
-              textDecoration: "none", marginBottom: "0.85rem",
-              transition: `color ${T.t}`,
-            }}>
-            <ArrowLeft size={18} /> Back to event
+        {/* ── Header ── */}
+        <div className="mb-6">
+          <Link to={`/event/${eventId}`} className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-pink-500 font-semibold mb-2 transition-colors">
+            <ArrowLeft size={15} /> Back to event
           </Link>
-          <h1 style={{ fontSize: "clamp(1.3rem, 2.5vw, 1.75rem)", fontWeight: 800, letterSpacing: "-0.03em", color: T.ink, margin: "0 0 0.5rem" }}>
-            {event?.title} – Tickets
-          </h1>
-          {/* Stats pills */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            {[
-              { label: `${totalCount} total`,      bg: T.faint,     color: T.body  },
-              { label: `${activeCount} active`,    bg: T.greenSoft, color: T.green },
-              { label: `${checkedInCount} checked in`, bg: T.pinkSoft, color: T.pink },
-              { label: `${refundedCount} refunded`, bg: T.redSoft,  color: T.red   },
-            ].map((s) => (
-              <span key={s.label} style={{
-                display: "inline-flex", alignItems: "center",
-                height: "1.6rem", padding: "0 0.7rem", borderRadius: T.pill,
-                fontSize: "0.72rem", fontWeight: 700, background: s.bg, color: s.color,
-              }}>{s.label}</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Search + filters */}
-        <div style={{
-          display: "flex", flexWrap: "wrap", gap: "0.75rem",
-          alignItems: "center", marginBottom: "1.25rem",
-        }}>
-          {/* Search */}
-          <div style={{ position: "relative", flex: "1 1 260px" }}>
-            <Search size={17} style={{
-              position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)",
-              color: T.muted, pointerEvents: "none",
-            }} />
-            <input className="et-search-input"
-              type="text"
-              placeholder="Search by name, email, or ticket type…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: "100%", height: "2.75rem",
-                paddingLeft: "2.6rem", paddingRight: "1rem",
-                borderRadius: T.pill, border: `1.5px solid ${T.border}`,
-                background: T.surface, fontFamily: T.font, fontSize: "0.88rem",
-                color: T.ink, boxSizing: "border-box",
-                transition: `border-color ${T.t}, box-shadow ${T.t}`,
-              }} />
-          </div>
-          {/* Status filter */}
-          <select className="et-select"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              height: "2.75rem", padding: "0 2.5rem 0 1rem",
-              borderRadius: T.pill, border: `1.5px solid ${T.border}`,
-              background: T.surface,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: "no-repeat", backgroundPosition: "right 0.85rem center",
-              appearance: "none",
-              fontFamily: T.font, fontSize: "0.85rem", color: T.body,
-              transition: `border-color ${T.t}, box-shadow ${T.t}`,
-            }}>
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="checked-in">Checked In</option>
-            <option value="refunded">Refunded</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          {/* Export */}
-          <button className="et-export-btn" onClick={handleExportCSV}
-            style={{
-              height: "2.75rem", padding: "0 1.25rem", borderRadius: T.pill,
-              border: `1.5px solid ${T.border}`,
-              background: T.surface, color: T.body,
-              fontFamily: T.font, fontSize: "0.82rem", fontWeight: 600,
-              cursor: "pointer", transition: `all ${T.t}`, whiteSpace: "nowrap",
-            }}>
-            Export CSV
-          </button>
-        </div>
-
-        {/* Tickets table */}
-        <div style={{
-          background: T.surface, border: `1.5px solid ${T.border}`,
-          borderRadius: T.radiusXl, overflow: "hidden", boxShadow: T.shadowSm,
-        }}>
-          <div style={{ overflowX: "auto" }}>
-            <table className="et-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
-              <thead>
-                <tr>
-                  {["Buyer", "Ticket Type", "Price", "Purchase Date", "Status", "Actions"].map((h) => (
-                    <th key={h} style={{
-                      padding: "0.85rem 1rem", textAlign: "left",
-                      fontSize: "0.68rem", textTransform: "uppercase",
-                      letterSpacing: "0.06em", color: T.muted, fontWeight: 700,
-                      background: "#fafafa", borderBottom: `1.5px solid ${T.borderSoft}`,
-                      whiteSpace: "nowrap",
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTickets.map((ticket) => (
-                  <tr key={ticket._id}>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}` }}>
-                      <div style={{ fontWeight: 700, color: T.ink, fontSize: "0.88rem" }}>
-                        {ticket.buyer?.name || "Unknown"}
-                      </div>
-                      <div style={{ fontSize: "0.76rem", color: T.muted, marginTop: "0.1rem" }}>
-                        {ticket.buyer?.email}
-                      </div>
-                    </td>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}`, color: T.body }}>
-                      {ticket.ticketType}
-                    </td>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}`, fontWeight: 600, color: T.ink }}>
-                      {formatCurrency(ticket.price)}
-                    </td>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}`, color: T.muted, fontSize: "0.8rem", whiteSpace: "nowrap" }}>
-                      {formatDate(ticket.createdAt)}
-                    </td>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}` }}>
-                      <StatusBadge status={ticket.status} />
-                    </td>
-                    <td style={{ padding: "0.85rem 1rem", borderBottom: `1px solid ${T.borderSoft}` }}>
-                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                        {(ticket.status === "active" || !ticket.status) && (
-                          <ActionBtn className="et-checkin-btn"
-                            onClick={() => handleCheckIn(ticket._id)}
-                            disabled={checkingInTicket === ticket._id}>
-                            {checkingInTicket === ticket._id
-                              ? <RefreshCw size={13} className="et-spin" />
-                              : "Check In"}
-                          </ActionBtn>
-                        )}
-                        <ActionBtn className="et-resend-btn"
-                          onClick={() => handleResendEmail(ticket._id)}
-                          disabled={resendingTicket === ticket._id}>
-                          {resendingTicket === ticket._id
-                            ? <RefreshCw size={13} className="et-spin" />
-                            : "Resend"}
-                        </ActionBtn>
-                        {ticket.status !== "refunded" && ticket.price > 0 && (
-                          <ActionBtn className="et-refund-btn"
-                            onClick={() => handleRefund(ticket._id)}
-                            disabled={refundingTicket === ticket._id}>
-                            {refundingTicket === ticket._id
-                              ? <RefreshCw size={13} className="et-spin" />
-                              : "Refund"}
-                          </ActionBtn>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Empty state */}
-          {filteredTickets.length === 0 && (
-            <div style={{ padding: "4rem 2rem", textAlign: "center", color: T.muted }}>
-              <Ticket size={48} style={{ opacity: 0.25, marginBottom: "0.85rem" }} />
-              <h3 style={{ fontSize: "1rem", fontWeight: 700, color: T.body, margin: "0 0 0.3rem" }}>
-                No tickets found
-              </h3>
-              <p style={{ fontSize: "0.85rem", margin: 0 }}>
-                {searchTerm
-                  ? "Try adjusting your search terms"
-                  : "No tickets have been sold for this event yet"}
-              </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">{event?.title || "Event Day"}</h1>
+              <p className="text-sm text-gray-400 mt-0.5">{formatDate(event?.startDate)} · {event?.location || "—"}</p>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+              }`}>
+                {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+                {isOnline ? "Online" : "Offline"}
+              </div>
+              <button onClick={loadTickets} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-500 transition-all">
+                <RefreshCw size={12} /> Refresh
+              </button>
+              <Link to="/scanner" className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-pink-500 text-white text-xs font-bold hover:bg-pink-600 transition-all shadow-sm">
+                <QrCode size={12} /> Scan QR
+              </Link>
+            </div>
+          </div>
         </div>
 
-        <UpgradeModal
-          open={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          featureName="refunds"
-        />
+        {/* Offline banner */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 mb-5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+            <AlertTriangle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* ── Stats Bar ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <StatPill label="Total" value={total}      color="gray"  />
+          <StatPill label="Checked In" value={checkedIn} color="green" />
+          <StatPill label="Remaining"  value={remaining} color="amber" />
+          <StatPill label="% Arrived"  value={`${pct}%`} color="pink"  />
+        </div>
+
+        {/* Progress bar */}
+        <div className="mb-6 p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold text-gray-500">Check-in progress</span>
+            <span className="text-xs font-bold text-emerald-600">{checkedIn}/{total} attendees</span>
+          </div>
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* ── Tab Nav ── */}
+        <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-xl w-fit">
+          {[
+            { id: "search",   label: "Search & Check-in", icon: <Search size={13} /> },
+            { id: "activity", label: "Live Activity",      icon: <Activity size={13} /> },
+            { id: "stats",    label: "Stats",              icon: <BarChart2 size={13} /> },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === tab.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Search & Check-in Tab ── */}
+        {activeTab === "search" && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-100">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or ticket type…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-50 text-sm transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {["Attendee", "Ticket Type", "Status", "Action"].map((h) => (
+                      <th key={h} className="text-left px-4 py-2.5 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((ticket) => (
+                    <AttendeeRow
+                      key={ticket._id}
+                      ticket={ticket}
+                      onCheckIn={handleCheckIn}
+                      checkingIn={checkingIn}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="py-12 text-center text-gray-400">
+                <Ticket size={36} className="mx-auto mb-2 opacity-25" />
+                <p className="text-sm font-semibold">{search ? "No matching attendees" : "No tickets found"}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Activity Tab ── */}
+        {activeTab === "activity" && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900">Live check-in feed</span>
+              <span className="text-xs text-gray-400">{activity.length} events</span>
+            </div>
+            <div className="px-4 py-2 max-h-[480px] overflow-y-auto">
+              {activity.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  <Activity size={32} className="mx-auto mb-2 opacity-25" />
+                  <p className="text-sm">No activity yet — check-ins will appear here</p>
+                </div>
+              ) : (
+                activity.map((item) => <ActivityItem key={item.id} item={item} />)
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Stats Tab ── */}
+        {activeTab === "stats" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Ticket types", value: [...new Set(tickets.map((t) => t.ticketType))].length, icon: <Ticket size={16} /> },
+                { label: "Check-in rate", value: `${pct}%`, icon: <CheckCircle2 size={16} /> },
+                { label: "Manual check-ins", value: activity.filter((a) => a.type === "manual").length, icon: <Users size={16} /> },
+              ].map((s) => (
+                <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-pink-50 flex items-center justify-center text-pink-500">
+                    {s.icon}
+                  </div>
+                  <div>
+                    <p className="text-xl font-extrabold text-gray-900">{s.value}</p>
+                    <p className="text-xs text-gray-400">{s.label}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Ticket type breakdown */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="text-sm font-bold text-gray-900 mb-3">By ticket type</h3>
+              {[...new Set(tickets.map((t) => t.ticketType))].map((type) => {
+                const typeTickets = tickets.filter((t) => t.ticketType === type);
+                const typeIn      = typeTickets.filter((t) => t.status === "checked-in").length;
+                const typePct     = typeTickets.length ? Math.round((typeIn / typeTickets.length) * 100) : 0;
+                return (
+                  <div key={type} className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold text-gray-700">{type}</span>
+                      <span className="text-xs text-gray-400">{typeIn}/{typeTickets.length} · {typePct}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-pink-400 rounded-full transition-all" style={{ width: `${typePct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

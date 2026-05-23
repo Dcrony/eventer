@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import API from "../api/axios";
+import { useAuth } from "../context/AuthContext";
 import icon from "../assets/icon.svg";
 import { ArrowLeft, CheckCircle, AlertCircle, Clock, Mail } from "lucide-react";
+import RoleSelectionModal from "../components/RoleSelectionModal";
 
 const PENDING_CODE_KEY = "pendingVerificationCode";
 
 const VerifyEmailOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
   const [resendLoading, setResendLoading] = useState(false);
+  const [pendingRoleUser, setPendingRoleUser] = useState(null);
+  const [pendingRoleToken, setPendingRoleToken] = useState(null);
 
   const email = location.state?.email || localStorage.getItem("verifyEmail");
 
@@ -59,25 +64,19 @@ const VerifyEmailOtp = () => {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!email) {
-      setError("Email not found. Please sign up again.");
-      return;
-    }
+    if (!email) { setError("Email not found. Please sign up again."); return; }
     const otpCode = otp.join("");
-    if (otpCode.length !== 6) {
-      setError("Please enter all 6 digits");
-      return;
-    }
+    if (otpCode.length !== 6) { setError("Please enter all 6 digits"); return; }
     setError("");
     setLoading(true);
     try {
       const response = await API.post("/auth/verify-otp", { email, otp: otpCode });
       setSuccess("✅ Email verified successfully!");
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
       localStorage.removeItem("verifyEmail");
       sessionStorage.removeItem(PENDING_CODE_KEY);
-      setTimeout(() => navigate("/events"), 1500);
+      // Show role modal — don't navigate yet
+      setPendingRoleUser(response.data.user);
+      setPendingRoleToken(response.data.token);
     } catch (err) {
       const message = err.response?.data?.message || "Failed to verify OTP. Please try again.";
       setError(message);
@@ -88,13 +87,11 @@ const VerifyEmailOtp = () => {
   };
 
   const handleResendOtp = async () => {
-    if (!email) {
-      setError("Email not found. Please sign up again.");
-      return;
-    }
+    if (!email) { setError("Email not found. Please sign up again."); return; }
     setError("");
     setResendLoading(true);
     try {
+      await API.post("/auth/resend-otp", { email });
       setSuccess("✅ New code sent to your email.");
       setTimeLeft(600);
       setOtp(["", "", "", "", "", ""]);
@@ -105,6 +102,12 @@ const VerifyEmailOtp = () => {
     } finally {
       setResendLoading(false);
     }
+  };
+
+  const handleRoleSelected = (role) => {
+    const updatedUser = { ...pendingRoleUser, role, roleConfirmed: true };
+    login(updatedUser, pendingRoleToken);
+    navigate(role === "organizer" ? "/dashboard" : "/events", { replace: true });
   };
 
   if (!email) {
@@ -123,6 +126,14 @@ const VerifyEmailOtp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist flex items-center justify-center p-4">
+      {pendingRoleUser && (
+        <RoleSelectionModal
+          user={pendingRoleUser}
+          token={pendingRoleToken}      
+          onComplete={handleRoleSelected}
+        />
+      )}
+
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <Link to="/login" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors">
@@ -143,14 +154,12 @@ const VerifyEmailOtp = () => {
             </p>
           </div>
 
-          {/* Timer Banner */}
           <div className={`p-3 rounded-xl text-center text-sm mb-5 ${timeLeft < 120 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
             <Clock size={14} className="inline mr-1" />
             Code expires in: <strong>{formatTime(timeLeft)}</strong>
           </div>
 
           <form onSubmit={handleVerifyOtp}>
-            {/* OTP Inputs */}
             <div className="flex justify-center gap-3 mb-5" onPaste={handlePaste}>
               {otp.map((digit, index) => (
                 <input
@@ -191,13 +200,10 @@ const VerifyEmailOtp = () => {
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Verifying...
                 </span>
-              ) : (
-                "Verify"
-              )}
+              ) : "Verify"}
             </button>
           </form>
 
-          {/* Resend Section */}
           <div className="text-center mt-6 pt-5 border-t border-gray-200">
             <p className="text-sm text-gray-500 mb-2">Need a new code?</p>
             <button

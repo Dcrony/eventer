@@ -11,6 +11,7 @@ import {
   sanitizePassword,
   validateLoginForm,
 } from "../utils/formValidation";
+import RoleSelectionModal from "../components/RoleSelectionModal";
 
 function PasswordInput({ name, placeholder, value, onChange }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,11 +38,20 @@ function PasswordInput({ name, placeholder, value, onChange }) {
   );
 }
 
+function getRedirectTarget(user, from) {
+  if (from) return from;
+  if (isAdminRole(user?.role)) return "/dashboard";
+  if (user?.role === "organizer") return "/dashboard";
+  return "/events";
+}
+
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingRoleUser, setPendingRoleUser] = useState(null);
+  const [pendingRoleToken, setPendingRoleToken] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, login } = useAuth();
@@ -78,15 +88,20 @@ export default function Login() {
     };
     try {
       const res = await API.post("/auth/login", payload);
-      login(res.data.user, res.data.token);
+      const userData = res.data.user;
+      const token = res.data.token;
+
+      if (!userData.roleConfirmed) {
+        setPendingRoleUser(userData);
+        setPendingRoleToken(token);
+        setLoading(false);
+        return;
+      }
+
+      login(userData, token);
       setSuccess("Login successful ✅ Redirecting...");
       const from = location.state?.from?.pathname;
-      const target =
-        from ||
-        (res.data.user?.role === "organizer" || isAdminRole(res.data.user?.role)
-          ? "/dashboard"
-          : "/events");
-      setTimeout(() => navigate(target), 800);
+      setTimeout(() => navigate(getRedirectTarget(userData, from)), 800);
     } catch (err) {
       const data = err.response?.data;
       if (err.response?.status === 403 && data?.code === "OTP_SENT") {
@@ -119,15 +134,24 @@ export default function Login() {
       const { signInWithGoogleAndGetIdToken } = await import("../utils/googleSignIn");
       const idToken = await signInWithGoogleAndGetIdToken();
       const result = await emailService.firebaseSync(idToken);
-      
+
       if (!result.success) throw new Error(result.error);
 
-      if (result.data.user.isVerified) {
-        login(result.data.user, result.data.token);
+      const userData = result.data.user;
+      const token = result.data.token;
+
+      if (userData.isVerified) {
+        if (!userData.roleConfirmed) {
+          setPendingRoleUser(userData);
+          setPendingRoleToken(token);
+          setLoading(false);
+          return;
+        }
+        login(userData, token);
         setSuccess("Google login successful! Redirecting...");
-        setTimeout(() => navigate("/dashboard"), 1500);
+        setTimeout(() => navigate(getRedirectTarget(userData, null)), 1500);
       } else {
-        const emailAddr = result.data.user.email;
+        const emailAddr = userData.email;
         const code = result.data.verificationCode;
         localStorage.setItem("verifyEmail", emailAddr);
         if (code) sessionStorage.setItem("pendingVerificationCode", code);
@@ -144,25 +168,36 @@ export default function Login() {
     }
   };
 
+  const handleRoleSelected = (role) => {
+    const updatedUser = { ...pendingRoleUser, role, roleConfirmed: true };
+    login(updatedUser, pendingRoleToken);
+    navigate(getRedirectTarget(updatedUser, location.state?.from?.pathname), { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-white font-inter">
+
+{pendingRoleUser && (
+  <RoleSelectionModal
+    user={pendingRoleUser}
+    token={pendingRoleToken}      
+    onComplete={handleRoleSelected}
+  />
+)}
+
       <div className="relative min-h-screen flex items-center justify-center p-4">
-        {/* Animated Grid Background */}
         <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.03)_1px,transparent_1px)] bg-[size:40px_40px] animate-grid-move" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_80%_15%,rgba(236,72,153,0.08),transparent_55%),radial-gradient(ellipse_50%_45%_at_10%_80%,rgba(59,130,246,0.06),transparent_50%)]" />
         </div>
 
-        {/* Main Container */}
         <div className="relative z-10 w-full max-w-5xl min-h-[600px] bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-[600px] ">
-            
-            {/* Brand Panel - Left Side */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] min-h-[600px]">
+
+            {/* Brand Panel */}
             <div className="md:block hidden relative bg-gradient-to-br from-white via-pink-50/50 to-gray-50 p-8 lg:p-10 overflow-hidden border-r border-gray-100">
-              {/* Floating Blobs */}
               <div className="absolute w-44 h-44 rounded-full bg-pink-200/30 blur-3xl top-10 -right-10 animate-float" />
               <div className="absolute w-36 h-36 rounded-full bg-blue-200/20 blur-2xl bottom-10 -left-10 animate-float-delayed" />
-              
               <div className="relative z-10 max-w-md">
                 <img src={icon} alt="TickiSpot" className="w-12 h-12 mb-5 drop-shadow-lg" />
                 <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900 mb-3">
@@ -185,7 +220,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Form Panel - Right Side */}
+            {/* Form Panel */}
             <div className="p-6 sm:p-8 lg:p-10 bg-white/95">
               <div className="text-center mb-6">
                 <Link to="/" className="inline-block mb-4 lg:hidden">
@@ -198,25 +233,19 @@ export default function Login() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* General Error Alert */}
                 {errors.general && (
                   <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm font-medium animate-slide-down">
                     {errors.general}
                   </div>
                 )}
-                
-                {/* Success Alert */}
                 {success && (
                   <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-green-600 text-sm font-medium animate-slide-down">
                     {success}
                   </div>
                 )}
 
-                {/* Email Field */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
-                    Email
-                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Email</label>
                   <input
                     name="email"
                     type="email"
@@ -228,11 +257,8 @@ export default function Login() {
                   {errors.email && <p className="text-xs text-red-500 mt-1 animate-fade-in">{errors.email}</p>}
                 </div>
 
-                {/* Password Field */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
-                    Password
-                  </label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">Password</label>
                   <PasswordInput
                     name="password"
                     placeholder="Enter your password"
@@ -247,7 +273,6 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={loading}
@@ -259,14 +284,11 @@ export default function Login() {
                       Signing in...
                     </>
                   ) : (
-                    <>
-                      Sign In <ArrowRight size={16} />
-                    </>
+                    <>Sign In <ArrowRight size={16} /></>
                   )}
                 </button>
               </form>
 
-              {/* Google Sign In */}
               <div className="mt-5">
                 <button
                   type="button"
@@ -283,7 +305,6 @@ export default function Login() {
                 </button>
               </div>
 
-              {/* Footer Links */}
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-500">
                   Don't have an account?{" "}
