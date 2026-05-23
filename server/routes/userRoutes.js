@@ -18,6 +18,7 @@ const {
   upgradeMyPlan,
   getCreators,
   getFounderProfile,
+  setMyRole,
 } = require("../controllers/userController");
 
 
@@ -64,5 +65,6 @@ router.get("/public/:identifier", getPublicProfile);
 
 // Get Profile
 router.get("/:id", authMiddleware, getUserProfile);
+router.patch("/me/role", authMiddleware, setMyRole);
 
 module.exports = router;
