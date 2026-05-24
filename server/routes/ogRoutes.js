@@ -1,192 +1,209 @@
-/**
- * ogRoutes.js — Open Graph / Social Sharing Meta Tags
- *
- * Replaces the existing inline app.get("/event/:id") and app.get("/users/:id")
- * handlers in server.js.
- *
- * Changes from existing code:
- *   1. Fetches Cloudinary-stored images correctly (they're full HTTPS URLs)
- *   2. Handles both event.image (legacy local) and event.banner (Cloudinary)
- *   3. Handles both user.profilePic (legacy) and full Cloudinary URLs
- *   4. Returns proper 200 with meta tags so crawlers index them
- *   5. Adds og:image:width/height and twitter:image for better previews
- *
- * Mount BEFORE express.json() in server.js:
- *   const ogRoutes = require("./routes/ogRoutes");
- *   app.use(ogRoutes);
- */
-
 const express = require("express");
 const router  = express.Router();
 const Event   = require("../models/Event");
 const User    = require("../models/User");
 
-const BACKEND_URL  = process.env.BACKEND_URL  || "http://localhost:8080";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const BACKEND_URL  = (process.env.BACKEND_URL  || "http://localhost:8080").replace(/\/$/, "");
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
 
-/* ─── Escape HTML ─────────────────────────────────────────────────────────── */
-function esc(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+// Crawlers that need OG meta tags served directly.
+// WhatsApp sends "WhatsApp/2.x" — must be in this list.
+const CRAWLER_RE = /facebookexternalhit|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Googlebot|bingbot|DuckDuckBot|Applebot|Discordbot|Slurp|ia_archiver/i;
+
+function isCrawler(req) {
+  return CRAWLER_RE.test(req.headers["user-agent"] || "");
 }
 
-/* ─── Resolve a stored media value to a full HTTPS URL ───────────────────── */
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g,  "&amp;")
+    .replace(/</g,  "&lt;")
+    .replace(/>/g,  "&gt;")
+    .replace(/"/g,  "&quot;")
+    .replace(/'/g,  "&#39;");
+}
+
+// Resolve any stored value → full public URL.
+// Your Cloudinary uploads are stored as full https:// URLs in event.image.
+// Legacy local files are stored as filenames like "1234.jpg" or "uploads/event_image/1234.jpg".
 function resolveMediaUrl(value) {
   if (!value) return null;
   const s = String(value).trim();
-  // Already a full URL (Cloudinary or external)
+  if (!s || s === "null" || s === "undefined") return null;
+  // Already a full Cloudinary / S3 / external URL — return as-is
   if (/^https?:\/\//i.test(s)) return s;
-  // Legacy local path
-  const normalized = s.replace(/^\/+/, "");
-  return `${BACKEND_URL}/${normalized}`;
+  // Legacy local file — prefix backend origin
+  return `${BACKEND_URL}/${s.replace(/^\/+/, "")}`;
 }
 
-/* ─── Get best image for an event ───────────────────────────────────────── */
+// Event image: your uploadImageBuffer stores the Cloudinary URL in event.image
+// (see ticketController / eventController — they both do: uploaded.secure_url → event.image)
+// event.banner does not exist on the Event schema — skip it.
 function getEventImage(event) {
-  // Prefer Cloudinary banner field, fall back to image field
-  if (event.banner) return resolveMediaUrl(event.banner);
   if (event.image)  return resolveMediaUrl(event.image);
+  if (event.banner) return resolveMediaUrl(event.banner); // future-proof
   return null;
 }
 
-/* ─── Get best image for a user ─────────────────────────────────────────── */
 function getUserImage(user) {
   if (user.profilePic) return resolveMediaUrl(user.profilePic);
   return null;
 }
 
-/* ─── Build OG HTML shell ────────────────────────────────────────────────── */
-function buildOgPage({ title, description, image, url, type = "website", redirectPath }) {
-  const safeTitle   = esc(title);
-  const safeDesc    = esc(description || "");
-  const safeImage   = image ? esc(image) : "";
-  const safeUrl     = esc(url);
-  const safePath    = esc(redirectPath);
+function buildOgHtml({ title, description, image, canonicalUrl, type }) {
+  const t = esc(title);
+  const d = esc((description || "").slice(0, 300));
+  const u = esc(canonicalUrl);
 
+  const imgBlock = image ? `
+  <meta property="og:image"            content="${esc(image)}"/>
+  <meta property="og:image:secure_url" content="${esc(image)}"/>
+  <meta property="og:image:width"      content="1200"/>
+  <meta property="og:image:height"     content="630"/>
+  <meta property="og:image:alt"        content="${t}"/>
+  <meta name="twitter:card"            content="summary_large_image"/>
+  <meta name="twitter:image"           content="${esc(image)}"/>` : `
+  <meta name="twitter:card" content="summary"/>`;
+
+  // IMPORTANT: no redirect here. Crawlers don't run JS and don't follow
+  // meta-refresh quickly enough. Serve the full page at this URL.
+  // The <a> tag is just a fallback for the rare human who lands here.
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>${safeTitle}</title>
-
-  <!-- Primary -->
-  <meta name="description" content="${safeDesc}" />
-
-  <!-- Open Graph -->
-  <meta property="og:type"        content="${esc(type)}" />
-  <meta property="og:title"       content="${safeTitle}" />
-  <meta property="og:description" content="${safeDesc}" />
-  <meta property="og:url"         content="${safeUrl}" />
-  ${safeImage ? `<meta property="og:image"       content="${safeImage}" />
-  <meta property="og:image:width"  content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt"    content="${safeTitle}" />` : ""}
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card"        content="${safeImage ? "summary_large_image" : "summary"}" />
-  <meta name="twitter:title"       content="${safeTitle}" />
-  <meta name="twitter:description" content="${safeDesc}" />
-  ${safeImage ? `<meta name="twitter:image" content="${safeImage}" />` : ""}
-
-  <!-- WhatsApp / iMessage read og: tags — nothing extra needed -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>${t}</title>
+<meta name="description" content="${d}"/>
+<meta property="og:type"        content="${esc(type || "website")}"/>
+<meta property="og:site_name"   content="TickiSpot"/>
+<meta property="og:title"       content="${t}"/>
+<meta property="og:description" content="${d}"/>
+<meta property="og:url"         content="${u}"/>${imgBlock}
+<meta name="twitter:title"       content="${t}"/>
+<meta name="twitter:description" content="${d}"/>
 </head>
 <body>
-  <script>window.location.replace("${safePath}");</script>
-  <p><a href="${safePath}">Click here if not redirected</a></p>
+<p><a href="${u}">Open on TickiSpot</a></p>
+<script>window.location.replace("${u}");</script>
 </body>
 </html>`;
 }
 
-/* ─── Event OG route ─────────────────────────────────────────────────────── */
+// ── /event/:id ────────────────────────────────────────────────────────────────
 router.get("/event/:id", async (req, res, next) => {
-  // Only handle requests from crawlers / link previewers.
-  // Real user navigation is handled client-side by React Router.
-  const ua = req.headers["user-agent"] || "";
-  const isCrawler = /facebookexternalhit|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Googlebot|bingbot|DuckDuckBot|Applebot/i.test(ua);
-
-  // For non-crawlers just redirect straight to the SPA
-  if (!isCrawler) {
+  // Real browsers navigating directly: redirect to the SPA immediately.
+  // Crawlers: serve full OG HTML at this URL (no redirect — crawlers need
+  // the tags on the exact URL they fetched).
+  if (!isCrawler(req)) {
     return res.redirect(302, `${FRONTEND_URL}/event/${req.params.id}`);
   }
 
   try {
-    const event = await Event.findById(req.params.id).populate("createdBy", "name username");
+    const event = await Event
+      .findById(req.params.id)
+      .select("title description image banner location startDate startTime createdBy")
+      .populate("createdBy", "name username")
+      .lean();
+
     if (!event) return res.status(404).send("Event not found");
 
-    const image       = getEventImage(event);
-    const title       = `${event.title} — TickiSpot`;
+    const image = getEventImage(event);
+
+    const dateStr = event.startDate
+      ? new Date(event.startDate).toLocaleDateString("en-NG", {
+          weekday: "long", month: "long", day: "numeric", year: "numeric",
+        })
+      : null;
+
     const description = event.description
       ? event.description.slice(0, 200)
-      : `Join ${event.title} on TickiSpot. Get your tickets now.`;
-    const canonicalUrl = `${FRONTEND_URL}/event/${event._id}`;
+      : [
+          `Join ${event.title} on TickiSpot.`,
+          dateStr ? `Happening ${dateStr}.` : null,
+          event.location ? `At ${event.location}.` : null,
+          "Get your tickets now.",
+        ].filter(Boolean).join(" ");
 
-    return res.status(200).send(
-      buildOgPage({ title, description, image, url: canonicalUrl, redirectPath: canonicalUrl })
-    );
+    return res
+      .status(200)
+      .set("Content-Type", "text/html; charset=utf-8")
+      .send(buildOgHtml({
+        title:        `${event.title} — TickiSpot`,
+        description,
+        image,
+        canonicalUrl: `${FRONTEND_URL}/event/${event._id}`,
+        type:         "website",
+      }));
   } catch (err) {
-    console.error("OG event route error:", err.message);
+    console.error("OG /event/:id error:", err.message);
     return next(err);
   }
 });
 
-/* ─── User / Profile OG route ───────────────────────────────────────────── */
+// ── /profile/:id ──────────────────────────────────────────────────────────────
 router.get("/profile/:id", async (req, res, next) => {
-  const ua        = req.headers["user-agent"] || "";
-  const isCrawler = /facebookexternalhit|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Googlebot|bingbot|DuckDuckBot|Applebot/i.test(ua);
-
-  if (!isCrawler) {
+  if (!isCrawler(req)) {
     return res.redirect(302, `${FRONTEND_URL}/profile/${req.params.id}`);
   }
 
   try {
     const isObjectId = /^[0-9a-fA-F]{24}$/.test(req.params.id);
-    const user = await User.findOne(
-      isObjectId ? { _id: req.params.id } : { username: req.params.id }
-    ).select("name username bio profilePic");
+    const user = await User
+      .findOne(isObjectId ? { _id: req.params.id } : { username: req.params.id })
+      .select("name username bio profilePic")
+      .lean();
 
     if (!user) return res.status(404).send("User not found");
 
-    const image        = getUserImage(user);
-    const title        = `${user.name || user.username} — TickiSpot`;
-    const description  = user.bio || `Check out ${user.name || user.username}'s events on TickiSpot.`;
-    const canonicalUrl = `${FRONTEND_URL}/profile/${user._id}`;
+    const image       = getUserImage(user);
+    const displayName = user.name || user.username;
 
-    return res.status(200).send(
-      buildOgPage({ title, description, image, url: canonicalUrl, type: "profile", redirectPath: canonicalUrl })
-    );
+    return res
+      .status(200)
+      .set("Content-Type", "text/html; charset=utf-8")
+      .send(buildOgHtml({
+        title:        `${displayName} — TickiSpot`,
+        description:  user.bio || `Check out ${displayName}'s events on TickiSpot.`,
+        image,
+        canonicalUrl: `${FRONTEND_URL}/profile/${user._id}`,
+        type:         "profile",
+      }));
   } catch (err) {
-    console.error("OG profile route error:", err.message);
+    console.error("OG /profile/:id error:", err.message);
     return next(err);
   }
 });
 
-/* ─── Also handle /users/:id for legacy compatibility ──────────────────── */
+// ── /users/:id  (legacy path kept for backward compat) ────────────────────────
 router.get("/users/:id", async (req, res, next) => {
-  const ua        = req.headers["user-agent"] || "";
-  const isCrawler = /facebookexternalhit|Twitterbot|WhatsApp|TelegramBot|LinkedInBot|Slackbot|Googlebot|bingbot|DuckDuckBot|Applebot/i.test(ua);
-
-  if (!isCrawler) {
+  if (!isCrawler(req)) {
     return res.redirect(302, `${FRONTEND_URL}/users/${req.params.id}`);
   }
 
   try {
-    const user = await User.findById(req.params.id).select("name username bio profilePic");
+    const user = await User
+      .findById(req.params.id)
+      .select("name username bio profilePic")
+      .lean();
+
     if (!user) return res.status(404).send("User not found");
 
-    const image        = getUserImage(user);
-    const title        = `${user.name || user.username} — TickiSpot`;
-    const description  = user.bio || `Events by ${user.name || user.username} on TickiSpot.`;
-    const canonicalUrl = `${FRONTEND_URL}/users/${user._id}`;
+    const image       = getUserImage(user);
+    const displayName = user.name || user.username;
 
-    return res.status(200).send(
-      buildOgPage({ title, description, image, url: canonicalUrl, type: "profile", redirectPath: canonicalUrl })
-    );
+    return res
+      .status(200)
+      .set("Content-Type", "text/html; charset=utf-8")
+      .send(buildOgHtml({
+        title:        `${displayName} — TickiSpot`,
+        description:  user.bio || `Events by ${displayName} on TickiSpot.`,
+        image,
+        canonicalUrl: `${FRONTEND_URL}/users/${user._id}`,
+        type:         "profile",
+      }));
   } catch (err) {
-    console.error("OG users route error:", err.message);
+    console.error("OG /users/:id error:", err.message);
     return next(err);
   }
 });

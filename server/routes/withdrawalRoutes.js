@@ -129,7 +129,7 @@ const FINANCE_ROLES = ["super_admin", "admin", "finance_admin"];
 router.get(
   "/admin/withdrawals/monthly",
   authMiddleware,
-  authorizeRoles(...FINANCE_ROLES),
+  authorizeRoles(...FINANCE_ROLES), 
   getMonthlyWithdrawalTrend,
 );
 

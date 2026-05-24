@@ -36,7 +36,7 @@ import {
 import Avatar from "../components/ui/avatar";
 import { UserAvatar } from "../components/ui/avatar";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import ShareModal from "@/components/WhatsAppShareModal";
+import ShareModal from "../components/WhatsAppShareModal";
 import EventActionMenu from "../components/EventActionMenu";
 import FollowersModal from "../components/FollowersModal";
 import {

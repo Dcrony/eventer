@@ -63,8 +63,8 @@ router.put("/profile/:id/deactivate", authMiddleware, deactivateAccount);
 router.post("/:id/follow", authMiddleware, toggleFollow);
 router.get("/public/:identifier", getPublicProfile);
 
-// Get Profile
-router.get("/:id", authMiddleware, getUserProfile);
+// ✅ Specific routes BEFORE wildcard /:id
 router.patch("/me/role", authMiddleware, setMyRole);
+router.get("/:id", authMiddleware, getUserProfile);
 
 module.exports = router;

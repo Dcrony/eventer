@@ -38,7 +38,7 @@ export default function PageLoader({ message = "Getting your experience ready…
       `}</style>
 
       {/* Orbit stage */}
-      <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+      <div className="relative w-24z h-24 flex items-center justify-center mb-6">
         {/* Pulse ring */}
         <div className="absolute w-24 h-24 rounded-full bg-pink-500"
           style={{ animation: "pulseRing 2s ease-in-out infinite" }} />
