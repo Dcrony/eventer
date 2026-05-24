@@ -828,17 +828,26 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* ── Modals ── */}
-        <ShareModal
-          open={shareOpen}
-          onClose={() => setShareOpen(false)}
-          title={`${profileName} on TickiSpot`}
-          url={
-            profile?.username
-              ? `${window.location.origin}/user/${profile.username}`
-              : `${window.location.origin}/profile/${profile._id}`
-          }
-        />
+       <ShareModal
+  open={shareOpen}
+  onClose={() => setShareOpen(false)}
+  event={{
+    _id:         profile._id,
+    title:       `${profileName} on TickiSpot`,
+    description: profile.bio || `Check out ${profileName}'s events on TickiSpot.`,
+    location:    profile.location || "",
+    startDate:   null,
+    startTime:   "",
+    isFree:      true,
+    pricing:     [],
+  }}
+  currentUserId={storedUser?._id || storedUser?.id || null}
+  shareUrl={
+    profile?.username
+      ? `${window.location.origin}/profile/${profile.username}`
+      : `${window.location.origin}/profile/${profile._id}`
+  }
+/>
 
         <FollowersModal
           open={followersModalOpen}

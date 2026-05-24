@@ -1,18 +1,4 @@
-/**
- * WhatsAppShareModal.jsx
- *
- * Replaces/extends the existing ShareModal.jsx.
- * Reuses: ShareModal layout patterns, existing API.post("/:id/share"), getEventUrl utility.
- *
- * Features:
- * - Auto-generated WhatsApp captions (launch / urgency / reminder / livestream)
- * - Referral-ready URLs
- * - One-tap WhatsApp button
- * - Copy caption or link separately
- * - Tracks share via existing POST /events/:id/share endpoint
- */
-
-import { useState, useCallback } from "react";
+import { useState, useRef } from "react";
 import {
   X, Copy, Check, MessageCircle, Facebook, Send,
   Share2, Link2, Sparkles, RefreshCw,
@@ -27,43 +13,79 @@ import {
 
 const CAPTION_LABELS = {
   [CAPTION_TYPES.LAUNCH]:     "🎉 Event Launch",
-  [CAPTION_TYPES.URGENCY]:    "⚠️  Last Tickets",
+  [CAPTION_TYPES.URGENCY]:    "⚠️ Last Tickets",
   [CAPTION_TYPES.REMINDER]:   "🔔 Reminder",
   [CAPTION_TYPES.LIVESTREAM]: "🔴 Going Live",
 };
 
-export default function WhatsAppShareModal({ open, onClose, event, currentUserId }) {
-  const [captionType, setCaptionType]     = useState(CAPTION_TYPES.LAUNCH);
+/**
+ * WhatsAppShareModal
+ *
+ * Props:
+ *   open          {boolean}      — controls visibility
+ *   onClose       {function}     — called on backdrop click or X
+ *   event         {object}       — event document (required)
+ *   currentUserId {string|null}  — logged-in user id for referral links
+ *   shareUrl      {string|null}  — optional URL override (used for profile sharing)
+ *                                  when omitted, builds /event/:id URL automatically
+ */
+export default function WhatsAppShareModal({
+  open,
+  onClose,
+  event,
+  currentUserId,
+  shareUrl = null,   // ← override for profile pages / custom links
+}) {
+  const [captionType, setCaptionType] = useState(CAPTION_TYPES.LAUNCH);
+  const [captionSeed, setCaptionSeed] = useState(0);
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [copiedLink, setCopiedLink]       = useState(false);
-  const [shared, setShared]               = useState(false);
+  const sharedRef = useRef(false);
 
-  const referralUrl = currentUserId
-    ? buildReferralUrl(event?._id, currentUserId)
-    : `${window.location.origin}/event/${event?._id}`;
+  // Guard: don't render if closed or no event data
+  if (!open || !event) return null;
 
-  const caption = event ? generateWhatsAppCaption(event, captionType, currentUserId ? btoa(`${event._id}:${currentUserId}`).replace(/=/g, "") : null) : "";
+  // ── Referral / share URL ────────────────────────────────────────────────────
+  // If a shareUrl override is provided (e.g. profile URL), use that as the base.
+  // Otherwise build the standard event URL with optional referral code.
+  const refCode = currentUserId
+    ? btoa(`${event._id}:${currentUserId}`).replace(/=/g, "")
+    : null;
 
-  const waLink = buildWhatsAppLink(caption);
+  const resolvedShareUrl = shareUrl
+    ? (refCode ? `${shareUrl}?ref=${refCode}` : shareUrl)
+    : (currentUserId
+        ? buildReferralUrl(event._id, currentUserId)
+        : `${window.location.origin}/event/${event._id}`);
 
-  const trackShare = useCallback(async () => {
-    if (!event?._id || shared) return;
+  // ── Caption ─────────────────────────────────────────────────────────────────
+  const caption = generateWhatsAppCaption(event, captionType, refCode, captionSeed, resolvedShareUrl);
+  const waLink  = buildWhatsAppLink(caption);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const trackShare = async () => {
+    // Only track share for real events (not synthetic profile objects)
+    if (!event._id || sharedRef.current || shareUrl) return;
     try {
       await API.post(`/events/${event._id}/share`);
-      setShared(true);
+      sharedRef.current = true;
     } catch { /* non-fatal */ }
-  }, [event?._id, shared]);
+  };
 
   const copyCaption = async () => {
-    await navigator.clipboard.writeText(caption);
-    setCopiedCaption(true);
-    setTimeout(() => setCopiedCaption(false), 2000);
+    try {
+      await navigator.clipboard.writeText(caption);
+      setCopiedCaption(true);
+      setTimeout(() => setCopiedCaption(false), 2000);
+    } catch { /* denied */ }
   };
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(referralUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    try {
+      await navigator.clipboard.writeText(resolvedShareUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch { /* denied */ }
   };
 
   const handleWhatsApp = () => {
@@ -71,18 +93,14 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
     window.open(waLink, "_blank", "noopener,noreferrer");
   };
 
-  const regenerate = () => {
-    // Force a re-render with same type — engine picks a random template
-    setCaptionType((t) => { const keys = Object.values(CAPTION_TYPES); return keys[(keys.indexOf(t) + 1) % keys.length]; });
-    setTimeout(() => setCaptionType(captionType), 0);
-  };
+  // Bump seed → picks next template in the pool
+  const regenerate = () => setCaptionSeed((s) => s + 1);
 
-  if (!open || !event) return null;
-
+  // ── Share option links ──────────────────────────────────────────────────────
   const shareOptions = [
     {
       label: "Facebook",
-      href:  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralUrl)}`,
+      href:  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(resolvedShareUrl)}`,
       icon:  <Facebook size={16} />,
       cls:   "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",
     },
@@ -94,7 +112,7 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
     },
     {
       label: "Telegram",
-      href:  `https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent(event.title)}`,
+      href:  `https://t.me/share/url?url=${encodeURIComponent(resolvedShareUrl)}&text=${encodeURIComponent(event.title)}`,
       icon:  <Send size={16} />,
       cls:   "bg-sky-50 text-sky-700 hover:bg-sky-100 border-sky-200",
     },
@@ -109,7 +127,6 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
         className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pink accent */}
         <div className="h-1 w-full bg-gradient-to-r from-pink-500 via-emerald-400 to-pink-500" />
 
         {/* Header */}
@@ -118,42 +135,55 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
             <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
               <MessageCircle size={16} />
             </div>
-            <h3 className="text-base font-extrabold text-gray-900 tracking-tight">Share Event</h3>
+            <h3 className="text-base font-extrabold text-gray-900 tracking-tight">
+              {shareUrl ? "Share Profile" : "Share Event"}
+            </h3>
           </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-all">
+          <button
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-all"
+            aria-label="Close"
+          >
             <X size={16} />
           </button>
         </div>
 
         <div className="px-5 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
 
-          {/* Caption Type Selector */}
-          <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
-              <Sparkles size={11} /> Caption style
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(CAPTION_LABELS).map(([type, label]) => (
-                <button
-                  key={type}
-                  onClick={() => setCaptionType(type)}
-                  className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${
-                    captionType === type
-                      ? "bg-pink-500 text-white border-pink-500 shadow-sm"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-500"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* Caption style — hide for profile shares (only LAUNCH makes sense) */}
+          {!shareUrl && (
+            <div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
+                <Sparkles size={11} /> Caption style
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(CAPTION_LABELS).map(([type, label]) => (
+                  <button
+                    key={type}
+                    onClick={() => { setCaptionType(type); setCaptionSeed(0); }}
+                    className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-all ${
+                      captionType === type
+                        ? "bg-pink-500 text-white border-pink-500 shadow-sm"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-500"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Generated Caption */}
+          {/* Caption preview */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">WhatsApp caption</p>
-              <button onClick={regenerate} className="flex items-center gap-1 text-[0.65rem] text-gray-400 hover:text-pink-500 transition-colors">
+              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
+                WhatsApp caption
+              </p>
+              <button
+                onClick={regenerate}
+                className="flex items-center gap-1 text-[0.65rem] text-gray-400 hover:text-pink-500 transition-colors"
+              >
                 <RefreshCw size={10} /> Regenerate
               </button>
             </div>
@@ -164,12 +194,14 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
                 className="absolute top-2 right-2 p-1.5 rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-all"
                 title="Copy caption"
               >
-                {copiedCaption ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                {copiedCaption
+                  ? <Check size={14} className="text-green-500" />
+                  : <Copy size={14} />}
               </button>
             </div>
           </div>
 
-          {/* Primary WhatsApp Button */}
+          {/* WhatsApp button */}
           <button
             onClick={handleWhatsApp}
             className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm hover:bg-emerald-600 active:scale-[0.99] transition-all shadow-md shadow-emerald-500/20"
@@ -178,31 +210,40 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
             Share on WhatsApp
           </button>
 
-          {/* Referral Link */}
-          {currentUserId && (
-            <div>
-              <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1">
-                <Link2 size={11} /> Your referral link
+          {/* Copy link */}
+          <div>
+            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-1.5 flex items-center gap-1">
+              <Link2 size={11} />
+              {currentUserId && !shareUrl ? "Your referral link" : "Share link"}
+            </p>
+            <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 rounded-xl px-3 py-2.5">
+              <p className="flex-1 text-xs text-gray-600 truncate font-medium min-w-0">
+                {resolvedShareUrl}
               </p>
-              <div className="flex items-center gap-2 bg-pink-50 border border-pink-100 rounded-xl px-3 py-2.5">
-                <p className="flex-1 text-xs text-gray-600 truncate font-medium min-w-0">{referralUrl}</p>
-                <button
-                  onClick={copyLink}
-                  className={`flex-shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-bold transition-all ${
-                    copiedLink ? "bg-green-500 text-white" : "bg-pink-500 text-white hover:bg-pink-600"
-                  }`}
-                >
-                  {copiedLink ? <Check size={11} /> : <Copy size={11} />}
-                  {copiedLink ? "Copied" : "Copy"}
-                </button>
-              </div>
-              <p className="text-[0.6rem] text-gray-400 mt-1">Earn credit when friends buy tickets via your link</p>
+              <button
+                onClick={copyLink}
+                className={`flex-shrink-0 inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                  copiedLink
+                    ? "bg-green-500 text-white"
+                    : "bg-pink-500 text-white hover:bg-pink-600"
+                }`}
+              >
+                {copiedLink ? <Check size={11} /> : <Copy size={11} />}
+                {copiedLink ? "Copied" : "Copy"}
+              </button>
             </div>
-          )}
+            {currentUserId && !shareUrl && (
+              <p className="text-[0.6rem] text-gray-400 mt-1">
+                Earn credit when friends buy tickets via your link
+              </p>
+            )}
+          </div>
 
           {/* Other platforms */}
           <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2">Also share via</p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2">
+              Also share via
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {shareOptions.map(({ label, href, icon, cls }) => (
                 <a
@@ -218,6 +259,7 @@ export default function WhatsAppShareModal({ open, onClose, event, currentUserId
               ))}
             </div>
           </div>
+
         </div>
       </div>
     </div>

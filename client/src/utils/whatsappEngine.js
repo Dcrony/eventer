@@ -1,80 +1,127 @@
-/**
- * WhatsApp Distribution Engine
- * Generates captions, share links, and tracks referrals.
- * Reuses: getEventUrl from eventHelpers, shareCount tracking from eventController.
- */
-
-// ─── Caption Templates ────────────────────────────────────────────────────────
-
 const CAPTION_TYPES = {
-  LAUNCH:    "launch",
-  URGENCY:   "urgency",
-  REMINDER:  "reminder",
-  LIVESTREAM:"livestream",
-  SOLD_OUT:  "soldout",
+  LAUNCH:     "launch",
+  URGENCY:    "urgency",
+  REMINDER:   "reminder",
+  LIVESTREAM: "livestream",
+  SOLD_OUT:   "soldout",
 };
 
 /**
- * Generate a WhatsApp share caption for an event.
- * @param {object} event   - Event document (title, location, startDate, pricing, etc.)
- * @param {string} type    - One of CAPTION_TYPES
- * @param {string} refCode - Optional referral code to embed in the link
+ * Generate a WhatsApp share caption.
+ *
+ * @param {object}      event        - Event document (or synthetic profile object)
+ * @param {string}      type         - One of CAPTION_TYPES values
+ * @param {string|null} refCode      - Optional referral code (appended as ?ref=)
+ * @param {number}      seed         - Increment to cycle through templates (Regenerate)
+ * @param {string|null} overrideUrl  - Use this URL in the caption instead of building one
  */
-export function generateWhatsAppCaption(event, type = CAPTION_TYPES.LAUNCH, refCode = null) {
-  const baseUrl  = `${window.location.origin}/event/${event._id}`;
-  const shareUrl = refCode ? `${baseUrl}?ref=${refCode}` : baseUrl;
-  const date     = event.startDate
-    ? new Date(event.startDate).toLocaleDateString("en-NG", { weekday: "long", month: "long", day: "numeric" })
-    : "soon";
+export function generateWhatsAppCaption(
+  event,
+  type = CAPTION_TYPES.LAUNCH,
+  refCode = null,
+  seed = 0,
+  overrideUrl = null,
+) {
+  // URL in the caption: use override if provided (e.g. profile URL),
+  // otherwise build the standard event URL with optional ref code.
+  const baseUrl  = overrideUrl || `${window.location.origin}/event/${event._id}`;
+  const shareUrl = (!overrideUrl && refCode) ? `${baseUrl}?ref=${refCode}` : baseUrl;
+
+  const date = event.startDate
+    ? new Date(event.startDate).toLocaleDateString("en-NG", {
+        weekday: "long", month: "long", day: "numeric",
+      })
+    : null;
+
   const time     = event.startTime || "";
-  const location = event.location || "Online";
+  const location = event.location  || "";
   const price    = getMinPrice(event);
   const priceStr = price > 0 ? `₦${price.toLocaleString()}` : "FREE";
 
+  // Location/date line — only include if data exists
+  const dateLine     = date     ? `📅 ${date}${time ? ` at ${time}` : ""}` : null;
+  const locationLine = location ? `📍 ${location}`                          : null;
+
   const templates = {
     [CAPTION_TYPES.LAUNCH]: [
-      `🎉 *${event.title}* is now LIVE!\n\n📅 ${date}${time ? ` at ${time}` : ""}\n📍 ${location}\n🎟️ Tickets from ${priceStr}\n\nGet your ticket now 👇\n${shareUrl}`,
-      `Hey! You're invited to *${event.title}* 🚀\n\n📅 ${date}\n📍 ${location}\n💰 ${priceStr}\n\nDon't miss it — grab your spot:\n${shareUrl}`,
+      [
+        `🎉 *${event.title}*`,
+        dateLine,
+        locationLine,
+        price > 0 ? `🎟️ Tickets from ${priceStr}` : "🎟️ Free entry",
+        `\nGet your ticket now 👇\n${shareUrl}`,
+      ].filter(Boolean).join("\n"),
+
+      [
+        `Hey! Check out *${event.title}* 🚀`,
+        dateLine,
+        locationLine,
+        `💰 ${priceStr}`,
+        `\nDon't miss it — grab your spot:\n${shareUrl}`,
+      ].filter(Boolean).join("\n"),
+
+      [
+        `✨ You're invited to *${event.title}*`,
+        dateLine,
+        locationLine,
+        `\n👉 ${shareUrl}`,
+      ].filter(Boolean).join("\n"),
     ],
+
     [CAPTION_TYPES.URGENCY]: [
-      `⚠️ Almost sold out! *${event.title}*\n\n📅 ${date}\n📍 ${location}\n🔥 Only a few tickets left at ${priceStr}\n\nSecure yours NOW before it's gone:\n${shareUrl}`,
-      `⏰ Last chance! Tickets for *${event.title}* are running out fast.\n\n${date} • ${location}\nFrom ${priceStr}\n\n👉 ${shareUrl}`,
+      [
+        `⚠️ Almost sold out! *${event.title}*`,
+        dateLine,
+        locationLine,
+        `🔥 Only a few tickets left at ${priceStr}`,
+        `\nSecure yours NOW:\n${shareUrl}`,
+      ].filter(Boolean).join("\n"),
+
+      [
+        `⏰ Last chance! Tickets for *${event.title}* are running out.`,
+        [dateLine, locationLine].filter(Boolean).join(" • "),
+        `From ${priceStr}`,
+        `\n👉 ${shareUrl}`,
+      ].filter(Boolean).join("\n"),
     ],
+
     [CAPTION_TYPES.REMINDER]: [
-      `📣 Reminder: *${event.title}* is happening ${date}!\n\n📍 ${location}${time ? `\n🕐 ${time}` : ""}\n\nHaven't grabbed your ticket yet?\n👉 ${shareUrl}`,
-      `🔔 Don't forget! *${event.title}* is ${date}.\n\nMake sure you have your ticket:\n${shareUrl}`,
+      [
+        date ? `📣 Reminder: *${event.title}* is happening ${date}!` : `📣 Reminder: *${event.title}*`,
+        locationLine,
+        time ? `🕐 ${time}` : null,
+        `\nHaven't grabbed your ticket yet?\n👉 ${shareUrl}`,
+      ].filter(Boolean).join("\n"),
+
+      [
+        date ? `🔔 Don't forget! *${event.title}* is ${date}.` : `🔔 Don't forget *${event.title}*!`,
+        `\nMake sure you have your ticket:\n${shareUrl}`,
+      ].filter(Boolean).join("\n"),
     ],
+
     [CAPTION_TYPES.LIVESTREAM]: [
-      `🔴 *${event.title}* is LIVE RIGHT NOW!\n\nJoin us and watch the stream:\n👉 ${shareUrl}\n\nShare with your friends! 📲`,
+      `🔴 *${event.title}* is LIVE RIGHT NOW!\n\nJoin us:\n👉 ${shareUrl}\n\nShare with your friends! 📲`,
       `We're LIVE! 🎥 *${event.title}*\n\nWatch now:\n${shareUrl}`,
     ],
+
     [CAPTION_TYPES.SOLD_OUT]: [
-      `😲 *${event.title}* is SOLD OUT!\n\nJoin the waitlist — we might open more spots:\n👉 ${shareUrl}`,
+      `😲 *${event.title}* is SOLD OUT!\n\nJoin the waitlist:\n👉 ${shareUrl}`,
     ],
   };
 
   const pool = templates[type] || templates[CAPTION_TYPES.LAUNCH];
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[seed % pool.length];
 }
 
-/**
- * Build a WhatsApp deep-link for immediate share.
- */
 export function buildWhatsAppLink(caption) {
   return `https://wa.me/?text=${encodeURIComponent(caption)}`;
 }
 
-/**
- * Build a referral URL for an event + user combo.
- */
 export function buildReferralUrl(eventId, userId) {
   const code = btoa(`${eventId}:${userId}`).replace(/=/g, "");
   return `${window.location.origin}/event/${eventId}?ref=${code}`;
 }
 
-/**
- * Decode a referral code back to { eventId, userId }.
- */
 export function decodeReferralCode(code) {
   try {
     const padded  = code + "=".repeat((4 - (code.length % 4)) % 4);
@@ -86,12 +133,12 @@ export function decodeReferralCode(code) {
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 function getMinPrice(event) {
   if (event.isFree) return 0;
-  const tiers = Array.isArray(event.pricing) ? event.pricing : [];
-  const prices = tiers.filter((t) => t.isEnabled !== false && !t.isFree).map((t) => Number(t.price || 0));
+  const tiers  = Array.isArray(event.pricing) ? event.pricing : [];
+  const prices = tiers
+    .filter((t) => t.isEnabled !== false && !t.isFree)
+    .map((t) => Number(t.price || 0));
   return prices.length ? Math.min(...prices) : 0;
 }
 
