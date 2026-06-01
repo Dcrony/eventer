@@ -241,18 +241,20 @@ const updateAccount = async (req, res) => {
       return res.status(400).json({ message: "Bio must be 280 characters or fewer" });
     }
 
-    // Add this block after the existing field validations, before Object.assign(user, updates):
-if (updates.role !== undefined) {
-  if (!["organizer", "user"].includes(updates.role)) {
-    return res.status(400).json({ message: "Role must be 'organizer' or 'user'." });
-  }
-  // roleConfirmed is set to true whenever the user explicitly saves a role
-  updates.roleConfirmed = true;
-}
+    if (updates.role !== undefined) {
+      if (!["organizer", "user"].includes(updates.role)) {
+        return res.status(400).json({ message: "Role must be 'organizer' or 'user'." });
+      }
+      updates.roleConfirmed = true;
+      if (updates.role === "organizer") {
+        updates.onboardingCompletedAt = new Date();
+      } else if (!user.interestsSelected) {
+        updates.onboardingCompletedAt = undefined;
+      }
+    }
 
     Object.assign(user, updates);
     await user.save();
-
     return res.json({ message: "Account settings updated", user: sanitizeUser(user) });
   } catch (err) {
     const status = err.name === "ValidationError" || err.code === 11000 ? 400 : 500;
@@ -400,6 +402,45 @@ const updateEventPreferences = async (req, res) => {
     return res.json({ message: "Event preferences updated", user: sanitizeUser(user) });
   } catch (err) {
     return res.status(400).json({ message: err.message || "Error updating event preferences" });
+  }
+};
+
+const updateInterests = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const skip = req.body.skip === true || req.body.skip === "true";
+    let interests = [];
+
+    if (!skip && req.body.interests) {
+      interests = Array.isArray(req.body.interests)
+        ? req.body.interests
+        : [req.body.interests];
+    }
+
+    const cleanedInterests = [
+      ...new Set(
+        interests
+          .map((item) => String(item || "").trim())
+          .filter((item) => item),
+      ),
+    ];
+
+    user.interests = cleanedInterests;
+    user.preferredCategories = cleanedInterests;
+    user.interestsSelected = true;
+
+    if (user.roleConfirmed && (user.role === "organizer" || user.interestsSelected)) {
+      user.onboardingCompletedAt = new Date();
+    }
+
+    await user.save();
+    return res.json({ message: "Interests updated", user: sanitizeUser(user) });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || "Error updating interests" });
   }
 };
 
@@ -783,6 +824,7 @@ module.exports = {
   updateNotifications,
   updateSecurity,
   updateEventPreferences,
+  updateInterests,
   updateBillingPlan,
   getIntegrations,
   updateIntegration,

@@ -23,6 +23,7 @@ const {
   trackEventShare,
   getEventAnalytics,
   fixEventCapacity,
+  getCategories,
 } = require("../controllers/eventController");
 
 // Create event (authenticated, verified, plan-limited)
@@ -42,7 +43,8 @@ router.post(
 );
 router.get("/drafts/latest", authMiddleware, getLatestEventDraft);
 
-// Public — fetch all events
+// Public — fetch categories and events
+router.get("/categories", getCategories);
 router.get("/", getAllEvents);
 
 // Authenticated routes (specific paths before :id wildcard)

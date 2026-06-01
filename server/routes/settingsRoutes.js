@@ -8,6 +8,7 @@ const {
   updateNotifications,
   updateSecurity,
   updateEventPreferences,
+  updateInterests,
   updateBillingPlan,
   getIntegrations,
   updateIntegration,
@@ -34,6 +35,7 @@ router.put("/privacy", authMiddleware, settingsWriteLimiter, updatePrivacy);
 router.put("/notifications", authMiddleware, settingsWriteLimiter, updateNotifications);
 router.put("/security", authMiddleware, settingsWriteLimiter, updateSecurity);
 router.put("/event-preferences", authMiddleware, settingsWriteLimiter, updateEventPreferences);
+router.put("/interests", authMiddleware, settingsWriteLimiter, updateInterests);
 router.put("/billing", authMiddleware, settingsWriteLimiter, updateBillingPlan);
 router.get("/integrations", authMiddleware, getIntegrations);
 router.get("/integrations/:key/auth-url", authMiddleware, getIntegrationAuthUrl);

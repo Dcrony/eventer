@@ -67,6 +67,7 @@ const Favorites = lazy(() => import("./pages/Favorites"));
 const UpgradeExperienceModal = lazy(() => import("./components/UpgradeExperienceModal"));
 const FounderProfile = lazy(() => import("./pages/FounderProfile"));
 const Billing = lazy(() => import("./pages/Billing"));
+const VerificationPage = lazy(() => import("./pages/Verification"));
 const DiscoverCreators = lazy(() => import("./pages/DiscoverCreators"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -77,6 +78,7 @@ const AdminControls = lazy(() => import("./pages/AdminControls"));
 const AdminFinance = lazy(() => import("./pages/AdminFinance"));
 const AdminModeration = lazy(() => import("./pages/AdminModeration"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminPayouts = lazy(() => import("./pages/AdminPayouts"));
 const EventTickets = lazy(() => import("./pages/EventTickets"));
 const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -102,12 +104,12 @@ function Layout() {
     location.pathname === "/verify-otp" ||
     location.pathname.startsWith("/admin");
 
-    const hideMobileNav =
-  location.pathname === "/messages" ||
-  location.pathname === "/ticki-ai";
+  const hideMobileNav =
+    location.pathname === "/messages" ||
+    location.pathname === "/ticki-ai";
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
- 
+
   useSidebarWidth(hideNavAndSidebar);
 
   useEffect(() => {
@@ -177,19 +179,19 @@ function Layout() {
 
   return (
     <CreateEventProvider>
-    <div className="flex flex-col min-h-screen">
-      <SEO />
-      <PwaInstallModal />
+      <div className="flex flex-col min-h-screen">
+        <SEO />
+        <PwaInstallModal />
 
-      {renderSidebar()}
+        {renderSidebar()}
 
-      <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
-        {showTrialBanner ? (
-          <div className="trial-banner">
-            Your free trial ends in {trialDaysRemaining} day{trialDaysRemaining === 1 ? "" : "s"}.
-            <a href="/pricing"> Upgrade to Pro</a> to keep TickiAI, analytics, and streaming active.
-          </div>
-        ) : null}
+        <main className={`app-main ${!hideNavAndSidebar && !isMobile ? 'sidebar-padded' : ''} ${!hideNavAndSidebar && isMobile ? 'mobile-padded' : ''}`}>
+          {showTrialBanner ? (
+            <div className="trial-banner">
+              Your free trial ends in {trialDaysRemaining} day{trialDaysRemaining === 1 ? "" : "s"}.
+              <a href="/pricing"> Upgrade to Pro</a> to keep TickiAI, analytics, and streaming active.
+            </div>
+          ) : null}
 
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -302,6 +304,14 @@ function Layout() {
                 element={
                   <AdminRoute>
                     <AdminFinance />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/payouts"
+                element={
+                  <AdminRoute>
+                    <AdminPayouts />
                   </AdminRoute>
                 }
               />
@@ -508,19 +518,27 @@ function Layout() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/verification"
+                element={
+                  <ProtectedRoute>
+                    <VerificationPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-      </main>
+        </main>
 
-      <Suspense fallback={null}>
-        <UpgradeExperienceModal
-          open={upgradeOpen}
-          onClose={() => setUpgradeOpen(false)}
-          featureName={upgradeFeature}
-        />
-      </Suspense>
-    </div>
+        <Suspense fallback={null}>
+          <UpgradeExperienceModal
+            open={upgradeOpen}
+            onClose={() => setUpgradeOpen(false)}
+            featureName={upgradeFeature}
+          />
+        </Suspense>
+      </div>
     </CreateEventProvider>
   );
 }

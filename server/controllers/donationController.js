@@ -1,9 +1,12 @@
 const axios = require("axios");
-const { donationSuccessEmail } = require("../utils/emailTemplates");
+const {
+  donationSuccessEmail,
+  donationAdminNotificationEmail,
+} = require("../utils/emailTemplates");
 const sendEmail = require("../utils/email");
 const Donation = require("../models/Donation");
 
-
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "tickispot@gmail.com";
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -106,12 +109,34 @@ exports.verifyDonation = async (req, res) => {
       const name = data.metadata?.name || donation?.name || "Supporter";
       const email = data.customer.email;
       const amount = donation?.amount ?? data.amount / 100;
+      const donationDate = new Date().toLocaleDateString("en-NG", { dateStyle: "long" });
 
-      // ✅ SEND EMAIL
+      // ✅ DONOR APPRECIATION EMAIL
       sendEmail({
-        email,
+        to: email,
         subject: "Thank you for your donation 💖",
         html: donationSuccessEmail(name, amount, ref),
+        type: "donation_appreciation",
+        relatedType: "Donation",
+        relatedId: donation?._id,
+        metadata: { reference: ref, amount, donorName: name },
+      }).catch(console.error);
+
+      // ✅ ADMIN NOTIFICATION EMAIL
+      sendEmail({
+        to: ADMIN_EMAIL,
+        subject: "New donation received on TickiSpot",
+        html: donationAdminNotificationEmail(
+          name,
+          email,
+          amount,
+          ref,
+          donationDate
+        ),
+        type: "donation_admin_notification",
+        relatedType: "Donation",
+        relatedId: donation?._id,
+        metadata: { reference: ref, amount, donorEmail: email },
       }).catch(console.error);
 
       return res.redirect(

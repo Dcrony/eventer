@@ -77,6 +77,7 @@ export default function EventAnalytics() {
   const navigate = useNavigate();
 
   const [analytics, setAnalytics] = useState(null);
+  const [referralStats, setReferralStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -87,6 +88,13 @@ export default function EventAnalytics() {
         const { data } = await API.get(`/events/${eventId}/analytics`);
         setAnalytics(data);
         setError("");
+        // Fetch referral stats (non-fatal)
+        try {
+          const { data: r } = await API.get(`/referrals/${eventId}/stats`);
+          setReferralStats(r || null);
+        } catch (e) {
+          setReferralStats(null);
+        }
       } catch (e) {
         setError(e.response?.data?.message || "Could not load analytics");
       } finally {
@@ -107,6 +115,8 @@ export default function EventAnalytics() {
     { icon: Heart, label: "Likes", value: formatFullNumber(summary.likes), tone: "default" },
     { icon: MessageCircle, label: "Comments", value: formatFullNumber(summary.comments), tone: "default" },
     { icon: Share2, label: "Shares", value: formatFullNumber(summary.shares), tone: "default" },
+    // Referral metric (if available)
+    ...(referralStats ? [{ icon: Share2, label: "Referrals", value: formatFullNumber(referralStats.totalClicks || 0), tone: "default" }] : []),
   ];
 
   return (

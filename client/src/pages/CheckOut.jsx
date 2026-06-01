@@ -3,6 +3,7 @@ import API from "../api/axios";
 import { getEventImageUrl } from "../utils/eventHelpers";
 import { UserAvatar } from "../components/ui/avatar";
 import { useToast } from "../components/ui/toast";
+import useReferralTracking from "../utils/useReferralTracking";
 import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
@@ -19,38 +20,41 @@ import {
 } from "lucide-react";
 
 /* ─── Tier helpers (mirrors EventDetail.jsx exactly) ─────────────────────── */
-const getTierDisplayName  = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
-const getTierAccentColor  = (tier) => tier?.color?.trim() || "#ec4899";
-const isTierFree          = (tier, isEventFree) =>
+const getTierDisplayName = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
+const getTierAccentColor = (tier) => tier?.color?.trim() || "#ec4899";
+const isTierFree = (tier, isEventFree) =>
   isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
 
 export default function Checkout() {
-  const { state }  = useLocation();
-  const navigate   = useNavigate();
-  const toast      = useToast();
-  const [loading,  setLoading]  = useState(false);
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [loading, setLoading] = useState(false);
 
   const { event, quantity, user, ticketType, price } = state || {};
   const isFreeEvent = event?.isFreeEvent || event?.isFree;
 
+  // Track referral clicks and conversions
+  const { referrerId, recordConversion } = useReferralTracking(event?._id);
+
   // Replace the existing visiblePricing useMemo
-const visiblePricing = useMemo(
-  () =>
-    (event?.pricing || []).filter(
-      (p) =>
-        p.isEnabled !== false &&
-        !p.isFree &&
-        Number(p.price || 0) > 0
-    ),
-  [event]
-);
+  const visiblePricing = useMemo(
+    () =>
+      (event?.pricing || []).filter(
+        (p) =>
+          p.isEnabled !== false &&
+          !p.isFree &&
+          Number(p.price || 0) > 0
+      ),
+    [event]
+  );
 
   // Replace the existing selectedPricing useState
-const [selectedPricing, setSelectedPricing] = useState(() =>
-  visiblePricing.find((p) => p.type === ticketType) ||
-  visiblePricing[0] ||
-  null
-);
+  const [selectedPricing, setSelectedPricing] = useState(() =>
+    visiblePricing.find((p) => p.type === ticketType) ||
+    visiblePricing[0] ||
+    null
+  );
 
   /* ── If the resolved tier (or the whole event) is free, skip checkout ── */
   useEffect(() => {
@@ -58,10 +62,10 @@ const [selectedPricing, setSelectedPricing] = useState(() =>
     if (!event || !tierIsFree) return;
 
     API.post("/tickets/create", {
-      eventId:    event._id,
-      quantity:   1,
+      eventId: event._id,
+      quantity: 1,
       ticketType: selectedPricing?.type || "Free",
-      isFree:     true,
+      isFree: true,
     })
       .then(() => {
         toast.success("Ticket reserved successfully");
@@ -72,10 +76,10 @@ const [selectedPricing, setSelectedPricing] = useState(() =>
         navigate(`/event/${event._id}`);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-const unitPrice = useMemo(
-  () => selectedPricing?.price ?? price ?? 0,
-  [selectedPricing, price]
-);
+  const unitPrice = useMemo(
+    () => selectedPricing?.price ?? price ?? 0,
+    [selectedPricing, price]
+  );
 
   const lineTotal = useMemo(
     () => unitPrice * (quantity || 0),
@@ -122,11 +126,13 @@ const unitPrice = useMemo(
     try {
       if (tierIsFree) {
         await API.post("/tickets/create", {
-          eventId:    event._id,
-          quantity:   1,
+          eventId: event._id,
+          quantity: 1,
           ticketType: selectedPricing?.type || "Free",
-          isFree:     true,
+          isFree: true,
         });
+        // Record referral conversion for free tickets
+        recordConversion({ ticketCount: 1, revenue: 0 });
         toast.success("Ticket reserved successfully");
         navigate("/my-tickets");
         return;
@@ -135,11 +141,12 @@ const unitPrice = useMemo(
       const res = await API.post("/payment/initiate", {
         email: user.email,
         metadata: {
-          eventId:     event._id,
-          userId:      user._id,
-          quantity:    quantity.toString(),
-          price:       unitPrice.toString(),
+          eventId: event._id,
+          userId: user._id,
+          quantity: quantity.toString(),
+          price: unitPrice.toString(),
           pricingType: selectedPricing?.type || ticketType,
+          referrerId: referrerId || "", // Pass referrer ID for webhook tracking
         },
       });
 
@@ -159,15 +166,15 @@ const unitPrice = useMemo(
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
-      month:   "short",
-      day:     "numeric",
-      year:    "numeric",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
 
-  const eventImg      = getEventImageUrl(event);
-  const tierIsFree    = isTierFree(selectedPricing, isFreeEvent);
-  const topTrustCopy  = tierIsFree ? "Instant ticket reservation" : "Secure payment via Paystack";
-  const heroCopy      = tierIsFree
+  const eventImg = getEventImageUrl(event);
+  const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
+  const topTrustCopy = tierIsFree ? "Instant ticket reservation" : "Secure payment via Paystack";
+  const heroCopy = tierIsFree
     ? "Review your ticket details and reserve your spot instantly."
     : "Review your tickets and pay securely. You'll get a confirmation by email.";
   const ctaCopy = tierIsFree
@@ -273,10 +280,10 @@ const unitPrice = useMemo(
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {visiblePricing.map((p) => {
-                      const active       = selectedPricing?.type === p.type;
-                      const displayName  = getTierDisplayName(p);
-                      const accentColor  = getTierAccentColor(p);
-                      const free         = isTierFree(p, isFreeEvent);
+                      const active = selectedPricing?.type === p.type;
+                      const displayName = getTierDisplayName(p);
+                      const accentColor = getTierAccentColor(p);
+                      const free = isTierFree(p, isFreeEvent);
                       const priceDisplay = free ? "Free" : `₦${Number(p.price).toLocaleString()}`;
 
                       return (
@@ -284,11 +291,10 @@ const unitPrice = useMemo(
                           key={p.type}
                           type="button"
                           onClick={() => setSelectedPricing(p)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
-                            active
+                          className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${active
                               ? "border-pink-500 bg-pink-50 shadow-md scale-[1.02]"
                               : "border-gray-200 bg-gray-50 hover:border-pink-200 hover:bg-pink-50/30 hover:-translate-y-0.5"
-                          }`}
+                            }`}
                         >
                           {/* Name row */}
                           <div className="flex justify-between items-center mb-2">

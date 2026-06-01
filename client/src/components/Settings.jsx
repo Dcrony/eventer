@@ -727,11 +727,11 @@ export default function Settings() {
           <SettingsCard title="Support & Contact" description="Need help? We're here for you." icon={<Mail size={18} />}>
             <SettingsSection title="Get in Touch" description="Reach out to our team anytime.">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <a href="mailto:support@tickispot.com" className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:border-pink-300 hover:bg-pink-50/30 hover:-translate-y-0.5">
+                <a href="mailto:contact@tickispot.com" className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:border-pink-300 hover:bg-pink-50/30 hover:-translate-y-0.5">
                   <Mail size={28} className="text-gray-400" />
                   <div>
                     <strong className="block text-sm font-bold text-gray-900">Email Us</strong>
-                    <p className="text-xs text-gray-500">support@tickispot.com</p>
+                    <p className="text-xs text-gray-500">contact@tickispot.com</p>
                     <span className="text-xs text-gray-400">Usually reply within 24 hours</span>
                   </div>
                 </a>

@@ -10,6 +10,7 @@ const Event = require("../models/Event");
 const User = require("../models/User");
 const BillingHistory = require("../models/BillingHistory");
 const Notification = require("../models/Notification");
+const Referral = require("../models/Referral");
 const sendEmail = require("../utils/email");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
@@ -492,6 +493,29 @@ exports.handlePaystackWebhook = async (req, res) => {
       }
 
       console.log("✅ Ticket created via webhook for reference:", reference);
+
+      // Track referral conversion if referrer is present
+      if (data.metadata?.referrerId) {
+        try {
+          await Referral.findOneAndUpdate(
+            {
+              event: eventId,
+              referrer: data.metadata.referrerId,
+            },
+            {
+              $inc: {
+                conversions: 1,
+                ticketsSold: quantity,
+                totalRevenue: order.totalKobo / 100, // Convert back to Naira
+              },
+            },
+            { upsert: true }
+          );
+          console.log("✅ Referral conversion recorded for referrer:", data.metadata.referrerId);
+        } catch (referralError) {
+          console.error("❌ Failed to record referral conversion:", referralError);
+        }
+      }
     }
 
     if (event.event === "subscription.create") {

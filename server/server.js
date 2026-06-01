@@ -26,8 +26,11 @@ const donationRoutes = require("./routes/donationRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const liveStreamRoutes = require("./routes/liveStreamRoutes");
 const teamRoutes = require("./routes/teamRoutes");
+const referralRoutes = require("./routes/referralRoutes");
 const privateEventRoutes = require("./routes/privateEventRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const verificationRoutes = require("./routes/verificationRoutes");
+const payoutRoutes = require("./routes/payoutRoutes");
 const User = require("./models/User");
 const Event = require("./models/Event");
 const { PLAN_TYPES } = require("./services/subscriptionService");
@@ -141,6 +144,88 @@ const downgradeExpiredTrials = async () => {
   }
 };
 
+// ── Payout release worker ──
+const runPayoutReleaseWorker = async () => {
+  try {
+    const PlatformSetting = require("./models/PlatformSetting");
+    const Payout = require("./models/Payout");
+    const Event = require("./models/Event");
+    const User = require("./models/User");
+    const payoutQueue = require("./queues/payoutQueue");
+    const fraudService = require("./utils/fraudService");
+
+    let settings = await PlatformSetting.findOne({ key: "platform" });
+    if (!settings) {
+      settings = await PlatformSetting.create({ key: "platform" });
+    }
+    const payoutCfg = settings.payouts || {};
+    const intervalMinutes = Number(payoutCfg.autoReleaseIntervalMinutes || 15);
+    const maxBatch = Number(payoutCfg.maxAutoReleaseBatch || 50);
+    const requireVerified = Boolean(payoutCfg.requireOrganizerVerified);
+    const requireEventComplete = Boolean(payoutCfg.requireEventCompletion);
+    const cooldownDays = Number(payoutCfg.cooldownDaysAfterEvent || 0);
+
+    const now = new Date();
+
+    // Find eligible payouts in pending or scheduled state
+    const filter = { state: { $in: ["pending", "scheduled"] } };
+    const candidates = await Payout.find(filter).sort({ createdAt: 1 }).limit(maxBatch).lean();
+
+    for (const p of candidates) {
+      try {
+        // skip if already scheduled for future release
+        if (p.releaseDate && new Date(p.releaseDate) > now) continue;
+
+        // organizer checks
+        const organizer = await User.findById(p.organizer).lean();
+        if (!organizer) continue;
+        if (organizer.isSuspended || organizer.isDeleted) continue;
+        if (requireVerified && !organizer.isVerified) continue;
+
+        // event completion rule
+        if (requireEventComplete && p.event) {
+          const event = await Event.findById(p.event).lean();
+          if (!event) continue;
+          const eventEnd = event.endDate || event.startDate || null;
+          if (!eventEnd) continue; // cannot auto-release without event end
+          const releaseAfter = new Date(eventEnd);
+          releaseAfter.setDate(releaseAfter.getDate() + cooldownDays);
+          if (now < releaseAfter) continue;
+        }
+
+        // basic fraud assessment
+        const risk = await fraudService.assessPayoutRisk(p);
+        if (risk.value >= 50) {
+          // escalate to manual review
+          await require("./models/Payout").findByIdAndUpdate(p._id, { $set: { state: "under_review", reason: `flagged_by_worker: ${risk.reasons.join(",")}` }, $push: { audit: { actor: null, action: "flagged_under_review", note: risk.reasons.join(","), at: new Date() } } });
+          console.log(`Payout ${p._id} flagged for review (risk=${risk.value})`);
+          continue;
+        }
+
+        // enqueue release job
+        await payoutQueue.add({ type: "release", payoutId: p._id, actorId: null, note: "auto-release worker" }, { attempts: 5, backoff: { type: 'exponential', delay: 2000 }, removeOnComplete: true });
+        console.log(`Payout ${p._id} enqueued for auto-release`);
+      } catch (e) {
+        console.error("Payout worker failed for payout", p._id, e.message || e);
+      }
+    }
+  } catch (error) {
+    console.error("Payout release worker error:", error);
+  }
+};
+
+// Schedule worker with interval from settings (fallback 15 minutes)
+setInterval(async () => {
+  try {
+    await runPayoutReleaseWorker();
+  } catch (e) {
+    console.error("Payout worker loop error:", e.message || e);
+  }
+}, 15 * 60 * 1000);
+
+// Run immediately at startup as well
+runPayoutReleaseWorker();
+
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads/qrcodes", express.static("uploads/qrcodes"));
 
@@ -166,9 +251,12 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/tickiai", aiRoutes);
 app.use("/api/live-stream", liveStreamRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/referrals", referralRoutes);
 app.use("/api/private-events", privateEventRoutes);
 app.use("/api/donations", donationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/verification", verificationRoutes);
+app.use("/api/payouts", payoutRoutes);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

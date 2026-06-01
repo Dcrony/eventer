@@ -66,6 +66,13 @@ const platformSettingSchema = new mongoose.Schema(
       enabled: { type: Boolean, default: false },
       rewardAmount: { type: Number, default: 0, min: 0 },
     },
+    payouts: {
+      requireOrganizerVerified: { type: Boolean, default: false },
+      requireEventCompletion: { type: Boolean, default: true },
+      cooldownDaysAfterEvent: { type: Number, default: 3, min: 0 },
+      autoReleaseIntervalMinutes: { type: Number, default: 15, min: 1 },
+      maxAutoReleaseBatch: { type: Number, default: 50, min: 1 },
+    },
   },
   { timestamps: true },
 );

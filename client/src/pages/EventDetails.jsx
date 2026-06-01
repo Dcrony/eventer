@@ -23,6 +23,7 @@ import { UserAvatar } from "../components/ui/avatar";
 import { useToast } from "../components/ui/toast";
 import useShareLink from "../hooks/useShareLink";
 import useProfileNavigation from "../hooks/useProfileNavigation";
+import useReferralTracking from "../utils/useReferralTracking";
 import {
   formatCurrency,
   formatEventDateRange,
@@ -55,8 +56,8 @@ function TicketTypeButton({ ticketType, isSelected, isEventFree, onClick }) {
       type="button"
       onClick={onClick}
       className={`w-full flex justify-between items-center gap-3 p-3 rounded-lg border-2 text-left transition-all duration-200 hover:-translate-y-0.5 ${isSelected
-          ? "border-pink-500 bg-pink-50 shadow-md"
-          : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
+        ? "border-pink-500 bg-pink-50 shadow-md"
+        : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
         }`}
     >
       <div className="flex items-center gap-2.5 min-w-0">
@@ -178,6 +179,9 @@ export default function EventDetail() {
     loadEventTeam();
   }, [eventId]);
 
+  // ── Track referral clicks ────────────────────────────────────────────────
+  const { recordConversion } = useReferralTracking(eventId);
+
   // ── Stream embed URL ─────────────────────────────────────────────────────
   const streamEmbedUrl = useMemo(() => {
     if (!event?.liveStream?.streamURL) return null;
@@ -228,6 +232,8 @@ export default function EventDetail() {
         ticketType: selectedTicketType?.type || "Free",
         isFree: true,
       });
+      // Record referral conversion if visitor came from referral link
+      recordConversion({ ticketCount: 1, revenue: 0 });
       toast.success("Ticket reserved successfully");
       setAlreadyHasFreeTicket(true);
       setEvent((cur) =>
@@ -562,8 +568,8 @@ export default function EventDetail() {
                     onClick={handleBuy}
                     disabled={buyDisabled}
                     className={`w-full flex items-center justify-center gap-2 h-12 rounded-full font-bold text-sm transition-all duration-200 ${buyDisabled
-                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                        : "bg-pink-500 text-white shadow-lg shadow-pink-500/30 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-xl"
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-pink-500 text-white shadow-lg shadow-pink-500/30 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-xl"
                       }`}
                   >
                     <Ticket size={18} />

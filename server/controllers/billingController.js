@@ -16,8 +16,12 @@ const {
   hasProAccess,
 } = require("../services/subscriptionService");
 const sendEmail = require("../utils/email");
-const { billingSuccessEmail } = require("../utils/emailTemplates");
+const {
+  billingSuccessEmail,
+  subscriptionAdminNotificationEmail,
+} = require("../utils/emailTemplates");
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "tickispot@gmail.com";
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL;
@@ -255,6 +259,13 @@ exports.verifyBilling = async (req, res) => {
       metadata,
     });
 
+    const activationDate = new Date(data.paid_at || Date.now()).toLocaleDateString("en-NG", {
+      dateStyle: "long",
+    });
+    const expirationDate = nextBillingDate
+      ? new Date(nextBillingDate).toLocaleDateString("en-NG", { dateStyle: "long" })
+      : null;
+
     sendEmail({
       to: updatedUser.email,
       subject: "Your TickiSpot Subscription is Active",
@@ -264,25 +275,44 @@ exports.verifyBilling = async (req, res) => {
         amount,
         normalizedInterval,
         reference,
+        activationDate,
+        expirationDate,
       ),
+      type: "subscription_confirmation",
+      relatedType: "BillingHistory",
+      relatedId: reference,
+      metadata: {
+        reference,
+        plan: normalizedPlan,
+        interval: normalizedInterval,
+        amount,
+        userId: String(updatedUser._id),
+      },
     }).catch((err) => console.error("Billing email failed:", err));
 
-    // In verifyBilling, make email errors visible during debugging:
-try {
-  await sendEmail({
-    to: updatedUser.email,
-      subject: "Your TickiSpot Subscription is Active",
-      html: billingSuccessEmail(
+    sendEmail({
+      to: ADMIN_EMAIL,
+      subject: "New subscription payment received on TickiSpot",
+      html: subscriptionAdminNotificationEmail(
         updatedUser.name || "User",
+        updatedUser.email,
         normalizedPlan,
         amount,
         normalizedInterval,
         reference,
+        activationDate,
       ),
-   }); // temporarily await instead of fire-and-forget
-} catch (err) {
-  console.error("Billing email failed:", err); // you'll see the real error
-}
+      type: "subscription_admin",
+      relatedType: "BillingHistory",
+      relatedId: reference,
+      metadata: {
+        reference,
+        plan: normalizedPlan,
+        interval: normalizedInterval,
+        amount,
+        userId: String(updatedUser._id),
+      },
+    }).catch((err) => console.error("Billing admin email failed:", err));
 
     return res.json({
       message: "Billing verified successfully",

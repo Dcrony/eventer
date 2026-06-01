@@ -449,6 +449,32 @@ exports.donationSuccessEmail = (name, amount, reference) =>
     `,
   });
 
+exports.donationAdminNotificationEmail = (
+  donorName,
+  donorEmail,
+  amount,
+  reference,
+  donationDate
+) =>
+  baseLayout({
+    thumbnail: thumbnails.donationSuccess(),
+    content: `
+      ${greeting("TickiSpot Team")}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">New Donation Received</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        A new donation has been completed successfully. Details are below.
+      </p>
+      ${infoCard([
+        ["Donor Name", donorName],
+        ["Donor Email", donorEmail],
+        ["Amount", `<span style="font-size:20px;color:#ec4899;font-weight:800;font-family:Georgia,serif;">₦${Number(amount).toLocaleString("en-NG")}</span>`],
+        ["Reference", `<code style="font-family:'Courier New',monospace;background:#f1f5f9;padding:2px 8px;border-radius:5px;font-size:13px;">${reference}</code>`],
+        ["Date", donationDate || new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
+      ], "#ec4899")}
+      ${signoff()}
+    `,
+  });
+
 exports.welcomeSuccessEmail = (name) =>
   baseLayout({
     thumbnail: thumbnails.welcomeSuccess(),
@@ -543,7 +569,15 @@ exports.organizerTicketAlertEmail = (organizerName, eventTitle, buyerName, quant
     footerNote: "This is an automated notification. Visit your organizer dashboard for full sales reporting and attendee management.",
   });
 
-exports.billingSuccessEmail = (name, plan, amount, interval, reference) =>
+exports.billingSuccessEmail = (
+  name,
+  plan,
+  amount,
+  interval,
+  reference,
+  activationDate,
+  expirationDate
+) =>
   baseLayout({
     thumbnail: thumbnails.billingSuccess(),
     content: `
@@ -558,13 +592,45 @@ exports.billingSuccessEmail = (name, plan, amount, interval, reference) =>
         ["Billing Cycle", interval.charAt(0).toUpperCase() + interval.slice(1)],
         ["Amount Charged", `<span style="font-size:20px;font-weight:800;color:#059669;font-family:Georgia,serif;">₦${Number(amount).toLocaleString("en-NG")}</span>`],
         ["Reference", `<code style="font-family:'Courier New',monospace;background:#f1f5f9;padding:2px 8px;border-radius:5px;font-size:13px;">${reference}</code>`],
+        ["Activation Date", activationDate || new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
+        ["Next Billing", expirationDate || new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
         ["Status", `${badge("✓ Active", "#059669", "#f0fdf4")}`],
-        ["Date", new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
       ], "#059669")}
       ${ctaButton(`${BASE_URL}/dashboard`, "Go to Dashboard", "#059669")}
       ${signoff()}
     `,
     footerNote: "Save this email as your payment receipt. To manage your subscription, visit your billing settings in the dashboard.",
+  });
+
+exports.subscriptionAdminNotificationEmail = (
+  userName,
+  userEmail,
+  plan,
+  amount,
+  interval,
+  reference,
+  transactionDate
+) =>
+  baseLayout({
+    thumbnail: thumbnails.billingSuccess(),
+    content: `
+      ${greeting("TickiSpot Team")}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">New Subscription Payment Received</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        A user successfully completed a subscription payment. Details are below.
+      </p>
+      ${infoCard([
+        ["Subscriber", userName],
+        ["Email", userEmail],
+        ["Plan", `${badge("⚡ " + plan.toUpperCase(), "#059669", "#f0fdf4")}`],
+        ["Interval", interval.charAt(0).toUpperCase() + interval.slice(1)],
+        ["Amount", `<span style="font-size:20px;font-weight:800;color:#059669;font-family:Georgia,serif;">₦${Number(amount).toLocaleString("en-NG")}</span>`],
+        ["Reference", `<code style="font-family:'Courier New',monospace;background:#f1f5f9;padding:2px 8px;border-radius:5px;font-size:13px;">${reference}</code>`],
+        ["Date", transactionDate || new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
+      ], "#059669")}
+      ${signoff()}
+    `,
+    footerNote: "This is an internal notification for TickiSpot finance and support teams.",
   });
 
 exports.teamInvitationEmail = (name, eventTitle, role, acceptUrl) =>

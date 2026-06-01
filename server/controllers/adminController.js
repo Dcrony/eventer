@@ -260,6 +260,7 @@ exports.getPlatformStats = async (req, res) => {
       subscriptionRevenueAgg,
       pendingPayoutAgg,
       completedPayoutAgg,
+      payoutEscrowPendingAgg,
       recentTransactions,
       recentWithdrawals,
       recentActivities,
@@ -294,6 +295,11 @@ exports.getPlatformStats = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Withdrawal.aggregate([{ $match: { status: "completed" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      // include pending payouts from escrow
+      (await (require("../models/Payout")).aggregate([
+        { $match: { state: { $in: ["pending", "under_review", "scheduled"] } } },
+        { $group: { _id: null, total: { $sum: "$netAmount" } } },
+      ])),
       Ticket.find({})
         .populate("buyer", "name username email")
         .populate("event", "title")
@@ -400,7 +406,7 @@ exports.getPlatformStats = async (req, res) => {
           organizerRevenue,
           subscriptionRevenue,
           commissionRevenue,
-          pendingPayouts: pendingPayoutAgg[0]?.total || 0,
+          pendingPayouts: (pendingPayoutAgg[0]?.total || 0) + (payoutEscrowPendingAgg[0]?.total || 0),
           completedPayouts: completedPayoutAgg[0]?.total || 0,
         },
         platform: {

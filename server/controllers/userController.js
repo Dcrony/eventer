@@ -738,9 +738,14 @@ const setMyRole = async (req, res) => {
     if (!["organizer", "user"].includes(role)) {
       return res.status(400).json({ message: "Role must be 'organizer' or 'user'." });
     }
+    const updates = { role, roleConfirmed: true };
+    if (role === "organizer") {
+      updates.onboardingCompletedAt = new Date();
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { role, roleConfirmed: true },
+      updates,
       { new: true }
     ).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });

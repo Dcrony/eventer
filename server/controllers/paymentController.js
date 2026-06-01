@@ -252,8 +252,17 @@ exports.verifyPayment = async (req, res) => {
 
       const grossNaira = data.amount / 100;
       const { platformFee, netToOrganizer } = splitTicketSaleForOrganizer(grossNaira);
-      organizer.availableBalance += netToOrganizer;
-      await organizer.save();
+
+      // Create escrow payout record instead of immediately crediting available balance
+      const { createPayoutForSale } = require("./payoutController");
+      await createPayoutForSale({
+        organizerId: organizer._id,
+        eventId: event._id,
+        ticketIds: [ticket._id],
+        grossAmount: grossNaira,
+        platformFee,
+        meta: { reference: data.reference },
+      });
 
       // Update event tickets
       // ✅ Snapshot capacity if not already set, then decrement only totalTickets
@@ -265,19 +274,14 @@ event.totalTickets = Math.max(0, Number(event.totalTickets || 0) - quantity);
 recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
 await event.save();
 
-      // Create transaction record (amount = buyer total; fee = platform commission)
-      await Transaction.create({
-        organizer: event.createdBy,
-        type: "ticket",
-        amount: grossNaira,
-        fee: platformFee,
-        status: "success",
-        reference: data.reference,
-        metadata: {
-          eventId: event._id,
-          ticketId: ticket._id,
-        },
-      });
+      // Transaction and payout record have been created via the payout service (escrow).
+      // Link the ticketId to any existing payout/transaction metadata for traceability.
+      try {
+        await Transaction.updateMany({ reference: data.reference }, { $set: { "metadata.ticketId": ticket._id } });
+        await Transaction.updateMany({ "metadata.payoutId": { $exists: true } }, { $set: { status: "pending" } });
+      } catch (e) {
+        console.warn("Failed to link ticket to payout transaction:", e.message);
+      }
 
       // Generate QR code
       const qrDir = path.join(__dirname, "../uploads/qrcodes");

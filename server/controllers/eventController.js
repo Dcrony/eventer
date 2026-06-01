@@ -401,6 +401,44 @@ exports.createEvent = async (req, res) => {
 };
 
 /* ─── Read ────────────────────────────────────────────────────────────────── */
+exports.getCategories = async (req, res) => {
+  try {
+    const categories = await Event.distinct("category", {
+      category: { $exists: true, $ne: "" },
+      visibility: "public",
+      status: "approved",
+    });
+
+    const cleaned = categories
+      .map((category) => String(category || "").trim())
+      .filter((category, index, list) => category && list.indexOf(category) === index);
+
+    const fallback = [
+      "Music",
+      "Concerts",
+      "Comedy",
+      "Tech",
+      "Business",
+      "Startup",
+      "Networking",
+      "Education",
+      "Sports",
+      "Gaming",
+      "Religious",
+      "Fashion",
+      "Food",
+      "Festival",
+      "Conference",
+      "Entertainment",
+    ];
+
+    return res.json({ categories: cleaned.length ? cleaned.sort() : fallback });
+  } catch (err) {
+    console.error("GET CATEGORIES ERROR:", err);
+    return res.status(500).json({ message: "Unable to load categories" });
+  }
+};
+
 exports.getAllEvents = async (req, res) => {
   try {
     const { liveOnly } = req.query;

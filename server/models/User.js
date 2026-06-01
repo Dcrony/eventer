@@ -279,9 +279,38 @@ favorites: {
     default: false,
   },
   deletedAt: Date,
+
+  // Onboarding state tracking
+  roleConfirmed: {
+    type: Boolean,
+    default: false,
+  },
+  interestsSelected: {
+    type: Boolean,
+    default: false,
+  },
+  onboardingCompletedAt: {
+    type: Date,
+    default: null,
+  },
+
+  // User interests for personalized discovery
+  interests: {
+    type: [String],
+    default: [],
+  },
+  preferredCategories: {
+    type: [String],
+    default: [],
+  },
   },
   { timestamps: true },
 );
+
+// Helper to check if onboarding is complete
+UserSchema.virtual('onboardingCompleted').get(function () {
+  return this.roleConfirmed && (this.interestsSelected || this.role === 'organizer');
+});
 
 // 🔑 Virtual boolean fields for quick checks
 UserSchema.virtual("isAdmin").get(function () {

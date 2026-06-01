@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "mailgun.js": "^12.7.1",
     "mongoose": "^8.16.0",
+    "bull": "^4.10.0",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
