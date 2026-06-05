@@ -4,7 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import EditEvent from "../components/EditEvent";
 import TeamManagement from "../components/TeamManagement";
 import EventActionMenu from "../components/EventActionMenu";
+import VerificationStatusCard from "../components/VerificationStatusCard";
 import { getCurrentUser } from "../utils/auth";
+import WhatsAppSharingCenter from "../components/WhatsAppSharingCenter";
 import {
   ArrowRight,
   PlusCircle,
@@ -20,6 +22,8 @@ import {
   Trash2,
   Copy,
   FileClock,
+  AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import { useCreateEvent } from "../context/CreateEventContext";
 import { useSearchParams } from "react-router-dom";
@@ -39,6 +43,10 @@ export default function Dashboard() {
   const [teamModalOpen, setTeamModalOpen] = useState(false);
   const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [financeSummary, setFinanceSummary] = useState(null);
+  const [fraudInfo, setFraudInfo] = useState(null);
+  const [payoutHistory, setPayoutHistory] = useState(null);
+  const [userVerification, setUserVerification] = useState(null);
 
   const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
   const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
@@ -55,30 +63,39 @@ export default function Dashboard() {
 
 
   const fetchDashboardData = useCallback(() => {
-  setLoading(true);
-  setError(null);
-  Promise.all([
-    API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
-    API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
-    API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
-  ])
-    .then(([eventsRes, statsRes, transactionRes]) => {
-      setEvents(eventsRes.data || []);
-      setStats(statsRes.data || null);
-      setTransactions(transactionRes.data || []);
-      setLoading(false);
-    })
-    .catch(() => {
-      setError("Failed to load dashboard data");
-      setLoading(false);
-    });
-}, [token]);
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
+      API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
+      API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
+      API.get("/users/me", { headers: { Authorization: `Bearer ${token}` } }),
+      API.get("/finance/organizer/balances", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+      API.get("/finance/organizer/payouts?page=1&limit=5", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+    ])
+      .then(([eventsRes, statsRes, transactionRes, userRes, balancesRes, payoutsRes]) => {
+        setEvents(eventsRes.data || []);
+        setStats(statsRes.data || null);
+        setTransactions(transactionRes.data || []);
+        if (userRes?.data?.verification) setUserVerification(userRes.data.verification);
+        if (balancesRes && balancesRes.data) {
+          setFinanceSummary(balancesRes.data.summary || balancesRes.data);
+          setFraudInfo(balancesRes.data.fraud || null);
+        }
+        if (payoutsRes && payoutsRes.data) setPayoutHistory(payoutsRes.data.history || payoutsRes.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load dashboard data");
+        setLoading(false);
+      });
+  }, [token]);
 
-useEffect(() => {
-  fetchDashboardData();
-}, [fetchDashboardData]);
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-const handleEventUpdated = () => fetchDashboardData();
+  const handleEventUpdated = () => fetchDashboardData();
 
   const toggleLive = async (id, currentStatus) => {
     if (!canAccessLiveStreaming) { promptUpgradeLive(); return; }
@@ -105,19 +122,31 @@ const handleEventUpdated = () => fetchDashboardData();
   };
 
   const handleDeleteDraft = async (id, title) => {
-  if (!window.confirm(`Delete draft "${title || "Untitled draft"}"?\n\nThis cannot be undone.`)) return;
-  try {
-    await API.delete(`/events/delete/${id}`);
-    setEvents((prev) => prev.filter((e) => e._id !== id));
-  } catch {
-    setError("Failed to delete draft. Please try again.");
-  }
-};
+    if (!window.confirm(`Delete draft "${title || "Untitled draft"}"?\n\nThis cannot be undone.`)) return;
+    try {
+      await API.delete(`/events/delete/${id}`);
+      setEvents((prev) => prev.filter((e) => e._id !== id));
+    } catch {
+      setError("Failed to delete draft. Please try again.");
+    }
+  };
 
   const formatNumber = (num) => {
     if (num === null || num === undefined || Number.isNaN(num)) return "0";
     return new Intl.NumberFormat("en-NG").format(num);
   };
+
+  const getPayoutTone = (state) => {
+    if (!state) return "gray";
+    const normalized = String(state).toLowerCase();
+    if (normalized === "released") return "green";
+    if (normalized === "pending" || normalized === "processing") return "amber";
+    if (normalized === "under_review") return "pink";
+    if (normalized === "frozen" || normalized === "refunded" || normalized === "failed") return "red";
+    return "blue";
+  };
+
+  const payoutItems = payoutHistory?.items || payoutHistory?.history || payoutHistory?.payouts || [];
 
   const StatCard = ({ title, value, icon: Icon, color }) => {
     const colorClasses = { blue: "before:bg-blue-500", pink: "before:bg-pink-500", green: "before:bg-green-500", red: "before:bg-red-500" };
@@ -162,6 +191,15 @@ const handleEventUpdated = () => fetchDashboardData();
       title="Organizer Dashboard"
       description={`Welcome back${user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.`}
     >
+      {user?.role === "organizer" && userVerification && (
+        <div className="mb-6">
+          <VerificationStatusCard
+            verification={userVerification}
+            onStartVerification={() => navigate("/verification")}
+            compact={true}
+          />
+        </div>
+      )}
       <TrialNotificationBanner />
 
       <div className="mb-6 flex flex-wrap justify-end gap-2">
@@ -180,277 +218,347 @@ const handleEventUpdated = () => fetchDashboardData();
         </button>
       </div>
 
-        {/* ── Loading skeleton ── */}
-        {loading && <Skeleton />}
+      {/* ── Loading skeleton ── */}
+      {loading && <Skeleton />}
 
-        {/* ── Error state ── */}
-        {!loading && error && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <p className="text-red-600 font-bold mb-3">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-full border border-gray-200 text-sm font-semibold hover:border-pink-500 hover:text-pink-500 transition-all"
-            >
-              Try again
-            </button>
-          </div>
-        )}
+      {/* ── Error state ── */}
+      {!loading && error && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <p className="text-red-600 font-bold mb-3">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-full border border-gray-200 text-sm font-semibold hover:border-pink-500 hover:text-pink-500 transition-all"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
-        {/* ── Content ── */}
-        {!loading && !error && (
-          <>
-            {/* Stat Cards */}
-            {stats && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-                <StatCard title="Total Events" value={stats.totalEvents} icon={LayoutDashboard} color="blue" />
-                <StatCard title="Tickets Sold" value={formatNumber(stats.totalTicketsSold)} icon={Ticket} color="pink" />
-                <StatCard title="Revenue" value={`₦${formatNumber(stats.totalRevenue)}`} icon={BarChart3} color="green" />
-                <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
-                <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" />
-                <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" />
+      {/* ── Content ── */}
+      {!loading && !error && (
+        <>
+          {/* Stat Cards */}
+          {stats && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+              <StatCard title="Total Events" value={stats.totalEvents} icon={LayoutDashboard} color="blue" />
+              <StatCard title="Tickets Sold" value={formatNumber(stats.totalTicketsSold)} icon={Ticket} color="pink" />
+              <StatCard title="Revenue" value={`₦${formatNumber(stats.totalRevenue)}`} icon={BarChart3} color="green" />
+              <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
+              <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" />
+              <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" />
+            </div>
+          )}
+
+          {/* Finance Summary */}
+          {financeSummary && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+                <StatCard title="Available Balance" value={`₦${formatNumber(financeSummary.availableBalance || 0)}`} icon={Wallet} color="green" />
+                <StatCard title="Escrow Balance" value={`₦${formatNumber(financeSummary.escrowBalance || 0)}`} icon={Wallet} color="pink" />
+                <StatCard title="Pending Release Balance" value={`₦${formatNumber(financeSummary.pendingReleaseBalance || 0)}`} icon={FileClock} color="blue" />
+                <StatCard title="Released Revenue" value={`₦${formatNumber(financeSummary.releasedRevenue || 0)}`} icon={BarChart3} color="green" />
+                <StatCard title="Refunded Revenue" value={`₦${formatNumber(financeSummary.refundedRevenue || 0)}`} icon={Wallet} color="red" />
               </div>
-            )}
 
-            {/* Top Performing Events */}
-            {stats?.topEvents?.filter((e) => !e.isDraft).length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-                  <h3 className="text-sm font-bold text-gray-900">Top Performing Events</h3>
+              {fraudInfo && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                  <StatCard title="Fraud Alerts" value={formatNumber(fraudInfo.flagCount || 0)} icon={AlertTriangle} color="red" />
+                  <StatCard title="Suspicious Transactions" value={formatNumber(fraudInfo.suspiciousTransactionsCount || 0)} icon={ShieldAlert} color="pink" />
+                  <StatCard title="Refund Spike" value={`${Math.round((fraudInfo.refundSpike?.ratio || 0) * 100)}%`} icon={AlertTriangle} color="red" />
+                  <StatCard title="Suspicious Payouts" value={formatNumber(fraudInfo.suspiciousPayouts?.length || 0)} icon={ShieldAlert} color="pink" />
                 </div>
-                <div className="p-6">
-                  <div className="space-y-0">
-                    {stats.topEvents.filter((e) => !e.isDraft).slice(0, 3).map((event, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-[32px_1fr_180px] items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg"
-                      >
-                        <div className="text-sm font-extrabold text-gray-400 text-center">#{index + 1}</div>
-                        <div>
-                          <div className="text-sm font-bold text-gray-900 mb-0.5 truncate">{event.title}</div>
-                          <div className="text-xs text-gray-400">
-                            {formatNumber(event.quantitySold || event.ticketsSold || 0)} tickets sold
-                          </div>
-                        </div>
-                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-pink-500 to-pink-300 rounded-full transition-all duration-1000"
-                            style={{
-                              width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+              )}
+
+              {(userVerification?.status !== "approved" || (fraudInfo?.flagCount || 0) > 0 || (financeSummary.escrowBalance || 0) > 0) && (
+                <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 mb-8">
+                  <h3 className="text-sm font-bold text-amber-900">Payout Restrictions</h3>
+                  <div className="mt-3 space-y-2 text-sm text-amber-800">
+                    {userVerification?.status !== "approved" ? (
+                      <p>Your account is still pending verification. Withdrawals and payout releases are restricted until your organizer verification is approved.</p>
+                    ) : null}
+                    {(fraudInfo?.flagCount || 0) > 0 ? (
+                      <p>{formatNumber(fraudInfo.flagCount)} active fraud alert(s) may hold or freeze payout processing. Contact support if you need help.</p>
+                    ) : null}
+                    {(financeSummary.escrowBalance || 0) > 0 ? (
+                      <p>Escrow rules are holding ₦{formatNumber(financeSummary.escrowBalance)} until payout review is complete.</p>
+                    ) : null}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </>
+          )}
 
-            {/* Transaction History */}
+          <WhatsAppSharingCenter events={events} currentUserId={user?.id} />
+
+          {/* Top Performing Events */}
+          {stats?.topEvents?.filter((e) => !e.isDraft).length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
-                <h3 className="text-sm font-bold text-gray-900">Transaction History</h3>
+                <h3 className="text-sm font-bold text-gray-900">Top Performing Events</h3>
               </div>
               <div className="p-6">
-                {latestTransactions.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No transactions yet.</p>
-                ) : (
-                  <div className="space-y-0">
-                    {latestTransactions.map((tx) => (
-                      <div
-                        key={tx._id}
-                        className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2"
-                      >
-                        <div>
-                          <strong className="text-sm text-gray-900">{tx.type.toUpperCase()}</strong>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {new Date(tx.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900">
-                          ₦{formatNumber(ticketNetToOrganizer(tx))}
-                        </div>
-                        <div className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          tx.status === "success" ? "bg-green-50 text-green-600"
-                          : tx.status === "pending" ? "bg-amber-50 text-amber-600"
-                          : "bg-red-50 text-red-600"
-                        }`}>
-                          {tx.status}
-                        </div>
-                      </div>
-                    ))}
-                    <Link
-                      to="/transactions"
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200"
-                    >
-                      View All Transactions <ArrowRight size={16} />
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Your Events */}
-            {draftEvents.length > 0 && (
-              <div className="mb-8">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Saved drafts</h2>
-                    <p className="text-sm text-gray-500">Jump back into unfinished events without losing your progress.</p>
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onClick={() => openCreateEvent({ resumeLatest: true })}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
-                  >
-                    Resume latest draft <ArrowRight size={16} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  {draftEvents.map((event) => (
+                <div className="space-y-0">
+                  {stats.topEvents.filter((e) => !e.isDraft).slice(0, 3).map((event, index) => (
                     <div
-                      key={event._id}
-                      className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm"
+                      key={index}
+                      className="grid grid-cols-[32px_1fr_180px] items-center gap-4 py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg"
                     >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-amber-700">
-                            <FileClock size={14} />
-                            Draft
-                          </div>
-                          <h3 className="text-base font-bold text-gray-900">{event.title || "Untitled draft"}</h3>
-                          <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                            {event.description || "This draft is waiting for its final details."}
-                          </p>
+                      <div className="text-sm font-extrabold text-gray-400 text-center">#{index + 1}</div>
+                      <div>
+                        <div className="text-sm font-bold text-gray-900 mb-0.5 truncate">{event.title}</div>
+                        <div className="text-xs text-gray-400">
+                          {formatNumber(event.quantitySold || event.ticketsSold || 0)} tickets sold
                         </div>
-                        <button
-    type="button"
-    onClick={() => handleDeleteDraft(event._id, event.title)}
-    className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 text-sm font-semibold text-red-500 shadow-sm transition-colors hover:bg-red-50"
-  >
-    <Trash2 size={15} />
-  </button>
-                  <button
-                    type="button"
-                    onClick={() => openCreateEvent({ draftEvent: event })}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
-                  >
-                          Resume draft <ArrowRight size={16} />
-                        </button>
                       </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-2xl bg-white p-3">
-                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Last saved</div>
-                          <div className="mt-1 text-sm font-semibold text-gray-900">
-                            {new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                        <div className="rounded-2xl bg-white p-3">
-                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Progress</div>
-                          <div className="mt-1 text-sm font-semibold text-gray-900">Step {event.draftStep || 1} of 5</div>
-                        </div>
-                        <div className="rounded-2xl bg-white p-3">
-                          <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Format</div>
-                          <div className="mt-1 text-sm font-semibold text-gray-900">{event.eventType || "In-person"}</div>
-                        </div>
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-pink-500 to-pink-300 rounded-full transition-all duration-1000"
+                          style={{
+                            width: `${Math.min(100, ((event.quantitySold || event.ticketsSold || 0) / (stats.totalTicketsSold || 1)) * 100)}%`,
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Published events</h2>
+          {/* Transaction History */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-sm font-bold text-gray-900">Transaction History</h3>
+            </div>
+            <div className="p-6">
+              {latestTransactions.length === 0 ? (
+                <p className="text-gray-500 text-sm">No transactions yet.</p>
+              ) : (
+                <div className="space-y-0">
+                  {latestTransactions.map((tx) => (
+                    <div
+                      key={tx._id}
+                      className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2"
+                    >
+                      <div>
+                        <strong className="text-sm text-gray-900">{tx.type.toUpperCase()}</strong>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {new Date(tx.createdAt).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        ₦{formatNumber(ticketNetToOrganizer(tx))}
+                      </div>
+                      <div className={`text-xs font-bold px-2 py-1 rounded-full ${tx.status === "success" ? "bg-green-50 text-green-600"
+                        : tx.status === "pending" ? "bg-amber-50 text-amber-600"
+                          : "bg-red-50 text-red-600"
+                        }`}>
+                        {tx.status}
+                      </div>
+                    </div>
+                  ))}
+                  <Link
+                    to="/transactions"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200"
+                  >
+                    View All Transactions <ArrowRight size={16} />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
 
-            {publishedEvents.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm text-center py-16 px-8">
-                <p className="text-gray-400 text-sm mb-6">
-                  You haven't created any events yet. Ready to host your first one?
-                </p>
+          {/* Payout History */}
+          {payoutItems.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm mb-8 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+                <h3 className="text-sm font-bold text-gray-900">Payout History</h3>
+              </div>
+              <div className="p-6">
+                {payoutItems.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No payouts yet.</p>
+                ) : (
+                  <div className="space-y-0">
+                    {payoutItems.map((p) => (
+                      <div key={p._id || p.id} className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2">
+                        <div>
+                          <strong className="text-sm text-gray-900">{p.event ? p.event.title || 'Event Payout' : 'Payout'}</strong>
+                          <div className="text-xs text-gray-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">₦{formatNumber(p.netAmount || p.amount || 0)}</div>
+                        <div className={`text-xs font-bold px-2 py-1 rounded-full ${getPayoutTone(p.state) === 'green' ? 'bg-green-50 text-green-600' : getPayoutTone(p.state) === 'amber' ? 'bg-amber-50 text-amber-600' : getPayoutTone(p.state) === 'pink' ? 'bg-pink-50 text-pink-600' : 'bg-red-50 text-red-600'}`}>
+                          {p.state || p.status || 'unknown'}
+                        </div>
+                      </div>
+                    ))}
+                    <Link to="/dashboard/payouts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200">View All Payouts <ArrowRight size={16} /></Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Your Events */}
+          {draftEvents.length > 0 && (
+            <div className="mb-8">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Saved drafts</h2>
+                  <p className="text-sm text-gray-500">Jump back into unfinished events without losing your progress.</p>
+                </div>
+
                 <button
-                  onClick={() => openCreateEvent()}
-                  className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
+                  type="button"
+                  onClick={() => openCreateEvent({ resumeLatest: true })}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-600 shadow-sm transition-colors hover:border-pink-300 hover:text-pink-600"
                 >
-                  Create Your First Event <PlusCircle size={18} />
+                  Resume latest draft <ArrowRight size={16} />
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {publishedEvents.map((event) => (
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {draftEvents.map((event) => (
                   <div
                     key={event._id}
-                    className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
+                    className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-5 shadow-sm"
                   >
-                    <div className="absolute top-3 right-3 z-10">
-                      <EventActionMenu
-                        items={[
-                          {
-                            key: "live",
-                            label: event.liveStream?.isLive ? "Stop Live" : "Go Live",
-                            icon: Radio,
-                            active: Boolean(event.liveStream?.isLive),
-                            onClick: () => canAccessLiveStreaming ? toggleLive(event._id, event.liveStream?.isLive) : promptUpgradeLive(),
-                          },
-                          { key: "edit", label: "Edit event", icon: Pencil, onClick: () => handleEditClick(event._id) },
-                          { key: "tickets", label: "Manage tickets", icon: Ticket, to: `/events/${event._id}/tickets` },
-                          canAccessAnalytics
-                            ? { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
-                            : { key: "analytics-upgrade", label: "Analytics", icon: BarChart3, onClick: promptUpgradeAnalytics },
-                          { key: "team", label: "Manage team", icon: Users, onClick: () => handleTeamClick(event._id) },
-                          { key: "duplicate", label: "Duplicate event", icon: Copy, onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
-                          { key: "divider-delete", type: "divider" },
-                          { key: "delete", label: "Delete event", icon: Trash2, danger: true, onClick: () => handleDelete(event._id) },
-                        ]}
-                      />
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-amber-700">
+                          <FileClock size={14} />
+                          Draft
+                        </div>
+                        <h3 className="text-base font-bold text-gray-900">{event.title || "Untitled draft"}</h3>
+                        <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+                          {event.description || "This draft is waiting for its final details."}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteDraft(event._id, event.title)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-4 text-sm font-semibold text-red-500 shadow-sm transition-colors hover:bg-red-50"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openCreateEvent({ draftEvent: event })}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-pink-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-pink-600"
+                      >
+                        Resume draft <ArrowRight size={16} />
+                      </button>
                     </div>
-
-                    {getEventImageUrl(event) ? (
-                      <img
-                        src={getEventImageUrl(event)}
-                        alt={event.title}
-                        className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="w-full h-44 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
-                        <Calendar size={32} className="text-white/20" />
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Last saved</div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">
+                          {new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString()}
+                        </div>
                       </div>
-                    )}
-
-                    <div className="p-4 flex-1 flex flex-col gap-2.5">
-                      <div className="flex justify-between items-start gap-3">
-                        <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{event.title}</h3>
-                        {event.liveStream?.isLive && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
-                            LIVE
-                          </span>
-                        )}
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Progress</div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">Step {event.draftStep || 1} of 5</div>
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2">{event.description || "No description provided."}</p>
-                      <div className="mt-auto space-y-1.5">
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Calendar size={14} className="text-pink-500 flex-shrink-0" />
-                          <span>
-                            {new Date(event.startDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} • {event.startTime}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <MapPin size={14} className="text-pink-500 flex-shrink-0" />
-                          <span className="truncate">{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Users size={14} className="text-pink-500 flex-shrink-0" />
-                          <span>{event.ticketsSold}/{event.totalTickets} tickets sold</span>
-                        </div>
+                      <div className="rounded-2xl bg-white p-3">
+                        <div className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Format</div>
+                        <div className="mt-1 text-sm font-semibold text-gray-900">{event.eventType || "In-person"}</div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </>
-        )}
+            </div>
+          )}
+
+          <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Published events</h2>
+
+          {publishedEvents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm text-center py-16 px-8">
+              <p className="text-gray-400 text-sm mb-6">
+                You haven't created any events yet. Ready to host your first one?
+              </p>
+              <button
+                onClick={() => openCreateEvent()}
+                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-full bg-pink-500 text-white text-sm font-semibold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
+              >
+                Create Your First Event <PlusCircle size={18} />
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {publishedEvents.map((event) => (
+                <div
+                  key={event._id}
+                  className="group relative bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40 flex flex-col"
+                >
+                  <div className="absolute top-3 right-3 z-10">
+                    <EventActionMenu
+                      items={[
+                        {
+                          key: "live",
+                          label: event.liveStream?.isLive ? "Stop Live" : "Go Live",
+                          icon: Radio,
+                          active: Boolean(event.liveStream?.isLive),
+                          onClick: () => canAccessLiveStreaming ? toggleLive(event._id, event.liveStream?.isLive) : promptUpgradeLive(),
+                        },
+                        { key: "edit", label: "Edit event", icon: Pencil, onClick: () => handleEditClick(event._id) },
+                        { key: "tickets", label: "Manage tickets", icon: Ticket, to: `/events/${event._id}/tickets` },
+                        canAccessAnalytics
+                          ? { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
+                          : { key: "analytics-upgrade", label: "Analytics", icon: BarChart3, onClick: promptUpgradeAnalytics },
+                        { key: "team", label: "Manage team", icon: Users, onClick: () => handleTeamClick(event._id) },
+                        { key: "duplicate", label: "Duplicate event", icon: Copy, onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
+                        { key: "divider-delete", type: "divider" },
+                        { key: "delete", label: "Delete event", icon: Trash2, danger: true, onClick: () => handleDelete(event._id) },
+                      ]}
+                    />
+                  </div>
+
+                  {getEventImageUrl(event) ? (
+                    <img
+                      src={getEventImageUrl(event)}
+                      alt={event.title}
+                      className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-44 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+                      <Calendar size={32} className="text-white/20" />
+                    </div>
+                  )}
+
+                  <div className="p-4 flex-1 flex flex-col gap-2.5">
+                    <div className="flex justify-between items-start gap-3">
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{event.title}</h3>
+                      {event.liveStream?.isLive && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
+                          LIVE
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 line-clamp-2">{event.description || "No description provided."}</p>
+                    <div className="mt-auto space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <Calendar size={14} className="text-pink-500 flex-shrink-0" />
+                        <span>
+                          {new Date(event.startDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} • {event.startTime}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <MapPin size={14} className="text-pink-500 flex-shrink-0" />
+                        <span className="truncate">{event.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <Users size={14} className="text-pink-500 flex-shrink-0" />
+                        <span>{event.ticketsSold}/{event.totalTickets} tickets sold</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       <EditEvent isOpen={editModalOpen} onClose={handleModalClose} eventId={selectedEventId} onEventUpdated={handleEventUpdated} />
       <TeamManagement eventId={selectedTeamEventId} isOpen={teamModalOpen} onClose={handleTeamModalClose} />
