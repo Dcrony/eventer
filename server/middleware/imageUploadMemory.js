@@ -2,13 +2,14 @@ const multer = require("multer");
 const { IMAGE_MIMES } = require("../utils/cloudinaryMedia");
 
 const imageFileFilter = (req, file, cb) => {
-  if (IMAGE_MIMES.has(file.mimetype)) {
+  // Allow images and PDFs for verification/document uploads
+  if (IMAGE_MIMES.has(file.mimetype) || file.mimetype === "application/pdf") {
     cb(null, true);
     return;
   }
   cb(
     new Error(
-      "Only image files are allowed (JPEG, PNG, WebP, GIF, AVIF, HEIC). Video uploads are not accepted.",
+      "Only image files and PDFs are allowed (JPEG, PNG, WebP, GIF, AVIF, HEIC, PDF). Video uploads are not accepted.",
     ),
   );
 };
