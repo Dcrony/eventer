@@ -23,6 +23,8 @@ import API from "../api/axios";
 import EventCard from "../components/EventCard";
 import EditEvent from "../components/EditEvent";
 import TeamManagement from "../components/TeamManagement";
+import OrganizerReputation from "../components/OrganizerReputation";
+import FeaturedEventsSection from "../components/FeaturedEventsSection";
 import Button from "../components/ui/button";
 import VerifiedBadge from "../components/ui/verified-badge";
 import {
@@ -710,6 +712,20 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* ── Organizer Reputation (if profile is organizer) ── */}
+        {profile?.role === "organizer" && (
+          <OrganizerReputation organizerId={profile._id} compact={false} />
+        )}
+
+        {/* ── Featured Events Section (if profile is organizer) ── */}
+        {profile?.role === "organizer" && (
+          <FeaturedEventsSection
+            created={profile?.createdEvents || []}
+            collaborator={profile?.featuredEvents || []}
+            organizerId={profile._id}
+          />
+        )}
 
         {/* ── Content Card ── */}
         <div className="bg-transparent p-4 sm:p-5">
