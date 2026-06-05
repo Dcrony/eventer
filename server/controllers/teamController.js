@@ -97,7 +97,7 @@ exports.inviteTeamMember = async (req, res) => {
       return res.status(400).json({ message: "Email and role are required" });
     }
 
-    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"];
+    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator", "checkin_staff"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
@@ -401,7 +401,7 @@ exports.updateTeamMemberRole = async (req, res) => {
     const { role } = req.body;
     const userId = req.user.id;
 
-    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"];
+    const validRoles = ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator", "checkin_staff"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
