@@ -4,6 +4,7 @@ const path = require("path");
 const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
+const OrganizerVerification = require("../models/OrganizerVerification");
 const { createNotification } = require("../services/notificationService");
 const { hasAccess } = require("../services/featureService");
 const { buildTimeline, recordEventMetrics } = require("../utils/eventMetrics");
@@ -25,6 +26,21 @@ const {
 } = require("../utils/cloudinaryMedia");
 
 const JWT_SECRET = process.env.JWT_SECRET;
+
+/**
+ * Helper to check organizer verification status
+ */
+const getOrganizerVerificationStatus = async (userId) => {
+  const verification = await OrganizerVerification.findOne({ 
+    organizer: userId 
+  }).sort({ createdAt: -1 });
+
+  return {
+    status: verification?.status || "not_started",
+    isVerified: verification?.status === "approved",
+    rejectionReason: verification?.rejectionReason,
+  };
+};
 
 /* ─── Capacity fix ────────────────────────────────────────────────────────── */
 exports.fixEventCapacity = async (req, res) => {
@@ -367,6 +383,23 @@ exports.createEvent = async (req, res) => {
 
     if (!event) {
       event = new Event({ createdBy: req.user.id });
+    }
+
+    // Check organizer verification for publishing (isDraft: false)
+    // Large events (>50 tickets) require verification to be published
+    const isPublishing = !draftId || !event.isDraft;
+    if (isPublishing && req.user.role === "organizer") {
+      const verificationStatus = await getOrganizerVerificationStatus(req.user._id || req.user.id);
+      const totalTickets_num = Number(totalTickets || 0);
+      
+      if (totalTickets_num > 50 && !verificationStatus.isVerified) {
+        return res.status(403).json({
+          code: "VERIFICATION_REQUIRED",
+          message: "Organizer verification required to publish events with more than 50 tickets",
+          verificationStatus: verificationStatus.status,
+          rejectionReason: verificationStatus.rejectionReason,
+        });
+      }
     }
 
     Object.assign(event, {
