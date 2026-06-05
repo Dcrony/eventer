@@ -2,6 +2,15 @@ const OrganizerVerification = require("../models/OrganizerVerification");
 const User = require("../models/User");
 const { uploadImageBuffer, cloudinary } = require("../utils/cloudinaryMedia");
 const { uploadImageMemory } = require("../middleware/imageUploadMemory");
+const sendEmail = require("../utils/email");
+const {
+  verificationRequestNotificationEmail,
+  verificationApprovedEmail,
+  verificationRejectedEmail,
+} = require("../utils/emailTemplates");
+
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "tickispot@gmail.com";
+const FRONTEND_URL = process.env.FRONTEND_URL || "https://tickispot.com";
 
 // Submit verification documents (organizer only)
 exports.submitVerification = async (req, res, next) => {
@@ -27,7 +36,7 @@ exports.submitVerification = async (req, res, next) => {
 
     const uploadPromises = files.map(async (file, idx) => {
       const folder = `eventer/verification/${req.user._id}`;
-      const result = await uploadImageBuffer(file.buffer, { folder });
+      const result = await uploadImageBuffer(file.buffer, { folder }, file.mimetype);
       return {
         type: types[idx] || file.fieldname || "document",
         url: result.secure_url || result.url || "",
@@ -55,6 +64,26 @@ exports.submitVerification = async (req, res, next) => {
         accountAgeDays,
       };
       await existing.save();
+
+      sendEmail({
+        to: ADMIN_EMAIL,
+        subject: "Organizer verification resubmitted",
+        html: verificationRequestNotificationEmail(
+          req.user.name || "Organizer",
+          req.user.email,
+          existing._id,
+          existing.documents.length,
+          `${FRONTEND_URL}/admin/verification/${existing._id}`,
+        ),
+        type: "organizer_verification_resubmitted",
+        relatedType: "OrganizerVerification",
+        relatedId: existing._id,
+        metadata: {
+          organizerId: String(req.user._id),
+          documentCount: existing.documents.length,
+        },
+      }).catch((err) => console.error("Verification resubmit email failed:", err));
+
       return res.json({ success: true, verification: existing });
     }
 
@@ -68,6 +97,25 @@ exports.submitVerification = async (req, res, next) => {
         accountAgeDays,
       },
     });
+
+    sendEmail({
+      to: ADMIN_EMAIL,
+      subject: "New organizer verification request received",
+      html: verificationRequestNotificationEmail(
+        req.user.name || "Organizer",
+        req.user.email,
+        verification._id,
+        documents.length,
+        `${FRONTEND_URL}/admin/verification/${verification._id}`,
+      ),
+      type: "organizer_verification_request",
+      relatedType: "OrganizerVerification",
+      relatedId: verification._id,
+      metadata: {
+        organizerId: String(req.user._id),
+        documentCount: documents.length,
+      },
+    }).catch((err) => console.error("Verification request email failed:", err));
 
     return res.json({ success: true, verification });
   } catch (error) {
@@ -119,6 +167,8 @@ exports.adminReview = async (req, res) => {
     const verification = await OrganizerVerification.findById(id);
     if (!verification) return res.status(404).json({ message: "Verification request not found" });
 
+    const organizer = await User.findById(verification.organizer).select("name email");
+
     if (action === "approve") {
       verification.status = "approved";
       verification.rejectionReason = "";
@@ -128,6 +178,24 @@ exports.adminReview = async (req, res) => {
 
       // mark user verified
       await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: true } });
+
+      if (organizer?.email) {
+        sendEmail({
+          to: organizer.email,
+          subject: "Your organizer verification is approved",
+          html: verificationApprovedEmail(
+            organizer.name || "Organizer",
+            `${FRONTEND_URL}/verification/me`,
+          ),
+          type: "organizer_verification_approved",
+          relatedType: "OrganizerVerification",
+          relatedId: verification._id,
+          metadata: {
+            organizerId: String(verification.organizer),
+            reviewAction: "approve",
+          },
+        }).catch((err) => console.error("Verification approval email failed:", err));
+      }
     } else {
       verification.status = "rejected";
       verification.rejectionReason = reason || "Not sufficient documentation";
@@ -137,6 +205,26 @@ exports.adminReview = async (req, res) => {
 
       // ensure user remains unverified
       await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: false } });
+
+      if (organizer?.email) {
+        sendEmail({
+          to: organizer.email,
+          subject: "Your organizer verification has been declined",
+          html: verificationRejectedEmail(
+            organizer.name || "Organizer",
+            verification.rejectionReason,
+            `${FRONTEND_URL}/verification/me`,
+          ),
+          type: "organizer_verification_rejected",
+          relatedType: "OrganizerVerification",
+          relatedId: verification._id,
+          metadata: {
+            organizerId: String(verification.organizer),
+            reviewAction: "reject",
+            rejectionReason: verification.rejectionReason,
+          },
+        }).catch((err) => console.error("Verification rejection email failed:", err));
+      }
     }
 
     return res.json({ success: true, verification });
