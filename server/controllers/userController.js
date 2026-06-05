@@ -5,6 +5,7 @@ const Event = require("../models/Event");
 const EventTeam = require("../models/EventTeam");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
+const OrganizerVerification = require("../models/OrganizerVerification");
 const {
   isConfigured,
   uploadImageBuffer,
@@ -19,6 +20,24 @@ const {
   buildPublicEventQuery,
   filterViewableEvents,
 } = require("../utils/eventVisibility");
+
+/**
+ * Helper to get organizer verification status
+ */
+const getOrganizerVerificationStatus = async (userId) => {
+  const verification = await OrganizerVerification.findOne({ 
+    organizer: userId 
+  }).sort({ createdAt: -1 });
+
+  return {
+    status: verification?.status || "not_started",
+    isVerified: verification?.status === "approved",
+    rejectionReason: verification?.rejectionReason,
+    documents: verification?.documents || [],
+    reviewedAt: verification?.reviewedAt,
+    createdAt: verification?.createdAt,
+  };
+};
 
 const buildProfileStats = (user, createdEvents = [], extras = {}) => ({
   followers: Array.isArray(user.followers) ? user.followers.length : 0,
@@ -199,8 +218,15 @@ const getMyProfile = async (req, res) => {
       getTotalTicketsSoldForCreatedEvents(userId),
     ]);
 
-    res.json({
-      ...user.toObject(),
+    // Get organizer verification status if user is organizer
+    let verificationStatus = null;
+    if (user.role === "organizer") {
+      verificationStatus = await getOrganizerVerificationStatus(userId);
+    }
+
+    const userObject = user.toObject();
+    const profileResponse = {
+      ...userObject,
       tickets: tickets
         .filter((ticket) => ticket.event)
         .map((ticket) => ({
@@ -230,7 +256,14 @@ const getMyProfile = async (req, res) => {
       }),
       isOwner: true,
       isFollowing: false,
-    });
+    };
+
+    // Add verification status if organizer
+    if (verificationStatus) {
+      profileResponse.verification = verificationStatus;
+    }
+
+    res.json(profileResponse);
   } catch (error) {
     console.error("Error fetching profile:", error);
     res.status(500).json({ message: "Server error" });
