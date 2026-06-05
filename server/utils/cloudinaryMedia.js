@@ -50,12 +50,21 @@ function cloudinaryPublicIdFromUrl(url) {
   return joined.replace(/\.[^/.]+$/, "");
 }
 
-function uploadImageBuffer(buffer, options = {}) {
+/**
+ * Upload a buffer to Cloudinary. If the mimetype indicates an image, use
+ * resource_type "image", otherwise use "raw" (for PDFs and other files).
+ *
+ * @param {Buffer} buffer
+ * @param {Object} options
+ * @param {string} [mimetype] optional mimetype of the buffer (e.g. 'image/jpeg'|'application/pdf')
+ */
+function uploadImageBuffer(buffer, options = {}, mimetype = "image/jpeg") {
   ensureConfigured();
   const { folder = "eventer/misc" } = options;
+  const resource_type = IMAGE_MIMES.has(mimetype) ? "image" : "raw";
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
+      { folder, resource_type },
       (err, result) => (err ? reject(err) : resolve(result)),
     );
     Readable.from(buffer).pipe(stream);
