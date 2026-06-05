@@ -4,6 +4,7 @@ const router = express.Router();
 
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { createTicket, getMyTickets, validateTicket, getEventTickets, refundTicket, resendTicketEmail, manualCheckIn } = require("../controllers/ticketController");
+const { recordScan, syncCheckins, getActivity } = require("../controllers/checkinController");
 
 router.get("/my-tickets", authMiddleware, getMyTickets);
 router.post("/create", authMiddleware, createTicket);
@@ -37,6 +38,25 @@ router.post(
   "/:ticketId/checkin",
   authMiddleware,
   manualCheckIn
+);
+
+// Scan / activity endpoints
+router.post(
+  "/event/:eventId/scan",
+  authMiddleware,
+  recordScan
+);
+
+router.post(
+  "/event/:eventId/sync",
+  authMiddleware,
+  syncCheckins
+);
+
+router.get(
+  "/event/:eventId/scan-activity",
+  authMiddleware,
+  getActivity
 );
 
 module.exports = router;
