@@ -2,10 +2,11 @@ const express = require("express");
 const router = express.Router();
 const Donation = require("../models/Donation");
 const { authMiddleware, authorizeRoles } = require("../middleware/authMiddleware");
-const { initiateDonation, verifyDonation } = require("../controllers/donationController");
+const { initiateDonation, verifyDonation, getRecentDonations } = require("../controllers/donationController");
 
 router.post("/", initiateDonation);
 router.get("/verify", verifyDonation);
+router.get("/recent", getRecentDonations);
 
 router.get("/", authMiddleware, authorizeRoles("admin"), async (req, res) => {
   try {
