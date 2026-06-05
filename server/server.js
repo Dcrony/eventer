@@ -16,6 +16,8 @@ const userRoutes = require("./routes/userRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
+const fraudRoutes = require("./routes/fraudRoutes");
+const financeRoutes = require("./routes/financeRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const postRoutes = require("./routes/postRoutes");
@@ -31,6 +33,8 @@ const privateEventRoutes = require("./routes/privateEventRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const verificationRoutes = require("./routes/verificationRoutes");
 const payoutRoutes = require("./routes/payoutRoutes");
+const ratingRoutes = require("./routes/ratingRoutes");
+const discoveryRoutes = require("./routes/discoveryRoutes");
 const User = require("./models/User");
 const Event = require("./models/Event");
 const { PLAN_TYPES } = require("./services/subscriptionService");
@@ -238,6 +242,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api", withdrawalRoutes);
+app.use('/api/fraud', fraudRoutes);
+app.use('/api/finance', financeRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/posts", postRoutes);
@@ -257,6 +263,8 @@ app.use("/api/donations", donationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/verification", verificationRoutes);
 app.use("/api/payouts", payoutRoutes);
+app.use("/api/ratings", ratingRoutes);
+app.use("/api/discovery", discoveryRoutes);
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
