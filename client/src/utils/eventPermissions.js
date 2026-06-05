@@ -3,6 +3,7 @@ export const ROLE_LABELS = {
   ticket_manager: "Ticket manager",
   analytics_viewer: "Analytics viewer",
   livestream_moderator: "Livestream moderator",
+  checkin_staff: "Check-in staff",
 };
 
 const EMPTY_FEATURE_ACCESS = {
@@ -42,6 +43,10 @@ export const canEditEvent = (event) => getEventAccess(event).permissions.canEdit
 export const canManageTickets = (event) => {
   const access = getEventAccess(event);
   return access.permissions.canManageTickets || access.permissions.canViewTickets;
+};
+export const canCheckIn = (event) => {
+  const access = getEventAccess(event);
+  return access.permissions.canManageTickets || access.permissions.canCheckIn;
 };
 export const canAccessAnalytics = (event) => {
   const access = getEventAccess(event);
