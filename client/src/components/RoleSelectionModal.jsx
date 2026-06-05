@@ -1,12 +1,14 @@
 // src/components/RoleSelectionModal.jsx
 import { useState } from "react";
 import { ArrowRight, CalendarDays, Ticket } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 
 export default function RoleSelectionModal({ user, token, onComplete }) {
   const [role, setRole] = useState(user?.role === "user" ? "user" : "organizer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleContinue = async () => {
     setLoading(true);
@@ -19,7 +21,19 @@ export default function RoleSelectionModal({ user, token, onComplete }) {
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      onComplete(role);
+
+      // If organizer role selected, redirect to verification onboarding
+      if (role === "organizer") {
+        // Store that we need to show verification onboarding
+        sessionStorage.setItem("showVerificationOnboarding", "true");
+        onComplete(role);
+        // Redirect to verification page after a brief delay
+        setTimeout(() => {
+          navigate("/verification", { replace: true });
+        }, 300);
+      } else {
+        onComplete(role);
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to save role. Please try again.");
       setLoading(false);
@@ -66,11 +80,10 @@ export default function RoleSelectionModal({ user, token, onComplete }) {
               key={r.id}
               type="button"
               onClick={() => setRole(r.id)}
-              className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all duration-150 ${
-                role === r.id
-                  ? "border-pink-500 bg-pink-50"
-                  : "border-gray-200 hover:border-gray-300 bg-white"
-              }`}
+              className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all duration-150 ${role === r.id
+                ? "border-pink-500 bg-pink-50"
+                : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}
             >
               <span className={`w-10 h-10 rounded-lg ${r.iconBg} flex items-center justify-center shrink-0`}>
                 {r.icon}
@@ -80,9 +93,8 @@ export default function RoleSelectionModal({ user, token, onComplete }) {
                 <span className="block text-xs text-gray-500 leading-relaxed">{r.desc}</span>
               </span>
               <span
-                className={`mt-1 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                  role === r.id ? "border-pink-500 bg-pink-500" : "border-gray-300"
-                }`}
+                className={`mt-1 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${role === r.id ? "border-pink-500 bg-pink-500" : "border-gray-300"
+                  }`}
               >
                 {role === r.id && <span className="w-1.5 h-1.5 rounded-full bg-white block" />}
               </span>
@@ -91,6 +103,12 @@ export default function RoleSelectionModal({ user, token, onComplete }) {
         </div>
 
         {error && <p className="text-xs text-red-500 text-center mb-3">{error}</p>}
+
+        {role === "organizer" && (
+          <p className="text-xs text-blue-600 text-center mb-3 bg-blue-50 p-2 rounded-lg">
+            💡 You'll set up verification after confirming your role
+          </p>
+        )}
 
         <button
           onClick={handleContinue}
