@@ -9,6 +9,11 @@ const Announcement = require("../models/Announcement");
 const ActivityLog = require("../models/ActivityLog");
 const BillingHistory = require("../models/BillingHistory");
 const PlatformSetting = require("../models/PlatformSetting");
+const Report = require("../models/Report");
+const Support = require("../models/Support");
+const OrganizerVerification = require("../models/OrganizerVerification");
+const FraudFlag = require("../models/FraudFlag");
+const Donation = require("../models/Donation");
 const { createNotification } = require("../services/notificationService");
 const { ADMIN_ROLES, ROLE_PERMISSIONS } = require("../middleware/adminAccess");
 const { getPlatformTicketFeePercent } = require("../utils/platformFee");
@@ -271,6 +276,7 @@ exports.getPlatformStats = async (req, res) => {
       User.countDocuments({ updatedAt: { $gte: rangeStart }, isDeleted: { $ne: true } }),
       User.countDocuments({ createdAt: { $gte: rangeStart }, isDeleted: { $ne: true } }),
       User.countDocuments({ isSuspended: true, isDeleted: { $ne: true } }),
+      User.countDocuments({ role: "organizer", isDeleted: { $ne: true } }),
       User.countDocuments({ role: "organizer", isVerified: true, isDeleted: { $ne: true } }),
       User.countDocuments({ role: { $in: ADMIN_ROLES }, isDeleted: { $ne: true } }),
       Event.countDocuments(),
@@ -281,6 +287,7 @@ exports.getPlatformStats = async (req, res) => {
       Event.countDocuments({ isFeatured: true }),
       Event.countDocuments({ "liveStream.isLive": true }),
       Event.countDocuments({ visibility: "private" }),
+      Event.countDocuments({ status: "cancelled" }),
       Ticket.aggregate([{ $group: { _id: null, total: { $sum: "$quantity" } } }]),
       Ticket.aggregate([{ $match: { status: "refunded" } }, { $group: { _id: null, total: { $sum: "$quantity" } } }]),
       Ticket.aggregate([{ $match: { status: "checked-in" } }, { $group: { _id: null, total: { $sum: "$quantity" } } }]),
@@ -300,6 +307,12 @@ exports.getPlatformStats = async (req, res) => {
         { $match: { state: { $in: ["pending", "under_review", "scheduled"] } } },
         { $group: { _id: null, total: { $sum: "$netAmount" } } },
       ])),
+      Report.countDocuments({ status: "pending" }),
+      Report.countDocuments({ targetType: "event", status: "pending" }),
+      OrganizerVerification.countDocuments({ status: { $in: ["pending", "resubmitted"] } }),
+      FraudFlag.countDocuments({ resolved: false }),
+      Support.countDocuments({ status: { $in: ["open", "in-progress"] } }),
+      Donation.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } }]),
       Ticket.find({})
         .populate("buyer", "name username email")
         .populate("event", "title")
@@ -382,6 +395,7 @@ exports.getPlatformStats = async (req, res) => {
           active: activeUsers,
           new: newUsers,
           suspended: suspendedUsers,
+          organizers: organizerCount,
           verifiedOrganizers,
           admins: adminUsers,
         },
@@ -408,6 +422,21 @@ exports.getPlatformStats = async (req, res) => {
           commissionRevenue,
           pendingPayouts: (pendingPayoutAgg[0]?.total || 0) + (payoutEscrowPendingAgg[0]?.total || 0),
           completedPayouts: completedPayoutAgg[0]?.total || 0,
+          donations: donationAgg[0]?.total || 0,
+          donationCount: donationAgg[0]?.count || 0,
+        },
+        support: {
+          openTickets: openSupportTickets || 0,
+        },
+        verification: {
+          pendingRequests: pendingVerifications || 0,
+        },
+        fraud: {
+          unresolvedAlerts: unresolvedFraudAlerts || 0,
+        },
+        reports: {
+          pending: pendingReports || 0,
+          flaggedEvents: flaggedEventReports || 0,
         },
         platform: {
           maintenanceMode: Boolean(settings.maintenanceMode),
