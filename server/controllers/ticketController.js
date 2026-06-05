@@ -8,7 +8,7 @@ const path = require("path");
 const { recordTicketPurchaseMetrics } = require("./eventController");
 const User = require("../models/User");
 const sendEmail = require("../utils/email");
-const { authorizeEventAction, getEventAccessForUser } = require("../utils/eventPermissions");
+const { authorizeEventAction, getEventAccessForUser, canCheckIn } = require("../utils/eventPermissions");
 const { canViewEvent } = require("../utils/eventVisibility");
 const {
   isConfigured,
@@ -264,7 +264,7 @@ exports.validateTicket = async (req, res) => {
 
     const eventAccess = await getEventAccessForUser(ticket.event, req.user);
 
-    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
+    if (!eventAccess.hasAccess || !canCheckIn(eventAccess)) {
       return res.status(403).json({
         success: false,
         message: "You do not have permission to check in tickets for this event",
@@ -310,8 +310,8 @@ exports.getEventTickets = async (req, res) => {
     const lookup = await authorizeEventAction({
       eventId,
       user:           req.user,
-      permission:     "canManageTickets",
-      deniedMessage:  "You do not have permission to manage tickets for this event",
+      permission:     "canCheckIn",
+      deniedMessage:  "You do not have permission to access ticket data for this event",
     });
 
     if (lookup.error) {
@@ -502,7 +502,7 @@ exports.manualCheckIn = async (req, res) => {
     }
 
     const eventAccess = await getEventAccessForUser(ticket.event, req.user);
-    if (!eventAccess.hasAccess || !eventAccess.permissions.canManageTickets) {
+    if (!eventAccess.hasAccess || !canCheckIn(eventAccess)) {
       return res
         .status(403)
         .json({ message: "You do not have permission to check in tickets for this event" });
