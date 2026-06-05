@@ -14,6 +14,7 @@ const PERMISSION_KEYS = Object.freeze([
   "canManageLivestream",
   "canViewTickets",
   "canManageTeam",
+  "canCheckIn",
 ]);
 
 const ROLE_PERMISSIONS = Object.freeze({
@@ -25,6 +26,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     canManageLivestream: true,
     canViewTickets: true,
     canManageTeam: true,
+    canCheckIn: true,
   },
   ticket_manager: {
     canEditEvent: false,
@@ -34,6 +36,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     canManageLivestream: false,
     canViewTickets: true,
     canManageTeam: false,
+    canCheckIn: true,
   },
   analytics_viewer: {
     canEditEvent: false,
@@ -43,6 +46,7 @@ const ROLE_PERMISSIONS = Object.freeze({
     canManageLivestream: false,
     canViewTickets: false,
     canManageTeam: false,
+    canCheckIn: false,
   },
   livestream_moderator: {
     canEditEvent: false,
@@ -52,6 +56,17 @@ const ROLE_PERMISSIONS = Object.freeze({
     canManageLivestream: true,
     canViewTickets: false,
     canManageTeam: false,
+    canCheckIn: false,
+  },
+  checkin_staff: {
+    canEditEvent: false,
+    canDeleteEvent: false,
+    canManageTickets: false,
+    canViewAnalytics: false,
+    canManageLivestream: false,
+    canViewTickets: false,
+    canManageTeam: false,
+    canCheckIn: true,
   },
 });
 
@@ -235,6 +250,8 @@ const canModerateLivestream = (access) =>
   hasPermission(access, "canManageLivestream") && Boolean(access?.featureAccess?.liveStream);
 const canManageTeam = (access) =>
   hasPermission(access, "canManageTeam") && Boolean(access?.featureAccess?.teamMembers);
+const canCheckIn = (access) =>
+  hasPermission(access, "canManageTickets") || hasPermission(access, "canCheckIn");
 const canDeleteEvent = (access) => hasPermission(access, "canDeleteEvent");
 
 const FEATURE_LABEL_MAP = Object.freeze({
@@ -266,6 +283,7 @@ const authorizeEventAction = async ({
     canAccessAnalytics,
     canModerateLivestream,
     canManageTeam,
+    canCheckIn,
     canDeleteEvent,
   };
 
@@ -319,5 +337,6 @@ module.exports = {
   canAccessAnalytics,
   canModerateLivestream,
   canManageTeam,
+  canCheckIn,
   canDeleteEvent,
 };
