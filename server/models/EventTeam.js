@@ -9,7 +9,7 @@ const eventTeamMemberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"],
+      enum: ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator", "checkin_staff"],
       required: true,
       default: "co_organizer"
     },
@@ -22,6 +22,7 @@ const eventTeamMemberSchema = new mongoose.Schema(
       canManageLivestream: { type: Boolean, default: false },
       canViewTickets: { type: Boolean, default: false },
       canManageTeam: { type: Boolean, default: false },
+      canCheckIn: { type: Boolean, default: false },
     },
     invitedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -85,6 +86,19 @@ const getRolePermissions = (role) => {
         canManageLivestream: true,
         canViewTickets: false,
         canManageTeam: false,
+        canCheckIn: false,
+      };
+
+    case "checkin_staff":
+      return {
+        canEditEvent: false,
+        canDeleteEvent: false,
+        canManageTickets: false,
+        canViewAnalytics: false,
+        canManageLivestream: false,
+        canViewTickets: false,
+        canManageTeam: false,
+        canCheckIn: true,
       };
 
     default:
