@@ -13,6 +13,58 @@ const BACKEND_URL = process.env.BACKEND_URL;
 const MIN_DONATION_NAIRA = Number(process.env.MIN_DONATION_NAIRA) || 500;
 const MAX_DONATION_NAIRA = Number(process.env.MAX_DONATION_NAIRA) || 5000000;
 
+const maskDonorName = (name) => {
+  if (!name) return "Supporter";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "Supporter";
+  if (parts.length === 1) {
+    const firstName = parts[0];
+    return firstName.length > 10 ? `${firstName.slice(0, 10)}...` : firstName;
+  }
+  const first = parts[0];
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  return `${first} ${lastInitial}.`;
+};
+
+exports.getRecentDonations = async (req, res) => {
+  try {
+    const [donations, stats] = await Promise.all([
+      Donation.find({ status: "success" })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select("name amount message createdAt")
+        .lean(),
+      Donation.aggregate([
+        { $match: { status: "success" } },
+        {
+          $group: {
+            _id: null,
+            totalRaised: { $sum: "$amount" },
+            totalDonors: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const totals = stats[0] || { totalRaised: 0, totalDonors: 0 };
+    const recent = donations.map((donation) => ({
+      name: maskDonorName(donation.name),
+      amount: donation.amount,
+      message: donation.message || "Thank you for supporting TickiSpot!",
+      date: donation.createdAt,
+    }));
+
+    return res.json({
+      donations: recent,
+      totalRaised: totals.totalRaised || 0,
+      totalDonors: totals.totalDonors || 0,
+    });
+  } catch (err) {
+    console.error("Failed to load recent donations:", err.message || err);
+    return res.status(500).json({ message: "Failed to load donation history" });
+  }
+};
+
 exports.initiateDonation = async (req, res) => {
   const { name, email, amount, message } = req.body;
 
@@ -150,7 +202,7 @@ exports.verifyDonation = async (req, res) => {
       await donation.save();
     }
 
-    return res.redirect(`${FRONTEND_URL}/donate?status=failed`);
+    return res.redirect(`${FRONTEND_URL}/donation?status=failed`);
   } catch (err) {
     console.error("VERIFY ERROR:", err.response?.data || err.message);
 
@@ -160,6 +212,6 @@ exports.verifyDonation = async (req, res) => {
       { status: "failed" }
     );
 
-    return res.redirect(`${FRONTEND_URL}/donate?status=failed`);
+    return res.redirect(`${FRONTEND_URL}/donation?status=failed`);
   }
 };
