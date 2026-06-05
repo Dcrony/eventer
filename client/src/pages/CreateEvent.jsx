@@ -52,52 +52,53 @@ import TickiAIGenerator from "../components/TickiAIGenerator";
 const DRAFT_STORAGE_KEY = "tickispot-create-event-draft-v1";
 
 const eventTypes = [
-  { name: "In-person", icon: Building2,   hint: "Venue-based with guests on-site." },
-  { name: "Virtual",   icon: MonitorPlay, hint: "Online workshops, classes, broadcasts." },
-  { name: "Hybrid",    icon: Globe2,      hint: "Physical + online livestream." },
+  { name: "In-person", icon: Building2, hint: "Venue-based with guests on-site." },
+  { name: "Virtual", icon: MonitorPlay, hint: "Online workshops, classes, broadcasts." },
+  { name: "Hybrid", icon: Globe2, hint: "Physical + online livestream." },
 ];
 
 const teamRoles = [
-  { value: "co_organizer",         label: "Co Organizer" },
-  { value: "ticket_manager",       label: "Ticket Manager" },
-  { value: "analytics_viewer",     label: "Analytics Viewer" },
+  { value: "co_organizer", label: "Co Organizer" },
+  { value: "ticket_manager", label: "Ticket Manager" },
+  { value: "analytics_viewer", label: "Analytics Viewer" },
   { value: "livestream_moderator", label: "Livestream Moderator" },
+  { value: "checkin_staff", label: "Check-in Staff" },
 ];
 
 const steps = [
   { id: 1, title: "Basic Info", icon: Calendar },
   { id: 2, title: "Media & AI", icon: ImagePlus },
-  { id: 3, title: "Tickets",    icon: Ticket },
-  { id: 4, title: "Settings",   icon: Radio },
-  { id: 5, title: "Preview",    icon: CheckCircle2 },
+  { id: 3, title: "Tickets", icon: Ticket },
+  { id: 4, title: "Settings", icon: Radio },
+  { id: 5, title: "Preview", icon: CheckCircle2 },
 ];
 
 const CATEGORY_OPTIONS = [
-  "Tech","Music","Business","Sports","Arts","Food & Drink",
-  "Health","Education","Fashion","Comedy","Fitness","Networking",
-  "Film","Religious","Charity","Other",
+  "Tech", "Music", "Business", "Sports", "Arts", "Food & Drink",
+  "Health", "Education", "Fashion", "Comedy", "Fitness", "Networking",
+  "Film", "Religious", "Charity", "Other",
 ];
 
 /* Preset accent colours for tier colour picker */
 const TIER_COLORS = [
-  { label: "Pink",   value: "#ec4899" },
+  { label: "Pink", value: "#ec4899" },
   { label: "Violet", value: "#8b5cf6" },
-  { label: "Blue",   value: "#3b82f6" },
-  { label: "Cyan",   value: "#06b6d4" },
-  { label: "Green",  value: "#22c55e" },
-  { label: "Amber",  value: "#f59e0b" },
-  { label: "Rose",   value: "#f43f5e" },
-  { label: "Slate",  value: "#64748b" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Cyan", value: "#06b6d4" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Rose", value: "#f43f5e" },
+  { label: "Slate", value: "#64748b" },
 ];
 
 /* ─── Default tier shape ─────────────────────────────────────────────────────── */
 const makeTier = (overrides = {}) => ({
-  type:        "",
-  price:       "",
-  isEnabled:   true,
-  isFree:      false,
-  label:       "",
-  color:       "",
+  type: "",
+  price: "",
+  isEnabled: true,
+  isFree: false,
+  label: "",
+  color: "",
   description: "",
   maxPerOrder: "",
   ...overrides,
@@ -147,21 +148,21 @@ const normalizeTime = (raw) => {
   try {
     const d = new Date(`1970-01-01T${raw}`);
     if (!isNaN(d.getTime())) return d.toTimeString().slice(0, 5);
-  } catch {}
+  } catch { }
   return "14:00";
 };
 
 const normalizePricingFromServer = (pricing) => {
   if (!Array.isArray(pricing) || !pricing.length) return DEFAULT_PRICING;
   return pricing.map((t) => makeTier({
-    type:        t?.type        || "",
-    price:       t?.price != null ? String(t.price) : "",
-    isEnabled:   t?.isEnabled  !== false,
-    isFree:      Boolean(t?.isFree),
-    label:       t?.label       || "",
-    color:       t?.color       || "",
+    type: t?.type || "",
+    price: t?.price != null ? String(t.price) : "",
+    isEnabled: t?.isEnabled !== false,
+    isFree: Boolean(t?.isFree),
+    label: t?.label || "",
+    color: t?.color || "",
     description: t?.description || "",
-    maxPerOrder: t?.maxPerOrder  ? String(t.maxPerOrder) : "",
+    maxPerOrder: t?.maxPerOrder ? String(t.maxPerOrder) : "",
   }));
 };
 
@@ -176,12 +177,12 @@ const sanitizeRecoveryPayload = (value) => {
           ? value.form.pricing.map((t) => makeTier(t))
           : DEFAULT_PRICING,
     },
-    isFreeEvent:  Boolean(value.isFreeEvent),
-    teamMembers:  Array.isArray(value.teamMembers) ? value.teamMembers : [],
-    draftId:      value.draftId      || null,
+    isFreeEvent: Boolean(value.isFreeEvent),
+    teamMembers: Array.isArray(value.teamMembers) ? value.teamMembers : [],
+    draftId: value.draftId || null,
     imagePreview: value.imagePreview || null,
-    imageName:    value.imageName    || "",
-    updatedAt:    value.updatedAt    || null,
+    imageName: value.imageName || "",
+    updatedAt: value.updatedAt || null,
     step: Math.min(5, Math.max(1, Number(value.step || 1))),
   };
 };
@@ -190,37 +191,37 @@ const normalizeEventToWizardState = (event) =>
   sanitizeRecoveryPayload({
     form: {
       ...defaultForm,
-      title:       event?.title       || "",
+      title: event?.title || "",
       description: event?.description || "",
-      category:    event?.category    || "",
-      location:    event?.location    || "",
-      streamType:  event?.liveStream?.streamType || "Camera",
-      streamURL:   event?.liveStream?.streamURL  || "",
-      eventType:   event?.eventType   || "In-person",
-      visibility:  event?.visibility  || "public",
-      startDate:   event?.startDate ? String(event.startDate).slice(0, 10) : "",
-      startTime:   event?.startTime   || "",
-      endDate:     event?.endDate   ? String(event.endDate).slice(0, 10)   : "",
-      endTime:     event?.endTime     || "",
-      pricing:     normalizePricingFromServer(event?.pricing),
+      category: event?.category || "",
+      location: event?.location || "",
+      streamType: event?.liveStream?.streamType || "Camera",
+      streamURL: event?.liveStream?.streamURL || "",
+      eventType: event?.eventType || "In-person",
+      visibility: event?.visibility || "public",
+      startDate: event?.startDate ? String(event.startDate).slice(0, 10) : "",
+      startTime: event?.startTime || "",
+      endDate: event?.endDate ? String(event.endDate).slice(0, 10) : "",
+      endTime: event?.endTime || "",
+      pricing: normalizePricingFromServer(event?.pricing),
       totalTickets: event?.totalTickets != null ? String(event.totalTickets) : "",
     },
-    isFreeEvent:  Boolean(event?.isFree || event?.isFreeEvent),
-    teamMembers:  Array.isArray(event?.draftTeamMembers) ? event.draftTeamMembers : [],
-    draftId:      event?._id || null,
+    isFreeEvent: Boolean(event?.isFree || event?.isFreeEvent),
+    teamMembers: Array.isArray(event?.draftTeamMembers) ? event.draftTeamMembers : [],
+    draftId: event?._id || null,
     imagePreview: event?.image || null,
-    imageName:    event?.image ? "Saved event image" : "",
-    updatedAt:    event?.draftUpdatedAt || event?.updatedAt || event?.createdAt,
-    step:         Number(event?.draftStep || 1),
+    imageName: event?.image ? "Saved event image" : "",
+    updatedAt: event?.draftUpdatedAt || event?.updatedAt || event?.createdAt,
+    step: Number(event?.draftStep || 1),
   });
 
 /* ─── Step validation ────────────────────────────────────────────────────────── */
 
 const getStepValidation = (step, form, isFreeEvent) => {
   if (step === 1) {
-    if (!form.title.trim())       return "Add an event title to continue.";
+    if (!form.title.trim()) return "Add an event title to continue.";
     if (!form.description.trim()) return "Add a short event description.";
-    if (!form.category.trim())    return "Choose a category for your event.";
+    if (!form.category.trim()) return "Choose a category for your event.";
     if (!form.startDate || !form.startTime || !form.endDate || !form.endTime)
       return "Complete the event schedule before moving on.";
     if (!form.location.trim() && form.eventType !== "Virtual")
@@ -265,22 +266,20 @@ function Card({ children, className = "" }) {
 function StepBtn({ step, activeStep, onClick }) {
   const Icon = step.icon;
   const active = step.id === activeStep;
-  const done   = step.id < activeStep;
+  const done = step.id < activeStep;
   return (
     <button
       type="button"
       onClick={() => onClick(step.id)}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition ${
-        active ? "bg-pink-50 text-pink-700"
-        : done  ? "bg-green-50 text-green-700"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-      }`}
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition ${active ? "bg-pink-50 text-pink-700"
+        : done ? "bg-green-50 text-green-700"
+          : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+        }`}
     >
-      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-        active ? "bg-pink-500 text-white"
-        : done  ? "bg-green-500 text-white"
-                : "bg-gray-100 text-gray-400"
-      }`}>
+      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active ? "bg-pink-500 text-white"
+        : done ? "bg-green-500 text-white"
+          : "bg-gray-100 text-gray-400"
+        }`}>
         <Icon size={13} />
       </div>
       <div className="min-w-0 flex-1">
@@ -311,11 +310,10 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
 
   return (
     <div
-      className={`rounded-2xl border transition-all ${
-        tier.isEnabled
-          ? "border-gray-200 bg-white"
-          : "border-gray-100 bg-gray-50/60 opacity-60"
-      }`}
+      className={`rounded-2xl border transition-all ${tier.isEnabled
+        ? "border-gray-200 bg-white"
+        : "border-gray-100 bg-gray-50/60 opacity-60"
+        }`}
     >
       {/* ── Main row ── */}
       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -356,11 +354,10 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
             type="button"
             title={tier.isFree ? "Remove free override" : "Make this tier free"}
             onClick={() => update({ isFree: !tier.isFree, price: !tier.isFree ? "0" : tier.price })}
-            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[0.6rem] font-bold transition ${
-              tier.isFree
-                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }`}
+            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[0.6rem] font-bold transition ${tier.isFree
+              ? "bg-green-100 text-green-700 hover:bg-green-200"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
           >
             <Gift size={10} />
             {tier.isFree ? "Free" : "Set free"}
@@ -376,7 +373,7 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
         >
           {tier.isEnabled
             ? <ToggleRight size={18} className="text-pink-500" />
-            : <ToggleLeft  size={18} className="text-gray-400" />
+            : <ToggleLeft size={18} className="text-gray-400" />
           }
         </button>
 
@@ -455,9 +452,8 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
                   type="button"
                   title={c.label}
                   onClick={() => update({ color: c.value })}
-                  className={`h-6 w-6 rounded-full transition ring-offset-1 ${
-                    tier.color === c.value ? "ring-2 ring-gray-400 scale-110" : "hover:scale-110"
-                  }`}
+                  className={`h-6 w-6 rounded-full transition ring-offset-1 ${tier.color === c.value ? "ring-2 ring-gray-400 scale-110" : "hover:scale-110"
+                    }`}
                   style={{ backgroundColor: c.value }}
                 />
               ))}
@@ -483,30 +479,30 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
 /* ─── Main CreateEvent ───────────────────────────────────────────────────────── */
 
 export default function CreateEvent({ isOpen, onClose, initialOptions = null }) {
-  const toast    = useToast();
+  const toast = useToast();
   const navigate = useNavigate();
-  const { hasAccess: canUseTickiAI,       promptUpgrade: promptUpgradeAI }      = useFeatureAccess("tickiai");
+  const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
   const { hasAccess: canUsePrivateEvents, promptUpgrade: promptUpgradePrivate } = useFeatureAccess("private_events");
-  const { hasAccess: canUseLiveStreaming, promptUpgrade: promptUpgradeLive }    = useFeatureAccess("live_stream");
+  const { hasAccess: canUseLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-  const [form,           setForm]           = useState(defaultForm);
-  const [activeStep,     setActiveStep]     = useState(1);
-  const [submitting,     setSubmitting]     = useState(false);
-  const [showAIGen,      setShowAIGen]      = useState(false);
-  const [isFreeEvent,    setIsFreeEvent]    = useState(false);
-  const [teamMembers,    setTeamMembers]    = useState([]);
-  const [newEmail,       setNewEmail]       = useState("");
-  const [newRole,        setNewRole]        = useState("co_organizer");
-  const [imageFile,      setImageFile]      = useState(null);
-  const [imagePreview,   setImagePreview]   = useState(null);
-  const [draftId,        setDraftId]        = useState(null);
-  const [lastSavedAt,    setLastSavedAt]    = useState(null);
-  const [saveState,      setSaveState]      = useState("idle");
+  const [form, setForm] = useState(defaultForm);
+  const [activeStep, setActiveStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+  const [showAIGen, setShowAIGen] = useState(false);
+  const [isFreeEvent, setIsFreeEvent] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState("co_organizer");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [draftId, setDraftId] = useState(null);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [saveState, setSaveState] = useState("idle");
   const [loadingSession, setLoadingSession] = useState(false);
   const [recoverableDraft, setRecoverableDraft] = useState(null);
-  const [drawerOpen,     setDrawerOpen]     = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const hasHydratedRef   = useRef(false);
+  const hasHydratedRef = useRef(false);
   const autosaveTimerRef = useRef(null);
 
   const stepError = useMemo(
@@ -562,11 +558,11 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
         if (k === "pricing") payload.append("pricing", JSON.stringify(isFreeEvent ? [] : v));
         else payload.append(k, v ?? "");
       });
-      payload.append("isFree",      isFreeEvent ? "true" : "false");
-      payload.append("draftStep",   String(activeStep));
+      payload.append("isFree", isFreeEvent ? "true" : "false");
+      payload.append("draftStep", String(activeStep));
       payload.append("teamMembers", JSON.stringify(teamMembers));
-      if (draftId)   payload.append("draftId", draftId);
-      if (imageFile) payload.append("image",   imageFile);
+      if (draftId) payload.append("draftId", draftId);
+      if (imageFile) payload.append("image", imageFile);
       const response = await API.post("/events/drafts", payload);
       const saved = response.data?.draft;
       if (saved?._id) {
@@ -609,12 +605,12 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
             return;
           }
         }
-        const raw    = localStorage.getItem(DRAFT_STORAGE_KEY);
-        const local  = raw ? sanitizeRecoveryPayload(JSON.parse(raw)) : null;
-        const res    = await API.get("/events/drafts/latest");
+        const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+        const local = raw ? sanitizeRecoveryPayload(JSON.parse(raw)) : null;
+        const res = await API.get("/events/drafts/latest");
         const remote = res.data?.draft ? normalizeEventToWizardState(res.data.draft) : null;
         if (initialOptions?.resumeLatest && remote?.draftId) { applyWizardState(remote); return; }
-        const lt = local?.updatedAt  ? new Date(local.updatedAt).getTime()  : 0;
+        const lt = local?.updatedAt ? new Date(local.updatedAt).getTime() : 0;
         const rt = remote?.updatedAt ? new Date(remote.updatedAt).getTime() : 0;
         if (lt || rt) setRecoverableDraft(lt >= rt ? local : remote);
       } catch (e) {
@@ -680,7 +676,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
   const handleAddMember = () => {
     const email = newEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Enter a valid email."); return; }
-    if (teamMembers.some((m) => m.email === email))  { toast.error("Already added.");       return; }
+    if (teamMembers.some((m) => m.email === email)) { toast.error("Already added."); return; }
     setTeamMembers((p) => [...p, { email, role: newRole }]);
     setNewEmail(""); setNewRole("co_organizer");
   };
@@ -708,24 +704,24 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
       return {
         ...prev,
-        title:       aiData.title       || prev.title,
+        title: aiData.title || prev.title,
         description: aiData.description || prev.description,
-        category:    aiData.category    || prev.category,
-        location:    aiData.location    !== undefined ? aiData.location : prev.location,
-        eventType:   aiData.eventType   || prev.eventType,
-        startDate:   aiData.startDate   || aiData.date  || prev.startDate,
-        startTime:   aiData.startTime   || aiData.time  || prev.startTime,
-        endDate:     aiData.endDate     || aiData.date  || prev.endDate,
-        endTime:     aiData.endTime     || aiData.time  || prev.endTime,
+        category: aiData.category || prev.category,
+        location: aiData.location !== undefined ? aiData.location : prev.location,
+        eventType: aiData.eventType || prev.eventType,
+        startDate: aiData.startDate || aiData.date || prev.startDate,
+        startTime: aiData.startTime || aiData.time || prev.startTime,
+        endDate: aiData.endDate || aiData.date || prev.endDate,
+        endTime: aiData.endTime || aiData.time || prev.endTime,
         totalTickets: aiData.totalTickets
           ? String(aiData.totalTickets)
           : aiData.capacity
-          ? String(aiData.capacity)
-          : prev.totalTickets,
+            ? String(aiData.capacity)
+            : prev.totalTickets,
         pricing: nextPricing,
-        visibility:  aiData.visibility  || prev.visibility,
-        streamType:  aiData.streamType  || prev.streamType,
-        streamURL:   aiData.streamURL   !== undefined ? aiData.streamURL : prev.streamURL,
+        visibility: aiData.visibility || prev.visibility,
+        streamType: aiData.streamType || prev.streamType,
+        streamURL: aiData.streamURL !== undefined ? aiData.streamURL : prev.streamURL,
       };
     });
 
@@ -773,16 +769,16 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
         else payload.append(k, v ?? "");
       });
       payload.append("isFree", isFreeEvent ? "true" : "false");
-      if (draftId)   payload.append("draftId", draftId);
-      if (imageFile) payload.append("image",   imageFile);
-      const res     = await API.post("/events/create", payload);
+      if (draftId) payload.append("draftId", draftId);
+      if (imageFile) payload.append("image", imageFile);
+      const res = await API.post("/events/create", payload);
       const created = res.data?.event;
       if (teamMembers.length && created?._id) {
         const results = await Promise.allSettled(
           teamMembers.map((m) =>
             teamService.inviteTeamMember(created._id, {
-              email:   m.email,
-              role:    m.role,
+              email: m.email,
+              role: m.role,
               message: `You were invited to join ${form.title}`,
             })
           )
@@ -800,6 +796,12 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
       if (err.response?.status === 403 && code === "PLAN_LIMIT") {
         toast.error(msg2);
         window.dispatchEvent(new CustomEvent("planLimitHit"));
+      } else if (err.response?.status === 403 && code === "VERIFICATION_REQUIRED") {
+        toast.error("Verification required: Events with 50+ tickets need organizer verification");
+        // Wait for toast to show, then navigate
+        setTimeout(() => {
+          navigate("/verification");
+        }, 1500);
       } else {
         toast.error(msg2);
       }
@@ -815,10 +817,10 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
   const saveLabel =
     saveState === "saving" ? "Saving…"
-    : saveState === "saved"
-    ? `Saved ${lastSavedAt ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`
-    : saveState === "error" ? "Save failed"
-    : "Auto-save on";
+      : saveState === "saved"
+        ? `Saved ${lastSavedAt ? lastSavedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}`
+        : saveState === "error" ? "Save failed"
+          : "Auto-save on";
 
   /* Default tiers (Regular, VIP, VVIP) can't be deleted */
   const DEFAULT_TYPES = ["Regular", "VIP", "VVIP"];
@@ -884,9 +886,9 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
               <div className="space-y-1 rounded-xl border border-gray-100 bg-white p-2.5 text-[0.63rem]">
                 <div className="truncate font-semibold text-gray-800">{form.title || "Untitled draft"}</div>
                 {[
-                  ["Access",  form.visibility === "private" ? "Private" : "Public"],
+                  ["Access", form.visibility === "private" ? "Private" : "Public"],
                   ["Pricing", isFreeEvent ? "Free" : "Paid"],
-                  ["Team",    `${teamMembers.length} added`],
+                  ["Team", `${teamMembers.length} added`],
                 ].map(([label, val]) => (
                   <div key={label} className="flex justify-between text-gray-400">
                     <span>{label}</span>
@@ -927,7 +929,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                     </div>
                     <div className="flex gap-2">
                       <Button variant="secondary" size="sm" onClick={() => { applyWizardState(recoverableDraft); setRecoverableDraft(null); }}>Restore</Button>
-                      <Button variant="ghost"     size="sm" onClick={() => { localStorage.removeItem(DRAFT_STORAGE_KEY); setRecoverableDraft(null); }}>Start fresh</Button>
+                      <Button variant="ghost" size="sm" onClick={() => { localStorage.removeItem(DRAFT_STORAGE_KEY); setRecoverableDraft(null); }}>Start fresh</Button>
                     </div>
                   </div>
                 </div>
@@ -964,11 +966,10 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                               if (!canUseTickiAI) { promptUpgradeAI(); return; }
                               setShowAIGen((p) => !p);
                             }}
-                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                              showAIGen
-                                ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                : "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600"
-                            }`}
+                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${showAIGen
+                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                              : "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600"
+                              }`}
                           >
                             <Wand2 size={12} />
                             {showAIGen ? "Hide AI" : "Use TickiAI"}
@@ -1041,8 +1042,8 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <div><FieldLabel>Start date</FieldLabel><input type="date" name="startDate" value={form.startDate} onChange={hc} className={F} /></div>
                           <div><FieldLabel>Start time</FieldLabel><input type="time" name="startTime" value={form.startTime} onChange={hc} className={F} /></div>
-                          <div><FieldLabel>End date</FieldLabel>  <input type="date" name="endDate"   value={form.endDate}   onChange={hc} className={F} /></div>
-                          <div><FieldLabel>End time</FieldLabel>  <input type="time" name="endTime"   value={form.endTime}   onChange={hc} className={F} /></div>
+                          <div><FieldLabel>End date</FieldLabel>  <input type="date" name="endDate" value={form.endDate} onChange={hc} className={F} /></div>
+                          <div><FieldLabel>End time</FieldLabel>  <input type="time" name="endTime" value={form.endTime} onChange={hc} className={F} /></div>
                         </div>
                       </Card>
                     </>
@@ -1345,8 +1346,8 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                             <div className="space-y-2 text-xs">
                               {[
                                 [Calendar, `${form.startDate || "No date"}${form.startTime ? ` · ${form.startTime}` : ""}`],
-                                [MapPin,   form.location || "No location"],
-                                [Clock3,   `${form.totalTickets || 0} tickets`],
+                                [MapPin, form.location || "No location"],
+                                [Clock3, `${form.totalTickets || 0} tickets`],
                               ].map(([Icon, text]) => (
                                 <div key={text} className="flex items-start gap-2">
                                   <Icon size={12} className="mt-0.5 shrink-0 text-pink-400" />
@@ -1404,12 +1405,11 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
             <div className="shrink-0 border-t border-gray-100 bg-white px-4 py-3 sm:px-5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-2 text-xs text-gray-400">
-                  <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                    saveState === "saving" ? "animate-pulse bg-amber-400"
+                  <div className={`h-1.5 w-1.5 shrink-0 rounded-full ${saveState === "saving" ? "animate-pulse bg-amber-400"
                     : saveState === "saved" ? "bg-green-400"
-                    : saveState === "error" ? "bg-red-400"
-                    : "bg-gray-300"
-                  }`} />
+                      : saveState === "error" ? "bg-red-400"
+                        : "bg-gray-300"
+                    }`} />
                   <span className="truncate">{saveLabel}</span>
                   {stepError && (
                     <span className="hidden truncate text-amber-500 sm:inline">· {stepError}</span>
