@@ -7,6 +7,7 @@ import SEO from "../components/SEO";
 import { Helmet } from "react-helmet-async";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import EventCard from "../components/EventCard";
+import PersonalizedDiscoveryFeed from "../components/PersonalizedDiscoveryFeed";
 import useDemoEvents from "../hooks/useDemoEvents";
 import {useAuth} from "../context/AuthContext";
 
@@ -232,6 +233,13 @@ setEvents(
             ))}
           </div> */}
         </div>
+
+        {/* ── Personalized Feed (for logged-in users) ── */}
+        {!loading && !error && user && (
+          <div className="mb-12">
+            <PersonalizedDiscoveryFeed limit={8} />
+          </div>
+        )}
 
         {/* ── Toolbar — always visible ── */}
         <Toolbar
