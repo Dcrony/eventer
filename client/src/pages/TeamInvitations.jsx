@@ -3,18 +3,19 @@ import { CheckCircle, XCircle, Clock, Mail, Calendar, Users, AlertCircle, X } fr
 import teamService from "../services/api/team";
 
 const getRoleDescription = (role) => ({
-  co_organizer:              "Full access to manage the event and team",
-  ticket_manager:       "Manage tickets and attendee support",
-  analytics_viewer:     "View-only access to event analytics",
+  co_organizer: "Full access to manage the event and team",
+  ticket_manager: "Manage tickets and attendee support",
+  analytics_viewer: "View-only access to event analytics",
   livestream_moderator: "Manage live streaming features",
+  checkin_staff: "Scan tickets and run event day check-in",
 }[role] || role);
 
 const getTimeRemaining = (expiresAt) => {
   const diff = new Date(expiresAt) - new Date();
   if (diff <= 0) return "Expired";
-  const days  = Math.floor(diff / 86_400_000);
+  const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
-  if (days  > 0) return `${days} day${days  > 1 ? "s" : ""} left`;
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""} left`;
   if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} left`;
   return "Less than 1 hour left";
 };
@@ -24,9 +25,9 @@ const fmtDate = (d) =>
 
 const TeamInvitations = () => {
   const [invitations, setInvitations] = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState("");
-  const [responding,  setResponding]  = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [responding, setResponding] = useState(null);
 
   useEffect(() => { loadInvitations(); }, []);
 
@@ -36,7 +37,7 @@ const TeamInvitations = () => {
       const r = await teamService.getMyInvitations();
       setInvitations(r.data.invitations || []);
     } catch { setError("Failed to load invitations"); }
-    finally  { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   const handleResponse = async (id, action) => {
@@ -45,7 +46,7 @@ const TeamInvitations = () => {
       await teamService.respondToInvitation(id, action);
       setInvitations(prev => prev.filter(inv => inv.id !== id));
     } catch (err) { setError(err.response?.data?.message || `Failed to ${action} invitation`); }
-    finally       { setResponding(null); }
+    finally { setResponding(null); }
   };
 
   /* Loading skeleton */
@@ -132,8 +133,8 @@ const TeamInvitations = () => {
                     {inv.inviter.profilePic
                       ? <img src={inv.inviter.profilePic} alt="" className="w-full h-full object-cover" />
                       : <div className="w-full h-full bg-gradient-to-br from-pink-400 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm">
-                          {inv.inviter.name?.charAt(0)?.toUpperCase() || "?"}
-                        </div>
+                        {inv.inviter.name?.charAt(0)?.toUpperCase() || "?"}
+                      </div>
                     }
                   </div>
                   <div>
