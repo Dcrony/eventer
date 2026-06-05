@@ -9,6 +9,7 @@ const ROLES = [
   { value: "ticket_manager", label: "Ticket Manager", icon: Shield, description: "Manage tickets and attendee support" },
   { value: "analytics_viewer", label: "Analytics Viewer", icon: BarChart3, description: "View-only access to analytics" },
   { value: "livestream_moderator", label: "Livestream Moderator", icon: Radio, description: "Manage live streaming features" },
+  { value: "checkin_staff", label: "Check-in Staff", icon: Users, description: "Scan tickets and run event day check-in" },
 ];
 
 const ROLE_COLORS = {
@@ -16,6 +17,7 @@ const ROLE_COLORS = {
   ticket_manager: "bg-blue-100 text-blue-700",
   analytics_viewer: "bg-amber-100 text-amber-700",
   livestream_moderator: "bg-pink-100 text-pink-700",
+  checkin_staff: "bg-emerald-100 text-emerald-700",
 };
 
 const TeamManagement = ({ eventId, isOpen, onClose }) => {
