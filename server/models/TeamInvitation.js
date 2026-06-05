@@ -24,7 +24,7 @@ const teamInvitationSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator"],
+      enum: ["co_organizer", "ticket_manager", "analytics_viewer", "livestream_moderator", "checkin_staff"],
       required: true,
     },
     status: {
