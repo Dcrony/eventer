@@ -2,11 +2,25 @@ const Payout = require("../models/Payout");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const PayoutAccount = require("../models/PayoutAccount");
+const OrganizerVerification = require("../models/OrganizerVerification");
 const { createRecipient } = require("../utils/paystack");
 const { createNotification } = require("../services/notificationService");
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
+
+// Helper function to get organizer verification status
+const getOrganizerVerificationStatus = async (userId) => {
+  const verification = await OrganizerVerification.findOne({ organizer: userId }).sort({ createdAt: -1 });
+  return {
+    status: verification?.status || "not_started",
+    isVerified: verification?.status === "approved",
+    rejectionReason: verification?.rejectionReason || null,
+    documents: verification?.documents || [],
+    reviewedAt: verification?.reviewedAt || null,
+    createdAt: verification?.createdAt || null,
+  };
+};
 
 const parsePagination = (page, limit, fallbackLimit = DEFAULT_LIMIT) => {
   const safePage = Math.max(Number.parseInt(page, 10) || DEFAULT_PAGE, 1);
@@ -55,6 +69,19 @@ const listPayouts = async (req, res) => {
     const filter = {};
     if (state) filter.state = state;
     if (organizer) filter.organizer = organizer;
+
+    // Check if organizer is requesting their own payouts - verify they are verified
+    if (organizer && req.user && req.user.id === organizer) {
+      const verificationStatus = await getOrganizerVerificationStatus(req.user.id);
+      if (!verificationStatus.isVerified) {
+        return res.status(403).json({
+          code: "VERIFICATION_REQUIRED",
+          message: "Organizer verification required to view payouts",
+          verificationStatus: verificationStatus.status,
+          rejectionReason: verificationStatus.rejectionReason,
+        });
+      }
+    }
 
     const [items, total] = await Promise.all([
       Payout.find(filter).populate("organizer", "name email username").sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
