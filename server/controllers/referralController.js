@@ -14,6 +14,8 @@
 const mongoose = require("mongoose");
 const Referral = require("../models/Referral");
 const Event    = require("../models/Event");
+const User     = require("../models/User");
+const { createNotification } = require("../services/notificationService");
 const { authorizeEventAction } = require("../utils/eventPermissions");
 
 /* ─── Track click ─────────────────────────────────────────────────────────── */
@@ -62,6 +64,26 @@ exports.recordReferralConversion = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Notify the referrer (if it's a user id) about the conversion
+    try {
+      if (referrerId) {
+        const refUser = await User.findById(referrerId).select("name email");
+        if (refUser) {
+          await createNotification(req.app, {
+            userId: refUser._id,
+            actorId: null,
+            type: "referral_conversion",
+            message: `Nice! Someone purchased ${Number(ticketCount)} ticket(s) via your referral. You earned credit of ₦${Number(revenue || 0).toLocaleString()}.`,
+            actionUrl: `/event/${eventId}`,
+            entityId: eventId,
+            entityType: "event",
+            meta: { tickets: Number(ticketCount), revenue: Number(revenue) },
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.warn("Failed to create referral notification:", notifErr?.message || notifErr);
+    }
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("recordReferralConversion error:", err.message);
