@@ -13,33 +13,42 @@ import {
 import EventCommentsModal from "./EventCommentsModal";
 import EventEngagementBar from "./EventEngagementBar";
 import VerifiedBadge from "./ui/verified-badge";
+import CompactOrganizerRating from "./CompactOrganizerRating";
 import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
 import ShareModal from "./WhatsAppShareModal";
-  
+import { loadOrganizerReputation } from "../utils/reputationUtils";
+
 export default function EventCard({ event, onOrganizerClick, onEventChange, className }) {
   const [eventState, setEventState] = useState(event);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [organizerReputation, setOrganizerReputation] = useState(null);
 
   const navigate = useNavigate();
   const toast = useToast();
 
   const currentUserId = (() => {
-  try {
-    const u = JSON.parse(localStorage.getItem("user") || "null");
-    return u?._id || u?.id || null;
-  } catch {
-    return null;
-  }
-})();
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      return u?._id || u?.id || null;
+    } catch {
+      return null;
+    }
+  })();
 
 
   useEffect(() => {
     setEventState(event);
   }, [event]);
+
+  useEffect(() => {
+    if (event?.createdBy?._id) {
+      loadOrganizerReputation(event.createdBy._id).then(setOrganizerReputation);
+    }
+  }, [event?.createdBy?._id]);
 
   const syncEvent = (nextEvent) => {
     setEventState(nextEvent);
@@ -81,10 +90,10 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   };
 
   const handleShare = (eventClick) => {
-  eventClick?.preventDefault?.();
-  eventClick?.stopPropagation?.();
-  setShareOpen(true);
-};
+    eventClick?.preventDefault?.();
+    eventClick?.stopPropagation?.();
+    setShareOpen(true);
+  };
 
   const handleCommentsOpen = (eventClick) => {
     eventClick.preventDefault();
@@ -122,19 +131,19 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
   const imageUrl = getEventImageUrl(eventState);
   const showPlaceholder = !imageUrl || imageFailed;
   const favorited = Boolean(eventState.isFavorited);
-  
-const ticketsSold = Number(eventState?.ticketsSold) || 0;
 
-// ✅ Use capacity (original total) as denominator, fall back to totalTickets for old events
-const totalTickets =
-  Number(event?.capacity) ||
-  Number(eventState?.capacity) ||
-  Number(event?.totalTickets) ||
-  Number(eventState?.totalTickets) ||
-  0;
+  const ticketsSold = Number(eventState?.ticketsSold) || 0;
 
-const soldPercentage =
-  totalTickets > 0 ? Math.min(100, (ticketsSold / totalTickets) * 100) : 0;
+  // ✅ Use capacity (original total) as denominator, fall back to totalTickets for old events
+  const totalTickets =
+    Number(event?.capacity) ||
+    Number(eventState?.capacity) ||
+    Number(event?.totalTickets) ||
+    Number(eventState?.totalTickets) ||
+    0;
+
+  const soldPercentage =
+    totalTickets > 0 ? Math.min(100, (ticketsSold / totalTickets) * 100) : 0;
 
   return (
     <>
@@ -179,11 +188,10 @@ const soldPercentage =
               type="button"
               onClick={handleFavorite}
               disabled={favoriteLoading}
-              className={`absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full text-[0.65rem] font-semibold transition-all duration-200 z-10 ${
-                favorited
+              className={`absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full text-[0.65rem] font-semibold transition-all duration-200 z-10 ${favorited
                   ? "bg-pink-500 text-white shadow-md shadow-pink-500/30"
                   : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500 border border-gray-200"
-              }`}
+                }`}
               aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
             >
               <Heart size={12} className={favorited ? "fill-white" : ""} />
@@ -251,14 +259,14 @@ const soldPercentage =
             {/* Organizer Info */}
             <div
               className="flex items-center gap-2 pt-2 border-t border-gray-100 cursor-pointer"
-             // Replace the organizer div's onClick:
-onClick={(e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (organizer?._id) {
-    navigate(`/users/${ organizer._id}`);
-  }
-}}
+              // Replace the organizer div's onClick:
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (organizer?._id) {
+                  navigate(`/users/${organizer._id}`);
+                }
+              }}
               role={onOrganizerClick ? "button" : undefined}
               tabIndex={onOrganizerClick ? 0 : undefined}
               onKeyDown={(eventClick) => {
@@ -278,6 +286,13 @@ onClick={(e) => {
                   {organizer && <VerifiedBadge user={organizer} />}
                 </div>
                 <p className="text-[0.6rem] text-gray-400">Organizer</p>
+                {organizerReputation?.ratingStats?.totalRatings > 0 && (
+                  <CompactOrganizerRating
+                    organizerId={organizer._id}
+                    averageRating={organizerReputation.ratingStats.averageRating}
+                    totalRatings={organizerReputation.ratingStats.totalRatings}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -310,11 +325,11 @@ onClick={(e) => {
       />
 
       <ShareModal
-  open={shareOpen}
-  onClose={() => setShareOpen(false)}
-  event={eventState}               
-  currentUserId={currentUserId}   
-/>
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        event={eventState}
+        currentUserId={currentUserId}
+      />
     </>
   );
 }
