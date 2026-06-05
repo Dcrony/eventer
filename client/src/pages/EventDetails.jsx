@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Ticket,
   Users,
+  Star,
+  Flag,
 } from "lucide-react";
 import API from "../api/axios";
 import teamService from "../services/api/team";
@@ -24,6 +26,10 @@ import { useToast } from "../components/ui/toast";
 import useShareLink from "../hooks/useShareLink";
 import useProfileNavigation from "../hooks/useProfileNavigation";
 import useReferralTracking from "../utils/useReferralTracking";
+import ReviewForm from "../components/ReviewForm";
+import RatingStats from "../components/RatingStats";
+import ReviewCard from "../components/ReviewCard";
+import { loadEventRatings, loadEventReviews } from "../utils/reputationUtils";
 import {
   formatCurrency,
   formatEventDateRange,
@@ -37,6 +43,7 @@ import {
   canAccessAnalytics as canAccessEventAnalytics,
   canManageTeam as canManageEventTeam,
   canManageTickets as canManageEventTickets,
+  canCheckIn as canCheckInEvent,
   canModerateLivestream as canManageEventLivestream,
 } from "../utils/eventPermissions";
 
@@ -99,6 +106,10 @@ export default function EventDetail() {
   const [teamError, setTeamError] = useState("");
   const [error, setError] = useState("");
   const [alreadyHasFreeTicket, setAlreadyHasFreeTicket] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [ratingStats, setRatingStats] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -137,6 +148,14 @@ export default function EventDetail() {
             setAlreadyHasFreeTicket(hasOne);
           } catch { }
         }
+
+        // Load event ratings and reviews
+        loadEventRatings(data._id).then(setRatingStats);
+        setReviewsLoading(true);
+        loadEventReviews(data._id, 5).then(result => {
+          setReviews(result.reviews);
+          setReviewsLoading(false);
+        });
       } catch (_) {
         setError("Failed to load event");
       } finally {
@@ -316,6 +335,7 @@ export default function EventDetail() {
   const remainingTickets = Number(event.totalTickets || 0);
   const showAnalyticsAction = canAccessEventAnalytics(event);
   const showTicketAction = canManageEventTickets(event);
+  const showCheckInAction = canCheckInEvent(event);
   const showTeamAction = canManageEventTeam(event);
   const showLiveAction = canManageEventLivestream(event);
   const isSoldOut = remainingTickets <= 0;
@@ -352,6 +372,9 @@ export default function EventDetail() {
                     )}
                     {showTicketAction && (
                       <Link to={`/events/${event._id}/tickets`}><Button variant="secondary" className="text-sm">Manage tickets</Button></Link>
+                    )}
+                    {showCheckInAction && (
+                      <Link to={`/events/${event._id}/tickets`}><Button variant="secondary" className="text-sm">Check-in dashboard</Button></Link>
                     )}
                     {showLiveAction && (
                       <Link to={`/live/${event._id}`}><Button variant="secondary" className="text-sm">{event.liveStream?.isLive ? "Open live controls" : "Open livestream"}</Button></Link>
@@ -463,6 +486,55 @@ export default function EventDetail() {
                         </div>
                       ) : (
                         <p className="text-gray-400 text-sm">No team members have joined this event yet.</p>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Reviews Section */}
+                  <section>
+                    <span className="inline-flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-pink-500 mb-3"><Star size={14} /> Reviews</span>
+
+                    {ratingStats && <RatingStats stats={ratingStats} compact={false} />}
+
+                    {user && String(user._id) !== String(event.createdBy?._id) && (
+                      <div className="mt-4">
+                        {!showReviewForm && (
+                          <button
+                            onClick={() => setShowReviewForm(true)}
+                            className="w-full py-2 px-4 rounded-lg bg-pink-500 text-white text-sm font-bold hover:bg-pink-600 transition-colors"
+                          >
+                            Leave a Review
+                          </button>
+                        )}
+
+                        {showReviewForm && (
+                          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                            <ReviewForm
+                              targetType="event"
+                              targetId={event._id}
+                              eventId={event._id}
+                              onSubmitSuccess={() => {
+                                loadEventRatings(event._id).then(setRatingStats);
+                                loadEventReviews(event._id, 5).then(r => setReviews(r.reviews));
+                                setShowReviewForm(false);
+                              }}
+                              onCancel={() => setShowReviewForm(false)}
+                              isOpen={showReviewForm}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-4 space-y-3">
+                      {reviewsLoading ? (
+                        <p className="text-gray-500 text-sm">Loading reviews...</p>
+                      ) : reviews.length ? (
+                        reviews.map(review => (
+                          <ReviewCard key={review._id} review={review} />
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-sm">No reviews yet. Be the first to share your experience!</p>
                       )}
                     </div>
                   </section>
