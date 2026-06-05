@@ -18,6 +18,7 @@ import {
   BarChart2, Activity, Ticket, ChevronRight,
 } from "lucide-react";
 import API from "../api/axios";
+import { canCheckIn } from "../utils/eventPermissions";
 import { formatDate } from "../utils/eventHelpers";
 
 /* ─── Offline cache key ───────────────────────────────────────────────────── */
@@ -26,12 +27,12 @@ const CACHE_KEY = (id) => `tickispot_checkin_cache_${id}`;
 /* ─── Stat pill ──────────────────────────────────────────────────────────── */
 function StatPill({ label, value, color }) {
   const colors = {
-    green:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-    pink:   "bg-pink-50 text-pink-700 border-pink-200",
-    amber:  "bg-amber-50 text-amber-700 border-amber-200",
-    red:    "bg-red-50 text-red-700 border-red-200",
-    blue:   "bg-blue-50 text-blue-700 border-blue-200",
-    gray:   "bg-gray-100 text-gray-600 border-gray-200",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    pink: "bg-pink-50 text-pink-700 border-pink-200",
+    amber: "bg-amber-50 text-amber-700 border-amber-200",
+    red: "bg-red-50 text-red-700 border-red-200",
+    blue: "bg-blue-50 text-blue-700 border-blue-200",
+    gray: "bg-gray-100 text-gray-600 border-gray-200",
   };
   return (
     <div className={`flex flex-col items-center px-4 py-3 rounded-xl border ${colors[color] || colors.gray}`}>
@@ -45,9 +46,9 @@ function StatPill({ label, value, color }) {
 function ActivityItem({ item }) {
   const icons = {
     "checked-in": <CheckCircle2 size={14} className="text-emerald-500" />,
-    "failed":     <XCircle size={14} className="text-red-400" />,
-    "duplicate":  <AlertTriangle size={14} className="text-amber-500" />,
-    "manual":     <Users size={14} className="text-blue-500" />,
+    "failed": <XCircle size={14} className="text-red-400" />,
+    "duplicate": <AlertTriangle size={14} className="text-amber-500" />,
+    "manual": <Users size={14} className="text-blue-500" />,
   };
   return (
     <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
@@ -58,12 +59,11 @@ function ActivityItem({ item }) {
         <p className="text-sm font-semibold text-gray-900 truncate">{item.name || "Guest"}</p>
         <p className="text-xs text-gray-400">{item.ticketType} · {item.time}</p>
       </div>
-      <span className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full ${
-        item.type === "checked-in" ? "bg-emerald-50 text-emerald-700" :
-        item.type === "duplicate"  ? "bg-amber-50 text-amber-700"   :
-        item.type === "manual"     ? "bg-blue-50 text-blue-700"      :
-                                     "bg-red-50 text-red-700"
-      }`}>{item.type}</span>
+      <span className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full ${item.type === "checked-in" ? "bg-emerald-50 text-emerald-700" :
+        item.type === "duplicate" ? "bg-amber-50 text-amber-700" :
+          item.type === "manual" ? "bg-blue-50 text-blue-700" :
+            "bg-red-50 text-red-700"
+        }`}>{item.type}</span>
     </div>
   );
 }
@@ -72,8 +72,8 @@ function ActivityItem({ item }) {
 function AttendeeRow({ ticket, onCheckIn, checkingIn }) {
   const statusColors = {
     "checked-in": "bg-emerald-50 text-emerald-700",
-    "active":     "bg-gray-100 text-gray-600",
-    "refunded":   "bg-red-50 text-red-700",
+    "active": "bg-gray-100 text-gray-600",
+    "refunded": "bg-red-50 text-red-700",
   };
   return (
     <tr className="hover:bg-gray-50/60 transition-colors">
@@ -110,28 +110,30 @@ function AttendeeRow({ ticket, onCheckIn, checkingIn }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 export default function EventDayDashboard() {
   const { eventId } = useParams();
-  const [event,     setEvent]     = useState(null);
-  const [tickets,   setTickets]   = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(null);
-  const [search,    setSearch]    = useState("");
+  const [event, setEvent] = useState(null);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const [search, setSearch] = useState("");
   const [checkingIn, setCheckingIn] = useState(null);
-  const [isOnline,  setIsOnline]  = useState(navigator.onLine);
-  const [activity,  setActivity]  = useState([]);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [activity, setActivity] = useState([]);
   const [activeTab, setActiveTab] = useState("search"); // "search" | "activity" | "stats"
   const pollRef = useRef(null);
 
   /* ─── Online / offline listener ─────────────────────────────────────────── */
   useEffect(() => {
-    const goOnline  = () => { setIsOnline(true);  loadTickets(); };
+    const goOnline = () => { setIsOnline(true); loadTickets(); };
     const goOffline = () => setIsOnline(false);
-    window.addEventListener("online",  goOnline);
+    window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
     return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
   }, []);
 
   /* ─── Load tickets (with offline fallback) ──────────────────────────────── */
   const loadTickets = useCallback(async () => {
+    setUnauthorized(false);
     try {
       const [evRes, tkRes] = await Promise.all([
         API.get(`/events/${eventId}`),
@@ -149,18 +151,23 @@ export default function EventDayDashboard() {
         }));
       } catch { /* storage full — ignore */ }
     } catch (err) {
-      // Try offline cache
-      try {
-        const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY(eventId)) || "null");
-        if (cached) {
-          setEvent(cached.event);
-          setTickets(cached.tickets);
-          setError(`Offline mode — showing data cached at ${new Date(cached.cachedAt).toLocaleTimeString()}`);
-        } else {
-          setError(err.response?.data?.message || "Failed to load event data");
+      if (err.response?.status === 403) {
+        setUnauthorized(true);
+        setError(err.response?.data?.message || "You do not have permission to access this event's ticket dashboard.");
+      } else {
+        // Try offline cache
+        try {
+          const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY(eventId)) || "null");
+          if (cached) {
+            setEvent(cached.event);
+            setTickets(cached.tickets);
+            setError(`Offline mode — showing data cached at ${new Date(cached.cachedAt).toLocaleTimeString()}`);
+          } else {
+            setError(err.response?.data?.message || "Failed to load event data");
+          }
+        } catch {
+          setError("Failed to load event data");
         }
-      } catch {
-        setError("Failed to load event data");
       }
     } finally {
       setLoading(false);
@@ -187,8 +194,8 @@ export default function EventDayDashboard() {
 
       const ticket = tickets.find((t) => t._id === ticketId);
       pushActivity({
-        type:       "manual",
-        name:       ticket?.buyer?.name || "Guest",
+        type: "manual",
+        name: ticket?.buyer?.name || "Guest",
         ticketType: ticket?.ticketType || "—",
       });
     } catch (err) {
@@ -206,18 +213,18 @@ export default function EventDayDashboard() {
   };
 
   /* ─── Stats ─────────────────────────────────────────────────────────────── */
-  const total      = tickets.length;
-  const checkedIn  = tickets.filter((t) => t.status === "checked-in").length;
-  const remaining  = total - checkedIn;
-  const pct        = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
+  const total = tickets.length;
+  const checkedIn = tickets.filter((t) => t.status === "checked-in").length;
+  const remaining = total - checkedIn;
+  const pct = total > 0 ? Math.round((checkedIn / total) * 100) : 0;
 
   /* ─── Filter ─────────────────────────────────────────────────────────────── */
   const filtered = tickets.filter((t) => {
     const q = search.toLowerCase();
     return !q || (
-      t.buyer?.name?.toLowerCase().includes(q)  ||
+      t.buyer?.name?.toLowerCase().includes(q) ||
       t.buyer?.email?.toLowerCase().includes(q) ||
-      t.ticketType?.toLowerCase().includes(q)   ||
+      t.ticketType?.toLowerCase().includes(q) ||
       String(t._id).includes(q)
     );
   });
@@ -228,6 +235,27 @@ export default function EventDayDashboard() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center gap-3 font-geist">
         <RefreshCw size={20} className="animate-spin text-pink-500" />
         <p className="text-sm text-gray-500">Loading event day dashboard…</p>
+      </div>
+    );
+  }
+
+  if (unauthorized || (event && !canCheckIn(event))) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8 text-center">
+        <div className="max-w-xl bg-white border border-gray-200 rounded-3xl shadow-sm p-10">
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-3">Access denied</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            You do not have permission to view or manage event day operations for this event.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to={`/event/${eventId}`} className="inline-flex items-center justify-center px-5 py-3 rounded-full bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 transition-all">
+              Back to event
+            </Link>
+            <Link to="/dashboard" className="inline-flex items-center justify-center px-5 py-3 rounded-full border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all">
+              Go to dashboard
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -247,9 +275,8 @@ export default function EventDayDashboard() {
               <p className="text-sm text-gray-400 mt-0.5">{formatDate(event?.startDate)} · {event?.location || "—"}</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${
-                isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
-              }`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                }`}>
                 {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
                 {isOnline ? "Online" : "Offline"}
               </div>
@@ -273,10 +300,10 @@ export default function EventDayDashboard() {
 
         {/* ── Stats Bar ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <StatPill label="Total" value={total}      color="gray"  />
+          <StatPill label="Total" value={total} color="gray" />
           <StatPill label="Checked In" value={checkedIn} color="green" />
-          <StatPill label="Remaining"  value={remaining} color="amber" />
-          <StatPill label="% Arrived"  value={`${pct}%`} color="pink"  />
+          <StatPill label="Remaining" value={remaining} color="amber" />
+          <StatPill label="% Arrived" value={`${pct}%`} color="pink" />
         </div>
 
         {/* Progress bar */}
@@ -296,18 +323,17 @@ export default function EventDayDashboard() {
         {/* ── Tab Nav ── */}
         <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-xl w-fit">
           {[
-            { id: "search",   label: "Search & Check-in", icon: <Search size={13} /> },
-            { id: "activity", label: "Live Activity",      icon: <Activity size={13} /> },
-            { id: "stats",    label: "Stats",              icon: <BarChart2 size={13} /> },
+            { id: "search", label: "Search & Check-in", icon: <Search size={13} /> },
+            { id: "activity", label: "Live Activity", icon: <Activity size={13} /> },
+            { id: "stats", label: "Stats", icon: <BarChart2 size={13} /> },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === tab.id
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
             >
               {tab.icon} {tab.label}
             </button>
@@ -409,8 +435,8 @@ export default function EventDayDashboard() {
               <h3 className="text-sm font-bold text-gray-900 mb-3">By ticket type</h3>
               {[...new Set(tickets.map((t) => t.ticketType))].map((type) => {
                 const typeTickets = tickets.filter((t) => t.ticketType === type);
-                const typeIn      = typeTickets.filter((t) => t.status === "checked-in").length;
-                const typePct     = typeTickets.length ? Math.round((typeIn / typeTickets.length) * 100) : 0;
+                const typeIn = typeTickets.filter((t) => t.status === "checked-in").length;
+                const typePct = typeTickets.length ? Math.round((typeIn / typeTickets.length) * 100) : 0;
                 return (
                   <div key={type} className="mb-3">
                     <div className="flex items-center justify-between mb-1">
