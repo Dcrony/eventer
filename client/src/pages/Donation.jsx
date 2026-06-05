@@ -36,6 +36,30 @@ export default function Donation() {
     }
   }, [searchParams]);
 
+  const [recentDonations, setRecentDonations] = useState([]);
+  const [donationStats, setDonationStats] = useState({ totalRaised: 0, totalDonors: 0 });
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchDonations = async () => {
+      setIsStatsLoading(true);
+      try {
+        const response = await API.get('/donations/recent');
+        setRecentDonations(response.data.donations || []);
+        setDonationStats({
+          totalRaised: response.data.totalRaised || 0,
+          totalDonors: response.data.totalDonors || 0,
+        });
+      } catch (error) {
+        console.warn("Unable to load donation history", error);
+      } finally {
+        setIsStatsLoading(false);
+      }
+    };
+
+    fetchDonations();
+  }, []);
+
   const presetAmounts = [
     { value: 500, label: "₦500" },
     { value: 1000, label: "₦1,000" },
@@ -86,7 +110,7 @@ export default function Donation() {
             <Heart size={14} />
             Support Our Mission
           </div>
-          
+
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-4">
             Help us build the future
             <br />
@@ -94,9 +118,9 @@ export default function Donation() {
               of event technology
             </span>
           </h1>
-          
+
           <p className="text-lg text-gray-500 p-6">
-            Your support helps us improve, innovate, and keep the platform accessible for <br/> creators and organizers worldwide.
+            Your support helps us improve, innovate, and keep the platform accessible for <br /> creators and organizers worldwide.
           </p>
 
           {/* Success Message */}
@@ -109,8 +133,8 @@ export default function Donation() {
                   <p className="text-xs text-green-600">Your payment has been processed successfully.</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowForm(true)} 
+              <button
+                onClick={() => setShowForm(true)}
                 className="mt-3 w-full py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
               >
                 Donate Again
@@ -120,8 +144,8 @@ export default function Donation() {
 
           {/* Donate Button */}
           {status?.type !== 'success' && (
-            <button 
-              onClick={() => setShowForm(true)} 
+            <button
+              onClick={() => setShowForm(true)}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-pink-500 text-white text-lg font-bold transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-xl shadow-pink-500/30"
             >
               <Heart size={20} />
@@ -143,6 +167,73 @@ export default function Donation() {
           <div className="text-center p-4">
             <div className="text-2xl font-extrabold text-pink-500">10K+</div>
             <p className="text-sm text-gray-500">Active organizers</p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
+          <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr] mt-14">
+            <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-pink-500 mb-2">Supporter Appreciation</p>
+                  <h2 className="text-2xl font-extrabold text-slate-900">Donation history & impact</h2>
+                </div>
+                <div className="rounded-3xl bg-pink-50 px-4 py-3 text-sm font-semibold text-pink-700">
+                  {isStatsLoading ? "Loading…" : `${donationStats.totalDonors} donors`}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 mb-6">
+                <div className="rounded-3xl border border-gray-100 bg-pink-50 p-4">
+                  <p className="text-sm uppercase tracking-[0.25em] text-pink-600">Raised so far</p>
+                  <p className="mt-3 text-3xl font-extrabold text-slate-900">₦{donationStats.totalRaised.toLocaleString()}</p>
+                </div>
+                <div className="rounded-3xl border border-gray-100 bg-slate-50 p-4">
+                  <p className="text-sm uppercase tracking-[0.25em] text-slate-500">Support messages</p>
+                  <p className="mt-3 text-3xl font-extrabold text-slate-900">{recentDonations.length}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {isStatsLoading ? (
+                  <p className="text-sm text-slate-500">Loading recent supporters…</p>
+                ) : recentDonations.length ? (
+                  recentDonations.map((donation, index) => (
+                    <div key={`${donation.name}-${index}`} className="rounded-3xl border border-gray-100 p-4 hover:border-pink-200 transition-colors">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{donation.name}</p>
+                          <p className="text-xs text-slate-400">{new Date(donation.date).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}</p>
+                        </div>
+                        <span className="rounded-full bg-pink-100 px-3 py-1 text-xs font-semibold text-pink-700">₦{donation.amount.toLocaleString()}</span>
+                      </div>
+                      <p className="mt-3 text-sm leading-relaxed text-slate-600">{donation.message}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No supporter updates available yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="rounded-[2rem] border border-gray-200 bg-gradient-to-br from-pink-50 via-white to-violet-50 p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-pink-500">Why donate?</p>
+                <h3 className="mt-3 text-xl font-extrabold text-slate-900">Help us fund new features for creators.</h3>
+                <ul className="mt-5 space-y-4 text-sm text-slate-600">
+                  <li className="flex gap-3"><span className="mt-1 text-pink-500">•</span> Improve platform stability and performance.</li>
+                  <li className="flex gap-3"><span className="mt-1 text-pink-500">•</span> Support event organizers with better tools.</li>
+                  <li className="flex gap-3"><span className="mt-1 text-pink-500">•</span> Keep TickiSpot accessible to communities across Africa.</li>
+                </ul>
+              </div>
+
+              <div className="rounded-[2rem] border border-gray-200 bg-white p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">Supporter gratitude</p>
+                <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+                  Every donation helps us build better event experiences, faster payments, and stronger community support. Thank you for helping TickiSpot thrive.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -225,11 +316,10 @@ export default function Donation() {
                         key={preset.value}
                         type="button"
                         onClick={() => handlePresetSelect(preset.value)}
-                        className={`py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                          selectedPreset === preset.value
+                        className={`py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${selectedPreset === preset.value
                             ? "bg-pink-500 text-white shadow-md scale-[1.02]"
                             : "bg-gray-100 text-gray-700 hover:bg-pink-100 hover:text-pink-600"
-                        }`}
+                          }`}
                       >
                         {preset.label}
                       </button>
