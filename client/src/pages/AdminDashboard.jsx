@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     Activity,
+    AlertTriangle,
     Calendar,
     DollarSign,
+    MessageSquare,
+    Settings2,
+    ShieldAlert,
+    ShieldCheck,
+    Star,
     Ticket,
     TrendingUp,
     Users,
@@ -31,6 +38,31 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchDashboardData();
     }, []);
+
+    function ModuleCard({ to, Icon, title, subtitle, details }) {
+        return (
+            <SurfaceCard className="group transition hover:-translate-y-0.5 hover:shadow-xl">
+                <Link to={to} className="flex h-full flex-col justify-between gap-4 p-3 text-left">
+                    <div className="flex items-start justify-between gap-3">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">{title}</p>
+                            <p className="mt-3 text-sm font-semibold text-gray-900">{subtitle}</p>
+                        </div>
+                        {Icon ? (
+                            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-pink-600 transition duration-200 group-hover:bg-pink-100">
+                                <Icon size={20} />
+                            </div>
+                        ) : null}
+                    </div>
+                    {details ? <p className="text-sm text-gray-500">{details}</p> : null}
+                    <span className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-pink-500">
+                        Open module
+                        <Star size={14} />
+                    </span>
+                </Link>
+            </SurfaceCard>
+        );
+    }
 
     const fetchDashboardData = async () => {
         try {
@@ -72,6 +104,72 @@ export default function AdminDashboard() {
                     </button>
                 </div>
 
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <ModuleCard
+                        to="/admin/users"
+                        Icon={Users}
+                        title="User Management"
+                        subtitle="Manage all users, organizers, subscribers, donors, and suspended accounts."
+                        details={`Total ${formatNumber(stats?.users?.total || 0)} · Organizers ${formatNumber(stats?.users?.organizers || 0)} · Suspended ${formatNumber(stats?.users?.suspended || 0)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/users"
+                        Icon={ShieldCheck}
+                        title="Verification Management"
+                        subtitle="Approve and reject verification requests, review organizer documents."
+                        details={`Verified organizers ${formatNumber(stats?.users?.verifiedOrganizers || 0)} · Pending review in user profiles`}
+                    />
+                    <ModuleCard
+                        to="/admin/events"
+                        Icon={Calendar}
+                        title="Event Management"
+                        subtitle="Review public/private events, flagged or featured listings, and cancellations."
+                        details={`Approved ${formatNumber(stats?.events?.approved || 0)} · Private ${formatNumber(stats?.events?.private || 0)} · Featured ${formatNumber(stats?.events?.featured || 0)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/finance"
+                        Icon={DollarSign}
+                        title="Payment Management"
+                        subtitle="Track revenue, commissions, escrow balances, and payout liabilities."
+                        details={`Revenue ${formatCurrency(stats?.revenue?.total || 0)} · Subscription ${formatCurrency(stats?.revenue?.subscriptionRevenue || 0)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/moderation"
+                        Icon={ShieldAlert}
+                        title="Fraud Management"
+                        subtitle="Investigate suspicious transactions, organizers, and chargeback alerts."
+                        details={`Pending issues, event risk, and payout flags available in moderation.`}
+                    />
+                    <ModuleCard
+                        to="/admin/moderation"
+                        Icon={AlertTriangle}
+                        title="Review Moderation"
+                        subtitle="Moderate reviews, reports, complaints, and community feedback."
+                        details="Use the moderation queue to resolve reputation issues and support cases."
+                    />
+                    <ModuleCard
+                        to="/admin/moderation"
+                        Icon={MessageSquare}
+                        title="Support Management"
+                        subtitle="Resolve support tickets, complaints and reports from customers and organizers."
+                        details="Route issues to support, escalate disputes, and monitor complaint status."
+                    />
+                    <ModuleCard
+                        to="/analytics"
+                        Icon={TrendingUp}
+                        title="Analytics Center"
+                        subtitle="See platform-wide users, events, ticket sales, subscriptions, donations, and referrals."
+                        details="Deep dive into growth, engagement, conversion, and performance metrics."
+                    />
+                    <ModuleCard
+                        to="/admin/settings"
+                        Icon={Settings2}
+                        title="System Settings"
+                        subtitle="Adjust commission, withdrawal, escrow, verification, referral, and homepage rules."
+                        details="Configure platform policies and publish announcements from one place."
+                    />
+                </div>
+
                 {error ? <ErrorMessage message={error} onDismiss={() => setError(null)} /> : null}
 
                 {loading ? (
@@ -89,19 +187,46 @@ export default function AdminDashboard() {
                                 icon={Calendar}
                                 label="Events"
                                 value={formatNumber(stats.events?.total || 0)}
-                                detail={`${formatNumber(stats.events?.pending || 0)} pending review`}
+                                detail={`${formatNumber(stats.events?.pending || 0)} pending, ${formatNumber(stats.events?.suspended || 0)} suspended`}
                             />
                             <StatCard
                                 icon={Ticket}
                                 label="Tickets Sold"
                                 value={formatNumber(stats.tickets?.total || 0)}
-                                detail={`${formatNumber(stats.tickets?.thisMonth || 0)} sold this month`}
+                                detail={`${formatNumber(stats.tickets?.checkedIn || 0)} checked in`}
                             />
                             <StatCard
                                 icon={DollarSign}
                                 label="Revenue"
                                 value={formatCurrency(stats.revenue?.total || 0)}
-                                detail={`${formatCurrency(stats.revenue?.thisMonth || 0)} this month`}
+                                detail={`${formatCurrency(stats.revenue?.organizerRevenue || 0)} to organizers`}
+                            />
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <StatCard
+                                icon={ShieldCheck}
+                                label="Pending Verifications"
+                                value={formatNumber(stats.verification?.pendingRequests || 0)}
+                                detail="Organizer verification queue"
+                            />
+                            <StatCard
+                                icon={ShieldAlert}
+                                label="Fraud Alerts"
+                                value={formatNumber(stats.fraud?.unresolvedAlerts || 0)}
+                                detail="Active risk signals"
+                            />
+                            <StatCard
+                                icon={MessageSquare}
+                                label="Open Support Tickets"
+                                value={formatNumber(stats.support?.openTickets || 0)}
+                                detail="Customer and organizer issues"
+                            />
+                            <StatCard
+                                icon={AlertTriangle}
+                                label="Pending Reports"
+                                value={formatNumber(stats.reports?.pending || 0)}
+                                detail={`${formatNumber(stats.reports?.flaggedEvents || 0)} flagged events`}
                             />
                         </div>
 
@@ -110,13 +235,13 @@ export default function AdminDashboard() {
                                 icon={Users}
                                 label="Organizers"
                                 value={formatNumber(stats.users?.organizers || 0)}
-                                detail={`${formatNumber(stats.users?.new || 0)} new users in 30 days`}
+                                detail={`${formatNumber(stats.users?.verifiedOrganizers || 0)} verified`}
                             />
                             <StatCard
                                 icon={Calendar}
-                                label="Approved Events"
-                                value={formatNumber(stats.events?.approved || 0)}
-                                detail={`${formatNumber(stats.events?.featured || 0)} featured`}
+                                label="Featured Events"
+                                value={formatNumber(stats.events?.featured || 0)}
+                                detail={`${formatNumber(stats.events?.approved || 0)} approved`}
                             />
                             <StatCard
                                 icon={TrendingUp}
@@ -126,9 +251,9 @@ export default function AdminDashboard() {
                             />
                             <StatCard
                                 icon={Wallet}
-                                label="Recent Withdrawals"
-                                value={formatNumber(stats.recentWithdrawals?.length || 0)}
-                                detail="Latest payout requests"
+                                label="Donations"
+                                value={formatCurrency(stats.revenue?.donations || 0)}
+                                detail={`${formatNumber(stats.revenue?.donationCount || 0)} donations`}
                             />
                         </div>
 
