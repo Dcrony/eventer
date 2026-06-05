@@ -2,6 +2,7 @@ require("dotenv").config();
 const Withdrawal = require("../models/Withdrawal");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
+const OrganizerVerification = require("../models/OrganizerVerification");
 const ActivityLog = require("../models/ActivityLog");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
 const { createRecipient, initiateTransfer } = require("../utils/paystack");
@@ -10,6 +11,21 @@ const { createNotification } = require("../services/notificationService");
 const WITHDRAWAL_FEE_PERCENT = 2;
 
 const escapeRegex = (value = "") => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Helper to check organizer verification status
+ */
+const getOrganizerVerificationStatus = async (userId) => {
+  const verification = await OrganizerVerification.findOne({ 
+    organizer: userId 
+  }).sort({ createdAt: -1 });
+
+  return {
+    status: verification?.status || "not_started",
+    isVerified: verification?.status === "approved",
+    rejectionReason: verification?.rejectionReason,
+  };
+};
 
 const parsePagination = (page, limit, defaultLimit = 20) => {
   const safePage = Math.max(Number.parseInt(page, 10) || 1, 1);
@@ -72,6 +88,28 @@ exports.requestWithdrawal = async (req, res) => {
 
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    // Check organizer verification status
+    const verificationStatus = await getOrganizerVerificationStatus(organizerId);
+    if (!verificationStatus.isVerified) {
+      return res.status(403).json({
+        code: "VERIFICATION_REQUIRED",
+        message: "Organizer verification required to withdraw funds",
+        verificationStatus: verificationStatus.status,
+        rejectionReason: verificationStatus.rejectionReason,
+      });
+    }
+
+    // Check for active fraud flags
+    try {
+      const fraudService = require('../services/fraudService');
+      const flagged = await fraudService.isOrganizerFlagged(organizerId);
+      if (flagged) {
+        return res.status(403).json({ code: 'WITHDRAWAL_BLOCKED_FRAUD', message: 'Withdrawals are blocked due to account review or fraud flags' });
+      }
+    } catch (e) {
+      console.warn('Failed to check fraud flags before withdrawal:', e.message || e);
     }
 
     const organizer = await User.findById(organizerId).populate('payoutAccount');
