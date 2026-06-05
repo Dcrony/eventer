@@ -224,6 +224,47 @@ const thumbnails = {
       <text x="350" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#ffffff">You're Invited to Join the Team!</text>
       <text x="350" y="182" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="#fce7f3">Accept your invitation to get started</text>
     </svg>`,
+  verificationRequest: () => `
+    <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;">
+      <defs>
+        <linearGradient id="vrg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#2563eb"/>
+          <stop offset="100%" style="stop-color:#0ea5e9"/>
+        </linearGradient>
+      </defs>
+      <rect width="700" height="220" fill="url(#vrg)"/>
+      <circle cx="100" cy="190" r="60" fill="#ffffff" fill-opacity="0.08"/>
+      <circle cx="620" cy="30" r="90" fill="#ffffff" fill-opacity="0.08"/>
+      <text x="350" y="118" text-anchor="middle" font-size="52" fill="#ffffff">📝</text>
+      <text x="350" y="170" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#ffffff">Verification Request Received</text>
+      <text x="350" y="190" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="#c7d2fe">A team member will review this shortly</text>
+    </svg>`,
+  verificationApproved: () => `
+    <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;">
+      <defs>
+        <linearGradient id="vag" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#16a34a"/>
+          <stop offset="100%" style="stop-color:#22c55e"/>
+        </linearGradient>
+      </defs>
+      <rect width="700" height="220" fill="url(#vag)"/>
+      <circle cx="350" cy="110" r="78" fill="#ffffff" fill-opacity="0.08"/>
+      <text x="350" y="120" text-anchor="middle" font-size="64" fill="#ffffff">✅</text>
+      <text x="350" y="162" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#ffffff">Verification Approved</text>
+    </svg>`,
+  verificationRejected: () => `
+    <svg width="100%" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;">
+      <defs>
+        <linearGradient id="vrg2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#be185d"/>
+          <stop offset="100%" style="stop-color:#f43f5e"/>
+        </linearGradient>
+      </defs>
+      <rect width="700" height="220" fill="url(#vrg2)"/>
+      <circle cx="350" cy="110" r="78" fill="#ffffff" fill-opacity="0.08"/>
+      <text x="350" y="120" text-anchor="middle" font-size="64" fill="#ffffff">❌</text>
+      <text x="350" y="162" text-anchor="middle" font-family="Georgia,serif" font-size="16" font-weight="bold" fill="#ffffff">Verification Declined</text>
+    </svg>`,
 };
 
 // ─── Base Layout (true full-width) ───────────────────────────────────────────
@@ -471,6 +512,68 @@ exports.donationAdminNotificationEmail = (
         ["Reference", `<code style="font-family:'Courier New',monospace;background:#f1f5f9;padding:2px 8px;border-radius:5px;font-size:13px;">${reference}</code>`],
         ["Date", donationDate || new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
       ], "#ec4899")}
+      ${signoff()}
+    `,
+  });
+
+exports.verificationRequestNotificationEmail = (
+  organizerName,
+  organizerEmail,
+  verificationId,
+  documentCount,
+  reviewLink
+) =>
+  baseLayout({
+    thumbnail: thumbnails.verificationRequest(),
+    content: `
+      ${greeting("TickiSpot Team")}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">New Organizer Verification Request</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        An organizer has submitted documents for verification. Please review the request and complete the approval workflow.
+      </p>
+      ${infoCard([
+        ["Organizer", `${organizerName} <${organizerEmail}>`],
+        ["Request ID", `<code style="font-family:'Courier New',monospace;background:#f1f5f9;padding:2px 8px;border-radius:5px;font-size:13px;">${verificationId}</code>`],
+        ["Documents", `${documentCount} uploaded`],
+        ["Submitted", new Date().toLocaleDateString("en-NG", { dateStyle: "long" })],
+      ], "#2563eb")}
+      ${ctaButton(reviewLink, "Review Verification", "#2563eb")}
+      ${signoff()}
+    `,
+  });
+
+exports.verificationApprovedEmail = (name, dashboardLink) =>
+  baseLayout({
+    thumbnail: thumbnails.verificationApproved(),
+    content: `
+      ${greeting(name)}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">Your Verification is Approved 🎉</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        Congratulations! Your organizer verification has been approved. You now have verified status on TickiSpot.
+      </p>
+      ${infoCard([
+        ["Status", `${badge("Verified", "#16a34a", "#dcfce7")}`],
+        ["Next Step", "Head to your verification dashboard"],
+      ], "#16a34a")}
+      ${ctaButton(dashboardLink, "View Verification Status", "#16a34a")}
+      ${signoff()}
+    `,
+  });
+
+exports.verificationRejectedEmail = (name, reason, resubmitLink) =>
+  baseLayout({
+    thumbnail: thumbnails.verificationRejected(),
+    content: `
+      ${greeting(name)}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">Verification Request Declined</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        Your organizer verification request could not be approved at this time.
+      </p>
+      ${infoCard([
+        ["Reason", reason || "Not sufficient documentation"],
+        ["Review Again", "Update your submission and resubmit"],
+      ], "#be185d")}
+      ${ctaButton(resubmitLink, "Review My Verification", "#be185d")}
       ${signoff()}
     `,
   });
