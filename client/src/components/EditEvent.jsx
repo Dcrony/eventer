@@ -38,41 +38,42 @@ import TickiAIGenerator from "./TickiAIGenerator";
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const eventTypes = [
-  { name: "In-person", icon: Building2,   hint: "Venue-based with guests on-site." },
-  { name: "Virtual",   icon: MonitorPlay, hint: "Online workshops, classes, broadcasts." },
-  { name: "Hybrid",    icon: Globe2,      hint: "Physical + online livestream." },
+  { name: "In-person", icon: Building2, hint: "Venue-based with guests on-site." },
+  { name: "Virtual", icon: MonitorPlay, hint: "Online workshops, classes, broadcasts." },
+  { name: "Hybrid", icon: Globe2, hint: "Physical + online livestream." },
 ];
 
 const teamRoles = [
-  { value: "co_organizer",         label: "Co Organizer" },
-  { value: "ticket_manager",       label: "Ticket Manager" },
-  { value: "analytics_viewer",     label: "Analytics Viewer" },
+  { value: "co_organizer", label: "Co Organizer" },
+  { value: "ticket_manager", label: "Ticket Manager" },
+  { value: "analytics_viewer", label: "Analytics Viewer" },
   { value: "livestream_moderator", label: "Livestream Moderator" },
+  { value: "checkin_staff", label: "Check-in Staff" },
 ];
 
 const steps = [
   { id: 1, title: "Basic Info", icon: Calendar },
-  { id: 2, title: "Media",      icon: ImagePlus },
-  { id: 3, title: "Tickets",    icon: Ticket },
-  { id: 4, title: "Settings",   icon: Radio },
-  { id: 5, title: "Preview",    icon: CheckCircle2 },
+  { id: 2, title: "Media", icon: ImagePlus },
+  { id: 3, title: "Tickets", icon: Ticket },
+  { id: 4, title: "Settings", icon: Radio },
+  { id: 5, title: "Preview", icon: CheckCircle2 },
 ];
 
 const CATEGORY_OPTIONS = [
-  "Tech","Music","Business","Sports","Arts","Food & Drink",
-  "Health","Education","Fashion","Comedy","Fitness","Networking",
-  "Film","Religious","Charity","Other",
+  "Tech", "Music", "Business", "Sports", "Arts", "Food & Drink",
+  "Health", "Education", "Fashion", "Comedy", "Fitness", "Networking",
+  "Film", "Religious", "Charity", "Other",
 ];
 
 const TIER_COLORS = [
-  { label: "Pink",   value: "#ec4899" },
+  { label: "Pink", value: "#ec4899" },
   { label: "Violet", value: "#8b5cf6" },
-  { label: "Blue",   value: "#3b82f6" },
-  { label: "Cyan",   value: "#06b6d4" },
-  { label: "Green",  value: "#22c55e" },
-  { label: "Amber",  value: "#f59e0b" },
-  { label: "Rose",   value: "#f43f5e" },
-  { label: "Slate",  value: "#64748b" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Cyan", value: "#06b6d4" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Rose", value: "#f43f5e" },
+  { label: "Slate", value: "#64748b" },
 ];
 
 const DEFAULT_TYPES = ["Regular", "VIP", "VVIP"];
@@ -80,12 +81,12 @@ const DEFAULT_TYPES = ["Regular", "VIP", "VVIP"];
 /* ─── Tier helpers ───────────────────────────────────────────────────────── */
 
 const makeTier = (overrides = {}) => ({
-  type:        "",
-  price:       "",
-  isEnabled:   true,
-  isFree:      false,
-  label:       "",
-  color:       "",
+  type: "",
+  price: "",
+  isEnabled: true,
+  isFree: false,
+  label: "",
+  color: "",
   description: "",
   maxPerOrder: "",
   ...overrides,
@@ -104,14 +105,14 @@ const normalizePricingFromServer = (pricing) => {
   if (!filtered.length) return DEFAULT_PRICING;
   return filtered.map((t) =>
     makeTier({
-      type:        t?.type        || "",
-      price:       t?.price != null ? String(t.price) : "",
-      isEnabled:   t?.isEnabled  !== false,
-      isFree:      Boolean(t?.isFree),
-      label:       t?.label       || "",
-      color:       t?.color       || "",
+      type: t?.type || "",
+      price: t?.price != null ? String(t.price) : "",
+      isEnabled: t?.isEnabled !== false,
+      isFree: Boolean(t?.isFree),
+      label: t?.label || "",
+      color: t?.color || "",
       description: t?.description || "",
-      maxPerOrder: t?.maxPerOrder  ? String(t.maxPerOrder) : "",
+      maxPerOrder: t?.maxPerOrder ? String(t.maxPerOrder) : "",
     })
   );
 };
@@ -120,9 +121,9 @@ const normalizePricingFromServer = (pricing) => {
 
 const getStepValidation = (step, form, isFreeEvent) => {
   if (step === 1) {
-    if (!form.title.trim())       return "Add an event title to continue.";
+    if (!form.title.trim()) return "Add an event title to continue.";
     if (!form.description.trim()) return "Add a short event description.";
-    if (!form.category.trim())    return "Choose a category for your event.";
+    if (!form.category.trim()) return "Choose a category for your event.";
     if (!form.startDate || !form.startTime || !form.endDate || !form.endTime)
       return "Complete the event schedule before moving on.";
     if (!form.location.trim() && form.eventType !== "Virtual")
@@ -165,24 +166,22 @@ function Card({ children, className = "" }) {
 }
 
 function StepBtn({ step, activeStep, onClick }) {
-  const Icon   = step.icon;
+  const Icon = step.icon;
   const active = step.id === activeStep;
-  const done   = step.id < activeStep;
+  const done = step.id < activeStep;
   return (
     <button
       type="button"
       onClick={() => onClick(step.id)}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition ${
-        active ? "bg-pink-50 text-pink-700"
-        : done  ? "bg-green-50 text-green-700"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-      }`}
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left transition ${active ? "bg-pink-50 text-pink-700"
+        : done ? "bg-green-50 text-green-700"
+          : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+        }`}
     >
-      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
-        active ? "bg-pink-500 text-white"
-        : done  ? "bg-green-500 text-white"
-                : "bg-gray-100 text-gray-400"
-      }`}>
+      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active ? "bg-pink-500 text-white"
+        : done ? "bg-green-500 text-white"
+          : "bg-gray-100 text-gray-400"
+        }`}>
         <Icon size={13} />
       </div>
       <div className="min-w-0 flex-1">
@@ -203,11 +202,10 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
   const accentColor = tier.color || "#ec4899";
 
   return (
-    <div className={`rounded-2xl border transition-all ${
-      tier.isEnabled
-        ? "border-gray-200 bg-white"
-        : "border-gray-100 bg-gray-50/60 opacity-60"
-    }`}>
+    <div className={`rounded-2xl border transition-all ${tier.isEnabled
+      ? "border-gray-200 bg-white"
+      : "border-gray-100 bg-gray-50/60 opacity-60"
+      }`}>
       {/* Main row */}
       <div className="flex items-center gap-3 px-3 py-2.5">
         <div
@@ -244,11 +242,10 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
             type="button"
             title={tier.isFree ? "Remove free override" : "Make this tier free"}
             onClick={() => update({ isFree: !tier.isFree, price: !tier.isFree ? "0" : tier.price })}
-            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[0.6rem] font-bold transition ${
-              tier.isFree
-                ? "bg-green-100 text-green-700 hover:bg-green-200"
-                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-            }`}
+            className={`flex h-6 items-center gap-1 rounded-full px-2 text-[0.6rem] font-bold transition ${tier.isFree
+              ? "bg-green-100 text-green-700 hover:bg-green-200"
+              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
           >
             <Gift size={10} />
             {tier.isFree ? "Free" : "Set free"}
@@ -264,7 +261,7 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
         >
           {tier.isEnabled
             ? <ToggleRight size={18} className="text-pink-500" />
-            : <ToggleLeft  size={18} className="text-gray-400" />
+            : <ToggleLeft size={18} className="text-gray-400" />
           }
         </button>
 
@@ -336,9 +333,8 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
                   type="button"
                   title={c.label}
                   onClick={() => update({ color: c.value })}
-                  className={`h-6 w-6 rounded-full transition ring-offset-1 ${
-                    tier.color === c.value ? "ring-2 ring-gray-400 scale-110" : "hover:scale-110"
-                  }`}
+                  className={`h-6 w-6 rounded-full transition ring-offset-1 ${tier.color === c.value ? "ring-2 ring-gray-400 scale-110" : "hover:scale-110"
+                    }`}
                   style={{ backgroundColor: c.value }}
                 />
               ))}
@@ -375,22 +371,22 @@ const defaultForm = {
 
 export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) {
   const toast = useToast();
-  const { hasAccess: canUseTickiAI,       promptUpgrade: promptUpgradeAI }      = useFeatureAccess("tickiai");
+  const { hasAccess: canUseTickiAI, promptUpgrade: promptUpgradeAI } = useFeatureAccess("tickiai");
   const { hasAccess: canUsePrivateEvents, promptUpgrade: promptUpgradePrivate } = useFeatureAccess("private_events");
-  const { hasAccess: canUseLiveStreaming, promptUpgrade: promptUpgradeLive }    = useFeatureAccess("live_stream");
+  const { hasAccess: canUseLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-  const [form,         setForm]         = useState(defaultForm);
-  const [activeStep,   setActiveStep]   = useState(1);
-  const [isFreeEvent,  setIsFreeEvent]  = useState(false);
-  const [teamMembers,  setTeamMembers]  = useState([]);
-  const [newEmail,     setNewEmail]     = useState("");
-  const [newRole,      setNewRole]      = useState("co_organizer");
-  const [imageFile,    setImageFile]    = useState(null);
+  const [form, setForm] = useState(defaultForm);
+  const [activeStep, setActiveStep] = useState(1);
+  const [isFreeEvent, setIsFreeEvent] = useState(false);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState("co_organizer");
+  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [loading,      setLoading]      = useState(false);
-  const [submitting,   setSubmitting]   = useState(false);
-  const [showAIGen,    setShowAIGen]    = useState(false);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showAIGen, setShowAIGen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const stepError = useMemo(
     () => getStepValidation(activeStep, form, isFreeEvent),
@@ -432,23 +428,23 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
         setLoading(true);
         const { data } = await API.get(`/events/${eventId}`);
 
-        const isFree   = Boolean(data.isFree || data.isFreeEvent);
-        const pricing  = normalizePricingFromServer(data.pricing);
+        const isFree = Boolean(data.isFree || data.isFreeEvent);
+        const pricing = normalizePricingFromServer(data.pricing);
 
         setIsFreeEvent(isFree);
         setForm({
-          title:       data.title        || "",
-          description: data.description  || "",
-          category:    data.category     || "",
-          location:    data.location     || "",
-          streamType:  data.liveStream?.streamType || "Camera",
-          streamURL:   data.liveStream?.streamURL  || "",
-          eventType:   data.eventType    || "In-person",
-          visibility:  data.visibility   || "public",
-          startDate:   data.startDate ? String(data.startDate).slice(0, 10) : "",
-          startTime:   data.startTime    || "",
-          endDate:     data.endDate   ? String(data.endDate).slice(0, 10)   : "",
-          endTime:     data.endTime      || "",
+          title: data.title || "",
+          description: data.description || "",
+          category: data.category || "",
+          location: data.location || "",
+          streamType: data.liveStream?.streamType || "Camera",
+          streamURL: data.liveStream?.streamURL || "",
+          eventType: data.eventType || "In-person",
+          visibility: data.visibility || "public",
+          startDate: data.startDate ? String(data.startDate).slice(0, 10) : "",
+          startTime: data.startTime || "",
+          endDate: data.endDate ? String(data.endDate).slice(0, 10) : "",
+          endTime: data.endTime || "",
           pricing,
           totalTickets: data.totalTickets != null ? String(data.totalTickets) : "",
         });
@@ -490,7 +486,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
       pricing: [
         ...p.pricing,
         makeTier({
-          type:  `Tier ${p.pricing.length + 1}`,
+          type: `Tier ${p.pricing.length + 1}`,
           color: TIER_COLORS[p.pricing.length % TIER_COLORS.length].value,
         }),
       ],
@@ -509,7 +505,7 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
   const handleAddMember = () => {
     const email = newEmail.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Enter a valid email."); return; }
-    if (teamMembers.some((m) => m.email === email))  { toast.error("Already added.");       return; }
+    if (teamMembers.some((m) => m.email === email)) { toast.error("Already added."); return; }
     setTeamMembers((p) => [...p, { email, role: newRole }]);
     setNewEmail("");
     setNewRole("co_organizer");
@@ -537,24 +533,24 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
       }
       return {
         ...prev,
-        title:        aiData.title        || prev.title,
-        description:  aiData.description  || prev.description,
-        category:     aiData.category     || prev.category,
-        location:     aiData.location     !== undefined ? aiData.location : prev.location,
-        eventType:    aiData.eventType    || prev.eventType,
-        startDate:    aiData.startDate    || aiData.date || prev.startDate,
-        startTime:    aiData.startTime    || aiData.time || prev.startTime,
-        endDate:      aiData.endDate      || aiData.date || prev.endDate,
-        endTime:      aiData.endTime      || aiData.time || prev.endTime,
+        title: aiData.title || prev.title,
+        description: aiData.description || prev.description,
+        category: aiData.category || prev.category,
+        location: aiData.location !== undefined ? aiData.location : prev.location,
+        eventType: aiData.eventType || prev.eventType,
+        startDate: aiData.startDate || aiData.date || prev.startDate,
+        startTime: aiData.startTime || aiData.time || prev.startTime,
+        endDate: aiData.endDate || aiData.date || prev.endDate,
+        endTime: aiData.endTime || aiData.time || prev.endTime,
         totalTickets: aiData.totalTickets
           ? String(aiData.totalTickets)
           : aiData.capacity
-          ? String(aiData.capacity)
-          : prev.totalTickets,
-        pricing:      nextPricing,
-        visibility:   aiData.visibility   || prev.visibility,
-        streamType:   aiData.streamType   || prev.streamType,
-        streamURL:    aiData.streamURL    !== undefined ? aiData.streamURL : prev.streamURL,
+            ? String(aiData.capacity)
+            : prev.totalTickets,
+        pricing: nextPricing,
+        visibility: aiData.visibility || prev.visibility,
+        streamType: aiData.streamType || prev.streamType,
+        streamURL: aiData.streamURL !== undefined ? aiData.streamURL : prev.streamURL,
       };
     });
 
@@ -605,15 +601,15 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
       payload.append("isFree", isFreeEvent ? "true" : "false");
       if (imageFile) payload.append("image", imageFile);
 
-      const res          = await API.put(`/events/update/${eventId}`, payload);
+      const res = await API.put(`/events/update/${eventId}`, payload);
       const updatedEvent = res.data?.event;
 
       if (teamMembers.length && updatedEvent?._id) {
         const results = await Promise.allSettled(
           teamMembers.map((m) =>
             teamService.inviteTeamMember(updatedEvent._id, {
-              email:   m.email,
-              role:    m.role,
+              email: m.email,
+              role: m.role,
               message: `You were invited to join ${form.title}`,
             })
           )
@@ -698,11 +694,10 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                 type="button"
                 onClick={() => goStep(s.id)}
                 title={s.title}
-                className={`h-1.5 rounded-full transition-all ${
-                  s.id === activeStep ? "w-5 bg-pink-500"
+                className={`h-1.5 rounded-full transition-all ${s.id === activeStep ? "w-5 bg-pink-500"
                   : s.id < activeStep ? "w-2 bg-green-400"
-                  : "w-2 bg-gray-200 hover:bg-gray-300"
-                }`}
+                    : "w-2 bg-gray-200 hover:bg-gray-300"
+                  }`}
               />
             ))}
           </div>
@@ -729,9 +724,8 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                 {steps.map((s) => (
                   <div
                     key={s.id}
-                    className={`h-1 rounded-full transition-all ${
-                      s.id <= activeStep ? "flex-1 bg-pink-400" : "w-2 bg-white/20"
-                    }`}
+                    className={`h-1 rounded-full transition-all ${s.id <= activeStep ? "flex-1 bg-pink-400" : "w-2 bg-white/20"
+                      }`}
                   />
                 ))}
               </div>
@@ -745,9 +739,9 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
               <div className="space-y-1 rounded-xl border border-gray-100 bg-white p-2.5 text-[0.63rem]">
                 <div className="truncate font-semibold text-gray-800">{form.title || "Untitled event"}</div>
                 {[
-                  ["Access",  form.visibility === "private" ? "Private" : "Public"],
+                  ["Access", form.visibility === "private" ? "Private" : "Public"],
                   ["Pricing", isFreeEvent ? "Free" : "Paid"],
-                  ["Team",    `${teamMembers.length} added`],
+                  ["Team", `${teamMembers.length} added`],
                 ].map(([label, val]) => (
                   <div key={label} className="flex justify-between text-gray-400">
                     <span>{label}</span>
@@ -806,11 +800,10 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                             if (!canUseTickiAI) { promptUpgradeAI(); return; }
                             setShowAIGen((p) => !p);
                           }}
-                          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-                            showAIGen
-                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              : "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600"
-                          }`}
+                          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition ${showAIGen
+                            ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            : "bg-pink-500 text-white shadow-md shadow-pink-500/25 hover:bg-pink-600"
+                            }`}
                         >
                           <Wand2 size={12} />
                           {showAIGen ? "Hide AI" : "Use TickiAI"}
@@ -842,13 +835,11 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                               key={name}
                               type="button"
                               onClick={() => setForm((p) => ({ ...p, eventType: name }))}
-                              className={`rounded-xl border p-3 text-left transition ${
-                                active ? "border-pink-300 bg-pink-50" : "border-gray-200 bg-gray-50 hover:border-pink-200"
-                              }`}
+                              className={`rounded-xl border p-3 text-left transition ${active ? "border-pink-300 bg-pink-50" : "border-gray-200 bg-gray-50 hover:border-pink-200"
+                                }`}
                             >
-                              <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${
-                                active ? "bg-pink-500 text-white" : "border border-gray-200 bg-white text-gray-400"
-                              }`}>
+                              <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${active ? "bg-pink-500 text-white" : "border border-gray-200 bg-white text-gray-400"
+                                }`}>
                                 <Icon size={15} />
                               </div>
                               <div className={`text-xs font-semibold ${active ? "text-pink-700" : "text-gray-800"}`}>{name}</div>
@@ -899,8 +890,8 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         <div><FieldLabel>Start date</FieldLabel><input type="date" name="startDate" value={form.startDate} onChange={hc} className={F} /></div>
                         <div><FieldLabel>Start time</FieldLabel><input type="time" name="startTime" value={form.startTime} onChange={hc} className={F} /></div>
-                        <div><FieldLabel>End date</FieldLabel>  <input type="date" name="endDate"   value={form.endDate}   onChange={hc} className={F} /></div>
-                        <div><FieldLabel>End time</FieldLabel>  <input type="time" name="endTime"   value={form.endTime}   onChange={hc} className={F} /></div>
+                        <div><FieldLabel>End date</FieldLabel>  <input type="date" name="endDate" value={form.endDate} onChange={hc} className={F} /></div>
+                        <div><FieldLabel>End time</FieldLabel>  <input type="time" name="endTime" value={form.endTime} onChange={hc} className={F} /></div>
                       </div>
                     </Card>
                   </>
@@ -1251,8 +1242,8 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
                           <div className="space-y-2 text-xs">
                             {[
                               [Calendar, `${form.startDate || "No date"}${form.startTime ? ` · ${form.startTime}` : ""}`],
-                              [Users,    form.location || "No location"],
-                              [Ticket,   `${form.totalTickets || 0} tickets`],
+                              [Users, form.location || "No location"],
+                              [Ticket, `${form.totalTickets || 0} tickets`],
                             ].map(([Icon, text]) => (
                               <div key={text} className="flex items-start gap-2">
                                 <Icon size={12} className="mt-0.5 shrink-0 text-pink-400" />
