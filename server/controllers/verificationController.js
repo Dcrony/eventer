@@ -1,12 +1,16 @@
 const OrganizerVerification = require("../models/OrganizerVerification");
 const User = require("../models/User");
+const ActivityLog = require("../models/ActivityLog");
 const { uploadImageBuffer, cloudinary } = require("../utils/cloudinaryMedia");
 const { uploadImageMemory } = require("../middleware/imageUploadMemory");
 const sendEmail = require("../utils/email");
+const { createNotification } = require("../services/notificationService");
 const {
   verificationRequestNotificationEmail,
   verificationApprovedEmail,
   verificationRejectedEmail,
+  verificationResubmissionRequestEmail,
+  verificationSuspendedEmail,
 } = require("../utils/emailTemplates");
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "tickispot@gmail.com";
@@ -243,5 +247,309 @@ exports.getVerificationById = async (req, res) => {
   } catch (error) {
     console.error("getVerificationById error:", error);
     return res.status(500).json({ message: "Failed to fetch verification request" });
+  }
+};
+
+// Admin: Request resubmission with specific instructions
+exports.adminRequestResubmission = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { instructions = "" } = req.body;
+
+    if (!instructions || instructions.trim().length === 0) {
+      return res.status(400).json({ message: "Resubmission instructions are required" });
+    }
+
+    const verification = await OrganizerVerification.findById(id);
+    if (!verification) return res.status(404).json({ message: "Verification request not found" });
+
+    const organizer = await User.findById(verification.organizer).select("name email");
+
+    // Update verification status
+    const previousStatus = verification.status;
+    verification.status = "resubmission_required";
+    verification.resubmissionInstructions = instructions;
+    verification.reviewedBy = req.user._id;
+    verification.reviewedAt = new Date();
+    await verification.save();
+
+    // Log admin activity
+    await ActivityLog.create({
+      adminId: req.user._id,
+      action: "VERIFICATION_RESUBMISSION_REQUESTED",
+      targetType: "OrganizerVerification",
+      targetId: verification._id,
+      details: `Resubmission requested for ${organizer?.name || "Organizer"}`,
+      ipAddress: req.ip || null,
+      meta: {
+        actorRole: req.user.role,
+        organizerId: String(verification.organizer),
+        previousStatus,
+        instructions: instructions.substring(0, 200),
+      },
+    }).catch((err) => console.error("Failed to log admin activity:", err));
+
+    // Send notification to organizer
+    if (organizer?.email) {
+      sendEmail({
+        to: organizer.email,
+        subject: "Your organizer verification requires resubmission",
+        html: verificationResubmissionRequestEmail(
+          organizer.name || "Organizer",
+          instructions,
+          `${FRONTEND_URL}/verification/submit`,
+        ),
+        type: "organizer_verification_resubmission_requested",
+        relatedType: "OrganizerVerification",
+        relatedId: verification._id,
+        metadata: {
+          organizerId: String(verification.organizer),
+          reviewAction: "resubmit",
+        },
+      }).catch((err) => console.error("Resubmission request email failed:", err));
+    }
+
+    // Create in-app notification
+    createNotification({
+      userId: verification.organizer,
+      type: "verification_resubmission_requested",
+      message: "Your verification requires resubmission. Please review the instructions and resubmit your documents.",
+      actionUrl: `${FRONTEND_URL}/verification/submit`,
+      entityId: verification._id,
+      entityType: "OrganizerVerification",
+      meta: { instructions },
+    }).catch((err) => console.error("Failed to create notification:", err));
+
+    return res.json({ success: true, verification });
+  } catch (error) {
+    console.error("adminRequestResubmission error:", error);
+    return res.status(500).json({ message: "Failed to request resubmission" });
+  }
+};
+
+// Admin: Suspend verification (mark as under investigation)
+exports.adminSuspendVerification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = "", investigationNotes = "" } = req.body;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({ message: "Suspension reason is required" });
+    }
+
+    const verification = await OrganizerVerification.findById(id);
+    if (!verification) return res.status(404).json({ message: "Verification request not found" });
+
+    const organizer = await User.findById(verification.organizer).select("name email");
+
+    // Update verification status
+    const previousStatus = verification.status;
+    verification.status = "suspended";
+    verification.suspension_reason = reason;
+    verification.suspended_by = req.user._id;
+    verification.suspended_at = new Date();
+    verification.investigation_notes = investigationNotes || "";
+    verification.reviewedBy = req.user._id;
+    verification.reviewedAt = new Date();
+
+    // Add verification attempt record
+    if (!verification.verification_attempts) {
+      verification.verification_attempts = [];
+    }
+    verification.verification_attempts.push({
+      attemptNumber: verification.verification_attempts.length + 1,
+      submittedAt: verification.createdAt,
+      documentCount: verification.documents.length,
+      status: "suspended",
+      notes: reason,
+    });
+
+    await verification.save();
+
+    // Add fraud flag if verification has high risk score
+    if (verification.risk_score > 70) {
+      const FraudFlag = require("../models/FraudFlag");
+      await FraudFlag.updateOne(
+        { targetId: verification.organizer, targetType: "User" },
+        {
+          $set: {
+            targetId: verification.organizer,
+            targetType: "User",
+            flagReason: `Verification suspended: ${reason}`,
+            severity: "high",
+            flaggedBy: req.user._id,
+            flaggedAt: new Date(),
+          },
+        },
+        { upsert: true }
+      ).catch((err) => console.error("Failed to create fraud flag:", err));
+    }
+
+    // Log admin activity
+    await ActivityLog.create({
+      adminId: req.user._id,
+      action: "VERIFICATION_SUSPENDED",
+      targetType: "OrganizerVerification",
+      targetId: verification._id,
+      details: `Verification suspended for ${organizer?.name || "Organizer"}: ${reason}`,
+      ipAddress: req.ip || null,
+      meta: {
+        actorRole: req.user.role,
+        organizerId: String(verification.organizer),
+        previousStatus,
+        suspensionReason: reason,
+      },
+    }).catch((err) => console.error("Failed to log admin activity:", err));
+
+    // Send notification to organizer
+    if (organizer?.email) {
+      sendEmail({
+        to: organizer.email,
+        subject: "Your organizer verification is under review",
+        html: verificationSuspendedEmail(
+          organizer.name || "Organizer",
+          reason,
+          `${FRONTEND_URL}/verification/me`,
+        ),
+        type: "organizer_verification_suspended",
+        relatedType: "OrganizerVerification",
+        relatedId: verification._id,
+        metadata: {
+          organizerId: String(verification.organizer),
+          suspensionReason: reason,
+        },
+      }).catch((err) => console.error("Suspension email failed:", err));
+    }
+
+    // Create in-app notification
+    createNotification({
+      userId: verification.organizer,
+      type: "verification_suspended",
+      message: `Your verification is under review. Reason: ${reason}`,
+      actionUrl: `${FRONTEND_URL}/verification/me`,
+      entityId: verification._id,
+      entityType: "OrganizerVerification",
+      meta: { reason },
+    }).catch((err) => console.error("Failed to create notification:", err));
+
+    return res.json({ success: true, verification });
+  } catch (error) {
+    console.error("adminSuspendVerification error:", error);
+    return res.status(500).json({ message: "Failed to suspend verification" });
+  }
+};
+
+// Admin: Restore verification (from suspended)
+exports.adminRestoreVerification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action = "requeue", notes = "" } = req.body; // action: requeue|approve|reject
+
+    const verification = await OrganizerVerification.findById(id);
+    if (!verification) return res.status(404).json({ message: "Verification request not found" });
+
+    if (verification.status !== "suspended") {
+      return res.status(400).json({ message: "Only suspended verifications can be restored" });
+    }
+
+    const organizer = await User.findById(verification.organizer).select("name email");
+    const previousStatus = verification.status;
+
+    if (action === "requeue") {
+      // Put back to pending for review
+      verification.status = "pending";
+      verification.suspension_reason = "";
+      verification.suspended_by = null;
+      verification.suspended_at = null;
+    } else if (action === "approve") {
+      verification.status = "approved";
+      verification.reviewedBy = req.user._id;
+      verification.reviewedAt = new Date();
+      verification.suspension_reason = "";
+      verification.suspended_by = null;
+      verification.suspended_at = null;
+      await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: true } });
+    } else if (action === "reject") {
+      verification.status = "rejected";
+      verification.rejectionReason = notes || "Verification rejected after review";
+      verification.reviewedBy = req.user._id;
+      verification.reviewedAt = new Date();
+      verification.suspension_reason = "";
+      verification.suspended_by = null;
+      verification.suspended_at = null;
+    } else {
+      return res.status(400).json({ message: "Invalid action. Use: requeue, approve, or reject" });
+    }
+
+    await verification.save();
+
+    // Log admin activity
+    await ActivityLog.create({
+      adminId: req.user._id,
+      action: "VERIFICATION_RESTORED",
+      targetType: "OrganizerVerification",
+      targetId: verification._id,
+      details: `Verification restored for ${organizer?.name || "Organizer"} with action: ${action}`,
+      ipAddress: req.ip || null,
+      meta: {
+        actorRole: req.user.role,
+        organizerId: String(verification.organizer),
+        previousStatus,
+        restorationAction: action,
+      },
+    }).catch((err) => console.error("Failed to log admin activity:", err));
+
+    // Create in-app notification
+    createNotification({
+      userId: verification.organizer,
+      type: "verification_status_updated",
+      message: `Your verification has been ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "requeued"}`,
+      actionUrl: `${FRONTEND_URL}/verification/me`,
+      entityId: verification._id,
+      entityType: "OrganizerVerification",
+    }).catch((err) => console.error("Failed to create notification:", err));
+
+    return res.json({ success: true, verification });
+  } catch (error) {
+    console.error("adminRestoreVerification error:", error);
+    return res.status(500).json({ message: "Failed to restore verification" });
+  }
+};
+
+// Admin: Get verification audit history
+exports.getVerificationAuditHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const verification = await OrganizerVerification.findById(id);
+    if (!verification) return res.status(404).json({ message: "Verification request not found" });
+
+    // Get all admin actions related to this verification
+    const auditHistory = await ActivityLog.find({
+      targetType: "OrganizerVerification",
+      targetId: verification._id,
+    })
+      .populate("adminId", "name email role")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Also get all USER_VERIFIED/USER_UNVERIFIED actions for this organizer
+    const userAuditHistory = await ActivityLog.find({
+      action: { $in: ["USER_VERIFIED", "USER_UNVERIFIED"] },
+      targetId: verification.organizer,
+      targetType: "User",
+      createdAt: {
+        $gte: new Date(verification.createdAt.getTime() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
+      },
+    })
+      .populate("adminId", "name email role")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const combinedHistory = [...auditHistory, ...userAuditHistory].sort((a, b) => b.createdAt - a.createdAt);
+
+    return res.json({ success: true, auditHistory: combinedHistory });
+  } catch (error) {
+    console.error("getVerificationAuditHistory error:", error);
+    return res.status(500).json({ message: "Failed to fetch audit history" });
   }
 };
