@@ -244,8 +244,8 @@ export default function Dashboard() {
               <StatCard title="Tickets Sold" value={formatNumber(stats.totalTicketsSold)} icon={Ticket} color="pink" />
               <StatCard title="Revenue" value={`₦${formatNumber(stats.totalRevenue)}`} icon={BarChart3} color="green" />
               <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
-              <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" />
-              <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" />
+              {/* <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" /> */}
+              {/* <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" /> */}
             </div>
           )}
 
@@ -529,11 +529,31 @@ export default function Dashboard() {
                   <div className="p-4 flex-1 flex flex-col gap-2.5">
                     <div className="flex justify-between items-start gap-3">
                       <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{event.title}</h3>
-                      {event.liveStream?.isLive && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
-                          LIVE
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {event.eventLifecycleStatus && (
+                          (() => {
+                            const statusConfig = {
+                              Live: { bg: 'bg-red-500', text: 'LIVE', animate: 'animate-pulse' },
+                              Upcoming: { bg: 'bg-blue-500', text: 'Upcoming' },
+                              Ended: { bg: 'bg-gray-500', text: 'Ended' },
+                              Cancelled: { bg: 'bg-red-600', text: 'Cancel' },
+                              Suspended: { bg: 'bg-red-700', text: 'Suspended' },
+                              Published: { bg: 'bg-green-600', text: 'Live' },
+                            };
+                            const config = statusConfig[event.eventLifecycleStatus];
+                            return config ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full ${config.bg} text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg ${config.animate || ''}`}>
+                                {config.text}
+                              </span>
+                            ) : null;
+                          })()
+                        )}
+                        {event.liveStream?.isLive && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full bg-red-500 text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg shadow-red-500/30 animate-pulse">
+                            LIVE
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-gray-400 line-clamp-2">{event.description || "No description provided."}</p>
                     <div className="mt-auto space-y-1.5">

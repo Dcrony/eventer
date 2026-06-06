@@ -719,13 +719,13 @@ export default function Profile() {
         )}
 
         {/* ── Featured Events Section (if profile is organizer) ── */}
-        {profile?.role === "organizer" && (
+        {/* {profile?.role === "organizer" && (
           <FeaturedEventsSection
             created={profile?.createdEvents || []}
             collaborator={profile?.featuredEvents || []}
             organizerId={profile._id}
           />
-        )}
+        )} */}
 
         {/* ── Content Card ── */}
         <div className="bg-transparent p-4 sm:p-5">

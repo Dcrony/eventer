@@ -340,8 +340,27 @@ export default function EventDetail() {
   const showLiveAction = canManageEventLivestream(event);
   const isSoldOut = remainingTickets <= 0;
   const freeTicketClaimed = (isEventFree || selectedTicketType?.isFree) && alreadyHasFreeTicket;
-  const buyDisabled = isSoldOut || freeTicketClaimed;
-  const buyLabel = isSoldOut ? "Sold out" : freeTicketClaimed ? "Already reserved" : "Get tickets";
+
+  // Check event lifecycle status
+  const isEventEnded = event.eventLifecycleStatus === 'Ended';
+  const isEventCancelled = event.eventLifecycleStatus === 'Cancelled';
+  const isEventSuspended = event.eventLifecycleStatus === 'Suspended';
+  const isEventDraft = event.eventLifecycleStatus === 'Draft' || event.eventLifecycleStatus === 'Pending Approval';
+
+  const buyDisabled = isSoldOut || freeTicketClaimed || isEventEnded || isEventCancelled || isEventSuspended || isEventDraft;
+  const buyLabel = isEventEnded
+    ? "Event ended"
+    : isEventCancelled
+      ? "Event cancelled"
+      : isEventSuspended
+        ? "Event unavailable"
+        : isEventDraft
+          ? "Event not available"
+          : isSoldOut
+            ? "Sold out"
+            : freeTicketClaimed
+              ? "Already reserved"
+              : "Get tickets";
 
   return (
     <>
@@ -398,6 +417,22 @@ export default function EventDetail() {
                   </div>
 
                   <div className="space-y-2">
+                    {/* Event Lifecycle Status Banner */}
+                    {(isEventEnded || isEventCancelled || isEventSuspended) && (
+                      <div className={`p-3 rounded-lg border text-sm font-semibold ${isEventEnded ? 'bg-gray-100 border-gray-300 text-gray-700' :
+                          isEventCancelled ? 'bg-red-50 border-red-300 text-red-700' :
+                            'bg-yellow-50 border-yellow-300 text-yellow-700'
+                        }`}>
+                        {isEventEnded && '🏁 This event has ended.'}
+                        {isEventCancelled && `❌ This event has been cancelled. ${event.cancellationReason ? `Reason: ${event.cancellationReason}` : ''}`}
+                        {isEventSuspended && `⚠️ This event is temporarily unavailable. ${event.suspensionReason ? `Reason: ${event.suspensionReason}` : ''}`}
+                      </div>
+                    )}
+                    {event.eventLifecycleStatus === 'Live' && (
+                      <div className="p-3 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm font-semibold animate-pulse">
+                        🔴 This event is LIVE NOW!
+                      </div>
+                    )}
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">{event.title}</h1>
                     <p className="text-sm text-gray-400 leading-relaxed">{event.description}</p>
                   </div>

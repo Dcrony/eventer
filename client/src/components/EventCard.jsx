@@ -168,6 +168,27 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
 
             {/* Topline Badges */}
             <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2 z-10">
+              {/* Lifecycle Status Badge */}
+              {eventState.eventLifecycleStatus && (
+                (() => {
+                  const statusConfig = {
+                    Live: { bg: 'bg-red-500', text: 'LIVE 🔴', className: 'animate-pulse' },
+                    Upcoming: { bg: 'bg-blue-500', text: 'Upcoming' },
+                    Ended: { bg: 'bg-gray-500', text: 'Ended' },
+                    Cancelled: { bg: 'bg-red-600', text: 'Cancelled' },
+                    Suspended: { bg: 'bg-red-700', text: 'Suspended' },
+                    Draft: { bg: 'bg-gray-600', text: 'Draft' },
+                    'Pending Approval': { bg: 'bg-amber-600', text: 'Pending' },
+                    Published: { bg: 'bg-green-600', text: 'Published' },
+                  };
+                  const config = statusConfig[eventState.eventLifecycleStatus];
+                  return config ? (
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full ${config.bg} text-[0.65rem] font-bold uppercase tracking-wide text-white shadow-sm ${config.className || ''}`}>
+                      {config.text}
+                    </span>
+                  ) : null;
+                })()
+              )}
               {eventState.status === "pending" && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/95 text-[0.65rem] font-bold uppercase tracking-wide text-white shadow-sm">
                   Pending review
@@ -189,8 +210,8 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
               onClick={handleFavorite}
               disabled={favoriteLoading}
               className={`absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full text-[0.65rem] font-semibold transition-all duration-200 z-10 ${favorited
-                  ? "bg-pink-500 text-white shadow-md shadow-pink-500/30"
-                  : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500 border border-gray-200"
+                ? "bg-pink-500 text-white shadow-md shadow-pink-500/30"
+                : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500 border border-gray-200"
                 }`}
               aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
             >
@@ -253,6 +274,14 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                     style={{ width: `${soldPercentage}%` }}
                   />
                 </div>
+                {/* Sold Out Badge */}
+                {soldPercentage >= 100 && (
+                  <div className="mt-2 text-center">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-800 text-[0.65rem] font-bold uppercase tracking-wide text-white shadow-sm">
+                      🎫 Sold Out
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

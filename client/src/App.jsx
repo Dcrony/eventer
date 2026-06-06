@@ -79,7 +79,8 @@ const AdminFinance = lazy(() => import("./pages/AdminFinance"));
 const AdminModeration = lazy(() => import("./pages/AdminModeration"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminPayouts = lazy(() => import("./pages/AdminPayouts"));
-const EventTickets = lazy(() => import("./pages/EventTickets"));
+const AdminVerification = lazy(() => import("./pages/AdminVerification"));
+ const EventTickets = lazy(() => import("./pages/EventTickets"));
 const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const CreateEventRedirect = lazy(() => import("./pages/CreateEventRedirect"));
@@ -312,6 +313,14 @@ function Layout() {
                 element={
                   <AdminRoute>
                     <AdminPayouts />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/verification"
+                element={
+                  <AdminRoute>
+                    <AdminVerification />
                   </AdminRoute>
                 }
               />
