@@ -8,6 +8,7 @@ import { formatDateTime } from "../utils/adminUtils";
 const adminNav = [
   { to: "/admin/dashboard", label: "Overview" },
   { to: "/admin/users", label: "Users" },
+  { to: "/admin/verification", label: "Verification" },
   { to: "/admin/events", label: "Events" },
   { to: "/admin/transactions", label: "Transactions" },
   { to: "/admin/withdrawals", label: "Withdrawals" },
@@ -163,11 +164,10 @@ export default function AdminLayout({
                       key={item.to}
                       to={item.to}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all ${
-                        active
+                      className={`flex items-center justify-between rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all ${active
                           ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md shadow-pink-500/25"
                           : "text-gray-600 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <span>{item.label}</span>
                       {active ? <Sparkles size={14} /> : null}
