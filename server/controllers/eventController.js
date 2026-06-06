@@ -24,6 +24,11 @@ const {
   uploadImageBuffer,
   destroyCloudinaryImage,
 } = require("../utils/cloudinaryMedia");
+const {
+  transitionEventStatus,
+  getEventStatusInfo,
+  calculateEventStatus,
+} = require("../utils/eventLifecycle");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -876,4 +881,262 @@ exports.getEventAnalytics = async (req, res) => {
 
 exports.recordTicketPurchaseMetrics = (event, quantity, revenue) => {
   recordEventMetrics(event, { ticketsSold: Number(quantity || 0), revenue: Number(revenue || 0) });
+};
+
+/* ─── EVENT LIFECYCLE MANAGEMENT ──────────────────────────────────────────── */
+
+/**
+ * Publish an event (move from draft to published state)
+ * PATCH /api/events/:eventId/publish
+ */
+exports.publishEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canEditEvent",
+      deniedMessage: "You do not have permission to publish this event",
+    });
+
+    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+
+    const event = lookup.event;
+
+    // Event must be in draft or pending state
+    if (!event.isDraft && event.eventLifecycleStatus !== "Pending Approval") {
+      return res.status(400).json({
+        message: "This event cannot be published. It has already been published.",
+      });
+    }
+
+    // Transition to published
+    const updated = await transitionEventStatus(eventId, "Published", {
+      reason: "manual_publish",
+      userId: req.user.id,
+    });
+
+    // Notify organizer
+    await createNotification(req.app, {
+      userId: String(req.user.id),
+      type: "event_published",
+      message: `Your event "${updated.title}" has been published!`,
+      actionUrl: `/Eventdetail/${updated._id}`,
+      entityId: updated._id,
+      entityType: "event",
+    });
+
+    return res.status(200).json({
+      message: "Event published successfully",
+      event: updated,
+    });
+  } catch (err) {
+    console.error("Publish event error:", err.message);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * Cancel an event
+ * PATCH /api/events/:eventId/cancel
+ * body: { reason?: string }
+ */
+exports.cancelEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { reason = "" } = req.body;
+
+    const lookup = await authorizeEventAction({
+      eventId,
+      user: req.user,
+      permission: "canDeleteEvent",
+      deniedMessage: "You do not have permission to cancel this event",
+    });
+
+    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+
+    const event = lookup.event;
+
+    // Cannot cancel already ended events
+    if (event.eventLifecycleStatus === "Ended" || event.eventLifecycleStatus === "Cancelled") {
+      return res.status(400).json({
+        message: `Cannot cancel an event that has already ${event.eventLifecycleStatus.toLowerCase()}`,
+      });
+    }
+
+    // Transition to cancelled
+    const updated = await transitionEventStatus(eventId, "Cancelled", {
+      reason: reason || "Cancelled by organizer",
+      cancelledBy: req.user.id,
+    });
+
+    // Notify all ticket buyers
+    const tickets = await Ticket.find({ event: eventId }).distinct("buyer");
+    for (const buyerId of tickets) {
+      await createNotification(req.app, {
+        userId: String(buyerId),
+        type: "event_cancelled",
+        message: `Event "${updated.title}" has been cancelled. ${reason ? "Reason: " + reason : ""}`,
+        actionUrl: `/Eventdetail/${updated._id}`,
+        entityId: updated._id,
+        entityType: "event",
+      });
+    }
+
+    // Notify organizer
+    await createNotification(req.app, {
+      userId: String(req.user.id),
+      type: "event_cancelled",
+      message: `Your event "${updated.title}" has been cancelled.`,
+      actionUrl: `/Eventdetail/${updated._id}`,
+      entityId: updated._id,
+      entityType: "event",
+    });
+
+    return res.status(200).json({
+      message: "Event cancelled successfully",
+      event: updated,
+    });
+  } catch (err) {
+    console.error("Cancel event error:", err.message);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * Suspend an event (admin-only)
+ * PATCH /api/events/:eventId/suspend
+ * body: { reason?: string }
+ */
+exports.suspendEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { reason = "" } = req.body;
+
+    // Only admins can suspend
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ message: "Only admins can suspend events" });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // Cannot suspend already ended or cancelled events
+    if (event.eventLifecycleStatus === "Ended" || event.eventLifecycleStatus === "Cancelled") {
+      return res.status(400).json({
+        message: `Cannot suspend an event that has already ${event.eventLifecycleStatus.toLowerCase()}`,
+      });
+    }
+
+    // Transition to suspended
+    const updated = await transitionEventStatus(eventId, "Suspended", {
+      reason: reason || "Suspended by admin",
+      suspendedBy: req.user.id,
+    });
+
+    // Notify organizer
+    await createNotification(req.app, {
+      userId: String(event.createdBy),
+      type: "event_suspended",
+      message: `Your event "${updated.title}" has been suspended. ${reason ? "Reason: " + reason : ""}`,
+      actionUrl: `/Eventdetail/${updated._id}`,
+      entityId: updated._id,
+      entityType: "event",
+    });
+
+    return res.status(200).json({
+      message: "Event suspended successfully",
+      event: updated,
+    });
+  } catch (err) {
+    console.error("Suspend event error:", err.message);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * Restore a suspended event (admin-only)
+ * PATCH /api/events/:eventId/restore
+ */
+exports.restoreEvent = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Only admins can restore
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ message: "Only admins can restore events" });
+    }
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    // Can only restore suspended events
+    if (event.eventLifecycleStatus !== "Suspended") {
+      return res.status(400).json({
+        message: "Can only restore suspended events",
+      });
+    }
+
+    // Transition back to calculated status
+    const updated = await transitionEventStatus(eventId, "Restored");
+
+    // Notify organizer
+    await createNotification(req.app, {
+      userId: String(event.createdBy),
+      type: "event_restored",
+      message: `Your event "${updated.title}" has been restored.`,
+      actionUrl: `/Eventdetail/${updated._id}`,
+      entityId: updated._id,
+      entityType: "event",
+    });
+
+    return res.status(200).json({
+      message: "Event restored successfully",
+      event: updated,
+    });
+  } catch (err) {
+    console.error("Restore event error:", err.message);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+/**
+ * Get event status information
+ * GET /api/events/:eventId/status-info
+ */
+exports.getEventStatusInfo = async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Event not found" });
+
+    const currentUserId = getCurrentUserIdFromRequest(req);
+    const visibility = await canViewEvent(event, currentUserId, { allowPrivateLink: true });
+    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+
+    const statusInfo = getEventStatusInfo(event);
+    const status = event.eventLifecycleStatus || calculateEventStatus(event);
+
+    return res.status(200).json({
+      status,
+      info: statusInfo,
+      event: {
+        id: event._id,
+        title: event.title,
+        startDate: event.startDate,
+        startTime: event.startTime,
+        endDate: event.endDate,
+        endTime: event.endTime,
+        salesDeadlineDate: event.salesDeadlineDate,
+        salesDeadlineTime: event.salesDeadlineTime,
+        cancellationReason: event.cancellationReason,
+        suspensionReason: event.suspensionReason,
+      },
+    });
+  } catch (err) {
+    console.error("Get event status info error:", err.message);
+    return res.status(500).json({ message: "Server error", error: err.message });
+  }
 };

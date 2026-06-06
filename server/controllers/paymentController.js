@@ -16,6 +16,7 @@ const {
   computeTicketOrderTotal,
   amountsMatch,
 } = require("../utils/ticketPricing");
+const { canPurchaseTickets } = require("../utils/eventLifecycle");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -56,6 +57,13 @@ exports.initiatePayment = async (req, res) => {
     if (!event.createdBy) {
       return res.status(400).json({ message: "This event has no organizer" });
     }
+
+    /* ─── EVENT LIFECYCLE VALIDATION ────────────────────────────────── */
+    const purchaseAllowed = canPurchaseTickets(event);
+    if (!purchaseAllowed.allowed) {
+      return res.status(400).json({ message: purchaseAllowed.reason });
+    }
+    /* ─────────────────────────────────────────────────────────────────── */
 
     const organizer = await User.findById(event.createdBy);
 
@@ -199,6 +207,14 @@ exports.verifyPayment = async (req, res) => {
       if (!visibility.allowed) {
         return res.status(404).json({ message: "Event not found" });
       }
+
+      /* ─── EVENT LIFECYCLE VALIDATION ────────────────────────────────── */
+      const purchaseAllowed = canPurchaseTickets(event);
+      if (!purchaseAllowed.allowed) {
+        console.warn("❌ Purchase not allowed:", purchaseAllowed.reason);
+        return res.status(400).json({ message: purchaseAllowed.reason });
+      }
+      /* ─────────────────────────────────────────────────────────────────── */
 
       if (event.totalTickets < quantity)
         return res

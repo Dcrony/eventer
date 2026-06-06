@@ -997,21 +997,24 @@ exports.updateEventStatus = async (req, res) => {
     }
     await event.save();
 
-    await Notification.create({
-      user: event.createdBy._id,
-      title: `Event ${status[0].toUpperCase()}${status.slice(1)}`,
-      message:
-        status === "approved"
-          ? `Your event "${event.title}" has been approved and is now visible on TickiSpot.`
-          : `Your event "${event.title}" is now ${status}.${reason ? ` Reason: ${reason}` : ""}`,
-      type:
-        status === "approved"
-          ? "event_approved"
-          : status === "rejected"
-            ? "event_rejected"
-            : "event_update",
-      relatedId: event._id,
-    });
+    // Only notify if createdBy exists (user may have been deleted)
+    if (event.createdBy?._id) {
+      await Notification.create({
+        user: event.createdBy._id,
+        title: `Event ${status[0].toUpperCase()}${status.slice(1)}`,
+        message:
+          status === "approved"
+            ? `Your event "${event.title}" has been approved and is now visible on TickiSpot.`
+            : `Your event "${event.title}" is now ${status}.${reason ? ` Reason: ${reason}` : ""}`,
+        type:
+          status === "approved"
+            ? "event_approved"
+            : status === "rejected"
+              ? "event_rejected"
+              : "event_update",
+        relatedId: event._id,
+      });
+    }
 
     await logAdminActivity(
       req,
@@ -1027,7 +1030,6 @@ exports.updateEventStatus = async (req, res) => {
     return res.status(500).json({ message: "Failed to update event status" });
   }
 };
-
 exports.toggleEventFeatured = async (req, res) => {
   try {
     const { eventId } = req.params;

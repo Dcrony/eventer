@@ -1,8 +1,3 @@
-/**
- * Rating Controller
- * Handles event reviews, organizer reviews, and reports
- */
-
 const mongoose = require("mongoose");
 const Rating = require("../models/Rating");
 const Report = require("../models/Report");
@@ -12,15 +7,11 @@ const User = require("../models/User");
 const reputationService = require("../services/reputationService");
 const { createNotification } = require("../services/notificationService");
 
-/**
- * Submit a review for an event or organizer
- */
 exports.submitReview = async (req, res) => {
   try {
     const { targetType, targetId, rating, review, organizerAspects, eventAspects, eventId } = req.body;
     const reviewerId = req.user._id || req.user.id;
 
-    // Validation
     if (!["event", "organizer"].includes(targetType)) {
       return res.status(400).json({ message: "Invalid target type" });
     }
@@ -29,7 +20,6 @@ exports.submitReview = async (req, res) => {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
-    // Check if target exists
     if (targetType === "event") {
       const event = await Event.findById(targetId).lean();
       if (!event) return res.status(404).json({ message: "Event not found" });
@@ -38,28 +28,25 @@ exports.submitReview = async (req, res) => {
       if (!organizer) return res.status(404).json({ message: "Organizer not found" });
     }
 
-    // Check if user already reviewed this target
     const existingReview = await Rating.findOne({
       reviewer: reviewerId,
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
     });
 
     if (existingReview) {
       return res.status(400).json({ message: "You have already reviewed this" });
     }
 
-    // Check attendance if event review
     let wasAttendee = false;
     if (targetType === "event" && eventId) {
       wasAttendee = await reputationService.didUserAttendEvent(reviewerId, eventId);
     }
 
-    // Create rating
     const newRating = new Rating({
       reviewer: reviewerId,
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
       event: eventId || null,
       organizer: targetType === "organizer" ? targetId : null,
       rating,
@@ -70,7 +57,6 @@ exports.submitReview = async (req, res) => {
       ticket: null,
     });
 
-    // If event review, try to find attendee ticket
     if (targetType === "event" && eventId) {
       const ticket = await Ticket.findOne({
         buyer: reviewerId,
@@ -85,7 +71,6 @@ exports.submitReview = async (req, res) => {
 
     await newRating.save();
 
-    // Notify organizer/event creator
     if (targetType === "event") {
       const event = await Event.findById(targetId).populate("createdBy", "_id");
       if (event && event.createdBy) {
@@ -122,9 +107,6 @@ exports.submitReview = async (req, res) => {
   }
 };
 
-/**
- * Get reviews for a target (event or organizer)
- */
 exports.getReviews = async (req, res) => {
   try {
     const { targetType, targetId, limit = 5, skip = 0 } = req.query;
@@ -135,7 +117,7 @@ exports.getReviews = async (req, res) => {
 
     const reviews = await Rating.find({
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
       isVisible: true,
     })
       .populate("reviewer", "name username profilePic")
@@ -146,7 +128,7 @@ exports.getReviews = async (req, res) => {
 
     const total = await Rating.countDocuments({
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
       isVisible: true,
     });
 
@@ -161,9 +143,6 @@ exports.getReviews = async (req, res) => {
   }
 };
 
-/**
- * Get rating stats for a target
- */
 exports.getRatingStats = async (req, res) => {
   try {
     const { targetType, targetId } = req.query;
@@ -184,9 +163,6 @@ exports.getRatingStats = async (req, res) => {
   }
 };
 
-/**
- * Get organizer trust score and reputation
- */
 exports.getOrganizerReputation = async (req, res) => {
   try {
     const { organizerId } = req.params;
@@ -214,9 +190,6 @@ exports.getOrganizerReputation = async (req, res) => {
   }
 };
 
-/**
- * Report an event or organizer
- */
 exports.submitReport = async (req, res) => {
   try {
     const { targetType, targetId, reason, description, eventId } = req.body;
@@ -240,7 +213,6 @@ exports.submitReport = async (req, res) => {
       return res.status(400).json({ message: "Invalid reason" });
     }
 
-    // Check target exists
     if (targetType === "event") {
       const event = await Event.findById(targetId).lean();
       if (!event) return res.status(404).json({ message: "Event not found" });
@@ -249,11 +221,10 @@ exports.submitReport = async (req, res) => {
       if (!organizer) return res.status(404).json({ message: "Organizer not found" });
     }
 
-    // Check if user already reported this
     const existingReport = await Report.findOne({
       reporter: reporterId,
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
       status: { $in: ["open", "investigating"] },
     });
 
@@ -261,11 +232,10 @@ exports.submitReport = async (req, res) => {
       return res.status(400).json({ message: "You have already reported this" });
     }
 
-    // Create report
     const newReport = new Report({
       reporter: reporterId,
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
       event: eventId || null,
       organizer: targetType === "organizer" ? targetId : null,
       reason,
@@ -286,9 +256,6 @@ exports.submitReport = async (req, res) => {
   }
 };
 
-/**
- * Admin: Get reports queue
- */
 exports.adminGetReports = async (req, res) => {
   try {
     const { status = "open", limit = 20, skip = 0 } = req.query;
@@ -317,9 +284,6 @@ exports.adminGetReports = async (req, res) => {
   }
 };
 
-/**
- * Admin: Resolve a report
- */
 exports.adminResolveReport = async (req, res) => {
   try {
     const { reportId } = req.params;
@@ -366,9 +330,6 @@ exports.adminResolveReport = async (req, res) => {
   }
 };
 
-/**
- * Mark a review as helpful
- */
 exports.markReviewHelpful = async (req, res) => {
   try {
     const { reviewId } = req.params;

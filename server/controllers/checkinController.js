@@ -2,6 +2,7 @@ const CheckinLog = require('../models/CheckinLog');
 const Ticket = require('../models/Ticket');
 const Event = require('../models/Event');
 const { authorizeEventAction, getEventAccessForUser, canCheckIn } = require('../utils/eventPermissions');
+const { canCheckIn: canCheckInByStatus } = require('../utils/eventLifecycle');
 
 /**
  * Record a single scan/check-in for an event.
@@ -26,6 +27,24 @@ exports.recordScan = async (req, res) => {
 
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: 'Event not found' });
+
+    /* ─── EVENT LIFECYCLE VALIDATION ──────────────────────────────────── */
+    const checkInAllowed = canCheckInByStatus(event);
+    if (!checkInAllowed.allowed) {
+      const log = new CheckinLog({
+        event: eventId,
+        staff: req.user.id,
+        type: 'failed',
+        name: null,
+        ticketType: null,
+        meta: { reason: 'event_not_live', message: checkInAllowed.reason },
+      });
+      await log.save();
+      const io = req.app.get('io');
+      if (io) io.to(String(eventId)).emit('scan_activity', log.toJSON());
+      return res.status(400).json({ success: false, message: checkInAllowed.reason });
+    }
+    /* ───────────────────────────────────────────────────────────────────── */
 
     let ticket = null;
     if (ticketId) {
