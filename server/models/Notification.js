@@ -60,8 +60,10 @@ const notificationSchema = new mongoose.Schema(
         'password_changed',
         'verification_successful',
         'verification_failed',
+        'verification_resubmission_requested',
+        'verification_suspended',
+        'verification_status_updated',
         'livestream_stopped',
-
       ],
       default: "system",
     },
