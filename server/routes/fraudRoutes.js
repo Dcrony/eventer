@@ -4,9 +4,6 @@ const fraudController = require('../controllers/fraudController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorizeAdmin  } = require('../middleware/adminAccess');
 
-console.log('fraudController:', fraudController);
-console.log('requireAdmin:', authorizeAdmin);
-
 // Admin summary
 router.get('/admin/summary', authorizeAdmin, fraudController.getAdminSummary);
 

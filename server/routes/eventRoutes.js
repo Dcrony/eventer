@@ -24,6 +24,11 @@ const {
   getEventAnalytics,
   fixEventCapacity,
   getCategories,
+  publishEvent,
+  cancelEvent,
+  suspendEvent,
+  restoreEvent,
+  getEventStatusInfo,
 } = require("../controllers/eventController");
 
 // Create event (authenticated, verified, plan-limited)
@@ -69,6 +74,14 @@ router.put(
   updateEvent
 );
 router.delete("/delete/:eventId", authMiddleware, deleteEvent);
+
+/* ─── EVENT LIFECYCLE MANAGEMENT ROUTES ──────────────────────────────────── */
+router.patch("/:eventId/publish", authMiddleware, publishEvent);
+router.patch("/:eventId/cancel", authMiddleware, cancelEvent);
+router.patch("/:eventId/suspend", authMiddleware, suspendEvent);
+router.patch("/:eventId/restore", authMiddleware, restoreEvent);
+router.get("/:eventId/status-info", getEventStatusInfo);
+
 router.get("/fix-capacity", fixEventCapacity);
 // Wildcard — must be last
 router.get("/:id", getEventById);

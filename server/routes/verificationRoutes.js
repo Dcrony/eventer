@@ -4,6 +4,11 @@ const { authMiddleware, authorizeRoles } = require("../middleware/authMiddleware
 const { uploadImageMemory } = require("../middleware/imageUploadMemory");
 const verificationController = require("../controllers/verificationController");
 
+router.use((req, res, next) => {
+  console.log("Verification router hit:", req.method, req.path);
+  next();
+});
+
 // Organizer submits verification documents (multipart/form-data)
 router.post(
   "/submit",
@@ -14,7 +19,7 @@ router.post(
 );
 
 // Organizer views their verification
-router.get("/me", authMiddleware, authorizeRoles("organizer"), verificationController.getMyVerification);
+router.get("/me", authMiddleware, authorizeRoles("organizer", "admin", "super_admin", "moderator", "finance_admin", "support_admin"), verificationController.getMyVerification);
 
 // Admin: list verification requests
 router.get("/admin/queue", authMiddleware, authorizeRoles("admin", "super_admin", "moderator", "finance_admin", "support_admin"), verificationController.adminList);
