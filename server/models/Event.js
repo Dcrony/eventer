@@ -111,6 +111,42 @@ const eventSchema = new mongoose.Schema({
     default: "pending",
   },
 
+  /* ─── EVENT LIFECYCLE FIELDS ───────────────────────────────────────────── */
+  eventLifecycleStatus: {
+    type: String,
+    enum: ["Draft", "Pending Approval", "Published", "Upcoming", "Live", "Ended", "Cancelled", "Suspended"],
+    default: "Draft",
+    index: true,
+  },
+  
+  /* Sales deadline - independent of event dates */
+  salesDeadlineDate: { type: Date, default: null },
+  salesDeadlineTime: { type: String, default: null }, // HH:mm format
+  
+  /* Cancellation tracking */
+  cancellationReason: { type: String, default: "" },
+  cancellationDate: { type: Date, default: null },
+  cancelledBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
+  
+  /* Suspension tracking (admin) */
+  suspensionReason: { type: String, default: "" },
+  suspensionDate: { type: Date, default: null },
+  suspendedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null,
+  },
+  
+  /* Automatic transition tracking */
+  liveStartedAt: { type: Date, default: null },
+  endedAt: { type: Date, default: null },
+  lastStatusUpdateAt: { type: Date, default: Date.now },
+  statusUpdateReason: { type: String, default: "" }, // "auto_transition", "manual_publish", etc
+
   isDraft:          { type: Boolean, default: false },
   draftStep:        { type: Number,  default: 1 },
   draftUpdatedAt:   { type: Date,    default: null },
@@ -149,6 +185,9 @@ const eventSchema = new mongoose.Schema({
 
 /* ─── Indexes ─────────────────────────────────────────────────────────────── */
 eventSchema.index({ status: 1, createdAt: -1 });
+eventSchema.index({ eventLifecycleStatus: 1, startDate: 1 });
+eventSchema.index({ eventLifecycleStatus: 1, createdAt: -1 });
+eventSchema.index({ createdBy: 1, eventLifecycleStatus: 1, createdAt: -1 });
 eventSchema.index({ createdBy: 1, createdAt: -1 });
 eventSchema.index({ createdBy: 1, isDraft: 1, draftUpdatedAt: -1 });
 eventSchema.index({ "liveStream.isLive": 1, startDate: 1 });

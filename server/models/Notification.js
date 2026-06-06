@@ -63,6 +63,7 @@ const notificationSchema = new mongoose.Schema(
         'verification_resubmission_requested',
         'verification_suspended',
         'verification_status_updated',
+        'organizer_verification_approved',
         'livestream_stopped',
       ],
       default: "system",
