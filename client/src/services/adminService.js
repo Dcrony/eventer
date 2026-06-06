@@ -211,6 +211,62 @@ const adminService = {
     const response = await axios.put(`${ADMIN_API}/settings`, payload);
     return response.data;
   },
+
+  // Verification Management
+  getVerifications: async (page = 1, limit = 20, filters = {}) => {
+    const response = await axios.get(`${API_URL}/verification/admin/queue`, {
+      params: { page, limit, ...filters },
+    });
+    return response.data;
+  },
+
+  getVerificationDetails: async (verificationId) => {
+    const response = await axios.get(`${API_URL}/verification/admin/${verificationId}`);
+    return response.data;
+  },
+
+  approveVerification: async (verificationId) => {
+    const response = await axios.post(`${API_URL}/verification/admin/${verificationId}/review`, {
+      action: "approve",
+    });
+    return response.data;
+  },
+
+  rejectVerification: async (verificationId, reason) => {
+    const response = await axios.post(`${API_URL}/verification/admin/${verificationId}/review`, {
+      action: "reject",
+      reason,
+    });
+    return response.data;
+  },
+
+  requestResubmission: async (verificationId, instructions) => {
+    const response = await axios.patch(`${API_URL}/verification/admin/${verificationId}/resubmit`, {
+      instructions,
+    });
+    return response.data;
+  },
+
+  suspendVerification: async (verificationId, reason, investigationNotes = "") => {
+    const response = await axios.patch(`${API_URL}/verification/admin/${verificationId}/suspend`, {
+      reason,
+      investigationNotes,
+    });
+    return response.data;
+  },
+
+  restoreVerification: async (verificationId, action = "requeue", notes = "") => {
+    const response = await axios.patch(`${API_URL}/verification/admin/${verificationId}/restore`, {
+      action,
+      notes,
+    });
+    return response.data;
+  },
+
+  getVerificationAuditHistory: async (verificationId) => {
+    const response = await axios.get(`${API_URL}/verification/admin/${verificationId}/audit-history`);
+    return response.data;
+  },
 };
 
 export default adminService;
