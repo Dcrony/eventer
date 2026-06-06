@@ -578,6 +578,51 @@ exports.verificationRejectedEmail = (name, reason, resubmitLink) =>
     `,
   });
 
+exports.verificationResubmissionRequestEmail = (name, instructions, resubmitLink) =>
+  baseLayout({
+    thumbnail: thumbnails.verificationRejected(),
+    content: `
+      ${greeting(name)}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">Action Required: Resubmit Your Verification</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        We've reviewed your organizer verification documents. To complete your verification, please resubmit with the following corrections:
+      </p>
+      <div style="margin:0 0 24px;padding:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:5px;">
+        <p style="margin:0;font-size:14px;color:#78350f;font-family:Georgia,serif;white-space:pre-wrap;">${instructions}</p>
+      </div>
+      ${infoCard([
+        ["Status", `${badge("Resubmission Required", "#f59e0b", "#fef3c7")}`],
+        ["Action", "Update and resubmit your documents"],
+      ], "#f59e0b")}
+      ${ctaButton(resubmitLink, "Resubmit Verification", "#f59e0b")}
+      ${signoff()}
+    `,
+  });
+
+exports.verificationSuspendedEmail = (name, reason, dashboardLink) =>
+  baseLayout({
+    thumbnail: thumbnails.verificationRejected(),
+    content: `
+      ${greeting(name)}
+      <h2 style="margin:0 0 14px;font-size:24px;font-weight:800;color:#0f172a;font-family:Georgia,serif;">Verification Under Review</h2>
+      <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.75;font-family:Georgia,serif;">
+        Your organizer verification is temporarily under review. This is part of our standard verification process to ensure the integrity of our platform.
+      </p>
+      <div style="margin:0 0 24px;padding:16px;background:#fee2e2;border-left:4px solid #ef4444;border-radius:5px;">
+        <p style="margin:0;font-size:14px;color:#7f1d1d;font-family:Georgia,serif;"><strong>Reason:</strong> ${reason}</p>
+      </div>
+      ${infoCard([
+        ["Status", `${badge("Under Investigation", "#ef4444", "#fecaca")}`],
+        ["Next Step", "Our team will review your verification and contact you soon"],
+      ], "#ef4444")}
+      ${ctaButton(dashboardLink, "Check Verification Status", "#ef4444")}
+      <p style="margin:24px 0 0;font-size:13px;color:#64748b;line-height:1.6;font-family:Georgia,serif;">
+        If you have questions about your verification, please contact our support team.
+      </p>
+      ${signoff()}
+    `,
+  });
+
 exports.welcomeSuccessEmail = (name) =>
   baseLayout({
     thumbnail: thumbnails.welcomeSuccess(),
