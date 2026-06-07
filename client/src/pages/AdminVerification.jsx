@@ -1,209 +1,150 @@
 import { useEffect, useState } from "react";
 import {
-    Search,
-    ChevronLeft,
-    ChevronRight,
-    AlertCircle,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Eye,
-    FileText,
-    MessageSquare,
-    User,
-    Mail,
-    Calendar,
-    FileCheck,
-    ZoomIn,
-    Download,
-    X,
     AlertTriangle,
+    CheckCircle2,
+    Clock,
+    Download,
+    Eye,
+    FileCheck,
+    FileText,
+    Filter,
+    Mail,
+    MessageSquare,
     RefreshCw,
+    Search,
+    Shield,
+    X,
+    XCircle,
+    ZoomIn,
 } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
 import { UserAvatar } from "../components/ui/avatar";
 import adminService from "../services/adminService";
-import { formatDate, formatNumber, getStatusTone } from "../utils/adminUtils";
+import { formatDate, formatNumber } from "../utils/adminUtils";
 import { useToast } from "../components/ui/toast";
 
-// Reusable components
-function StatCard({ icon: Icon, label, value, detail }) {
-    return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">{value}</p>
-                </div>
-                {Icon && (
-                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-pink-500">
-                        <Icon size={18} />
-                    </div>
-                )}
-            </div>
-            {detail && <p className="mt-3 text-xs text-gray-500">{detail}</p>}
-        </div>
-    );
-}
+const STATUS_CONFIG = {
+    pending: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-400", label: "Pending Review" },
+    approved: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Verified" },
+    rejected: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-500", label: "Rejected" },
+    resubmitted: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", dot: "bg-blue-500", label: "Resubmitted" },
+    resubmission_required: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", dot: "bg-orange-400", label: "Needs Resubmission" },
+    suspended: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", dot: "bg-purple-500", label: "Suspended" },
+    under_investigation: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", dot: "bg-violet-500", label: "Under Investigation" },
+};
 
-function SurfaceCard({ children, className = "" }) {
-    return (
-        <div className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm ${className}`.trim()}>
-            {children}
-        </div>
-    );
-}
+const getRiskColor = (score) => score >= 70 ? "text-red-600" : score >= 40 ? "text-amber-600" : "text-emerald-600";
+const getRiskBar = (score) => score >= 70 ? "bg-red-500" : score >= 40 ? "bg-amber-400" : "bg-emerald-500";
 
-function LoadingSpinner({ label = "Loading..." }) {
+function StatusPill({ status, size = "md" }) {
+    const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+    const pad = size === "sm" ? "px-2 py-0.5 text-[0.6rem]" : "px-2.5 py-1 text-xs";
     return (
-        <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="text-center">
-                <div className="mx-auto h-8 w-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-                <p className="mt-3 text-sm text-gray-500">{label}</p>
-            </div>
-        </div>
-    );
-}
-
-function ErrorMessage({ message, onDismiss }) {
-    return (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <AlertCircle size={18} />
-                    <span className="text-sm font-semibold">Error</span>
-                </div>
-                <button
-                    onClick={onDismiss}
-                    className="text-red-600 hover:text-red-800"
-                >
-                    <X size={16} />
-                </button>
-            </div>
-            <p className="mt-2 text-sm">{message}</p>
-        </div>
-    );
-}
-
-function StatusBadge({ status }) {
-    const statusConfig = {
-        pending: { bg: "bg-amber-50", text: "text-amber-700", label: "Pending Review" },
-        approved: { bg: "bg-green-50", text: "text-green-700", label: "Verified" },
-        rejected: { bg: "bg-red-50", text: "text-red-700", label: "Rejected" },
-        resubmitted: { bg: "bg-blue-50", text: "text-blue-700", label: "Resubmitted" },
-        resubmission_required: { bg: "bg-amber-50", text: "text-amber-700", label: "Resubmission Required" },
-        suspended: { bg: "bg-red-50", text: "text-red-700", label: "Suspended" },
-        under_investigation: { bg: "bg-purple-50", text: "text-purple-700", label: "Under Investigation" },
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    return (
-        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${config.bg} ${config.text}`}>
-            {config.label}
+        <span className={`inline-flex items-center gap-1.5 rounded-full border font-semibold ${cfg.bg} ${cfg.text} ${cfg.border} ${pad}`}>
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+            {cfg.label}
         </span>
     );
 }
 
-function PaginationControls({ page, pages, onPrevious, onNext, total, label = "items" }) {
+function StatCard({ icon: Icon, label, value, accent = "pink" }) {
+    const accents = {
+        pink: "bg-pink-50 text-pink-600",
+        amber: "bg-amber-50 text-amber-600",
+        emerald: "bg-emerald-50 text-emerald-600",
+        purple: "bg-purple-50 text-purple-600",
+    };
     return (
-        <div className="flex items-center justify-between border-t border-gray-200 pt-4 mt-4">
-            <p className="text-xs text-gray-500">
-                Total <span className="font-semibold text-gray-700">{total}</span> {label}
-            </p>
-            <div className="flex gap-2">
-                <button
-                    onClick={onPrevious}
-                    disabled={page === 1}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <ChevronLeft size={14} />
-                    Previous
-                </button>
-                <span className="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 font-semibold">
-                    {page} of {pages}
-                </span>
-                <button
-                    onClick={onNext}
-                    disabled={page === pages}
-                    className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Next
-                    <ChevronRight size={14} />
-                </button>
+        <div className="relative rounded-2xl border border-gray-100 bg-white p-4 overflow-hidden">
+            <div className={`absolute top-0 left-0 right-0 h-0.5 ${accent === "pink" ? "bg-pink-500" : accent === "amber" ? "bg-amber-400" : accent === "emerald" ? "bg-emerald-500" : "bg-purple-500"}`} />
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">{label}</p>
+                    <p className="mt-1.5 text-2xl font-black text-gray-900 tabular-nums">{value}</p>
+                </div>
+                <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${accents[accent]}`}>
+                    <Icon size={16} />
+                </div>
             </div>
         </div>
     );
 }
 
-function EmptyState({ icon: Icon, title, description }) {
-    return (
-        <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="text-center">
-                {Icon && <Icon size={48} className="mx-auto mb-4 text-gray-400" />}
-                <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-                <p className="mt-1 text-xs text-gray-500">{description}</p>
-            </div>
-        </div>
-    );
-}
-
-// Modal component
-function Modal({ isOpen, title, children, onClose }) {
+function ActionModal({ isOpen, title, icon: Icon, iconBg = "bg-gray-100", children, onClose }) {
     if (!isOpen) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                        <X size={20} />
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.35)", padding: "1rem" }}>
+            <div className="w-full max-w-md rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-2xl">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-5 py-4">
+                    <div className="flex items-center gap-2.5">
+                        {Icon && (
+                            <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${iconBg}`}>
+                                <Icon size={14} />
+                            </div>
+                        )}
+                        <h2 className="text-sm font-bold text-gray-900">{title}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                    >
+                        <X size={14} />
                     </button>
                 </div>
-                {children}
+                <div className="p-5">{children}</div>
             </div>
         </div>
     );
 }
 
-// Document Preview Modal
-function DocumentPreviewModal({ isOpen, document, onClose }) {
-    if (!isOpen || !document) return null;
-
-    const isPdf = document.url?.includes(".pdf") || document.url?.endsWith("pdf");
-
+function DocumentModal({ isOpen, doc, onClose }) {
+    if (!isOpen || !doc) return null;
+    const isPdf = doc.url?.toLowerCase().includes(".pdf");
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-lg overflow-hidden">
-                <div className="flex items-center justify-between bg-gray-50 border-b border-gray-200 p-4">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.5)", padding: "1rem" }}>
+            <div className="w-full max-w-2xl rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-2xl">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-5 py-3.5">
                     <div>
-                        <h2 className="text-sm font-bold text-gray-900">{document.filename || "Document"}</h2>
-                        <p className="text-xs text-gray-500 mt-1">Type: {document.type}</p>
+                        <p className="text-sm font-bold text-gray-900 truncate max-w-xs">{doc.filename || "Document"}</p>
+                        <p className="text-xs text-gray-400">{doc.type}</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-700"
+                        >
+                            <Download size={12} />
+                            Open
+                        </a>
+                        <button
+                            onClick={onClose}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
                 </div>
-                <div className="bg-gray-100 p-4 flex items-center justify-center" style={{ height: "500px" }}>
+                <div className="flex h-[460px] items-center justify-center bg-gray-100">
                     {isPdf ? (
                         <div className="text-center">
-                            <FileText size={48} className="mx-auto mb-4 text-gray-400" />
-                            <p className="text-sm text-gray-600 mb-4">PDF Document</p>
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white border border-gray-200">
+                                <FileText size={28} className="text-gray-300" />
+                            </div>
+                            <p className="text-sm text-gray-500 mb-4">PDF preview unavailable</p>
                             <a
-                                href={document.url}
+                                href={doc.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 rounded-lg bg-pink-500 text-white px-4 py-2 text-xs font-semibold hover:bg-pink-600"
+                                className="inline-flex items-center gap-2 rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-pink-600"
                             >
                                 <Download size={14} />
                                 Open PDF
                             </a>
                         </div>
                     ) : (
-                        <img
-                            src={document.url}
-                            alt={document.filename}
-                            className="max-h-full max-w-full object-contain"
-                        />
+                        <img src={doc.url} alt={doc.filename} className="max-h-full max-w-full object-contain" />
                     )}
                 </div>
             </div>
@@ -211,13 +152,50 @@ function DocumentPreviewModal({ isOpen, document, onClose }) {
     );
 }
 
-// Main Verification Management Component
+function ModalTextarea({ label, required, value, onChange, placeholder, rows = 4, maxLength = 500, focusColor = "focus:border-pink-400 focus:ring-pink-100" }) {
+    return (
+        <div>
+            <label className="block text-[0.65rem] font-bold uppercase tracking-widest text-gray-400 mb-2">
+                {label} {required && <span className="text-red-400">*</span>}
+            </label>
+            <textarea
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder={placeholder}
+                rows={rows}
+                className={`w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 placeholder-gray-300 outline-none resize-none transition focus:ring-2 ${focusColor}`}
+            />
+            {maxLength && <p className="mt-1 text-[0.6rem] text-gray-400">{value.length} / {maxLength}</p>}
+        </div>
+    );
+}
+
+function ModalActions({ onCancel, onConfirm, confirmLabel, confirmClass, loading, disabled }) {
+    return (
+        <div className="flex gap-2.5">
+            <button
+                onClick={onCancel}
+                className="flex-1 h-9 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+            >
+                Cancel
+            </button>
+            <button
+                onClick={onConfirm}
+                disabled={loading || disabled}
+                className={`flex-1 h-9 rounded-xl text-xs font-bold text-white transition-colors disabled:opacity-50 ${confirmClass}`}
+            >
+                {loading ? "Working..." : confirmLabel}
+            </button>
+        </div>
+    );
+}
+
 export default function AdminVerification() {
     const [verifications, setVerifications] = useState([]);
     const [selected, setSelected] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
+    const [error, setError] = useState(null);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("pending");
     const [page, setPage] = useState(1);
@@ -226,15 +204,8 @@ export default function AdminVerification() {
     const [auditHistory, setAuditHistory] = useState([]);
     const toast = useToast();
 
-    // Modals
-    const [showApproveModal, setShowApproveModal] = useState(false);
-    const [showRejectModal, setShowRejectModal] = useState(false);
-    const [showResubmitModal, setShowResubmitModal] = useState(false);
-    const [showSuspendModal, setShowSuspendModal] = useState(false);
-    const [showDocPreview, setShowDocPreview] = useState(false);
+    const [modals, setModals] = useState({ approve: false, reject: false, resubmit: false, suspend: false, doc: false });
     const [previewDoc, setPreviewDoc] = useState(null);
-
-    // Form state for modals
     const [rejectReason, setRejectReason] = useState("");
     const [resubmitInstructions, setResubmitInstructions] = useState("");
     const [suspendReason, setSuspendReason] = useState("");
@@ -243,10 +214,10 @@ export default function AdminVerification() {
 
     const LIMIT = 20;
 
-    // Load verifications list
-    useEffect(() => {
-        fetchVerifications();
-    }, [page, statusFilter]);
+    const openModal = (key) => setModals((m) => ({ ...m, [key]: true }));
+    const closeModal = (key) => setModals((m) => ({ ...m, [key]: false }));
+
+    useEffect(() => { fetchVerifications(); }, [page, statusFilter]);
 
     const fetchVerifications = async () => {
         try {
@@ -268,24 +239,18 @@ export default function AdminVerification() {
         }
     };
 
-    const fetchVerificationDetails = async (id) => {
+    const fetchDetails = async (id) => {
         try {
             setDetailsLoading(true);
             const data = await adminService.getVerificationDetails(id);
             setSelected(data.verification);
-
-            // Fetch audit history
             const historyData = await adminService.getVerificationAuditHistory(id);
             setAuditHistory(historyData.auditHistory || []);
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to load verification details");
+            toast.error(err.response?.data?.message || "Failed to load details");
         } finally {
             setDetailsLoading(false);
         }
-    };
-
-    const handleSelectVerification = (verification) => {
-        fetchVerificationDetails(verification._id);
     };
 
     const handleApprove = async () => {
@@ -293,49 +258,43 @@ export default function AdminVerification() {
         try {
             setActionLoading(true);
             await adminService.approveVerification(selected._id);
-            toast.success("Verification approved successfully");
-            setShowApproveModal(false);
-            await fetchVerificationDetails(selected._id);
+            toast.success("Verification approved successfully.");
+            closeModal("approve");
+            await fetchDetails(selected._id);
             fetchVerifications();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to approve verification");
+            toast.error(err.response?.data?.message || "Failed to approve");
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleReject = async () => {
-        if (!selected || !rejectReason.trim()) {
-            toast.error("Rejection reason is required");
-            return;
-        }
+        if (!selected || !rejectReason.trim()) { toast.error("Rejection reason is required"); return; }
         try {
             setActionLoading(true);
             await adminService.rejectVerification(selected._id, rejectReason);
-            toast.success("Verification rejected successfully");
-            setShowRejectModal(false);
+            toast.success("Verification rejected.");
+            closeModal("reject");
             setRejectReason("");
-            await fetchVerificationDetails(selected._id);
+            await fetchDetails(selected._id);
             fetchVerifications();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to reject verification");
+            toast.error(err.response?.data?.message || "Failed to reject");
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handleRequestResubmission = async () => {
-        if (!selected || !resubmitInstructions.trim()) {
-            toast.error("Resubmission instructions are required");
-            return;
-        }
+    const handleResubmit = async () => {
+        if (!selected || !resubmitInstructions.trim()) { toast.error("Instructions are required"); return; }
         try {
             setActionLoading(true);
             await adminService.requestResubmission(selected._id, resubmitInstructions);
-            toast.success("Resubmission request sent successfully");
-            setShowResubmitModal(false);
+            toast.success("Resubmission request sent.");
+            closeModal("resubmit");
             setResubmitInstructions("");
-            await fetchVerificationDetails(selected._id);
+            await fetchDetails(selected._id);
             fetchVerifications();
         } catch (err) {
             toast.error(err.response?.data?.message || "Failed to request resubmission");
@@ -345,463 +304,484 @@ export default function AdminVerification() {
     };
 
     const handleSuspend = async () => {
-        if (!selected || !suspendReason.trim()) {
-            toast.error("Suspension reason is required");
-            return;
-        }
+        if (!selected || !suspendReason.trim()) { toast.error("Suspension reason is required"); return; }
         try {
             setActionLoading(true);
             await adminService.suspendVerification(selected._id, suspendReason, suspendNotes);
-            toast.success("Verification suspended successfully");
-            setShowSuspendModal(false);
+            toast.success("Verification suspended.");
+            closeModal("suspend");
             setSuspendReason("");
             setSuspendNotes("");
-            await fetchVerificationDetails(selected._id);
+            await fetchDetails(selected._id);
             fetchVerifications();
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to suspend verification");
+            toast.error(err.response?.data?.message || "Failed to suspend");
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handlePreviewDocument = (doc) => {
-        setPreviewDoc(doc);
-        setShowDocPreview(true);
-    };
+    const filtered = verifications.filter((v) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return v.organizer?.name?.toLowerCase().includes(q) || v.organizer?.email?.toLowerCase().includes(q);
+    });
+
+    const pages = Math.ceil(total / LIMIT) || 1;
+    const isActionable = selected && ["pending", "resubmitted", "resubmission_required"].includes(selected.status);
 
     return (
-        <AdminLayout>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <FileCheck className="text-pink-500" size={24} />
-                        Verification Management
-                    </h1>
-                    <p className="mt-1 text-sm text-gray-600">Review and manage organizer verification requests</p>
-                </div>
-
+        <AdminLayout
+            title="Verification Management"
+            description="Review, approve, and action organizer identity verification requests."
+        >
+            <div className="space-y-4">
                 {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard icon={Clock} label="Pending Review" value={formatNumber(stats.pending)} />
-                    <StatCard icon={CheckCircle2} label="Verified" value={formatNumber(stats.approved)} />
-                    <StatCard icon={XCircle} label="Rejected" value={formatNumber(stats.rejected)} />
-                    <StatCard icon={AlertTriangle} label="Suspended" value={formatNumber(stats.suspended)} />
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <StatCard icon={Clock} label="Pending Review" value={formatNumber(stats.pending)} accent="amber" />
+                    <StatCard icon={CheckCircle2} label="Verified" value={formatNumber(stats.approved)} accent="emerald" />
+                    <StatCard icon={XCircle} label="Rejected" value={formatNumber(stats.rejected)} accent="pink" />
+                    <StatCard icon={Shield} label="Suspended" value={formatNumber(stats.suspended)} accent="purple" />
                 </div>
 
                 {error && (
-                    <ErrorMessage
-                        message={error}
-                        onDismiss={() => setError(null)}
-                    />
+                    <div className="flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-4">
+                        <AlertTriangle size={15} className="text-red-500 flex-shrink-0" />
+                        <p className="flex-1 text-sm text-red-700">{error}</p>
+                        <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+                            <X size={14} />
+                        </button>
+                    </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* List View */}
-                    <div className="lg:col-span-2">
-                        <SurfaceCard className="space-y-4">
-                            {/* Filter Bar */}
-                            <div className="flex gap-3 pb-4 border-b border-gray-200">
-                                <div className="flex-1">
-                                    <div className="relative">
-                                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by organizer name or email..."
-                                            value={search}
-                                            onChange={(e) => {
-                                                setSearch(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 pl-10 pr-4 py-2.5 text-sm placeholder-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
-                                        />
-                                    </div>
+                {/* Main grid */}
+                <div className="grid gap-4 lg:grid-cols-5">
+                    {/* List */}
+                    <div className="lg:col-span-3">
+                        <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+                            {/* Toolbar */}
+                            <div className="flex flex-col gap-2.5 border-b border-gray-100 p-4 sm:flex-row">
+                                <div className="relative flex-1">
+                                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search name or email..."
+                                        value={search}
+                                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                                        className="h-9 w-full rounded-xl border border-gray-200 bg-gray-50 pl-8 pr-4 text-xs text-gray-800 placeholder-gray-300 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                                    />
                                 </div>
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => {
-                                        setStatusFilter(e.target.value);
-                                        setPage(1);
-                                    }}
-                                    className="rounded-lg border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-semibold text-gray-700 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                                <div className="relative flex-shrink-0">
+                                    <Filter size={12} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                                        className="h-9 rounded-xl border border-gray-200 bg-gray-50 pl-8 pr-8 text-xs font-medium text-gray-700 outline-none appearance-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        <option value="pending">Pending</option>
+                                        <option value="approved">Verified</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="resubmission_required">Needs Resubmission</option>
+                                        <option value="suspended">Suspended</option>
+                                    </select>
+                                </div>
+                                <button
+                                    onClick={fetchVerifications}
+                                    className="flex h-9 items-center gap-1.5 rounded-xl border border-gray-200 px-3 text-xs font-semibold text-gray-600 transition-colors hover:border-pink-200 hover:text-pink-600"
                                 >
-                                    <option value="">All Statuses</option>
-                                    <option value="pending">Pending Review</option>
-                                    <option value="approved">Verified</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="resubmission_required">Resubmission Required</option>
-                                    <option value="suspended">Suspended</option>
-                                </select>
+                                    <RefreshCw size={12} />
+                                    Refresh
+                                </button>
                             </div>
 
-                            {/* Verifications Table */}
+                            {/* List */}
                             {loading ? (
-                                <LoadingSpinner label="Loading verifications..." />
-                            ) : verifications.length === 0 ? (
-                                <EmptyState
-                                    icon={FileText}
-                                    title="No Verifications"
-                                    description="No verification requests match your filters"
-                                />
-                            ) : (
-                                <>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead>
-                                                <tr className="border-b border-gray-200 bg-gray-50">
-                                                    <th className="text-left px-4 py-3 font-bold uppercase tracking-wider text-gray-400">Organizer</th>
-                                                    <th className="text-left px-4 py-3 font-bold uppercase tracking-wider text-gray-400">Status</th>
-                                                    <th className="text-left px-4 py-3 font-bold uppercase tracking-wider text-gray-400">Submitted</th>
-                                                    <th className="text-center px-4 py-3 font-bold uppercase tracking-wider text-gray-400">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {verifications.map((verification) => (
-                                                    <tr
-                                                        key={verification._id}
-                                                        className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
-                                                        onClick={() => handleSelectVerification(verification)}
-                                                    >
-                                                        <td className="px-4 py-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <UserAvatar user={verification.organizer} size={32} />
-                                                                <div>
-                                                                    <p className="font-semibold text-gray-900">{verification.organizer.name}</p>
-                                                                    <p className="text-xs text-gray-500">{verification.organizer.email}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-4">
-                                                            <StatusBadge status={verification.status} />
-                                                        </td>
-                                                        <td className="px-4 py-4">
-                                                            <p className="text-xs text-gray-600">{formatDate(verification.createdAt)}</p>
-                                                            {verification.documents?.length > 0 && (
-                                                                <p className="text-xs text-gray-500 mt-1">{verification.documents.length} document(s)</p>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-center">
-                                                            <Eye size={16} className="mx-auto text-pink-500" />
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                <div className="flex min-h-[240px] items-center justify-center p-5">
+                                    <div className="text-center">
+                                        <div className="mx-auto h-7 w-7 rounded-full border-2 border-pink-100 border-t-pink-500 animate-spin" />
+                                        <p className="mt-2 text-xs text-gray-400">Loading verifications...</p>
                                     </div>
+                                </div>
+                            ) : filtered.length === 0 ? (
+                                <div className="flex min-h-[240px] items-center justify-center p-5 text-center">
+                                    <div>
+                                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100">
+                                            <FileText size={20} className="text-gray-300" />
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-700">No verifications found</p>
+                                        <p className="mt-1 text-xs text-gray-400">Try adjusting the status filter</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-4 space-y-2">
+                                    {filtered.map((v) => {
+                                        const isActive = selected?._id === v._id;
+                                        return (
+                                            <button
+                                                key={v._id}
+                                                onClick={() => fetchDetails(v._id)}
+                                                className={`w-full rounded-xl border p-3.5 text-left transition-all group ${
+                                                    isActive
+                                                        ? "border-pink-200 bg-pink-50"
+                                                        : "border-gray-100 bg-gray-50 hover:border-gray-200 hover:bg-white"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <UserAvatar user={v.organizer} size={36} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-gray-900 truncate">{v.organizer?.name}</p>
+                                                            <StatusPill status={v.status} size="sm" />
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <p className="text-[0.6rem] text-gray-400 truncate">{v.organizer?.email}</p>
+                                                            {v.documents?.length > 0 && (
+                                                                <span className="text-[0.55rem] font-semibold text-gray-400 flex-shrink-0">
+                                                                    {v.documents.length} doc{v.documents.length !== 1 ? "s" : ""}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <Eye size={13} className={`flex-shrink-0 transition-colors ${isActive ? "text-pink-500" : "text-gray-300 group-hover:text-gray-400"}`} />
+                                                </div>
+                                                <p className="mt-1.5 pl-[48px] text-[0.55rem] text-gray-300">{formatDate(v.createdAt)}</p>
+                                            </button>
+                                        );
+                                    })}
 
                                     {/* Pagination */}
-                                    <PaginationControls
-                                        page={page}
-                                        pages={Math.ceil(total / LIMIT)}
-                                        onPrevious={() => setPage(Math.max(1, page - 1))}
-                                        onNext={() => setPage(page + 1)}
-                                        total={total}
-                                        label="verifications"
-                                    />
-                                </>
+                                    <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+                                        <p className="text-xs text-gray-400">
+                                            <span className="font-semibold text-gray-700">{total}</span> total
+                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={() => setPage(Math.max(1, page - 1))}
+                                                disabled={page === 1}
+                                                className="inline-flex items-center gap-1 h-8 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 transition-colors hover:border-pink-200 hover:text-pink-600 disabled:opacity-40"
+                                            >
+                                                Prev
+                                            </button>
+                                            <span className="text-xs text-gray-400 tabular-nums px-1">{page} / {pages}</span>
+                                            <button
+                                                onClick={() => setPage(Math.min(pages, page + 1))}
+                                                disabled={page === pages}
+                                                className="inline-flex items-center gap-1 h-8 px-3 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 transition-colors hover:border-pink-200 hover:text-pink-600 disabled:opacity-40"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
-                        </SurfaceCard>
+                        </div>
                     </div>
 
-                    {/* Detail View */}
-                    <div className="lg:col-span-1">
-                        <SurfaceCard className="space-y-5 sticky top-20">
-                            {selected === null ? (
-                                <EmptyState
-                                    icon={Eye}
-                                    title="Select a Request"
-                                    description="Click on a verification request to view details"
-                                />
+                    {/* Detail panel */}
+                    <div className="lg:col-span-2">
+                        <div className="sticky top-4 rounded-2xl border border-gray-100 bg-white overflow-hidden">
+                            {!selected ? (
+                                <div className="flex min-h-[360px] items-center justify-center p-5 text-center">
+                                    <div>
+                                        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50">
+                                            <Eye size={20} className="text-pink-300" />
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-700">Select a request</p>
+                                        <p className="mt-1 text-xs text-gray-400">Click any verification to review</p>
+                                    </div>
+                                </div>
                             ) : detailsLoading ? (
-                                <LoadingSpinner label="Loading details..." />
+                                <div className="flex min-h-[360px] items-center justify-center p-5">
+                                    <div className="text-center">
+                                        <div className="mx-auto h-7 w-7 rounded-full border-2 border-pink-100 border-t-pink-500 animate-spin" />
+                                        <p className="mt-2 text-xs text-gray-400">Loading details...</p>
+                                    </div>
+                                </div>
                             ) : (
                                 <>
-                                    {/* Organizer Info */}
-                                    <div>
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Organizer Profile</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex items-start gap-3">
-                                                <UserAvatar user={selected.organizer} size={48} />
-                                                <div>
-                                                    <p className="font-semibold text-gray-900">{selected.organizer.name}</p>
-                                                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                                        <Mail size={12} />
-                                                        {selected.organizer.email}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
-                                                <div>
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Status</p>
-                                                    <StatusBadge status={selected.status} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Risk Score</p>
-                                                    <p className="mt-2 text-lg font-bold text-gray-900">{selected.risk_score || 0}/100</p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    {/* Status bar */}
+                                    <div className={`flex items-center justify-between gap-3 border-b px-5 py-3 ${STATUS_CONFIG[selected.status]?.bg || "bg-gray-50"} ${STATUS_CONFIG[selected.status]?.border || "border-gray-100"}`}>
+                                        <StatusPill status={selected.status} />
+                                        <p className="text-[0.6rem] font-semibold text-gray-400">{formatDate(selected.createdAt)}</p>
                                     </div>
 
-                                    {/* Documents */}
-                                    {selected.documents?.length > 0 && (
+                                    <div className="max-h-[calc(100vh-240px)] overflow-y-auto p-5 space-y-5">
+                                        {/* Organizer */}
+                                        <div className="flex items-center gap-3">
+                                            <UserAvatar user={selected.organizer} size={44} />
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-gray-900 text-sm">{selected.organizer?.name}</p>
+                                                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                                    <Mail size={11} />
+                                                    {selected.organizer?.email}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Risk score */}
                                         <div>
-                                            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Documents ({selected.documents.length})</h3>
-                                            <div className="space-y-2">
-                                                {selected.documents.map((doc, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => handlePreviewDocument(doc)}
-                                                        className="w-full text-left rounded-lg border border-gray-200 bg-gray-50 p-3 hover:bg-gray-100 transition-colors group"
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-xs font-semibold text-gray-900 truncate">{doc.filename || `Document ${idx + 1}`}</p>
-                                                                <p className="text-xs text-gray-500 mt-1">{doc.type}</p>
+                                            <div className="flex items-center justify-between mb-1.5">
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Risk Score</p>
+                                                <span className={`text-xs font-bold ${getRiskColor(selected.risk_score || 0)}`}>
+                                                    {(selected.risk_score || 0) >= 70 ? "High Risk" : (selected.risk_score || 0) >= 40 ? "Medium Risk" : "Low Risk"}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all ${getRiskBar(selected.risk_score || 0)}`}
+                                                        style={{ width: `${Math.min(100, selected.risk_score || 0)}%` }}
+                                                    />
+                                                </div>
+                                                <span className={`text-sm font-black tabular-nums ${getRiskColor(selected.risk_score || 0)}`}>
+                                                    {selected.risk_score || 0}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Documents */}
+                                        {selected.documents?.length > 0 && (
+                                            <div>
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-2">
+                                                    Documents · {selected.documents.length}
+                                                </p>
+                                                <div className="space-y-1.5">
+                                                    {selected.documents.map((doc, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => { setPreviewDoc(doc); openModal("doc"); }}
+                                                            className="group w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-left transition-all hover:border-pink-100 hover:bg-pink-50/40"
+                                                        >
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-100 bg-white flex-shrink-0">
+                                                                    <FileText size={12} className="text-gray-400 group-hover:text-pink-500 transition-colors" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-xs font-semibold text-gray-800 truncate">{doc.filename || `Document ${idx + 1}`}</p>
+                                                                    <p className="text-[0.55rem] text-gray-400">{doc.type}</p>
+                                                                </div>
+                                                                <ZoomIn size={11} className="text-gray-300 group-hover:text-pink-400 flex-shrink-0 transition-colors" />
                                                             </div>
-                                                            <ZoomIn size={14} className="text-gray-400 group-hover:text-pink-500 ml-2 flex-shrink-0" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Submission info */}
+                                        <div>
+                                            <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-2">Submission Info</p>
+                                            <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
+                                                <div className="flex justify-between items-center px-3 py-2">
+                                                    <span className="text-xs text-gray-500">Submitted</span>
+                                                    <span className="text-xs font-semibold text-gray-800">{formatDate(selected.createdAt)}</span>
+                                                </div>
+                                                {selected.reviewedAt && (
+                                                    <div className="flex justify-between items-center px-3 py-2">
+                                                        <span className="text-xs text-gray-500">Reviewed</span>
+                                                        <span className="text-xs font-semibold text-gray-800">{formatDate(selected.reviewedAt)}</span>
+                                                    </div>
+                                                )}
+                                                {selected.submission_ip && (
+                                                    <div className="flex justify-between items-center px-3 py-2">
+                                                        <span className="text-xs text-gray-500">IP Address</span>
+                                                        <span className="font-mono text-xs text-gray-700">{selected.submission_ip}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Contextual messages */}
+                                        {selected.notes && (
+                                            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-blue-500 flex items-center gap-1 mb-1.5">
+                                                    <MessageSquare size={10} />
+                                                    Admin Notes
+                                                </p>
+                                                <p className="text-xs text-blue-700 leading-relaxed">{selected.notes}</p>
+                                            </div>
+                                        )}
+                                        {selected.rejectionReason && (
+                                            <div className="rounded-xl border border-red-100 bg-red-50 p-3">
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-red-500 flex items-center gap-1 mb-1.5">
+                                                    <XCircle size={10} />
+                                                    Rejection Reason
+                                                </p>
+                                                <p className="text-xs text-red-700 leading-relaxed">{selected.rejectionReason}</p>
+                                            </div>
+                                        )}
+                                        {selected.resubmissionInstructions && (
+                                            <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-amber-600 flex items-center gap-1 mb-1.5">
+                                                    <AlertTriangle size={10} />
+                                                    Resubmission Required
+                                                </p>
+                                                <p className="text-xs text-amber-700 leading-relaxed whitespace-pre-wrap">{selected.resubmissionInstructions}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Audit trail */}
+                                        {auditHistory.length > 0 && (
+                                            <div>
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-3">Audit Trail</p>
+                                                <div className="space-y-2">
+                                                    {auditHistory.slice(0, 5).map((entry, idx) => (
+                                                        <div key={idx} className="flex gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                                                            <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-pink-100 text-[0.55rem] font-bold text-pink-600">
+                                                                {entry.action?.[0]?.toUpperCase() || "?"}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-xs font-semibold text-gray-800 capitalize">{entry.action?.replace(/_/g, " ").toLowerCase()}</p>
+                                                                {entry.details && <p className="text-[0.6rem] text-gray-400 mt-0.5 truncate">{entry.details}</p>}
+                                                                <p className="text-[0.55rem] text-gray-300 mt-0.5">{formatDate(entry.createdAt)}</p>
+                                                            </div>
                                                         </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Action buttons */}
+                                        {isActionable && (
+                                            <div className="space-y-2 border-t border-gray-100 pt-4">
+                                                <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-3">Actions</p>
+                                                <button
+                                                    onClick={() => openModal("approve")}
+                                                    className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 text-xs font-bold text-white transition-colors hover:bg-emerald-600"
+                                                >
+                                                    <CheckCircle2 size={13} />
+                                                    Approve Verification
+                                                </button>
+                                                <button
+                                                    onClick={() => openModal("reject")}
+                                                    className="flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-red-500 text-xs font-bold text-white transition-colors hover:bg-red-600"
+                                                >
+                                                    <XCircle size={13} />
+                                                    Reject Verification
+                                                </button>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={() => openModal("resubmit")}
+                                                        className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-amber-400 text-xs font-bold text-white transition-colors hover:bg-amber-500"
+                                                    >
+                                                        <RefreshCw size={11} />
+                                                        Resubmit
                                                     </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Submission Info */}
-                                    <div>
-                                        <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Submission Info</h3>
-                                        <div className="space-y-2 text-xs">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Submitted</span>
-                                                <span className="font-semibold text-gray-900">{formatDate(selected.createdAt)}</span>
-                                            </div>
-                                            {selected.reviewedAt && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-600">Reviewed</span>
-                                                    <span className="font-semibold text-gray-900">{formatDate(selected.reviewedAt)}</span>
+                                                    <button
+                                                        onClick={() => openModal("suspend")}
+                                                        className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-purple-500 text-xs font-bold text-white transition-colors hover:bg-purple-600"
+                                                    >
+                                                        <AlertTriangle size={11} />
+                                                        Suspend
+                                                    </button>
                                                 </div>
-                                            )}
-                                            {selected.submission_ip && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-600">IP Address</span>
-                                                    <span className="font-mono text-gray-900 text-xs">{selected.submission_ip}</span>
-                                                </div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {/* Admin Notes */}
-                                    {selected.notes && (
-                                        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                                            <p className="text-xs font-semibold text-blue-700 flex items-center gap-2 mb-2">
-                                                <MessageSquare size={14} />
-                                                Admin Notes
-                                            </p>
-                                            <p className="text-xs text-blue-600">{selected.notes}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Rejection Reason */}
-                                    {selected.rejectionReason && (
-                                        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                                            <p className="text-xs font-semibold text-red-700 flex items-center gap-2 mb-2">
-                                                <AlertCircle size={14} />
-                                                Rejection Reason
-                                            </p>
-                                            <p className="text-xs text-red-600">{selected.rejectionReason}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Resubmission Instructions */}
-                                    {selected.resubmissionInstructions && (
-                                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                                            <p className="text-xs font-semibold text-amber-700 flex items-center gap-2 mb-2">
-                                                <AlertTriangle size={14} />
-                                                Resubmission Required
-                                            </p>
-                                            <p className="text-xs text-amber-600 whitespace-pre-wrap">{selected.resubmissionInstructions}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Action Buttons */}
-                                    {["pending", "resubmitted", "resubmission_required"].includes(selected.status) && (
-                                        <div className="space-y-2 border-t border-gray-200 pt-4">
-                                            <button
-                                                onClick={() => setShowApproveModal(true)}
-                                                className="w-full rounded-lg bg-green-500 text-white px-4 py-2.5 text-xs font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <CheckCircle2 size={14} />
-                                                Approve
-                                            </button>
-                                            <button
-                                                onClick={() => setShowRejectModal(true)}
-                                                className="w-full rounded-lg bg-red-500 text-white px-4 py-2.5 text-xs font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <XCircle size={14} />
-                                                Reject
-                                            </button>
-                                            <button
-                                                onClick={() => setShowResubmitModal(true)}
-                                                className="w-full rounded-lg bg-amber-500 text-white px-4 py-2.5 text-xs font-semibold hover:bg-amber-600 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <RefreshCw size={14} />
-                                                Request Resubmission
-                                            </button>
-                                            <button
-                                                onClick={() => setShowSuspendModal(true)}
-                                                className="w-full rounded-lg bg-purple-500 text-white px-4 py-2.5 text-xs font-semibold hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
-                                            >
-                                                <AlertTriangle size={14} />
-                                                Suspend Investigation
-                                            </button>
-                                        </div>
-                                    )}
                                 </>
                             )}
-                        </SurfaceCard>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Modals */}
-            <Modal isOpen={showApproveModal} title="Approve Verification" onClose={() => setShowApproveModal(false)}>
+            {/* Approve Modal */}
+            <ActionModal isOpen={modals.approve} title="Approve Verification" icon={CheckCircle2} iconBg="bg-emerald-100 text-emerald-600" onClose={() => closeModal("approve")}>
                 <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                        Are you sure you want to approve this verification? The organizer will receive a notification and can immediately publish events.
-                    </p>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setShowApproveModal(false)}
-                            className="flex-1 rounded-lg border border-gray-200 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleApprove}
-                            disabled={actionLoading}
-                            className="flex-1 rounded-lg bg-green-500 text-white px-4 py-2 text-sm font-semibold hover:bg-green-600 disabled:opacity-50"
-                        >
-                            {actionLoading ? "Approving..." : "Approve"}
-                        </button>
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                        <p className="text-sm text-emerald-800 leading-relaxed">
+                            The organizer will be notified and can immediately publish events and access payouts.
+                        </p>
                     </div>
+                    <ModalActions
+                        onCancel={() => closeModal("approve")}
+                        onConfirm={handleApprove}
+                        confirmLabel="Confirm Approval"
+                        confirmClass="bg-emerald-500 hover:bg-emerald-600"
+                        loading={actionLoading}
+                    />
                 </div>
-            </Modal>
+            </ActionModal>
 
-            <Modal isOpen={showRejectModal} title="Reject Verification" onClose={() => setShowRejectModal(false)}>
+            {/* Reject Modal */}
+            <ActionModal isOpen={modals.reject} title="Reject Verification" icon={XCircle} iconBg="bg-red-100 text-red-600" onClose={() => { closeModal("reject"); setRejectReason(""); }}>
                 <div className="space-y-4">
-                    <textarea
+                    <ModalTextarea
+                        label="Reason for rejection"
+                        required
                         value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="Explain why this verification is being rejected..."
-                        rows="4"
-                        className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 p-3 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                        onChange={setRejectReason}
+                        placeholder="Explain why this verification is being rejected. This will be sent to the organizer."
+                        focusColor="focus:border-red-400 focus:ring-red-100"
                     />
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => {
-                                setShowRejectModal(false);
-                                setRejectReason("");
-                            }}
-                            className="flex-1 rounded-lg border border-gray-200 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleReject}
-                            disabled={actionLoading || !rejectReason.trim()}
-                            className="flex-1 rounded-lg bg-red-500 text-white px-4 py-2 text-sm font-semibold hover:bg-red-600 disabled:opacity-50"
-                        >
-                            {actionLoading ? "Rejecting..." : "Reject"}
-                        </button>
-                    </div>
+                    <ModalActions
+                        onCancel={() => { closeModal("reject"); setRejectReason(""); }}
+                        onConfirm={handleReject}
+                        confirmLabel="Reject"
+                        confirmClass="bg-red-500 hover:bg-red-600"
+                        loading={actionLoading}
+                        disabled={!rejectReason.trim()}
+                    />
                 </div>
-            </Modal>
+            </ActionModal>
 
-            <Modal isOpen={showResubmitModal} title="Request Resubmission" onClose={() => setShowResubmitModal(false)}>
+            {/* Resubmit Modal */}
+            <ActionModal isOpen={modals.resubmit} title="Request Resubmission" icon={RefreshCw} iconBg="bg-amber-100 text-amber-600" onClose={() => { closeModal("resubmit"); setResubmitInstructions(""); }}>
                 <div className="space-y-4">
-                    <textarea
+                    <ModalTextarea
+                        label="Resubmission instructions"
+                        required
                         value={resubmitInstructions}
-                        onChange={(e) => setResubmitInstructions(e.target.value)}
-                        placeholder="Provide specific instructions for resubmission (e.g., which documents are missing or unclear)..."
-                        rows="4"
-                        className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 p-3 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                        onChange={setResubmitInstructions}
+                        placeholder="List which documents are missing, unclear, or need re-uploading..."
+                        focusColor="focus:border-amber-400 focus:ring-amber-100"
                     />
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => {
-                                setShowResubmitModal(false);
-                                setResubmitInstructions("");
-                            }}
-                            className="flex-1 rounded-lg border border-gray-200 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleRequestResubmission}
-                            disabled={actionLoading || !resubmitInstructions.trim()}
-                            className="flex-1 rounded-lg bg-amber-500 text-white px-4 py-2 text-sm font-semibold hover:bg-amber-600 disabled:opacity-50"
-                        >
-                            {actionLoading ? "Sending..." : "Send Request"}
-                        </button>
-                    </div>
+                    <ModalActions
+                        onCancel={() => { closeModal("resubmit"); setResubmitInstructions(""); }}
+                        onConfirm={handleResubmit}
+                        confirmLabel="Send Request"
+                        confirmClass="bg-amber-500 hover:bg-amber-600"
+                        loading={actionLoading}
+                        disabled={!resubmitInstructions.trim()}
+                    />
                 </div>
-            </Modal>
+            </ActionModal>
 
-            <Modal isOpen={showSuspendModal} title="Suspend Verification" onClose={() => setShowSuspendModal(false)}>
+            {/* Suspend Modal */}
+            <ActionModal isOpen={modals.suspend} title="Suspend for Investigation" icon={AlertTriangle} iconBg="bg-purple-100 text-purple-600" onClose={() => { closeModal("suspend"); setSuspendReason(""); setSuspendNotes(""); }}>
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                            Suspension Reason (Required)
-                        </label>
-                        <textarea
-                            value={suspendReason}
-                            onChange={(e) => setSuspendReason(e.target.value)}
-                            placeholder="Why is this verification being suspended?"
-                            rows="3"
-                            className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 p-3 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
-                            Investigation Notes (Optional)
-                        </label>
-                        <textarea
-                            value={suspendNotes}
-                            onChange={(e) => setSuspendNotes(e.target.value)}
-                            placeholder="Internal investigation notes..."
-                            rows="3"
-                            className="w-full rounded-lg border-2 border-gray-200 bg-gray-50 p-3 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
-                        />
-                    </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => {
-                                setShowSuspendModal(false);
-                                setSuspendReason("");
-                                setSuspendNotes("");
-                            }}
-                            className="flex-1 rounded-lg border border-gray-200 text-gray-700 px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSuspend}
-                            disabled={actionLoading || !suspendReason.trim()}
-                            className="flex-1 rounded-lg bg-purple-500 text-white px-4 py-2 text-sm font-semibold hover:bg-purple-600 disabled:opacity-50"
-                        >
-                            {actionLoading ? "Suspending..." : "Suspend"}
-                        </button>
-                    </div>
+                    <ModalTextarea
+                        label="Suspension reason"
+                        required
+                        value={suspendReason}
+                        onChange={setSuspendReason}
+                        placeholder="Why is this verification being suspended?"
+                        rows={3}
+                        focusColor="focus:border-purple-400 focus:ring-purple-100"
+                    />
+                    <ModalTextarea
+                        label="Internal notes (optional)"
+                        value={suspendNotes}
+                        onChange={setSuspendNotes}
+                        placeholder="Internal investigation notes, not visible to the organizer..."
+                        rows={3}
+                        maxLength={null}
+                        focusColor="focus:border-purple-400 focus:ring-purple-100"
+                    />
+                    <ModalActions
+                        onCancel={() => { closeModal("suspend"); setSuspendReason(""); setSuspendNotes(""); }}
+                        onConfirm={handleSuspend}
+                        confirmLabel="Suspend"
+                        confirmClass="bg-purple-500 hover:bg-purple-600"
+                        loading={actionLoading}
+                        disabled={!suspendReason.trim()}
+                    />
                 </div>
-            </Modal>
+            </ActionModal>
 
-            {/* Document Preview Modal */}
-            <DocumentPreviewModal
-                isOpen={showDocPreview}
-                document={previewDoc}
-                onClose={() => setShowDocPreview(false)}
-            />
+            {/* Document Modal */}
+            <DocumentModal isOpen={modals.doc} doc={previewDoc} onClose={() => closeModal("doc")} />
         </AdminLayout>
     );
 }

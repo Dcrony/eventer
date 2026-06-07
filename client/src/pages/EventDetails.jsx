@@ -52,6 +52,35 @@ const getTierDisplayName = (tier) => tier?.label?.trim() || tier?.type || "Ticke
 const getTierAccentColor = (tier) => tier?.color?.trim() || "#ec4899";
 const isTierFree = (tier, isEventFree) => isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
 
+/* ─── Derive a display-only lifecycle status from event dates ─────────────── */
+// The stored eventLifecycleStatus may be "Published" for all live events.
+// We compute the *display* state from actual dates so the UI badges and
+// banners always reflect reality, while NOT blocking ticket purchase for
+// legitimate upcoming/live events.
+const deriveDisplayStatus = (event) => {
+  if (!event) return null;
+  const stored = event.eventLifecycleStatus;
+
+  // Always honour these terminal / admin states from the server
+  if (["Cancelled", "Suspended", "Ended", "Draft", "Pending Approval"].includes(stored)) {
+    return stored;
+  }
+
+  // For Published / Upcoming / Live — recompute from dates so freshly
+  // created events show the right badge without any server-side scheduler
+  const now = new Date();
+  const start = event.startDate ? new Date(event.startDate) : null;
+  const end   = event.endDate   ? new Date(event.endDate)   : null;
+
+  if (start && start > now) return "Upcoming";
+  if (start && start <= now) {
+    if (end && end < now) return "Ended";
+    return "Live";
+  }
+
+  return stored || "Published";
+};
+
 function TicketTypeButton({ ticketType, isSelected, isEventFree, onClick }) {
   const displayName = getTierDisplayName(ticketType);
   const accentColor = getTierAccentColor(ticketType);
@@ -120,6 +149,9 @@ export default function EventDetail() {
     () => (event?.pricing || []).filter((t) => t.isEnabled !== false),
     [event]
   );
+
+  // Derive display-only status from dates rather than trusting stored lifecycle
+  const displayStatus = useMemo(() => deriveDisplayStatus(event), [event]);
 
   // ── Fetch event ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -225,7 +257,6 @@ export default function EventDetail() {
   const imageUrl = useMemo(() => getEventImageUrl(event), [event]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  // In EventDetail.jsx — replace handleBuy
   const handleBuy = () => {
     if (!isLoggedIn) { navigate("/login"); return; }
 
@@ -341,13 +372,30 @@ export default function EventDetail() {
   const isSoldOut = remainingTickets <= 0;
   const freeTicketClaimed = (isEventFree || selectedTicketType?.isFree) && alreadyHasFreeTicket;
 
-  // Check event lifecycle status
-  const isEventEnded = event.eventLifecycleStatus === 'Ended';
-  const isEventCancelled = event.eventLifecycleStatus === 'Cancelled';
-  const isEventSuspended = event.eventLifecycleStatus === 'Suspended';
-  const isEventDraft = event.eventLifecycleStatus === 'Draft' || event.eventLifecycleStatus === 'Pending Approval';
+  // Use the computed display status for UI decisions.
+  // IMPORTANT: "Upcoming" and "Live" and "Published" must NOT block ticket purchase —
+  // only terminal or admin-blocked states should disable the buy button.
+  const isEventLive      = displayStatus === "Live";
+  const isEventUpcoming  = displayStatus === "Upcoming";
+  const isEventEnded     = displayStatus === "Ended";
+  const isEventCancelled = displayStatus === "Cancelled";
+  const isEventSuspended = displayStatus === "Suspended";
 
-  const buyDisabled = isSoldOut || freeTicketClaimed || isEventEnded || isEventCancelled || isEventSuspended || isEventDraft;
+  // Only block if the stored server status is explicitly pre-publish AND the
+  // event is not yet approved. Approved events always allow ticket purchase.
+  const isEventDraft =
+    (event.eventLifecycleStatus === "Draft" ||
+      event.eventLifecycleStatus === "Pending Approval") &&
+    event.status !== "approved";
+
+  const buyDisabled =
+    isSoldOut ||
+    freeTicketClaimed ||
+    isEventEnded ||
+    isEventCancelled ||
+    isEventSuspended ||
+    isEventDraft;
+
   const buyLabel = isEventEnded
     ? "Event ended"
     : isEventCancelled
@@ -360,7 +408,9 @@ export default function EventDetail() {
             ? "Sold out"
             : freeTicketClaimed
               ? "Already reserved"
-              : "Get tickets";
+              : isEventUpcoming
+                ? "Reserve tickets"
+                : "Get tickets";
 
   return (
     <>
@@ -417,22 +467,46 @@ export default function EventDetail() {
                   </div>
 
                   <div className="space-y-2">
-                    {/* Event Lifecycle Status Banner */}
+                    {/* ── Event status banners ── */}
+
+                    {/* Terminal / blocked states */}
                     {(isEventEnded || isEventCancelled || isEventSuspended) && (
-                      <div className={`p-3 rounded-lg border text-sm font-semibold ${isEventEnded ? 'bg-gray-100 border-gray-300 text-gray-700' :
-                          isEventCancelled ? 'bg-red-50 border-red-300 text-red-700' :
-                            'bg-yellow-50 border-yellow-300 text-yellow-700'
-                        }`}>
-                        {isEventEnded && '🏁 This event has ended.'}
-                        {isEventCancelled && `❌ This event has been cancelled. ${event.cancellationReason ? `Reason: ${event.cancellationReason}` : ''}`}
-                        {isEventSuspended && `⚠️ This event is temporarily unavailable. ${event.suspensionReason ? `Reason: ${event.suspensionReason}` : ''}`}
+                      <div className={`p-3 rounded-lg border text-sm font-semibold ${
+                        isEventEnded
+                          ? "bg-gray-100 border-gray-300 text-gray-700"
+                          : isEventCancelled
+                            ? "bg-red-50 border-red-300 text-red-700"
+                            : "bg-yellow-50 border-yellow-300 text-yellow-700"
+                      }`}>
+                        {isEventEnded && "🏁 This event has ended."}
+                        {isEventCancelled && `❌ This event has been cancelled.${event.cancellationReason ? ` Reason: ${event.cancellationReason}` : ""}`}
+                        {isEventSuspended && `⚠️ This event is temporarily unavailable.${event.suspensionReason ? ` Reason: ${event.suspensionReason}` : ""}`}
                       </div>
                     )}
-                    {event.eventLifecycleStatus === 'Live' && (
+
+                    {/* Live NOW */}
+                    {isEventLive && (
                       <div className="p-3 rounded-lg border border-red-300 bg-red-50 text-red-700 text-sm font-semibold animate-pulse">
                         🔴 This event is LIVE NOW!
                       </div>
                     )}
+
+                    {/* Upcoming — tickets are on sale */}
+                    {isEventUpcoming && (
+                      <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold">
+                        🗓 Tickets on sale — event starts{" "}
+                        {event.startDate
+                          ? new Date(event.startDate).toLocaleDateString(undefined, {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "soon"}
+                        {event.startTime ? ` at ${event.startTime}` : ""}
+                      </div>
+                    )}
+
                     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">{event.title}</h1>
                     <p className="text-sm text-gray-400 leading-relaxed">{event.description}</p>
                   </div>

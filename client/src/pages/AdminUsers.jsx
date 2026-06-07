@@ -1,123 +1,21 @@
 import { useEffect, useState } from "react";
-import { Shield, UserCheck, Users, Search, Download, ChevronLeft, ChevronRight, AlertCircle, CheckCircle2, XCircle } from "lucide-react";
+import { Download, Search, Shield, UserCheck, Users, X } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
 import { UserAvatar } from "../components/ui/avatar";
 import adminService from "../services/adminService";
-import { formatCurrency, formatDate, formatNumber, formatStatus, getStatusTone } from "../utils/adminUtils";
+import { formatCurrency, formatDate, formatNumber, getStatusTone } from "../utils/adminUtils";
 import { useToast } from "../components/ui/toast";
-
-function StatCard({ icon: Icon, label, value, detail }) {
-    return (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">{label}</p>
-                    <p className="mt-2 text-2xl font-bold text-gray-900">{value}</p>
-                </div>
-                {Icon && (
-                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-pink-50 text-pink-500">
-                        <Icon size={18} />
-                    </div>
-                )}
-            </div>
-            {detail && <p className="mt-3 text-xs text-gray-500">{detail}</p>}
-        </div>
-    );
-}
-
-function SurfaceCard({ children, className = "" }) {
-    return <div className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm ${className}`.trim()}>{children}</div>;
-}
-
-function LoadingSpinner({ label = "Loading..." }) {
-    return (
-        <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="text-center">
-                <div className="mx-auto h-8 w-8 border-3 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
-                <p className="mt-3 text-sm text-gray-500">{label}</p>
-            </div>
-        </div>
-    );
-}
-
-function ErrorMessage({ message, onDismiss }) {
-    return (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                    <AlertCircle size={18} />
-                    <span className="text-sm font-semibold">Error</span>
-                </div>
-                {onDismiss && (
-                    <button onClick={onDismiss} className="text-xs font-semibold uppercase tracking-wider text-red-600 hover:text-red-700">
-                        Dismiss
-                    </button>
-                )}
-            </div>
-            <p className="mt-2 text-sm leading-relaxed">{message}</p>
-        </div>
-    );
-}
-
-function EmptyState({ icon: Icon, title, description, action }) {
-    return (
-        <div className="flex min-h-[240px] items-center justify-center rounded-2xl border border-gray-200 bg-white px-6 py-10 text-center shadow-sm">
-            <div>
-                <Icon className="mx-auto h-12 w-12 text-gray-300" />
-                <h3 className="mt-4 text-base font-semibold text-gray-900">{title}</h3>
-                <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500">{description}</p>
-                {action && <div className="mt-5">{action}</div>}
-            </div>
-        </div>
-    );
-}
-
-function StatusBadge({ tone = "gray", children }) {
-    const tones = {
-        green: "bg-green-100 text-green-700",
-        amber: "bg-amber-100 text-amber-700",
-        red: "bg-red-100 text-red-700",
-        pink: "bg-pink-100 text-pink-700",
-        gray: "bg-gray-100 text-gray-700",
-        blue: "bg-blue-100 text-blue-700",
-    };
-
-    return (
-        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${tones[tone] || tones.gray}`}>
-            {children}
-        </span>
-    );
-}
-
-function PaginationControls({ page, pages, onPrevious, onNext, total, label = "results" }) {
-    return (
-        <div className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-            <p className="text-sm text-gray-500">
-                Page {page} of {pages} {typeof total === "number" ? `- ${formatNumber(total)} ${label}` : ""}
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    onClick={onPrevious}
-                    disabled={page <= 1}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition-all duration-200 hover:border-pink-300 hover:text-pink-500 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                    <ChevronLeft size={16} />
-                    Previous
-                </button>
-                <button
-                    type="button"
-                    onClick={onNext}
-                    disabled={page >= pages}
-                    className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition-all duration-200 hover:border-pink-300 hover:text-pink-500 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                    Next
-                    <ChevronRight size={16} />
-                </button>
-            </div>
-        </div>
-    );
-}
+import {
+    EmptyState,
+    ErrorMessage,
+    LoadingSpinner,
+    PaginationControls,
+    StatCard,
+    StatusBadge,
+    SurfaceCard,
+    TableHead,
+    TableWrapper,
+} from "../components/AdminComponents";
 
 export default function AdminUsers() {
     const toast = useToast();
@@ -139,9 +37,7 @@ export default function AdminUsers() {
         ...(statusFilter ? { status: statusFilter } : {}),
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, [page, roleFilter, statusFilter]);
+    useEffect(() => { fetchUsers(); }, [page, roleFilter, statusFilter]);
 
     const fetchUsers = async (overrideFilters = filters, nextPage = page) => {
         try {
@@ -158,10 +54,7 @@ export default function AdminUsers() {
         }
     };
 
-    const applySearch = () => {
-        setPage(1);
-        fetchUsers(filters, 1);
-    };
+    const applySearch = () => { setPage(1); fetchUsers(filters, 1); };
 
     const openUserDetails = async (userId) => {
         try {
@@ -184,12 +77,8 @@ export default function AdminUsers() {
                 await adminService.suspendUser(user._id);
                 toast.success("User suspended.");
             }
-
             fetchUsers(filters, page);
-
-            if (selectedUser?.user?._id === user._id) {
-                openUserDetails(user._id);
-            }
+            if (selectedUser?.user?._id === user._id) openUserDetails(user._id);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to update user status.");
         }
@@ -198,28 +87,20 @@ export default function AdminUsers() {
     const handleRoleChange = async (userId, role) => {
         try {
             await adminService.updateUserRole(userId, role);
-            toast.success(`User role updated to ${role}.`);
+            toast.success(`Role updated to ${role}.`);
             fetchUsers(filters, page);
-
-            if (selectedUser?.user?._id === userId) {
-                openUserDetails(userId);
-            }
+            if (selectedUser?.user?._id === userId) openUserDetails(userId);
         } catch (err) {
-            setError(err.response?.data?.message || "Failed to update user role.");
+            setError(err.response?.data?.message || "Failed to update role.");
         }
     };
 
     const handleDelete = async (user) => {
-        if (!window.confirm(`Delete ${user.email}? This will deactivate the account.`)) {
-            return;
-        }
-
+        if (!window.confirm(`Delete ${user.email}? This will deactivate the account.`)) return;
         try {
             await adminService.deleteUser(user._id);
-            toast.success("User deleted successfully.");
-            if (selectedUser?.user?._id === user._id) {
-                setSelectedUser(null);
-            }
+            toast.success("User deleted.");
+            if (selectedUser?.user?._id === user._id) setSelectedUser(null);
             fetchUsers(filters, page);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to delete user.");
@@ -229,53 +110,45 @@ export default function AdminUsers() {
     return (
         <AdminLayout
             title="User Management"
-            description="Search users, change access roles, suspend or reactivate accounts, and inspect organizer activity."
+            description="Search users, manage roles, suspend accounts, and inspect organizer activity."
         >
-            <div className="space-y-6">
-                {/* Search and Filters */}
-                <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_1fr_auto]">
-                    <SurfaceCard>
+            <div className="space-y-4">
+                {/* Search + Filters */}
+                <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
+                    <SurfaceCard className="p-3">
                         <div className="flex items-center gap-2">
-                            <Search size={18} className="text-pink-500 flex-shrink-0" />
+                            <Search size={14} className="text-pink-500 flex-shrink-0" />
                             <input
                                 type="search"
                                 placeholder="Search by name, username, or email"
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter") applySearch();
-                                }}
-                                className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
+                                className="min-w-0 flex-1 bg-transparent text-xs text-gray-800 outline-none placeholder:text-gray-400"
                             />
                         </div>
                     </SurfaceCard>
-                    <SurfaceCard>
+                    <SurfaceCard className="p-3">
                         <select
                             value={roleFilter}
-                            onChange={(event) => {
-                                setRoleFilter(event.target.value);
-                                setPage(1);
-                            }}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                            onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                            className="w-full bg-transparent text-xs font-medium text-gray-700 outline-none"
                         >
                             <option value="">All roles</option>
-                                                    <option value="user">Users</option>
-                                                    <option value="organizer">Organizers</option>
-                                                    <option value="admin">Admins</option>
-                                                    <option value="moderator">Moderators</option>
-                                                    <option value="finance_admin">Finance Admins</option>
-                                                    <option value="support_admin">Support Admins</option>
-                                                    <option value="super_admin">Super Admins</option>
-                                                </select>
+                            <option value="user">Users</option>
+                            <option value="organizer">Organizers</option>
+                            <option value="admin">Admins</option>
+                            <option value="moderator">Moderators</option>
+                            <option value="finance_admin">Finance Admins</option>
+                            <option value="support_admin">Support Admins</option>
+                            <option value="super_admin">Super Admins</option>
+                        </select>
                     </SurfaceCard>
-                    <SurfaceCard>
+                    <SurfaceCard className="p-3">
                         <select
                             value={statusFilter}
-                            onChange={(event) => {
-                                setStatusFilter(event.target.value);
-                                setPage(1);
-                            }}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                            className="w-full bg-transparent text-xs font-medium text-gray-700 outline-none"
                         >
                             <option value="">All statuses</option>
                             <option value="active">Active</option>
@@ -285,15 +158,15 @@ export default function AdminUsers() {
                     <button
                         type="button"
                         onClick={applySearch}
-                        className="rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/25"
+                        className="rounded-xl bg-pink-500 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-pink-600"
                     >
                         Search
                     </button>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard icon={Users} label="Total Users" value={formatNumber(summary?.total || 0)} detail="Active admin scope" />
+                {/* Stats */}
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard icon={Users} label="Total Users" value={formatNumber(summary?.total || 0)} detail="Active admin scope" accent />
                     <StatCard icon={UserCheck} label="Organizers" value={formatNumber(summary?.organizers || 0)} detail={`${formatNumber(summary?.verifiedOrganizers || 0)} verified`} />
                     <StatCard icon={Shield} label="Admins" value={formatNumber(summary?.admins || 0)} detail="Platform managers" />
                     <StatCard icon={Shield} label="Suspended" value={formatNumber(summary?.suspended || 0)} detail={`${formatNumber(summary?.proUsers || 0)} pro accounts`} />
@@ -301,88 +174,75 @@ export default function AdminUsers() {
 
                 {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
 
-                {/* Main Content Grid */}
-                <div className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-                    {/* Users Table */}
-                    <div className="space-y-6">
+                {/* Main split layout */}
+                <div className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
+                    {/* User table */}
+                    <div className="space-y-3">
                         {loading ? (
                             <LoadingSpinner label="Loading users..." />
                         ) : users.length === 0 ? (
-                            <EmptyState icon={Users} title="No users found" description="Try a broader search or clear some filters." />
+                            <EmptyState icon={Users} title="No users found" description="Try a broader search or clear filters." />
                         ) : (
-                            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                    <thead className="bg-gray-50 text-gray-500">
-                                        <tr>
-                                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">User</th>
-                                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Role</th>
-                                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Status</th>
-                                            <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {users.map((user) => (
-                                            <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-5 py-4">
+                            <TableWrapper>
+                                <TableHead columns={["User", "Role", "Status", "Actions"]} />
+                                <tbody className="divide-y divide-gray-50 bg-white">
+                                    {users.map((user) => (
+                                        <tr key={user._id} className="group transition-colors hover:bg-pink-50/20">
+                                            <td className="px-4 py-3.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openUserDetails(user._id)}
+                                                    className="flex items-center gap-3 text-left"
+                                                >
+                                                    <UserAvatar user={user} className="h-9 w-9 rounded-xl flex-shrink-0" />
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-semibold text-gray-900 truncate">{user.name || user.username}</p>
+                                                        <p className="mt-0.5 text-[0.6rem] text-gray-400 truncate">{user.email}</p>
+                                                    </div>
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <select
+                                                    value={user.role}
+                                                    onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                                                    className="rounded-xl border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-700 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
+                                                >
+                                                    <option value="user">User</option>
+                                                    <option value="organizer">Organizer</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="moderator">Moderator</option>
+                                                    <option value="finance_admin">Finance Admin</option>
+                                                    <option value="support_admin">Support Admin</option>
+                                                    <option value="super_admin">Super Admin</option>
+                                                </select>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <StatusBadge tone={user.isSuspended ? "red" : "green"}>
+                                                    {user.isSuspended ? "Suspended" : "Active"}
+                                                </StatusBadge>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <div className="flex gap-1.5">
                                                     <button
                                                         type="button"
-                                                        onClick={() => openUserDetails(user._id)}
-                                                        className="flex items-center gap-3 text-left w-full"
+                                                        onClick={() => handleSuspendToggle(user)}
+                                                        className={`rounded-lg px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors ${user.isSuspended ? "bg-emerald-500 hover:bg-emerald-600" : "bg-amber-500 hover:bg-amber-600"}`}
                                                     >
-                                                        <UserAvatar user={user} className="h-10 w-10 rounded-xl" />
-                                                        <div>
-                                                            <div className="font-semibold text-gray-900">{user.name || user.username}</div>
-                                                            <div className="mt-0.5 text-xs text-gray-500">{user.email}</div>
-                                                        </div>
+                                                        {user.isSuspended ? "Reactivate" : "Suspend"}
                                                     </button>
-                                                </td>
-                                                <td className="px-5 py-4">
-                                                    <select
-                                                        value={user.role}
-                                                        onChange={(event) => handleRoleChange(user._id, event.target.value)}
-                                                        className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100"
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(user)}
+                                                        className="rounded-lg bg-red-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-red-600"
                                                     >
-                                                        <option value="user">User</option>
-                                                        <option value="organizer">Organizer</option>
-                                                        <option value="admin">Admin</option>
-                                                        <option value="moderator">Moderator</option>
-                                                        <option value="finance_admin">Finance Admin</option>
-                                                        <option value="support_admin">Support Admin</option>
-                                                        <option value="super_admin">Super Admin</option>
-                                                    </select>
-                                                </td>
-                                                <td className="px-5 py-4">
-                                                    <StatusBadge tone={user.isSuspended ? "red" : "green"}>
-                                                        {user.isSuspended ? "Suspended" : "Active"}
-                                                    </StatusBadge>
-                                                </td>
-                                                <td className="px-5 py-4">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleSuspendToggle(user)}
-                                                            className={`rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 ${
-                                                                user.isSuspended
-                                                                    ? "bg-green-500 hover:bg-green-600"
-                                                                    : "bg-amber-500 hover:bg-amber-600"
-                                                            }`}
-                                                        >
-                                                            {user.isSuspended ? "Reactivate" : "Suspend"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDelete(user)}
-                                                            className="rounded-xl bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-red-600"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </TableWrapper>
                         )}
 
                         <PaginationControls
@@ -390,85 +250,84 @@ export default function AdminUsers() {
                             pages={pagination.pages || 1}
                             total={pagination.total}
                             label="users"
-                            onPrevious={() => setPage((current) => Math.max(1, current - 1))}
-                            onNext={() => setPage((current) => Math.min(pagination.pages || 1, current + 1))}
+                            onPrevious={() => setPage((c) => Math.max(1, c - 1))}
+                            onNext={() => setPage((c) => Math.min(pagination.pages || 1, c + 1))}
                         />
                     </div>
 
-                    {/* User Details Panel */}
-                    <SurfaceCard className="space-y-5">
+                    {/* Detail panel */}
+                    <SurfaceCard className="space-y-4">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">User details</p>
-                            <h3 className="mt-2 text-lg font-bold text-gray-900">
+                            <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">User details</p>
+                            <h3 className="mt-1.5 text-sm font-bold text-gray-900">
                                 {selectedUser?.user?.name || selectedUser?.user?.username || "Select a user"}
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                                {selectedUser?.user?.email || "Choose a row to inspect recent activity and organizer events."}
+                            <p className="mt-0.5 text-xs text-gray-400">
+                                {selectedUser?.user?.email || "Choose a row to inspect activity."}
                             </p>
                         </div>
 
                         {detailsLoading ? (
                             <LoadingSpinner label="Loading user details..." />
                         ) : selectedUser?.user ? (
-                            <div className="space-y-5">
-                                {/* User Stats */}
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Role</p>
-                                        <p className="mt-2 text-sm font-semibold text-gray-900 capitalize">{selectedUser.user.role || "User"}</p>
-                                    </div>
-                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Status</p>
-                                        <p className="mt-2 text-sm font-semibold text-gray-900">
-                                            {selectedUser.user.isSuspended ? "Suspended" : "Active"}
-                                        </p>
-                                    </div>
+                            <div className="space-y-4">
+                                {/* Quick stats */}
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    {[
+                                        ["Role", <span className="capitalize">{selectedUser.user.role || "user"}</span>],
+                                        ["Status", selectedUser.user.isSuspended ? "Suspended" : "Active"],
+                                    ].map(([label, val]) => (
+                                        <div key={label} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                            <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">{label}</p>
+                                            <p className="mt-1.5 text-xs font-semibold text-gray-900">{val}</p>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Verification</p>
-                                        <div className="mt-2 flex items-center justify-between gap-3">
-                                            <p className="text-sm font-semibold text-gray-900">{selectedUser.user.isVerified ? "Verified" : "Not verified"}</p>
+                                {/* Verification + Subscription */}
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Verification</p>
+                                        <div className="mt-1.5 flex items-center justify-between gap-2">
+                                            <p className="text-xs font-semibold text-gray-900">{selectedUser.user.isVerified ? "Verified" : "Unverified"}</p>
                                             <button
                                                 type="button"
                                                 onClick={async () => {
                                                     try {
                                                         await adminService.updateUserVerification(selectedUser.user._id, !selectedUser.user.isVerified);
-                                                        toast.success("Verification status updated.");
+                                                        toast.success("Verification updated.");
                                                         openUserDetails(selectedUser.user._id);
                                                         fetchUsers(filters, page);
                                                     } catch (err) {
-                                                        setError(err.response?.data?.message || "Failed to update verification.");
+                                                        setError(err.response?.data?.message || "Failed.");
                                                     }
                                                 }}
-                                                className={`rounded-full px-3 py-1.5 text-xs font-semibold text-white ${selectedUser.user.isVerified ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                                                className={`rounded-lg px-2 py-1 text-[0.6rem] font-bold text-white transition-colors ${selectedUser.user.isVerified ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
                                             >
                                                 {selectedUser.user.isVerified ? "Remove" : "Verify"}
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
-                                        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Subscription</p>
-                                        <div className="mt-2 flex items-center justify-between gap-3">
-                                            <p className="text-sm font-semibold text-gray-900 uppercase">{selectedUser.user.plan || "free"}</p>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Subscription</p>
+                                        <div className="mt-1.5 flex items-center justify-between gap-2">
+                                            <p className="text-xs font-bold uppercase text-gray-900">{selectedUser.user.plan || "free"}</p>
                                             <select
                                                 value={selectedUser.user.plan || "free"}
-                                                onChange={async (event) => {
+                                                onChange={async (e) => {
                                                     try {
                                                         await adminService.updateUserSubscription(selectedUser.user._id, {
-                                                            plan: event.target.value,
+                                                            plan: e.target.value,
                                                             interval: "monthly",
-                                                            status: event.target.value === "free" ? "inactive" : "active",
+                                                            status: e.target.value === "free" ? "inactive" : "active",
                                                         });
                                                         toast.success("Subscription updated.");
                                                         openUserDetails(selectedUser.user._id);
-                                                        fetchUsers(filters, page);
                                                     } catch (err) {
-                                                        setError(err.response?.data?.message || "Failed to update subscription.");
+                                                        setError(err.response?.data?.message || "Failed.");
                                                     }
                                                 }}
-                                                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none"
+                                                className="rounded-lg border border-gray-100 bg-white px-2 py-1 text-xs text-gray-700 outline-none"
                                             >
                                                 <option value="free">Free</option>
                                                 <option value="trial">Trial</option>
@@ -478,41 +337,36 @@ export default function AdminUsers() {
                                     </div>
                                 </div>
 
-                                {selectedUser.riskIndicators?.length ? (
+                                {/* Risk indicators */}
+                                {selectedUser.riskIndicators?.length > 0 && (
                                     <div>
-                                        <h4 className="text-sm font-semibold text-gray-900">Risk indicators</h4>
-                                        <div className="mt-3 flex flex-wrap gap-2">
-                                            {selectedUser.riskIndicators.map((indicator) => (
-                                                <StatusBadge key={indicator.label} tone={indicator.tone}>
-                                                    {indicator.label}
-                                                </StatusBadge>
+                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-2">Risk Indicators</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {selectedUser.riskIndicators.map((ind) => (
+                                                <StatusBadge key={ind.label} tone={ind.tone}>{ind.label}</StatusBadge>
                                             ))}
                                         </div>
                                     </div>
-                                ) : null}
+                                )}
 
-                                {/* Recent Transactions */}
+                                {/* Recent transactions */}
                                 <div>
-                                    <h4 className="text-sm font-semibold text-gray-900">Recent transactions</h4>
-                                    <div className="mt-3 space-y-3">
+                                    <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-2">Recent Transactions</p>
+                                    <div className="space-y-2">
                                         {(selectedUser.transactions || []).slice(0, 5).length === 0 ? (
-                                            <p className="text-sm text-gray-500">No recent transactions.</p>
+                                            <p className="text-xs text-gray-400">No recent transactions.</p>
                                         ) : (
-                                            (selectedUser.transactions || []).slice(0, 5).map((transaction) => (
-                                                <div key={transaction._id} className="rounded-xl border border-gray-200 p-4 hover:border-pink-200 transition-all duration-200">
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate">
-                                                                {transaction.event?.title || "Unknown event"}
-                                                            </p>
-                                                            <p className="mt-1 text-xs text-gray-500">{formatDate(transaction.purchasedAt)}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-sm font-semibold text-gray-900">{formatCurrency(transaction.amount || 0)}</p>
-                                                            <StatusBadge tone={transaction.paymentStatus === "success" ? "green" : "amber"}>
-                                                                {transaction.paymentStatus || "pending"}
-                                                            </StatusBadge>
-                                                        </div>
+                                            (selectedUser.transactions || []).slice(0, 5).map((tx) => (
+                                                <div key={tx._id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3 hover:border-pink-100 transition-colors">
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-semibold text-gray-900 truncate">{tx.event?.title || "Unknown"}</p>
+                                                        <p className="mt-0.5 text-[0.6rem] text-gray-400">{formatDate(tx.purchasedAt)}</p>
+                                                    </div>
+                                                    <div className="flex-shrink-0 text-right">
+                                                        <p className="text-xs font-bold text-gray-900 tabular-nums">{formatCurrency(tx.amount || 0)}</p>
+                                                        <StatusBadge tone={tx.paymentStatus === "success" ? "green" : "amber"}>
+                                                            {tx.paymentStatus || "pending"}
+                                                        </StatusBadge>
                                                     </div>
                                                 </div>
                                             ))
@@ -520,26 +374,24 @@ export default function AdminUsers() {
                                     </div>
                                 </div>
 
-                                {/* Organizer Events */}
+                                {/* Organizer events */}
                                 <div>
-                                    <h4 className="text-sm font-semibold text-gray-900">Organizer events</h4>
-                                    <div className="mt-3 space-y-3">
+                                    <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 mb-2">Organizer Events</p>
+                                    <div className="space-y-2">
                                         {(selectedUser.events || []).slice(0, 5).length === 0 ? (
-                                            <p className="text-sm text-gray-500">No organizer events found.</p>
+                                            <p className="text-xs text-gray-400">No events found.</p>
                                         ) : (
-                                            (selectedUser.events || []).slice(0, 5).map((event) => (
-                                                <div key={event._id} className="rounded-xl border border-gray-200 p-4 hover:border-pink-200 transition-all duration-200">
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate">{event.title}</p>
-                                                            <p className="mt-1 text-xs text-gray-500">{event.category || "No category"}</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <StatusBadge tone={event.status === "approved" ? "green" : event.status === "rejected" ? "red" : "amber"}>
-                                                                {event.status || "pending"}
-                                                            </StatusBadge>
-                                                            <p className="mt-1 text-xs text-gray-500">Sold: {formatNumber(event.ticketsSold || 0)}</p>
-                                                        </div>
+                                            (selectedUser.events || []).slice(0, 5).map((ev) => (
+                                                <div key={ev._id} className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 p-3 hover:border-pink-100 transition-colors">
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-semibold text-gray-900 truncate">{ev.title}</p>
+                                                        <p className="mt-0.5 text-[0.6rem] text-gray-400">{ev.category || "No category"}</p>
+                                                    </div>
+                                                    <div className="flex-shrink-0 text-right">
+                                                        <StatusBadge tone={ev.status === "approved" ? "green" : ev.status === "rejected" ? "red" : "amber"}>
+                                                            {ev.status || "pending"}
+                                                        </StatusBadge>
+                                                        <p className="mt-1 text-[0.55rem] text-gray-400">Sold: {formatNumber(ev.ticketsSold || 0)}</p>
                                                     </div>
                                                 </div>
                                             ))
@@ -551,7 +403,7 @@ export default function AdminUsers() {
                             <EmptyState
                                 icon={Users}
                                 title="No user selected"
-                                description="Select a user from the table to view profile details, recent purchases, and events."
+                                description="Select a user from the table to view their profile, purchases, and events."
                             />
                         )}
                     </SurfaceCard>

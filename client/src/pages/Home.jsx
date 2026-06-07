@@ -9,7 +9,7 @@ import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import EventCard from "../components/EventCard";
 import PersonalizedDiscoveryFeed from "../components/PersonalizedDiscoveryFeed";
 import useDemoEvents from "../hooks/useDemoEvents";
-import {useAuth} from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 import {
   Music, Zap, Briefcase, UtensilsCrossed, Trophy, Globe,
@@ -18,13 +18,13 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const CHIPS = [
-  { id: "all", label: "All", icon: null },
-  { id: "music", label: "Music", icon: Music },
-  { id: "tech", label: "Tech", icon: Zap },
-  { id: "business", label: "Business", icon: Briefcase },
-  { id: "food", label: "Food", icon: UtensilsCrossed },
-  { id: "sports", label: "Sports", icon: Trophy },
-  { id: "online", label: "Online", icon: Globe },
+  { id: "all",      label: "All",      icon: null           },
+  { id: "music",    label: "Music",    icon: Music          },
+  { id: "tech",     label: "Tech",     icon: Zap            },
+  { id: "business", label: "Business", icon: Briefcase      },
+  { id: "food",     label: "Food",     icon: UtensilsCrossed },
+  { id: "sports",   label: "Sports",   icon: Trophy         },
+  { id: "online",   label: "Online",   icon: Globe          },
 ];
 
 const applyFilters = (items, search, filter, sort) => {
@@ -43,15 +43,21 @@ const applyFilters = (items, search, filter, sort) => {
   });
   out.sort((a, b) => {
     if (sort === "popular")
-      return (b.likeCount || b.ticketsSold || 0) - (a.likeCount || a.ticketsSold || 0);
+      return (
+        (b.likeCount || b.ticketsSold || 0) -
+        (a.likeCount || a.ticketsSold || 0)
+      );
     if (sort === "soonest")
-      return new Date(a.startDate || a.date || 0) - new Date(b.startDate || b.date || 0);
+      return (
+        new Date(a.startDate || a.date || 0) -
+        new Date(b.startDate || b.date || 0)
+      );
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
   return out;
 };
 
-// ── Skeleton card ────────────────────────────────────────────────────────────
+// ── Skeleton card ─────────────────────────────────────────────────────────────
 function SkelCard() {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm animate-pulse">
@@ -69,12 +75,15 @@ function SkelCard() {
   );
 }
 
-// ── Toolbar (always rendered so layout doesn't shift) ────────────────────────
+// ── Toolbar ───────────────────────────────────────────────────────────────────
 function Toolbar({ search, setSearch, filter, setFilter, sort, setSort }) {
   return (
     <div className="mb-8 space-y-3">
       <div className="relative max-w-md">
-        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
         <input
           type="search"
           className="w-full h-12 pl-9 pr-12 rounded-full border-2 border-gray-200 bg-white text-gray-900 text-sm transition-all duration-200 placeholder:text-gray-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 outline-none shadow-sm"
@@ -133,17 +142,17 @@ function Toolbar({ search, setSearch, filter, setFilter, sort, setSort }) {
 export default function Home() {
   const { hasAccess: canAI, promptUpgrade: promptAI } = useFeatureAccess("tickiai");
 
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [events, setEvents]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
   const [useDemoData, setUseDemoData] = useState(false);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("newest");
-  const [showAI, setShowAI] = useState(false);
-  const { user } = useAuth()
-  const navigate = useNavigate();
+  const [search, setSearch]       = useState("");
+  const [filter, setFilter]       = useState("all");
+  const [sort, setSort]           = useState("newest");
+  const [showAI, setShowAI]       = useState(false);
 
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { toProfile } = useProfileNavigation();
   const demoEvents = useDemoEvents(events, error && !useDemoData);
 
@@ -157,12 +166,14 @@ export default function Home() {
           : Array.isArray(res.data?.data)
             ? res.data.data
             : [];
-        // After
-setEvents(
-  data.filter(
-    (e) => e && e.createdBy && e.status !== "pending_review" && e.status !== "pending"
-  )
-);
+
+        // FIX: Only filter out genuinely invalid entries (no createdBy).
+        // Do NOT filter by status here — the backend already returns only
+        // approved, non-draft, public events (plus the user's own events).
+        // Filtering by status on the frontend was hiding newly created events.
+        const validEvents = data.filter((e) => e && e.createdBy);
+
+        setEvents(validEvents);
         setUseDemoData(false);
         setError(null);
       } catch {
@@ -177,12 +188,12 @@ setEvents(
 
   const dataset = useMemo(
     () => (useDemoData && demoEvents.length ? demoEvents : events),
-    [demoEvents, events, useDemoData],
+    [demoEvents, events, useDemoData]
   );
 
   const filtered = useMemo(
     () => applyFilters(dataset, search, filter, sort),
-    [dataset, search, filter, sort],
+    [dataset, search, filter, sort]
   );
 
   return (
@@ -211,7 +222,7 @@ setEvents(
 
       <div className="max-w-7xl px-4 sm:px-6 lg:px-8">
 
-        {/* ── Hero — always visible ── */}
+        {/* ── Hero ── */}
         <div className="mb-8 pb-6 border-b border-gray-200">
           <span className="inline-block text-[0.65rem] font-bold uppercase tracking-[0.14em] text-pink-500 mb-2">
             Event infrastructure for serious teams
@@ -220,46 +231,41 @@ setEvents(
             Discover events
           </h1>
           <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-lg">
-            Browse social-first experiences across music, tech, culture, and community on TickiSpot.
+            Browse social-first experiences across music, tech, culture, and
+            community on TickiSpot.
           </p>
-          {/* <div className="flex flex-wrap gap-2 mt-3">
-            {["50K+ active organizers", "500K+ tickets sold", "99.9% uptime"].map((badge) => (
-              <span
-                key={badge}
-                className="inline-flex items-center h-7 px-3 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-600 shadow-sm"
-              >
-                {badge}
-              </span>
-            ))}
-          </div> */}
         </div>
 
-        {/* ── Personalized Feed (for logged-in users) ── */}
+        {/* ── Personalized Feed (logged-in users only) ── */}
         {!loading && !error && user && (
           <div className="mb-12">
             <PersonalizedDiscoveryFeed limit={8} />
           </div>
         )}
 
-        {/* ── Toolbar — always visible ── */}
+        {/* ── Toolbar ── */}
         <Toolbar
           search={search} setSearch={setSearch}
           filter={filter} setFilter={setFilter}
-          sort={sort} setSort={setSort}
+          sort={sort}    setSort={setSort}
         />
 
         {/* ── Loading ── */}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-24">
-            {Array.from({ length: 8 }).map((_, i) => <SkelCard key={i} />)}
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkelCard key={i} />
+            ))}
           </div>
         )}
 
-        {/* ── Error (no demo fallback available) ── */}
+        {/* ── Hard error (no demo fallback) ── */}
         {!loading && error && !useDemoData && (
           <div className="py-20 text-center">
             <AlertCircle size={48} className="text-pink-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Couldn't load events</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">
+              Couldn't load events
+            </h3>
             <p className="text-sm text-gray-400">{error}</p>
             <button
               onClick={() => window.location.reload()}
@@ -273,20 +279,29 @@ setEvents(
         {/* ── Content ── */}
         {!loading && (!error || useDemoData) && (
           <>
-            {/* Results count */}
             <p className="text-xs font-medium text-gray-400 mb-4">
-              <strong className="text-gray-900 font-bold">{filtered.length}</strong>{" "}
+              <strong className="text-gray-900 font-bold">
+                {filtered.length}
+              </strong>{" "}
               event{filtered.length !== 1 ? "s" : ""} found
               {useDemoData && (
-                <span className="ml-2 text-amber-500 font-semibold">(demo data)</span>
+                <span className="ml-2 text-amber-500 font-semibold">
+                  (demo data)
+                </span>
               )}
             </p>
 
             {filtered.length === 0 ? (
               <div className="py-20 text-center">
-                <SearchX size={56} strokeWidth={1.5} className="text-gray-300 mx-auto mb-4" />
+                <SearchX
+                  size={56}
+                  strokeWidth={1.5}
+                  className="text-gray-300 mx-auto mb-4"
+                />
                 <h3 className="text-base font-bold text-gray-900 mb-1">
-                  {search ? "No events match your search" : "No events yet"}
+                  {search
+                    ? "No events match your search"
+                    : "No events yet"}
                 </h3>
                 <p className="text-sm text-gray-400 max-w-sm mx-auto mb-4">
                   {search
@@ -303,7 +318,6 @@ setEvents(
                 )}
               </div>
             ) : (
-              // pb-24 on mobile gives breathing room above the bottom nav
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-24">
                 {filtered.map((event) => (
                   <EventCard
@@ -318,7 +332,7 @@ setEvents(
         )}
       </div>
 
-      {/* ── TickiAI Floating Button — desktop only ── */}
+      {/* ── TickiAI Floating Button (desktop only) ── */}
       <div className="hidden md:block fixed bottom-6 right-6 z-[9999]">
         <div className="flex flex-col items-end gap-3">
           {showAI && (
@@ -328,12 +342,12 @@ setEvents(
           )}
           <button
             onClick={() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    setShowAI((v) => !v);
-  }}
+              if (!user) {
+                navigate("/login");
+                return;
+              }
+              setShowAI((v) => !v);
+            }}
             className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg shadow-pink-500/30 transition-all duration-300 hover:scale-110 ${
               showAI
                 ? "bg-gray-900 rotate-90"

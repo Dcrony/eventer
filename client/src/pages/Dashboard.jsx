@@ -33,6 +33,9 @@ import useFeatureAccess from "../hooks/useFeatureAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import AppPage from "../components/layout/AppPage";
 
+const ADMIN_ROLES = ["super_admin", "admin", "moderator", "finance_admin", "support_admin"];
+const VERIFIED_ROLES = ["organizer", ...ADMIN_ROLES];
+
 export default function Dashboard() {
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState(null);
@@ -60,7 +63,6 @@ export default function Dashboard() {
   const handleModalClose = () => { setEditModalOpen(false); setSelectedEventId(null); };
   const handleTeamClick = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true); };
   const handleTeamModalClose = () => { setTeamModalOpen(false); setSelectedTeamEventId(null); };
-
 
   const fetchDashboardData = useCallback(() => {
     setLoading(true);
@@ -96,6 +98,37 @@ export default function Dashboard() {
   }, [fetchDashboardData]);
 
   const handleEventUpdated = () => fetchDashboardData();
+
+  // ── Admin verification actions ───────────────────────────────────────────
+  const handleApproveVerification = async () => {
+    if (!userVerification?._id) return;
+    try {
+      const { data } = await API.patch(
+        `/admin/verifications/${userVerification._id}/approve`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUserVerification(data.verification || { ...userVerification, status: "approved", isVerified: true });
+    } catch {
+      setError("Failed to approve verification.");
+    }
+  };
+
+  const handleRejectVerification = async () => {
+    const reason = window.prompt("Enter rejection reason:");
+    if (!reason) return;
+    if (!userVerification?._id) return;
+    try {
+      const { data } = await API.patch(
+        `/admin/verifications/${userVerification._id}/reject`,
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUserVerification(data.verification || { ...userVerification, status: "rejected", rejectionReason: reason });
+    } catch {
+      setError("Failed to reject verification.");
+    }
+  };
 
   const toggleLive = async (id, currentStatus) => {
     if (!canAccessLiveStreaming) { promptUpgradeLive(); return; }
@@ -191,15 +224,21 @@ export default function Dashboard() {
       title="Organizer Dashboard"
       description={`Welcome back${user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.`}
     >
-      {user?.role === "organizer" && "admin" && userVerification && (
+      {/* ── Verification Status Card ── */}
+      {/* FIX: was `user?.role === "organizer" && "admin"` which always evaluated to truthy */}
+      {VERIFIED_ROLES.includes(user?.role) && userVerification && (
         <div className="mb-6">
           <VerificationStatusCard
             verification={userVerification}
+            userRole={user?.role}
             onStartVerification={() => navigate("/verification")}
+            onApprove={handleApproveVerification}
+            onReject={handleRejectVerification}
             compact={true}
           />
         </div>
       )}
+
       <TrialNotificationBanner />
 
       <div className="mb-6 flex flex-wrap justify-end gap-2">
@@ -244,8 +283,6 @@ export default function Dashboard() {
               <StatCard title="Tickets Sold" value={formatNumber(stats.totalTicketsSold)} icon={Ticket} color="pink" />
               <StatCard title="Revenue" value={`₦${formatNumber(stats.totalRevenue)}`} icon={BarChart3} color="green" />
               <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
-              {/* <StatCard title="Available Balance" value={`₦${formatNumber(stats.availableBalance || 0)}`} icon={Wallet} color="green" /> */}
-              {/* <StatCard title="Pending Balance" value={`₦${formatNumber(stats.pendingBalance || 0)}`} icon={Wallet} color="green" /> */}
             </div>
           )}
 
@@ -273,15 +310,15 @@ export default function Dashboard() {
                 <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 mb-8">
                   <h3 className="text-sm font-bold text-amber-900">Payout Restrictions</h3>
                   <div className="mt-3 space-y-2 text-sm text-amber-800">
-                    {userVerification?.status !== "approved" ? (
+                    {userVerification?.status !== "approved" && (
                       <p>Your account is still pending verification. Withdrawals and payout releases are restricted until your organizer verification is approved.</p>
-                    ) : null}
-                    {(fraudInfo?.flagCount || 0) > 0 ? (
+                    )}
+                    {(fraudInfo?.flagCount || 0) > 0 && (
                       <p>{formatNumber(fraudInfo.flagCount)} active fraud alert(s) may hold or freeze payout processing. Contact support if you need help.</p>
-                    ) : null}
-                    {(financeSummary.escrowBalance || 0) > 0 ? (
+                    )}
+                    {(financeSummary.escrowBalance || 0) > 0 && (
                       <p>Escrow rules are holding ₦{formatNumber(financeSummary.escrowBalance)} until payout review is complete.</p>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               )}
@@ -375,30 +412,33 @@ export default function Dashboard() {
                 <h3 className="text-sm font-bold text-gray-900">Payout History</h3>
               </div>
               <div className="p-6">
-                {payoutItems.length === 0 ? (
-                  <p className="text-gray-500 text-sm">No payouts yet.</p>
-                ) : (
-                  <div className="space-y-0">
-                    {payoutItems.map((p) => (
-                      <div key={p._id || p.id} className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2">
-                        <div>
-                          <strong className="text-sm text-gray-900">{p.event ? p.event.title || 'Event Payout' : 'Payout'}</strong>
-                          <div className="text-xs text-gray-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</div>
-                        </div>
-                        <div className="text-sm font-semibold text-gray-900">₦{formatNumber(p.netAmount || p.amount || 0)}</div>
-                        <div className={`text-xs font-bold px-2 py-1 rounded-full ${getPayoutTone(p.state) === 'green' ? 'bg-green-50 text-green-600' : getPayoutTone(p.state) === 'amber' ? 'bg-amber-50 text-amber-600' : getPayoutTone(p.state) === 'pink' ? 'bg-pink-50 text-pink-600' : 'bg-red-50 text-red-600'}`}>
-                          {p.state || p.status || 'unknown'}
-                        </div>
+                <div className="space-y-0">
+                  {payoutItems.map((p) => (
+                    <div key={p._id || p.id} className="flex justify-between items-center py-3.5 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors duration-200 rounded-lg px-2">
+                      <div>
+                        <strong className="text-sm text-gray-900">{p.event ? p.event.title || "Event Payout" : "Payout"}</strong>
+                        <div className="text-xs text-gray-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</div>
                       </div>
-                    ))}
-                    <Link to="/dashboard/payouts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200">View All Payouts <ArrowRight size={16} /></Link>
-                  </div>
-                )}
+                      <div className="text-sm font-semibold text-gray-900">₦{formatNumber(p.netAmount || p.amount || 0)}</div>
+                      <div className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        getPayoutTone(p.state) === "green" ? "bg-green-50 text-green-600"
+                        : getPayoutTone(p.state) === "amber" ? "bg-amber-50 text-amber-600"
+                        : getPayoutTone(p.state) === "pink" ? "bg-pink-50 text-pink-600"
+                        : "bg-red-50 text-red-600"
+                      }`}>
+                        {p.state || p.status || "unknown"}
+                      </div>
+                    </div>
+                  ))}
+                  <Link to="/dashboard/payouts" className="inline-flex items-center gap-1.5 text-sm font-semibold text-pink-500 hover:text-pink-600 mt-3 transition-colors duration-200">
+                    View All Payouts <ArrowRight size={16} />
+                  </Link>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Your Events */}
+          {/* Draft Events */}
           {draftEvents.length > 0 && (
             <div className="mb-8">
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -406,7 +446,6 @@ export default function Dashboard() {
                   <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Saved drafts</h2>
                   <p className="text-sm text-gray-500">Jump back into unfinished events without losing your progress.</p>
                 </div>
-
                 <button
                   type="button"
                   onClick={() => openCreateEvent({ resumeLatest: true })}
@@ -470,6 +509,7 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Published Events */}
           <h2 className="text-lg font-extrabold text-gray-900 mb-4 tracking-tight">Published events</h2>
 
           {publishedEvents.length === 0 ? (
@@ -533,16 +573,16 @@ export default function Dashboard() {
                         {event.eventLifecycleStatus && (
                           (() => {
                             const statusConfig = {
-                              Live: { bg: 'bg-red-500', text: 'LIVE', animate: 'animate-pulse' },
-                              Upcoming: { bg: 'bg-blue-500', text: 'Upcoming' },
-                              Ended: { bg: 'bg-gray-500', text: 'Ended' },
-                              Cancelled: { bg: 'bg-red-600', text: 'Cancel' },
-                              Suspended: { bg: 'bg-red-700', text: 'Suspended' },
-                              Published: { bg: 'bg-green-600', text: 'Live' },
+                              Live: { bg: "bg-red-500", text: "LIVE", animate: "animate-pulse" },
+                              Upcoming: { bg: "bg-blue-500", text: "Upcoming" },
+                              Ended: { bg: "bg-gray-500", text: "Ended" },
+                              Cancelled: { bg: "bg-red-600", text: "Cancel" },
+                              Suspended: { bg: "bg-red-700", text: "Suspended" },
+                              Published: { bg: "bg-green-600", text: "Live" },
                             };
                             const config = statusConfig[event.eventLifecycleStatus];
                             return config ? (
-                              <span className={`inline-flex items-center px-2 py-1 rounded-full ${config.bg} text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg ${config.animate || ''}`}>
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full ${config.bg} text-white text-[0.6rem] font-extrabold uppercase tracking-wide shadow-lg ${config.animate || ""}`}>
                                 {config.text}
                               </span>
                             ) : null;
