@@ -27,22 +27,19 @@ export default function AdminTransactions() {
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [page, status, startDate, endDate]);
-
-    const currentFilters = {
-        ...(search ? { search } : {}),
-        ...(status ? { status } : {}),
+    // Build filters from current state — used by both useEffect and manual triggers
+    const buildFilters = () => ({
+        ...(search    ? { search }    : {}),
+        ...(status    ? { status }    : {}),
         ...(startDate ? { startDate } : {}),
-        ...(endDate ? { endDate } : {}),
-    };
+        ...(endDate   ? { endDate }   : {}),
+    });
 
-    const fetchTransactions = async (overrideFilters = currentFilters, nextPage = page) => {
+    const fetchTransactions = async (filters = buildFilters(), nextPage = page) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await adminService.getTransactions(nextPage, 20, overrideFilters);
+            const data = await adminService.getTransactions(nextPage, 20, filters);
             setTransactions(data.transactions || []);
             setSummary(data.summary || null);
             setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
@@ -53,17 +50,23 @@ export default function AdminTransactions() {
         }
     };
 
+    // Re-fetch when page or filter dropdowns / date pickers change
+    useEffect(() => {
+        fetchTransactions(buildFilters(), page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, status, startDate, endDate]);
+
     const applySearch = () => {
         setPage(1);
-        fetchTransactions(currentFilters, 1);
+        fetchTransactions(buildFilters(), 1);
     };
 
     const exportTransactions = async () => {
         try {
-            const blob = await adminService.exportTransactions(currentFilters);
-            const url = window.URL.createObjectURL(blob);
+            const blob = await adminService.exportTransactions(buildFilters());
+            const url  = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = url;
+            link.href     = url;
             link.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
             document.body.appendChild(link);
             link.click();
@@ -75,117 +78,102 @@ export default function AdminTransactions() {
         }
     };
 
+    // ── shared input classes ──────────────────────────────────────────────────
+    const inputCls =
+        "w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100";
+
     return (
-        <AdminLayout title="Transaction Management" description="Track ticket purchases, filter payment history, and export revenue activity.">
+        <AdminLayout
+            title="Transaction Management"
+            description="Track ticket purchases, filter payment history, and export revenue activity."
+        >
             <div className="space-y-5">
-                <div className="grid gap-4 lg:grid-cols-[1.5fr_auto]">
-                    <SurfaceCard>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Search className="text-pink-500" size={18} />
+                {/* Search bar + Export */}
+                <div className="flex flex-wrap gap-3 items-center">
+                    <SurfaceCard className="flex-1 min-w-0 p-3">
+                        <div className="flex items-center gap-2">
+                            <Search size={15} className="text-pink-500 flex-shrink-0" />
                             <input
                                 type="search"
                                 value={search}
-                                onChange={(event) => setSearch(event.target.value)}
-                                onKeyDown={(event) => {
-                                    if (event.key === "Enter") applySearch();
-                                }}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
                                 placeholder="Search by reference, buyer, or event"
-                                className="min-w-0 flex-1 rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                                className="min-w-0 flex-1 bg-transparent text-xs text-gray-800 outline-none placeholder:text-gray-400"
                             />
                             <button
                                 type="button"
                                 onClick={applySearch}
-                                className="rounded-full bg-pink-500 px-4 py-2.5 text-sm font-bold text-white transition-all duration-200 hover:bg-pink-600"
+                                className="rounded-lg bg-pink-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-pink-600 transition-colors active:scale-95"
                             >
                                 Search
                             </button>
                         </div>
                     </SurfaceCard>
+
                     <button
                         type="button"
                         onClick={exportTransactions}
-                        className="inline-flex items-center justify-center gap-2 rounded-full bg-gray-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all duration-200 hover:bg-gray-800"
+                        className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-gray-800 transition-colors active:scale-95"
                     >
-                        <Download size={16} />
+                        <Download size={14} />
                         Export CSV
                     </button>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard
-                        icon={FileText}
-                        label="Transactions"
-                        value={formatNumber(summary?.totalTransactions || 0)}
-                        detail="Filtered results"
-                    />
-                    <StatCard
-                        icon={Wallet}
-                        label="Revenue"
-                        value={formatCurrency(summary?.totalRevenue || 0)}
-                        detail="Paid transactions only"
-                    />
-                    <StatCard
-                        icon={Ticket}
-                        label="Paid"
-                        value={formatNumber(summary?.paidTransactions || 0)}
-                        detail="Successful purchases"
-                    />
-                    <StatCard
-                        icon={Ticket}
-                        label="Free"
-                        value={formatNumber(summary?.freeTransactions || 0)}
-                        detail="Zero-cost tickets"
-                    />
+                {/* Stat cards */}
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard icon={FileText} label="Transactions" value={formatNumber(summary?.totalTransactions  || 0)} detail="Filtered results"        />
+                    <StatCard icon={Wallet}   label="Revenue"      value={formatCurrency(summary?.totalRevenue      || 0)} detail="Paid transactions only"  />
+                    <StatCard icon={Ticket}   label="Paid"         value={formatNumber(summary?.paidTransactions    || 0)} detail="Successful purchases"    />
+                    <StatCard icon={Ticket}   label="Free"         value={formatNumber(summary?.freeTransactions    || 0)} detail="Zero-cost tickets"       />
                 </div>
 
+                {/* Filters row */}
                 <div className="grid gap-4 md:grid-cols-4">
                     <SurfaceCard>
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Status</p>
+                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Status</p>
                         <select
                             value={status}
-                            onChange={(event) => {
-                                setStatus(event.target.value);
-                                setPage(1);
-                            }}
-                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+                            className={inputCls}
                         >
                             <option value="">All statuses</option>
                             <option value="success">Success</option>
                             <option value="free">Free</option>
                         </select>
                     </SurfaceCard>
+
                     <SurfaceCard>
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Start date</p>
+                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Start date</p>
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(event) => {
-                                setStartDate(event.target.value);
-                                setPage(1);
-                            }}
-                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                            onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
+                            className={inputCls}
                         />
                     </SurfaceCard>
+
                     <SurfaceCard>
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">End date</p>
+                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">End date</p>
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(event) => {
-                                setEndDate(event.target.value);
-                                setPage(1);
-                            }}
-                            className="mt-3 w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                            onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
+                            className={inputCls}
                         />
                     </SurfaceCard>
+
                     <SurfaceCard>
-                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Current page</p>
-                        <p className="mt-3 text-2xl font-extrabold text-gray-900">{pagination.page || 1}</p>
-                        <p className="mt-1 text-xs text-gray-500">Total records: {formatNumber(pagination.total || 0)}</p>
+                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Page info</p>
+                        <p className="text-2xl font-extrabold text-gray-900">{pagination.page || 1}</p>
+                        <p className="mt-1 text-xs text-gray-400">
+                            {formatNumber(pagination.total || 0)} total records
+                        </p>
                     </SurfaceCard>
                 </div>
 
-                {error ? <ErrorMessage message={error} onDismiss={() => setError(null)} /> : null}
+                {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
 
                 {loading ? (
                     <LoadingSpinner label="Loading transactions..." />
@@ -196,43 +184,52 @@ export default function AdminTransactions() {
                         description="Try widening your filters or search for a different buyer, event, or reference."
                     />
                 ) : (
-                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead className="bg-gray-50 text-gray-500">
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <table className="min-w-full divide-y divide-gray-100 text-sm">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Reference</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Buyer</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Event</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Qty</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Amount</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Status</th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider">Purchased</th>
+                                    {["Reference", "Buyer", "Event", "Qty", "Amount", "Status", "Purchased"].map((col) => (
+                                        <th
+                                            key={col}
+                                            className="px-4 py-3 text-left text-[0.6rem] font-bold uppercase tracking-widest text-gray-400"
+                                        >
+                                            {col}
+                                        </th>
+                                    ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
-                                {transactions.map((transaction) => (
-                                    <tr key={transaction._id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3">
-                                            <div className="text-sm font-semibold text-gray-900">{transaction.reference || "N/A"}</div>
+                            <tbody className="divide-y divide-gray-100 bg-white">
+                                {transactions.map((tx) => (
+                                    <tr key={tx._id} className="transition-colors hover:bg-pink-50/40">
+                                        <td className="px-4 py-3.5">
+                                            <span className="text-xs font-semibold text-gray-900 tabular-nums">
+                                                {tx.reference || "N/A"}
+                                            </span>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="text-sm text-gray-800">
-                                                {transaction.buyer?.name || transaction.buyer?.username || "Unknown"}
-                                            </div>
-                                            <div className="mt-0.5 text-xs text-gray-500">{transaction.buyer?.email || "No email"}</div>
+                                        <td className="px-4 py-3.5">
+                                            <p className="text-xs font-semibold text-gray-900">
+                                                {tx.buyer?.name || tx.buyer?.username || "Unknown"}
+                                            </p>
+                                            <p className="mt-0.5 text-[0.6rem] text-gray-400">{tx.buyer?.email || "No email"}</p>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="text-sm text-gray-800">{transaction.event?.title || "Unknown event"}</div>
-                                            <div className="mt-0.5 text-xs text-gray-500">{transaction.event?.category || "No category"}</div>
+                                        <td className="px-4 py-3.5">
+                                            <p className="text-xs text-gray-800">{tx.event?.title    || "Unknown event"}</p>
+                                            <p className="mt-0.5 text-[0.6rem] text-gray-400">{tx.event?.category || "No category"}</p>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-700">{formatNumber(transaction.quantity || 0)}</td>
-                                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(transaction.amount || 0)}</td>
-                                        <td className="px-4 py-3">
-                                            <StatusBadge tone={getStatusTone(transaction.paymentStatusLabel)}>
-                                                {transaction.paymentStatusLabel || "unknown"}
+                                        <td className="px-4 py-3.5 text-xs text-gray-700 tabular-nums">
+                                            {formatNumber(tx.quantity || 0)}
+                                        </td>
+                                        <td className="px-4 py-3.5 text-xs font-bold text-gray-900 tabular-nums">
+                                            {formatCurrency(tx.amount || 0)}
+                                        </td>
+                                        <td className="px-4 py-3.5">
+                                            <StatusBadge tone={getStatusTone(tx.paymentStatusLabel)}>
+                                                {tx.paymentStatusLabel || "unknown"}
                                             </StatusBadge>
                                         </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500">{formatDateTime(transaction.purchasedAt)}</td>
+                                        <td className="px-4 py-3.5 text-xs text-gray-400">
+                                            {formatDateTime(tx.purchasedAt)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -245,8 +242,8 @@ export default function AdminTransactions() {
                     pages={pagination.pages || 1}
                     total={pagination.total}
                     label="transactions"
-                    onPrevious={() => setPage((current) => Math.max(1, current - 1))}
-                    onNext={() => setPage((current) => Math.min(pagination.pages || 1, current + 1))}
+                    onPrevious={() => setPage((c) => Math.max(1, c - 1))}
+                    onNext={() => setPage((c) => Math.min(pagination.pages || 1, c + 1))}
                 />
             </div>
         </AdminLayout>
