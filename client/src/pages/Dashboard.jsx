@@ -191,7 +191,7 @@ export default function Dashboard() {
       title="Organizer Dashboard"
       description={`Welcome back${user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.`}
     >
-      {user?.role === "organizer" && userVerification && (
+      {user?.role === "organizer" && "admin" && userVerification && (
         <div className="mb-6">
           <VerificationStatusCard
             verification={userVerification}
