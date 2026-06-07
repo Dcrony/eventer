@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-    ArrowUpRight,
     CheckCircle2,
     Clock,
     DollarSign,
-    Download,
     RefreshCcw,
     Search,
     Snowflake,
@@ -24,17 +22,17 @@ import {
     TableWrapper,
 } from "../components/AdminComponents";
 import { listPayouts, adminAction } from "../services/api/payouts";
-import { formatCurrency, formatDateTime, getStatusTone } from "../utils/adminUtils";
+import { formatCurrency, formatDateTime } from "../utils/adminUtils";
 import { useToast } from "../components/ui/toast";
 
 const STATE_CONFIG = {
-    pending: { tone: "amber", label: "Pending" },
-    under_review: { tone: "blue", label: "Under Review" },
-    scheduled: { tone: "purple", label: "Scheduled" },
-    released: { tone: "green", label: "Released" },
-    frozen: { tone: "gray", label: "Frozen" },
-    refunded: { tone: "red", label: "Refunded" },
-    completed: { tone: "emerald", label: "Completed" },
+    pending:      { tone: "amber",   label: "Pending" },
+    under_review: { tone: "blue",    label: "Under Review" },
+    scheduled:    { tone: "purple",  label: "Scheduled" },
+    released:     { tone: "green",   label: "Released" },
+    frozen:       { tone: "gray",    label: "Frozen" },
+    refunded:     { tone: "red",     label: "Refunded" },
+    completed:    { tone: "emerald", label: "Completed" },
 };
 
 export default function AdminPayouts() {
@@ -82,12 +80,9 @@ export default function AdminPayouts() {
         }
     };
 
-    const applySearch = () => {
-        setPage(1);
-        fetchPayouts();
-    };
+    const applySearch = () => { setPage(1); fetchPayouts(); };
 
-    const pendingCount = items.filter((p) => ["pending", "under_review", "scheduled"].includes(p.state)).length;
+    const pendingCount  = items.filter((p) => ["pending", "under_review", "scheduled"].includes(p.state)).length;
     const releasedCount = items.filter((p) => p.state === "released" || p.state === "completed").length;
 
     return (
@@ -95,34 +90,13 @@ export default function AdminPayouts() {
             title="Payout Management"
             description="Review escrow balances, release organizer payouts, and manage fund holds."
         >
-            <div className="space-y-4">
+            <div className="space-y-5">
                 {/* Stats */}
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <StatCard
-                        icon={Clock}
-                        label="Pending Payouts"
-                        value={pendingCount}
-                        detail="Awaiting admin action"
-                        accent
-                    />
-                    <StatCard
-                        icon={CheckCircle2}
-                        label="Released"
-                        value={releasedCount}
-                        detail="Paid out successfully"
-                    />
-                    <StatCard
-                        icon={Wallet}
-                        label="Total Volume"
-                        value={formatCurrency(summary?.totalVolume || 0)}
-                        detail="Across all payouts"
-                    />
-                    <StatCard
-                        icon={DollarSign}
-                        label="Net Amount"
-                        value={formatCurrency(summary?.netAmount || 0)}
-                        detail="After platform fees"
-                    />
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard icon={Clock}        label="Pending Payouts" value={pendingCount}                              detail="Awaiting admin action"  accent />
+                    <StatCard icon={CheckCircle2} label="Released"        value={releasedCount}                             detail="Paid out successfully" />
+                    <StatCard icon={Wallet}       label="Total Volume"    value={formatCurrency(summary?.totalVolume || 0)} detail="Across all payouts" />
+                    <StatCard icon={DollarSign}   label="Net Amount"      value={formatCurrency(summary?.netAmount   || 0)} detail="After platform fees" />
                 </div>
 
                 {/* Search + Filter */}
@@ -140,6 +114,7 @@ export default function AdminPayouts() {
                             />
                         </div>
                     </SurfaceCard>
+
                     <SurfaceCard className="p-3">
                         <select
                             value={stateFilter}
@@ -152,10 +127,11 @@ export default function AdminPayouts() {
                             ))}
                         </select>
                     </SurfaceCard>
+
                     <button
                         type="button"
                         onClick={() => { setPage(1); fetchPayouts(); }}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-pink-500 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-pink-600"
+                        className="inline-flex items-center gap-2 rounded-xl bg-pink-500 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-pink-600 active:scale-95"
                     >
                         <RefreshCcw size={13} />
                         Refresh
@@ -164,24 +140,19 @@ export default function AdminPayouts() {
 
                 {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
 
-                {/* Table */}
                 {loading ? (
                     <LoadingSpinner label="Loading payouts..." />
                 ) : items.length === 0 ? (
-                    <EmptyState
-                        icon={Wallet}
-                        title="No payouts found"
-                        description="No payout records match the current filters."
-                    />
+                    <EmptyState icon={Wallet} title="No payouts found" description="No payout records match the current filters." />
                 ) : (
                     <TableWrapper>
                         <TableHead columns={["Organizer", "Net Amount", "Gross", "Fee", "State", "Created", "Actions"]} />
-                        <tbody className="divide-y divide-gray-50 bg-white">
+                        <tbody className="divide-y divide-gray-100 bg-white">
                             {items.map((payout) => {
-                                const cfg = STATE_CONFIG[payout.state] || { tone: "gray", label: payout.state };
+                                const cfg     = STATE_CONFIG[payout.state] || { tone: "gray", label: payout.state };
                                 const isActing = actionLoading?.startsWith(payout._id);
                                 return (
-                                    <tr key={payout._id} className="group transition-colors hover:bg-pink-50/30">
+                                    <tr key={payout._id} className="group transition-colors hover:bg-pink-50/40">
                                         <td className="px-4 py-3.5">
                                             <p className="text-xs font-semibold text-gray-900">
                                                 {payout.organizer?.name || payout.organizer?.username || "Unknown"}
@@ -193,29 +164,20 @@ export default function AdminPayouts() {
                                                 {formatCurrency(payout.netAmount || 0)}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-500 tabular-nums">
-                                            {formatCurrency(payout.grossAmount || 0)}
-                                        </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-500 tabular-nums">
-                                            {formatCurrency(payout.platformFee || 0)}
-                                        </td>
+                                        <td className="px-4 py-3.5 text-xs text-gray-500 tabular-nums">{formatCurrency(payout.grossAmount  || 0)}</td>
+                                        <td className="px-4 py-3.5 text-xs text-gray-500 tabular-nums">{formatCurrency(payout.platformFee  || 0)}</td>
+                                        <td className="px-4 py-3.5"><StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge></td>
+                                        <td className="px-4 py-3.5 text-xs text-gray-400">{formatDateTime(payout.createdAt)}</td>
                                         <td className="px-4 py-3.5">
-                                            <StatusBadge tone={cfg.tone}>{cfg.label}</StatusBadge>
-                                        </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-400">
-                                            {formatDateTime(payout.createdAt)}
-                                        </td>
-                                        <td className="px-4 py-3.5">
-                                            <div className="flex items-center gap-1.5">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
                                                 {["pending", "under_review", "scheduled"].includes(payout.state) && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleAction(payout._id, "release")}
                                                         disabled={isActing}
-                                                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50"
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-emerald-600 disabled:opacity-50 active:scale-95"
                                                     >
-                                                        <CheckCircle2 size={11} />
-                                                        Release
+                                                        <CheckCircle2 size={11} /> Release
                                                     </button>
                                                 )}
                                                 {payout.state !== "frozen" && payout.state !== "refunded" && (
@@ -223,10 +185,9 @@ export default function AdminPayouts() {
                                                         type="button"
                                                         onClick={() => handleAction(payout._id, "freeze")}
                                                         disabled={isActing}
-                                                        className="inline-flex items-center gap-1 rounded-lg bg-slate-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-slate-600 disabled:opacity-50"
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-slate-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-slate-600 disabled:opacity-50 active:scale-95"
                                                     >
-                                                        <Snowflake size={11} />
-                                                        Freeze
+                                                        <Snowflake size={11} /> Freeze
                                                     </button>
                                                 )}
                                                 {payout.state !== "refunded" && (
@@ -234,14 +195,13 @@ export default function AdminPayouts() {
                                                         type="button"
                                                         onClick={() => handleAction(payout._id, "refund")}
                                                         disabled={isActing}
-                                                        className="inline-flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                                                        className="inline-flex items-center gap-1 rounded-lg bg-red-500 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-50 active:scale-95"
                                                     >
-                                                        <Undo2 size={11} />
-                                                        Refund
+                                                        <Undo2 size={11} /> Refund
                                                     </button>
                                                 )}
                                                 {isActing && (
-                                                    <span className="text-[0.6rem] text-gray-400 animate-pulse">Working...</span>
+                                                    <span className="text-[0.6rem] text-pink-400 animate-pulse font-medium">Working…</span>
                                                 )}
                                             </div>
                                         </td>
