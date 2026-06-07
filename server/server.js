@@ -148,6 +148,114 @@ const downgradeExpiredTrials = async () => {
   }
 };
 
+// ── Event Lifecycle Auto-Transition Worker ──
+const runEventLifecycleTransitionWorker = async () => {
+  try {
+    const { transitionEventStatus, calculateEventStatus } = require("./utils/eventLifecycle");
+    const { createNotification } = require("./services/notificationService");
+    
+    const now = new Date();
+    const User = require("./models/User");
+    
+    // Find events that should transition to LIVE
+    const upcomingEvents = await Event.find({
+      eventLifecycleStatus: { $in: ["Published", "Upcoming"] },
+      startDate: { $exists: true },
+      startTime: { $exists: true },
+      liveStartedAt: null, // Not already marked as live
+    });
+
+    for (const event of upcomingEvents) {
+      try {
+        const startDateTime = new Date(event.startDate);
+        if (event.startTime) {
+          const [hours, minutes] = event.startTime.split(':').map(Number);
+          startDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+        }
+
+        // If event should be live now
+        if (now >= startDateTime && event.eventLifecycleStatus !== "Live") {
+          const endDateTime = new Date(event.endDate || event.startDate);
+          if (event.endTime) {
+            const [hours, minutes] = event.endTime.split(':').map(Number);
+            endDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+          }
+
+          // Only transition if event hasn't ended yet
+          if (now < endDateTime) {
+            await transitionEventStatus(event._id, "Live", { 
+              reason: "auto_transition_to_live",
+              userId: event.createdBy
+            });
+
+            // Notify organizer
+            const organizer = await User.findById(event.createdBy);
+            if (organizer) {
+              await createNotification(app, {
+                userId: String(event.createdBy),
+                type: "event_went_live",
+                message: `Your event "${event.title}" is now live!`,
+                actionUrl: `/Eventdetail/${event._id}`,
+                entityId: event._id,
+                entityType: "event",
+              });
+            }
+
+            console.log(`Event ${event._id} transitioned to LIVE`);
+          }
+        }
+      } catch (e) {
+        console.error("Event lifecycle transition error for event", event._id, e.message || e);
+      }
+    }
+
+    // Find events that should transition to ENDED
+    const liveEvents = await Event.find({
+      eventLifecycleStatus: "Live",
+      endDate: { $exists: true },
+      endTime: { $exists: true },
+      endedAt: null, // Not already marked as ended
+    });
+
+    for (const event of liveEvents) {
+      try {
+        const endDateTime = new Date(event.endDate);
+        if (event.endTime) {
+          const [hours, minutes] = event.endTime.split(':').map(Number);
+          endDateTime.setHours(hours || 0, minutes || 0, 0, 0);
+        }
+
+        // If event should have ended
+        if (now >= endDateTime) {
+          await transitionEventStatus(event._id, "Ended", { 
+            reason: "auto_transition_to_ended",
+            userId: event.createdBy
+          });
+
+          // Notify organizer
+          const organizer = await User.findById(event.createdBy);
+          if (organizer) {
+            await createNotification(app, {
+              userId: String(event.createdBy),
+              type: "event_ended",
+              message: `Your event "${event.title}" has ended.`,
+              actionUrl: `/Eventdetail/${event._id}`,
+              entityId: event._id,
+              entityType: "event",
+            });
+          }
+
+          console.log(`Event ${event._id} transitioned to ENDED`);
+        }
+      } catch (e) {
+        console.error("Event lifecycle transition error for event", event._id, e.message || e);
+      }
+    }
+  } catch (error) {
+    console.error("Event lifecycle transition worker error:", error);
+  }
+};
+
 // ── Payout release worker ──
 const runPayoutReleaseWorker = async () => {
   try {
@@ -229,6 +337,18 @@ setInterval(async () => {
 
 // Run immediately at startup as well
 runPayoutReleaseWorker();
+
+// Schedule event lifecycle transition worker (every 5 minutes)
+setInterval(async () => {
+  try {
+    await runEventLifecycleTransitionWorker();
+  } catch (e) {
+    console.error("Event lifecycle transition worker loop error:", e.message || e);
+  }
+}, 5 * 60 * 1000);
+
+// Run immediately at startup as well
+runEventLifecycleTransitionWorker();
 
 app.use("/uploads", express.static("uploads"));
 app.use("/uploads/qrcodes", express.static("uploads/qrcodes"));
