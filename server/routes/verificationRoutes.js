@@ -19,7 +19,7 @@ router.post(
 );
 
 // Organizer views their verification
-router.get("/me", authMiddleware, authorizeRoles("organizer", "admin", "super_admin", "moderator", "finance_admin", "support_admin"), verificationController.getMyVerification);
+router.get("/me", authMiddleware, authorizeRoles("organizer"), verificationController.getMyVerification);
 
 // Admin: list verification requests
 router.get("/admin/queue", authMiddleware, authorizeRoles("admin", "super_admin", "moderator", "finance_admin", "support_admin"), verificationController.adminList);
