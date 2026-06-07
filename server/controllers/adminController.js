@@ -247,6 +247,7 @@ exports.getPlatformStats = async (req, res) => {
       activeUsers,
       newUsers,
       suspendedUsers,
+      organizerCount,
       verifiedOrganizers,
       adminUsers,
       totalEvents,
@@ -266,6 +267,12 @@ exports.getPlatformStats = async (req, res) => {
       pendingPayoutAgg,
       completedPayoutAgg,
       payoutEscrowPendingAgg,
+      pendingReports,         // ← was missing
+  flaggedEventReports,    // ← was missing
+  pendingVerifications,   // ← was missing
+  unresolvedFraudAlerts,  // ← was missing
+  openSupportTickets,     // ← was missing
+  donationAgg,
       recentTransactions,
       recentWithdrawals,
       recentActivities,

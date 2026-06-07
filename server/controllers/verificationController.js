@@ -146,17 +146,44 @@ exports.adminList = async (req, res) => {
     const filter = {};
     if (status) filter.status = status;
 
-    const [items, total] = await Promise.all([
-      OrganizerVerification.find(filter).populate("organizer", "name email username role isSuspended").sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+    const [items, total, statsAgg] = await Promise.all([
+      OrganizerVerification.find(filter)
+        .populate("organizer", "name email username role isSuspended")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
       OrganizerVerification.countDocuments(filter),
+      OrganizerVerification.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
 
-    return res.json({ success: true, items, pagination: { page: Number(page), limit: Number(limit), total } });
+    // Convert aggregate array to flat object
+    const stats = { pending: 0, approved: 0, rejected: 0, suspended: 0, resubmitted: 0 };
+    for (const entry of statsAgg) {
+      if (entry._id in stats) stats[entry._id] = entry.count;
+    }
+    // pending + resubmitted both count toward the pending badge
+    stats.pending += stats.resubmitted;
+
+    return res.json({
+      success: true,
+      items,
+      pagination: { page: Number(page), limit: Number(limit), total },
+      stats,
+    });
   } catch (error) {
     console.error("adminList verification error:", error);
     return res.status(500).json({ message: "Failed to fetch verification queue" });
   }
 };
+
 
 // Admin: review (approve/reject)
 exports.adminReview = async (req, res) => {

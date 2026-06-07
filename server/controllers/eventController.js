@@ -36,8 +36,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
  * Helper to check organizer verification status
  */
 const getOrganizerVerificationStatus = async (userId) => {
-  const verification = await OrganizerVerification.findOne({ 
-    organizer: userId 
+  const verification = await OrganizerVerification.findOne({
+    organizer: userId,
   }).sort({ createdAt: -1 });
 
   return {
@@ -145,12 +145,7 @@ const DEFAULT_FREE_PRICING = [{ type: "Free", price: 0, isEnabled: true, isFree:
 
 const parseBooleanFlag = (value) => value === true || value === "true";
 
-/* ─── Pricing normalisation (NEW) ────────────────────────────────────────── */
-/**
- * Normalises a raw pricing array coming from the client.
- * Each tier may now include:
- *   type, price, isEnabled, isFree, label, color, description, maxPerOrder
- */
+/* ─── Pricing normalisation ────────────────────────────────────────────────── */
 const normalizePricingInput = (pricing) => {
   if (pricing == null || pricing === "") return [];
 
@@ -167,7 +162,7 @@ const normalizePricingInput = (pricing) => {
     .map((tier) => ({
       type:        String(tier?.type || "").trim(),
       price:       tier?.isFree ? 0 : Number(tier?.price || 0),
-      isEnabled:   tier?.isEnabled !== false,           // default true
+      isEnabled:   tier?.isEnabled !== false,
       isFree:      parseBooleanFlag(tier?.isFree),
       label:       String(tier?.label       || "").trim(),
       color:       String(tier?.color       || "").trim(),
@@ -185,8 +180,6 @@ const resolveEventPricing = (pricing, isFree) => {
     throw new Error("At least one pricing tier is required for paid events.");
   }
 
-  // At least one ENABLED paid tier must exist (free-tier overrides don't count
-  // as "paid event" validation — the event-level isFree flag controls that)
   const enabledTiers = normalizedPricing.filter((t) => t.isEnabled);
   if (!enabledTiers.length) {
     throw new Error("At least one ticket tier must be enabled.");
@@ -194,7 +187,9 @@ const resolveEventPricing = (pricing, isFree) => {
 
   const hasPaidTier = enabledTiers.some((t) => !t.isFree && Number(t.price) > 0);
   if (!hasPaidTier) {
-    throw new Error("At least one enabled tier must have a price greater than 0 for paid events.");
+    throw new Error(
+      "At least one enabled tier must have a price greater than 0 for paid events."
+    );
   }
 
   return normalizedPricing;
@@ -257,9 +252,13 @@ exports.saveEventDraft = async (req, res) => {
     let imagePath = null;
     if (req.file) {
       if (!isConfigured()) {
-        return res.status(503).json({ message: "Image storage is not configured on the server." });
+        return res
+          .status(503)
+          .json({ message: "Image storage is not configured on the server." });
       }
-      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/events" });
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "eventer/events",
+      });
       imagePath = uploaded.secure_url;
     }
 
@@ -268,11 +267,21 @@ exports.saveEventDraft = async (req, res) => {
     let draft = null;
 
     if (draftId) {
-      draft = await Event.findOne({ _id: draftId, createdBy: req.user.id, isDraft: true });
+      draft = await Event.findOne({
+        _id: draftId,
+        createdBy: req.user.id,
+        isDraft: true,
+      });
     }
 
     if (!draft) {
-      draft = new Event({ ...updates, createdBy: req.user.id, isDraft: true, status: "pending" });
+      draft = new Event({
+        ...updates,
+        createdBy: req.user.id,
+        isDraft: true,
+        status: "pending",
+        eventLifecycleStatus: "Draft",
+      });
     } else {
       Object.assign(draft, updates);
     }
@@ -281,7 +290,9 @@ exports.saveEventDraft = async (req, res) => {
     return res.status(200).json({ message: "Draft saved", draft });
   } catch (error) {
     console.error("Save draft error:", error);
-    return res.status(500).json({ message: "Failed to save draft", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to save draft", error: error.message });
   }
 };
 
@@ -293,13 +304,18 @@ exports.getLatestEventDraft = async (req, res) => {
     return res.status(200).json({ draft });
   } catch (error) {
     console.error("Get latest draft error:", error);
-    return res.status(500).json({ message: "Failed to fetch draft", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch draft", error: error.message });
   }
 };
 
 exports.duplicateEvent = async (req, res) => {
   try {
-    const source = await Event.findOne({ _id: req.params.eventId, createdBy: req.user.id });
+    const source = await Event.findOne({
+      _id: req.params.eventId,
+      createdBy: req.user.id,
+    });
     if (!source) return res.status(404).json({ message: "Event not found" });
 
     const duplicate = new Event({
@@ -312,7 +328,7 @@ exports.duplicateEvent = async (req, res) => {
       endTime:     source.endTime,
       location:    source.location,
       image:       source.image,
-      pricing:     Array.isArray(source.pricing)
+      pricing: Array.isArray(source.pricing)
         ? source.pricing.map((tier) => ({
             type:        tier.type,
             price:       tier.price,
@@ -333,15 +349,21 @@ exports.duplicateEvent = async (req, res) => {
       team:         source.team || null,
       createdBy:    req.user.id,
       isDraft:      true,
+      status:       "pending",
+      eventLifecycleStatus: "Draft",
       draftStep:    1,
       draftUpdatedAt: new Date(),
     });
 
     await duplicate.save();
-    return res.status(201).json({ message: "Event duplicated into draft", draft: duplicate });
+    return res
+      .status(201)
+      .json({ message: "Event duplicated into draft", draft: duplicate });
   } catch (error) {
     console.error("Duplicate event error:", error);
-    return res.status(500).json({ message: "Failed to duplicate event", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Failed to duplicate event", error: error.message });
   }
 };
 
@@ -349,17 +371,36 @@ exports.duplicateEvent = async (req, res) => {
 exports.createEvent = async (req, res) => {
   try {
     const {
-      draftId, title, description, category,
-      startDate, startTime, endDate, endTime,
-      location, pricing, totalTickets, eventType,
-      visibility, streamType, streamURL,
+      draftId,
+      title,
+      description,
+      category,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
+      location,
+      pricing,
+      totalTickets,
+      eventType,
+      visibility,
+      streamType,
+      streamURL,
     } = req.body;
 
-    const isFree = parseBooleanFlag(req.body.isFree) || parseBooleanFlag(req.body.isFreeEvent);
+    const isFree =
+      parseBooleanFlag(req.body.isFree) ||
+      parseBooleanFlag(req.body.isFreeEvent);
     const normalizedVisibility = normalizeVisibility(visibility);
 
-    if (normalizedVisibility === "private" && !hasAccess(req.user, "PRIVATE_EVENTS")) {
-      return res.status(403).json({ code: "PLAN_UPGRADE_REQUIRED", message: "Upgrade to Pro to access this feature" });
+    if (
+      normalizedVisibility === "private" &&
+      !hasAccess(req.user, "PRIVATE_EVENTS")
+    ) {
+      return res.status(403).json({
+        code: "PLAN_UPGRADE_REQUIRED",
+        message: "Upgrade to Pro to access this feature",
+      });
     }
 
     let resolvedPricing = DEFAULT_FREE_PRICING;
@@ -372,9 +413,13 @@ exports.createEvent = async (req, res) => {
     let imagePath = null;
     if (req.file) {
       if (!isConfigured()) {
-        return res.status(503).json({ message: "Image storage is not configured on the server." });
+        return res
+          .status(503)
+          .json({ message: "Image storage is not configured on the server." });
       }
-      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/events" });
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "eventer/events",
+      });
       imagePath = uploaded.secure_url;
     }
 
@@ -382,7 +427,11 @@ exports.createEvent = async (req, res) => {
     let wasDraft = false;
 
     if (draftId) {
-      event = await Event.findOne({ _id: draftId, createdBy: req.user.id, isDraft: true });
+      event = await Event.findOne({
+        _id: draftId,
+        createdBy: req.user.id,
+        isDraft: true,
+      });
       wasDraft = Boolean(event);
     }
 
@@ -390,26 +439,40 @@ exports.createEvent = async (req, res) => {
       event = new Event({ createdBy: req.user.id });
     }
 
-    // Check organizer verification for publishing (isDraft: false)
-    // Large events (>50 tickets) require verification to be published
-    const isPublishing = !draftId || !event.isDraft;
-    if (isPublishing && req.user.role === "organizer") {
-      const verificationStatus = await getOrganizerVerificationStatus(req.user._id || req.user.id);
+    // Check organizer verification for large events
+    if (req.user.role === "organizer") {
+      const verificationStatus = await getOrganizerVerificationStatus(
+        req.user._id || req.user.id
+      );
       const totalTickets_num = Number(totalTickets || 0);
-      
+
       if (totalTickets_num > 50 && !verificationStatus.isVerified) {
         return res.status(403).json({
           code: "VERIFICATION_REQUIRED",
-          message: "Organizer verification required to publish events with more than 50 tickets",
+          message:
+            "Organizer verification required to publish events with more than 50 tickets",
           verificationStatus: verificationStatus.status,
           rejectionReason: verificationStatus.rejectionReason,
         });
       }
     }
 
+    // FIX: Always publish as "Published" so canViewEvent allows it through.
+    // Upcoming / Live / Ended are display-only states derived from the event
+    // dates on the frontend — they must NOT gate visibility or ticket purchase.
+    // Setting those states here caused newly created events to immediately
+    // appear as "Event not available" (Draft/Pending) or have tickets blocked
+    // (Ended) before the organizer could share the link.
+    const lifecycleStatus = "Published";
+
     Object.assign(event, {
-      title, description, category,
-      startDate, startTime, endDate, endTime,
+      title,
+      description,
+      category,
+      startDate,
+      startTime,
+      endDate,
+      endTime,
       location,
       ...(imagePath ? { image: imagePath } : {}),
       pricing: resolvedPricing,
@@ -418,17 +481,21 @@ exports.createEvent = async (req, res) => {
       totalTickets,
       eventType,
       visibility: normalizedVisibility,
+      // Both status fields must be set so the event is visible everywhere
       status: "approved",
-      liveStream: { isLive: false, streamType, streamURL },
+      eventLifecycleStatus: lifecycleStatus,
       isDraft: false,
       draftStep: 5,
       draftUpdatedAt: null,
+      liveStream: { isLive: false, streamType, streamURL },
     });
 
     await event.save();
 
     if (!wasDraft) {
-      await User.findByIdAndUpdate(req.user._id || req.user.id, { $inc: { eventCount: 1 } });
+      await User.findByIdAndUpdate(req.user._id || req.user.id, {
+        $inc: { eventCount: 1 },
+      });
     }
 
     res.status(201).json({ message: "Event created successfully", event });
@@ -449,28 +516,20 @@ exports.getCategories = async (req, res) => {
 
     const cleaned = categories
       .map((category) => String(category || "").trim())
-      .filter((category, index, list) => category && list.indexOf(category) === index);
+      .filter(
+        (category, index, list) =>
+          category && list.indexOf(category) === index
+      );
 
     const fallback = [
-      "Music",
-      "Concerts",
-      "Comedy",
-      "Tech",
-      "Business",
-      "Startup",
-      "Networking",
-      "Education",
-      "Sports",
-      "Gaming",
-      "Religious",
-      "Fashion",
-      "Food",
-      "Festival",
-      "Conference",
-      "Entertainment",
+      "Music", "Concerts", "Comedy", "Tech", "Business",
+      "Startup", "Networking", "Education", "Sports", "Gaming",
+      "Religious", "Fashion", "Food", "Festival", "Conference", "Entertainment",
     ];
 
-    return res.json({ categories: cleaned.length ? cleaned.sort() : fallback });
+    return res.json({
+      categories: cleaned.length ? cleaned.sort() : fallback,
+    });
   } catch (err) {
     console.error("GET CATEGORIES ERROR:", err);
     return res.status(500).json({ message: "Unable to load categories" });
@@ -481,27 +540,76 @@ exports.getAllEvents = async (req, res) => {
   try {
     const { liveOnly } = req.query;
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const liveFilter = liveOnly === "true" ? { "liveStream.isLive": true } : {};
+    const liveFilter =
+      liveOnly === "true" ? { "liveStream.isLive": true } : {};
     const filter = buildPublicEventQuery(liveFilter);
-    let events = await Event.find(filter).populate(eventPopulateOptions).sort({ createdAt: -1 });
+    let events = await Event.find(filter)
+      .populate(eventPopulateOptions)
+      .sort({ createdAt: -1 });
 
     if (currentUserId) {
-      const ownedPending = await Event.find({
+      // Also include this user's own approved events that might be private
+      const ownedApproved = await Event.find({
         createdBy: currentUserId,
-        visibility: "public",
-        status: "pending",
+        isDraft: { $ne: true },
+        status: "approved",
         ...liveFilter,
-      }).populate(eventPopulateOptions).sort({ createdAt: -1 });
+      })
+        .populate(eventPopulateOptions)
+        .sort({ createdAt: -1 });
 
       const seen = new Set(events.map((e) => String(e._id)));
-      for (const e of ownedPending) {
-        if (!seen.has(String(e._id))) { events.push(e); seen.add(String(e._id)); }
+      for (const e of ownedApproved) {
+        if (!seen.has(String(e._id))) {
+          events.push(e);
+          seen.add(String(e._id));
+        }
       }
       events.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    const validEvents = events.filter((e) => e.createdBy && e.visibility !== "private");
-    const payload = validEvents.map((e) => buildEventPayload(e, currentUserId)).filter(Boolean);
+    // Keep all approved, non-draft, public events regardless of lifecycle
+    // status. Only filter out events still in a pre-publish lifecycle state
+    // (Draft / Pending Approval) — identified by the isDraft flag which is
+    // set on those documents. "Published", "Upcoming", "Live", and "Ended"
+    // are all valid visible states.
+    const validEvents = events.filter(
+      (e) =>
+        e.createdBy &&
+        !e.isDraft &&
+        e.status === "approved" &&
+        e.visibility !== "private" &&
+        e.eventLifecycleStatus !== "Draft" &&
+        e.eventLifecycleStatus !== "Pending Approval"
+    );
+
+    // For logged-in users also include their own private approved events
+    let ownPrivate = [];
+    if (currentUserId) {
+      ownPrivate = await Event.find({
+        createdBy: currentUserId,
+        isDraft: { $ne: true },
+        status: "approved",
+        visibility: "private",
+        eventLifecycleStatus: { $nin: ["Draft", "Pending Approval"] },
+        ...liveFilter,
+      })
+        .populate(eventPopulateOptions)
+        .sort({ createdAt: -1 });
+    }
+
+    const allEvents = [...validEvents, ...ownPrivate];
+    const seen2 = new Set();
+    const deduped = allEvents.filter((e) => {
+      const id = String(e._id);
+      if (seen2.has(id)) return false;
+      seen2.add(id);
+      return true;
+    });
+
+    const payload = deduped
+      .map((e) => buildEventPayload(e, currentUserId))
+      .filter(Boolean);
     res.status(200).json(payload);
   } catch (err) {
     console.error("Error fetching all events:", err.message);
@@ -512,17 +620,25 @@ exports.getAllEvents = async (req, res) => {
 exports.getEventById = async (req, res) => {
   try {
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const visibility = await canViewEvent(event, currentUserId, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
-    const access = currentUserId ? await getEventAccessForUser(event, currentUserId) : null;
+    const access = currentUserId
+      ? await getEventAccessForUser(event, currentUserId)
+      : null;
 
-    // Owners/admins see all tiers; everyone else sees only enabled tiers
     const isOwnerOrAdmin = access?.isOwner || access?.isAdmin;
-    const payloadFn = isOwnerOrAdmin ? buildEventPayloadFull : buildEventPayload;
+    const payloadFn = isOwnerOrAdmin
+      ? buildEventPayloadFull
+      : buildEventPayload;
 
     res.status(200).json(
       payloadFn(event, currentUserId, {
@@ -581,15 +697,21 @@ exports.getMyEvents = async (req, res) => {
   }
 };
 
-/* ─── Buyers / Team / Live / Analytics (unchanged logic) ─────────────────── */
+/* ─── Buyers / Team / Live / Analytics ───────────────────────────────────── */
 exports.getEventBuyers = async (req, res) => {
   try {
     const { eventId } = req.params;
     const lookup = await authorizeEventAction({
-      eventId, user: req.user, permission: "canManageTickets",
-      deniedMessage: "You do not have permission to view ticket sales for this event",
+      eventId,
+      user: req.user,
+      permission: "canManageTickets",
+      deniedMessage:
+        "You do not have permission to view ticket sales for this event",
     });
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const tickets = await Ticket.find({ event: eventId })
       .populate("buyer", "name username email profilePic")
@@ -606,22 +728,33 @@ exports.toggleLiveStream = async (req, res) => {
   const { eventId, isLive } = req.body;
   try {
     const lookup = await authorizeEventAction({
-      eventId, user: req.user, permission: "canModerateLivestream",
+      eventId,
+      user: req.user,
+      permission: "canModerateLivestream",
       deniedMessage: "You do not have permission to manage this livestream",
     });
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const streamType = lookup.event.liveStream?.streamType || "Camera";
     if (isLive === true && streamType === "Camera") {
       const { getAgoraConfig } = require("../services/agoraService");
       if (!getAgoraConfig().isConfigured) {
-        return res.status(503).json({ code: "AGORA_NOT_CONFIGURED", message: "Native live streaming is not configured." });
+        return res.status(503).json({
+          code: "AGORA_NOT_CONFIGURED",
+          message: "Native live streaming is not configured.",
+        });
       }
     }
 
     lookup.event.liveStream.isLive = isLive;
     await lookup.event.save();
-    res.status(200).json({ message: `Stream is now ${isLive ? "LIVE" : "OFF"}`, event: lookup.event });
+    res.status(200).json({
+      message: `Stream is now ${isLive ? "LIVE" : "OFF"}`,
+      event: lookup.event,
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
@@ -631,18 +764,33 @@ exports.updateEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const lookup = await authorizeEventAction({
-      eventId, user: req.user, permission: "canEditEvent",
+      eventId,
+      user: req.user,
+      permission: "canEditEvent",
       deniedMessage: "You do not have permission to edit this event",
     });
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const event = lookup.event;
     const updates = { ...req.body };
-    const isFree = parseBooleanFlag(updates.isFree) || parseBooleanFlag(updates.isFreeEvent);
-    const normalizedVisibility = normalizeVisibility(updates.visibility || event.visibility);
+    const isFree =
+      parseBooleanFlag(updates.isFree) ||
+      parseBooleanFlag(updates.isFreeEvent);
+    const normalizedVisibility = normalizeVisibility(
+      updates.visibility || event.visibility
+    );
 
-    if (normalizedVisibility === "private" && !hasAccess(req.user, "PRIVATE_EVENTS")) {
-      return res.status(403).json({ code: "PLAN_UPGRADE_REQUIRED", message: "Upgrade to Pro to access this feature" });
+    if (
+      normalizedVisibility === "private" &&
+      !hasAccess(req.user, "PRIVATE_EVENTS")
+    ) {
+      return res.status(403).json({
+        code: "PLAN_UPGRADE_REQUIRED",
+        message: "Upgrade to Pro to access this feature",
+      });
     }
 
     try {
@@ -656,16 +804,25 @@ exports.updateEvent = async (req, res) => {
     updates.visibility = normalizedVisibility;
 
     if (req.file) {
-      if (!isConfigured()) return res.status(503).json({ message: "Image storage is not configured on the server." });
+      if (!isConfigured())
+        return res
+          .status(503)
+          .json({ message: "Image storage is not configured on the server." });
       if (event.image) {
         if (String(event.image).startsWith("http")) {
           await destroyCloudinaryImage(event.image);
         } else {
-          const oldImagePath = path.join(__dirname, "../uploads/event_image", event.image);
+          const oldImagePath = path.join(
+            __dirname,
+            "../uploads/event_image",
+            event.image
+          );
           if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
         }
       }
-      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "eventer/events" });
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "eventer/events",
+      });
       updates.image = uploaded.secure_url;
     }
 
@@ -681,7 +838,9 @@ exports.updateEvent = async (req, res) => {
 
     Object.assign(event, updates);
     await event.save();
-    res.status(200).json({ message: "Event updated successfully", event });
+    res
+      .status(200)
+      .json({ message: "Event updated successfully", event });
   } catch (err) {
     console.error("Update Event Error:", err);
     res.status(500).json({ message: "Server error" });
@@ -692,17 +851,26 @@ exports.deleteEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const lookup = await authorizeEventAction({
-      eventId, user: req.user, permission: "canDeleteEvent",
+      eventId,
+      user: req.user,
+      permission: "canDeleteEvent",
       deniedMessage: "You do not have permission to delete this event",
     });
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const ev = lookup.event;
     if (ev.image) {
       if (String(ev.image).startsWith("http")) {
         await destroyCloudinaryImage(ev.image);
       } else {
-        const oldImagePath = path.join(__dirname, "../uploads/event_image", ev.image);
+        const oldImagePath = path.join(
+          __dirname,
+          "../uploads/event_image",
+          ev.image
+        );
         if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
       }
     }
@@ -716,12 +884,17 @@ exports.deleteEvent = async (req, res) => {
 
 exports.trackEventView = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     if (!event) return res.status(404).json({ message: "Event not found" });
 
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const visibility = await canViewEvent(event, currentUserId, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
     event.viewCount += 1;
     recordEventMetrics(event, { views: 1 });
@@ -735,14 +908,21 @@ exports.trackEventView = async (req, res) => {
 
 exports.toggleEventLike = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const visibility = await canViewEvent(event, req.user, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
     const userId = String(req.user.id);
-    const existingIndex = event.likes.findIndex((like) => String(like) === userId);
+    const existingIndex = event.likes.findIndex(
+      (like) => String(like) === userId
+    );
     if (existingIndex >= 0) {
       event.likes.splice(existingIndex, 1);
     } else {
@@ -771,13 +951,24 @@ exports.toggleEventLike = async (req, res) => {
 
 exports.getEventComments = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate({ path: "comments.user", select: "name username profilePic billing" });
+    const event = await Event.findById(req.params.id).populate({
+      path: "comments.user",
+      select: "name username profilePic billing",
+    });
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const visibility = await canViewEvent(event, getCurrentUserIdFromRequest(req), { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(
+      event,
+      getCurrentUserIdFromRequest(req),
+      { allowPrivateLink: true }
+    );
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
-    res.status(200).json({ comments: enrichComments(event.toObject().comments || []), commentCount: event.comments.length });
+    res.status(200).json({
+      comments: enrichComments(event.toObject().comments || []),
+      commentCount: event.comments.length,
+    });
   } catch (err) {
     console.error("Error fetching comments:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -787,19 +978,30 @@ exports.getEventComments = async (req, res) => {
 exports.addEventComment = async (req, res) => {
   try {
     const text = String(req.body.text || "").trim();
-    if (!text) return res.status(400).json({ message: "Comment text is required" });
+    if (!text)
+      return res
+        .status(400)
+        .json({ message: "Comment text is required" });
 
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    const visibility = await canViewEvent(event, req.user, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, req.user, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
     event.comments.unshift({ user: req.user.id, text, createdAt: new Date() });
     recordEventMetrics(event, { comments: 1 });
     await event.save();
 
-    if (String(event.createdBy?._id || event.createdBy) !== String(req.user.id)) {
+    if (
+      String(event.createdBy?._id || event.createdBy) !==
+      String(req.user.id)
+    ) {
       await createNotification(req.app, {
         userId: String(event.createdBy?._id || event.createdBy),
         actorId: req.user.id,
@@ -812,7 +1014,9 @@ exports.addEventComment = async (req, res) => {
       });
     }
 
-    const refreshed = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const refreshed = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     res.status(201).json(buildEventPayload(refreshed, req.user.id));
   } catch (err) {
     console.error("Error adding comment:", err.message);
@@ -822,17 +1026,24 @@ exports.addEventComment = async (req, res) => {
 
 exports.trackEventShare = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     if (!event) return res.status(404).json({ message: "Event not found" });
 
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const visibility = await canViewEvent(event, currentUserId, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
     event.shareCount += 1;
     recordEventMetrics(event, { shares: 1 });
     await event.save();
-    res.status(200).json(buildEventPayload(event, getCurrentUserIdFromRequest(req)));
+    res
+      .status(200)
+      .json(buildEventPayload(event, getCurrentUserIdFromRequest(req)));
   } catch (err) {
     console.error("Error tracking share:", err.message);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -842,28 +1053,42 @@ exports.trackEventShare = async (req, res) => {
 exports.getEventAnalytics = async (req, res) => {
   try {
     const lookup = await authorizeEventAction({
-      eventId: req.params.id, user: req.user, permission: "canAccessAnalytics",
-      deniedMessage: "You do not have permission to view analytics for this event",
+      eventId: req.params.id,
+      user: req.user,
+      permission: "canAccessAnalytics",
+      deniedMessage:
+        "You do not have permission to view analytics for this event",
     });
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
-    const event = await Event.findById(req.params.id).populate(eventPopulateOptions);
+    const event = await Event.findById(req.params.id).populate(
+      eventPopulateOptions
+    );
     const timeline = buildTimeline(event, 14);
     const totalRevenue = timeline.reduce((sum, p) => sum + p.revenue, 0);
-    const totalTimelineSales = timeline.reduce((sum, p) => sum + p.ticketsSold, 0);
+    const totalTimelineSales = timeline.reduce(
+      (sum, p) => sum + p.ticketsSold,
+      0
+    );
 
     res.status(200).json({
       event: buildEventPayloadFull(event, req.user.id),
       metrics: {
-        totalViews:     Number(event.viewCount   || 0),
-        ticketsSold:    Number(event.ticketsSold || 0),
-        revenue:        totalRevenue,
-        likes:          Array.isArray(event.likes)    ? event.likes.length    : 0,
-        comments:       Array.isArray(event.comments) ? event.comments.length : 0,
-        shares:         Number(event.shareCount || 0),
-        conversionRate: event.viewCount > 0
-          ? Number(((event.ticketsSold / event.viewCount) * 100).toFixed(1))
-          : 0,
+        totalViews:  Number(event.viewCount   || 0),
+        ticketsSold: Number(event.ticketsSold || 0),
+        revenue:     totalRevenue,
+        likes:       Array.isArray(event.likes)    ? event.likes.length    : 0,
+        comments:    Array.isArray(event.comments) ? event.comments.length : 0,
+        shares:      Number(event.shareCount || 0),
+        conversionRate:
+          event.viewCount > 0
+            ? Number(
+                ((event.ticketsSold / event.viewCount) * 100).toFixed(1)
+              )
+            : 0,
       },
       charts: {
         timeline,
@@ -880,19 +1105,18 @@ exports.getEventAnalytics = async (req, res) => {
 };
 
 exports.recordTicketPurchaseMetrics = (event, quantity, revenue) => {
-  recordEventMetrics(event, { ticketsSold: Number(quantity || 0), revenue: Number(revenue || 0) });
+  recordEventMetrics(event, {
+    ticketsSold: Number(quantity || 0),
+    revenue:     Number(revenue  || 0),
+  });
 };
 
-/* ─── EVENT LIFECYCLE MANAGEMENT ──────────────────────────────────────────── */
+/* ─── EVENT LIFECYCLE MANAGEMENT ─────────────────────────────────────────── */
 
-/**
- * Publish an event (move from draft to published state)
- * PATCH /api/events/:eventId/publish
- */
 exports.publishEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    
+
     const lookup = await authorizeEventAction({
       eventId,
       user: req.user,
@@ -900,24 +1124,32 @@ exports.publishEvent = async (req, res) => {
       deniedMessage: "You do not have permission to publish this event",
     });
 
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const event = lookup.event;
 
-    // Event must be in draft or pending state
-    if (!event.isDraft && event.eventLifecycleStatus !== "Pending Approval") {
+    if (
+      !event.isDraft &&
+      event.eventLifecycleStatus !== "Pending Approval" &&
+      event.eventLifecycleStatus !== "Draft"
+    ) {
       return res.status(400).json({
-        message: "This event cannot be published. It has already been published.",
+        message:
+          "This event cannot be published. It has already been published.",
       });
     }
 
-    // Transition to published
     const updated = await transitionEventStatus(eventId, "Published", {
       reason: "manual_publish",
       userId: req.user.id,
     });
 
-    // Notify organizer
+    // Ensure status is also set to approved so canViewEvent passes
+    await Event.findByIdAndUpdate(eventId, { status: "approved" });
+
     await createNotification(req.app, {
       userId: String(req.user.id),
       type: "event_published",
@@ -929,19 +1161,16 @@ exports.publishEvent = async (req, res) => {
 
     return res.status(200).json({
       message: "Event published successfully",
-      event: updated,
+      event: { ...updated.toObject ? updated.toObject() : updated, status: "approved" },
     });
   } catch (err) {
     console.error("Publish event error:", err.message);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
-/**
- * Cancel an event
- * PATCH /api/events/:eventId/cancel
- * body: { reason?: string }
- */
 exports.cancelEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -954,37 +1183,39 @@ exports.cancelEvent = async (req, res) => {
       deniedMessage: "You do not have permission to cancel this event",
     });
 
-    if (lookup.error) return res.status(lookup.error.status).json({ message: lookup.error.message });
+    if (lookup.error)
+      return res
+        .status(lookup.error.status)
+        .json({ message: lookup.error.message });
 
     const event = lookup.event;
 
-    // Cannot cancel already ended events
-    if (event.eventLifecycleStatus === "Ended" || event.eventLifecycleStatus === "Cancelled") {
+    if (
+      event.eventLifecycleStatus === "Ended" ||
+      event.eventLifecycleStatus === "Cancelled"
+    ) {
       return res.status(400).json({
         message: `Cannot cancel an event that has already ${event.eventLifecycleStatus.toLowerCase()}`,
       });
     }
 
-    // Transition to cancelled
     const updated = await transitionEventStatus(eventId, "Cancelled", {
       reason: reason || "Cancelled by organizer",
       cancelledBy: req.user.id,
     });
 
-    // Notify all ticket buyers
     const tickets = await Ticket.find({ event: eventId }).distinct("buyer");
     for (const buyerId of tickets) {
       await createNotification(req.app, {
         userId: String(buyerId),
         type: "event_cancelled",
-        message: `Event "${updated.title}" has been cancelled. ${reason ? "Reason: " + reason : ""}`,
+        message: `Event "${updated.title}" has been cancelled.${reason ? " Reason: " + reason : ""}`,
         actionUrl: `/Eventdetail/${updated._id}`,
         entityId: updated._id,
         entityType: "event",
       });
     }
 
-    // Notify organizer
     await createNotification(req.app, {
       userId: String(req.user.id),
       type: "event_cancelled",
@@ -1000,46 +1231,44 @@ exports.cancelEvent = async (req, res) => {
     });
   } catch (err) {
     console.error("Cancel event error:", err.message);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
-/**
- * Suspend an event (admin-only)
- * PATCH /api/events/:eventId/suspend
- * body: { reason?: string }
- */
 exports.suspendEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
     const { reason = "" } = req.body;
 
-    // Only admins can suspend
     if (!req.user?.isAdmin) {
-      return res.status(403).json({ message: "Only admins can suspend events" });
+      return res
+        .status(403)
+        .json({ message: "Only admins can suspend events" });
     }
 
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    // Cannot suspend already ended or cancelled events
-    if (event.eventLifecycleStatus === "Ended" || event.eventLifecycleStatus === "Cancelled") {
+    if (
+      event.eventLifecycleStatus === "Ended" ||
+      event.eventLifecycleStatus === "Cancelled"
+    ) {
       return res.status(400).json({
         message: `Cannot suspend an event that has already ${event.eventLifecycleStatus.toLowerCase()}`,
       });
     }
 
-    // Transition to suspended
     const updated = await transitionEventStatus(eventId, "Suspended", {
       reason: reason || "Suspended by admin",
       suspendedBy: req.user.id,
     });
 
-    // Notify organizer
     await createNotification(req.app, {
       userId: String(event.createdBy),
       type: "event_suspended",
-      message: `Your event "${updated.title}" has been suspended. ${reason ? "Reason: " + reason : ""}`,
+      message: `Your event "${updated.title}" has been suspended.${reason ? " Reason: " + reason : ""}`,
       actionUrl: `/Eventdetail/${updated._id}`,
       entityId: updated._id,
       entityType: "event",
@@ -1051,37 +1280,36 @@ exports.suspendEvent = async (req, res) => {
     });
   } catch (err) {
     console.error("Suspend event error:", err.message);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
-/**
- * Restore a suspended event (admin-only)
- * PATCH /api/events/:eventId/restore
- */
 exports.restoreEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Only admins can restore
     if (!req.user?.isAdmin) {
-      return res.status(403).json({ message: "Only admins can restore events" });
+      return res
+        .status(403)
+        .json({ message: "Only admins can restore events" });
     }
 
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ message: "Event not found" });
 
-    // Can only restore suspended events
     if (event.eventLifecycleStatus !== "Suspended") {
-      return res.status(400).json({
-        message: "Can only restore suspended events",
-      });
+      return res
+        .status(400)
+        .json({ message: "Can only restore suspended events" });
     }
 
-    // Transition back to calculated status
     const updated = await transitionEventStatus(eventId, "Restored");
 
-    // Notify organizer
+    // Ensure status stays approved after restore
+    await Event.findByIdAndUpdate(eventId, { status: "approved" });
+
     await createNotification(req.app, {
       userId: String(event.createdBy),
       type: "event_restored",
@@ -1097,14 +1325,12 @@ exports.restoreEvent = async (req, res) => {
     });
   } catch (err) {
     console.error("Restore event error:", err.message);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
 
-/**
- * Get event status information
- * GET /api/events/:eventId/status-info
- */
 exports.getEventStatusInfo = async (req, res) => {
   try {
     const { eventId } = req.params;
@@ -1113,30 +1339,36 @@ exports.getEventStatusInfo = async (req, res) => {
     if (!event) return res.status(404).json({ message: "Event not found" });
 
     const currentUserId = getCurrentUserIdFromRequest(req);
-    const visibility = await canViewEvent(event, currentUserId, { allowPrivateLink: true });
-    if (!visibility.allowed) return res.status(404).json({ message: "Event not found" });
+    const visibility = await canViewEvent(event, currentUserId, {
+      allowPrivateLink: true,
+    });
+    if (!visibility.allowed)
+      return res.status(404).json({ message: "Event not found" });
 
     const statusInfo = getEventStatusInfo(event);
-    const status = event.eventLifecycleStatus || calculateEventStatus(event);
+    const status =
+      event.eventLifecycleStatus || calculateEventStatus(event);
 
     return res.status(200).json({
       status,
       info: statusInfo,
       event: {
-        id: event._id,
-        title: event.title,
-        startDate: event.startDate,
-        startTime: event.startTime,
-        endDate: event.endDate,
-        endTime: event.endTime,
-        salesDeadlineDate: event.salesDeadlineDate,
-        salesDeadlineTime: event.salesDeadlineTime,
+        id:                 event._id,
+        title:              event.title,
+        startDate:          event.startDate,
+        startTime:          event.startTime,
+        endDate:            event.endDate,
+        endTime:            event.endTime,
+        salesDeadlineDate:  event.salesDeadlineDate,
+        salesDeadlineTime:  event.salesDeadlineTime,
         cancellationReason: event.cancellationReason,
-        suspensionReason: event.suspensionReason,
+        suspensionReason:   event.suspensionReason,
       },
     });
   } catch (err) {
     console.error("Get event status info error:", err.message);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: err.message });
   }
 };
