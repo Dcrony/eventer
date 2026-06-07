@@ -13,4 +13,22 @@ export const adminReviewVerification = (id, action, reason) =>
 
 export const getVerificationById = (id) => API.get(`/verification/admin/${id}`);
 
-export default { submitVerification, getMyVerification, adminListVerifications, adminReviewVerification, getVerificationById };
+export const adminRequestResubmission = (id, instructions) =>
+  API.patch(`/verification/admin/${id}/resubmit`, { instructions });
+
+export const adminSuspendVerification = (id, reason, investigationNotes) =>
+  API.patch(`/verification/admin/${id}/suspend`, { reason, investigationNotes });
+
+export const getVerificationAuditHistory = (id) =>
+  API.get(`/verification/admin/${id}/audit-history`);
+
+export default {
+  submitVerification,
+  getMyVerification,
+  adminListVerifications,
+  adminReviewVerification,
+  getVerificationById,
+  adminRequestResubmission,
+  adminSuspendVerification,
+  getVerificationAuditHistory,
+};
