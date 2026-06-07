@@ -36,6 +36,7 @@ const notificationSchema = new mongoose.Schema(
         "comment",
         "reply",
         "announcement",
+        'refund',
         "payout_account_connected",
         "payout_account_updated",
         "payout_account_disconnected",
