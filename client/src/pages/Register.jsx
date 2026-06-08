@@ -15,6 +15,8 @@ import {
   validateRegisterForm,
 } from "../utils/formValidation";
 import RoleSelectionModal from "../components/RoleSelectionModal";
+import InterestSelectionModal from "../components/InterestSelectionModal";
+import { getNextOnboardingStep } from "../utils/onboarding";
 
 function PasswordInput({ name, placeholder, value, onChange, autoComplete }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -53,8 +55,13 @@ export default function Register() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Onboarding modal state — only one is visible at a time
   const [pendingRoleUser, setPendingRoleUser] = useState(null);
   const [pendingRoleToken, setPendingRoleToken] = useState(null);
+  const [pendingInterestsUser, setPendingInterestsUser] = useState(null);
+  const [pendingInterestsToken, setPendingInterestsToken] = useState(null);
+
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
 
@@ -74,6 +81,37 @@ export default function Register() {
       : value;
     setForm((prev) => ({ ...prev, [name]: sanitized }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  /**
+   * Shared onboarding advancement — same logic as Login.
+   */
+  const advanceOnboarding = (user, token) => {
+    const step = getNextOnboardingStep(user);
+
+    if (step === "role") {
+      setPendingRoleUser(user);
+      setPendingRoleToken(token);
+      return;
+    }
+
+    if (step === "verification") {
+      authLogin(user, token);
+      sessionStorage.setItem("showVerificationOnboarding", "true");
+      navigate("/verification", { replace: true });
+      return;
+    }
+
+    if (step === "interests") {
+      setPendingInterestsUser(user);
+      setPendingInterestsToken(token);
+      return;
+    }
+
+    // All done
+    authLogin(user, token);
+    setSuccess("Account created! Redirecting...");
+    setTimeout(() => navigate(user.role === "organizer" ? "/dashboard" : "/events"), 1200);
   };
 
   const handleSubmit = async (e) => {
@@ -122,17 +160,7 @@ export default function Register() {
       const userData = result.data.user;
       const token = result.data.token;
 
-      // Google users are verified — show role picker
-      if (!userData.roleConfirmed) {
-        setPendingRoleUser(userData);
-        setPendingRoleToken(token);
-        setLoading(false);
-        return;
-      }
-
-      authLogin(userData, token);
-      setSuccess("Google sign-up successful! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
+      advanceOnboarding(userData, token);
     } catch (err) {
       setError(err.message || "Google sign-up failed. Please try again.");
     } finally {
@@ -140,19 +168,42 @@ export default function Register() {
     }
   };
 
+  // Called when RoleSelectionModal completes
   const handleRoleSelected = (role) => {
     const updatedUser = { ...pendingRoleUser, role, roleConfirmed: true };
-    authLogin(updatedUser, pendingRoleToken);
-    navigate(role === "organizer" ? "/dashboard" : "/events", { replace: true });
+    const token = pendingRoleToken;
+    setPendingRoleUser(null);
+    setPendingRoleToken(null);
+    advanceOnboarding(updatedUser, token);
+  };
+
+  // Called when InterestSelectionModal completes (or is skipped)
+  const handleInterestsComplete = (updatedUser) => {
+    const token = pendingInterestsToken;
+    const user = updatedUser ?? pendingInterestsUser;
+    setPendingInterestsUser(null);
+    setPendingInterestsToken(null);
+    authLogin(user, token);
+    navigate(user.role === "organizer" ? "/dashboard" : "/events", { replace: true });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-white font-inter">
-      {pendingRoleUser && (
+
+      {/* Onboarding modals — only one shown at a time */}
+      {pendingRoleUser && !pendingInterestsUser && (
         <RoleSelectionModal
           user={pendingRoleUser}
-          token={pendingRoleToken}      
+          token={pendingRoleToken}
           onComplete={handleRoleSelected}
+        />
+      )}
+
+      {pendingInterestsUser && (
+        <InterestSelectionModal
+          user={pendingInterestsUser}
+          token={pendingInterestsToken}
+          onComplete={handleInterestsComplete}
         />
       )}
 
