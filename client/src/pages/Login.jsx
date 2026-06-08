@@ -12,6 +12,8 @@ import {
   validateLoginForm,
 } from "../utils/formValidation";
 import RoleSelectionModal from "../components/RoleSelectionModal";
+import InterestSelectionModal from "../components/InterestSelectionModal";
+import { getNextOnboardingStep } from "../utils/onboarding";
 
 function PasswordInput({ name, placeholder, value, onChange }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -50,8 +52,13 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Onboarding modal state — only one is visible at a time
   const [pendingRoleUser, setPendingRoleUser] = useState(null);
   const [pendingRoleToken, setPendingRoleToken] = useState(null);
+  const [pendingInterestsUser, setPendingInterestsUser] = useState(null);
+  const [pendingInterestsToken, setPendingInterestsToken] = useState(null);
+
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, login } = useAuth();
@@ -75,6 +82,40 @@ export default function Login() {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
+  /**
+   * After we have a confirmed user+token, decide what to show next.
+   * Chains: role modal → verification page OR interests modal → destination.
+   */
+  const advanceOnboarding = (user, token) => {
+    const step = getNextOnboardingStep(user);
+
+    if (step === "role") {
+      setPendingRoleUser(user);
+      setPendingRoleToken(token);
+      return;
+    }
+
+    if (step === "verification") {
+      login(user, token);
+      sessionStorage.setItem("showVerificationOnboarding", "true");
+      navigate("/verification", { replace: true });
+      return;
+    }
+
+    if (step === "interests") {
+      // Show interests modal before logging in fully
+      setPendingInterestsUser(user);
+      setPendingInterestsToken(token);
+      return;
+    }
+
+    // All done — log in and redirect
+    login(user, token);
+    setSuccess("Login successful ✅ Redirecting...");
+    const from = location.state?.from?.pathname;
+    setTimeout(() => navigate(getRedirectTarget(user, from)), 800);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { valid, errors: validationErrors } = validateLoginForm(form);
@@ -90,18 +131,7 @@ export default function Login() {
       const res = await API.post("/auth/login", payload);
       const userData = res.data.user;
       const token = res.data.token;
-
-      if (!userData.roleConfirmed) {
-        setPendingRoleUser(userData);
-        setPendingRoleToken(token);
-        setLoading(false);
-        return;
-      }
-
-      login(userData, token);
-      setSuccess("Login successful ✅ Redirecting...");
-      const from = location.state?.from?.pathname;
-      setTimeout(() => navigate(getRedirectTarget(userData, from)), 800);
+      advanceOnboarding(userData, token);
     } catch (err) {
       const data = err.response?.data;
       if (err.response?.status === 403 && data?.code === "OTP_SENT") {
@@ -141,15 +171,7 @@ export default function Login() {
       const token = result.data.token;
 
       if (userData.isVerified) {
-        if (!userData.roleConfirmed) {
-          setPendingRoleUser(userData);
-          setPendingRoleToken(token);
-          setLoading(false);
-          return;
-        }
-        login(userData, token);
-        setSuccess("Google login successful! Redirecting...");
-        setTimeout(() => navigate(getRedirectTarget(userData, null)), 1500);
+        advanceOnboarding(userData, token);
       } else {
         const emailAddr = userData.email;
         const code = result.data.verificationCode;
@@ -168,22 +190,46 @@ export default function Login() {
     }
   };
 
+  // Called when RoleSelectionModal completes — advance to next step
   const handleRoleSelected = (role) => {
     const updatedUser = { ...pendingRoleUser, role, roleConfirmed: true };
-    login(updatedUser, pendingRoleToken);
-    navigate(getRedirectTarget(updatedUser, location.state?.from?.pathname), { replace: true });
+    const token = pendingRoleToken;
+    // Clear role modal state
+    setPendingRoleUser(null);
+    setPendingRoleToken(null);
+    // Advance (may show interests or verification next)
+    advanceOnboarding(updatedUser, token);
+  };
+
+  // Called when InterestSelectionModal completes (or is skipped)
+  const handleInterestsComplete = (updatedUser) => {
+    const token = pendingInterestsToken;
+    setPendingInterestsUser(null);
+    setPendingInterestsToken(null);
+    login(updatedUser ?? pendingInterestsUser, token);
+    const from = location.state?.from?.pathname;
+    navigate(getRedirectTarget(updatedUser ?? pendingInterestsUser, from), { replace: true });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-pink-50/30 to-white font-inter">
 
-{pendingRoleUser && (
-  <RoleSelectionModal
-    user={pendingRoleUser}
-    token={pendingRoleToken}      
-    onComplete={handleRoleSelected}
-  />
-)}
+      {/* Onboarding modals — only one shown at a time */}
+      {pendingRoleUser && !pendingInterestsUser && (
+        <RoleSelectionModal
+          user={pendingRoleUser}
+          token={pendingRoleToken}
+          onComplete={handleRoleSelected}
+        />
+      )}
+
+      {pendingInterestsUser && (
+        <InterestSelectionModal
+          user={pendingInterestsUser}
+          token={pendingInterestsToken}
+          onComplete={handleInterestsComplete}
+        />
+      )}
 
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <div className="fixed inset-0 z-0 opacity-30 pointer-events-none">
