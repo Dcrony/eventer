@@ -139,10 +139,45 @@ export default function EventDetail() {
   const [ratingStats, setRatingStats] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [eventState, setEventState] = useState(event);
+    const [organizerReputation, setOrganizerReputation] = useState(null);
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isEventFree = event?.isFreeEvent || event?.isFree;
+
+  const currentUserId = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "null");
+      return u?._id || u?.id || null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const loadOrganizerReputation = async (organizerId) => {
+  try {
+    const { data } = await API.get(`/ratings/organizer/${organizerId}/reputation`);
+    return data.reputation;
+  } catch {
+    return null;
+  }
+};
+
+  useEffect(() => {
+      setEventState(event);
+    }, [event]);
+
+  
+    useEffect(() => {
+      if (event?.createdBy?._id) {
+        loadOrganizerReputation(event.createdBy._id).then(setOrganizerReputation);
+      }
+    }, [event?.createdBy?._id]);
+  
+    const syncEvent = (nextEvent) => {
+  setEventState(nextEvent);
+};
 
   // Only surface enabled tiers (server already filters, but defensive client check)
   const visiblePricing = useMemo(
@@ -809,11 +844,11 @@ export default function EventDetail() {
       />
 
       <ShareModal
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        title={event.title}
-        url={getEventUrl(event._id)}
-      />
+              open={shareOpen}
+              onClose={() => setShareOpen(false)}
+              event={eventState}
+              currentUserId={currentUserId}
+            />
     </>
   );
 }
