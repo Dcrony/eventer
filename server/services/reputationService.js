@@ -2,6 +2,7 @@
  * Reputation Service
  * Calculates trust scores, ratings aggregates, and organizer reputation
  */
+const mongoose = require("mongoose");
 
 const Rating = require("../models/Rating");
 const Report = require("../models/Report");
@@ -17,7 +18,7 @@ exports.getRatingStats = async (targetType, targetId) => {
       {
         $match: {
           targetType,
-          targetId: mongoose.Types.ObjectId(targetId),
+          targetId: new mongoose.Types.ObjectId(targetId),
           isVisible: true,
         },
       },
@@ -94,7 +95,6 @@ exports.getRatingStats = async (targetType, targetId) => {
  */
 exports.calculateOrganizerTrustScore = async (organizerId) => {
   try {
-    const mongoose = require("mongoose");
     const organizer = await User.findById(organizerId).lean();
     if (!organizer) return 0;
 
@@ -144,7 +144,6 @@ exports.getReviews = async (targetType, targetId, limit = 5, skip = 0) => {
   try {
     const reviews = await Rating.find({
       targetType,
-      targetId: require("mongoose").Types.ObjectId(targetId),
       isVisible: true,
     })
       .populate("reviewer", "name username profilePic")
@@ -166,12 +165,11 @@ exports.getReviews = async (targetType, targetId, limit = 5, skip = 0) => {
  */
 exports.getOrganizerAspectRatings = async (organizerId) => {
   try {
-    const mongoose = require("mongoose");
     const aspects = await Rating.aggregate([
       {
         $match: {
           targetType: "organizer",
-          targetId: mongoose.Types.ObjectId(organizerId),
+          targetId: new mongoose.Types.ObjectId(organizerId),
           isVisible: true,
           organizerAspects: { $ne: null },
         },
@@ -248,11 +246,10 @@ exports.didUserAttendEvent = async (userId, eventId) => {
  */
 exports.hasUserReviewed = async (userId, targetType, targetId) => {
   try {
-    const mongoose = require("mongoose");
     const existing = await Rating.findOne({
       reviewer: userId,
       targetType,
-      targetId: mongoose.Types.ObjectId(targetId),
+      targetId: new mongoose.Types.ObjectId(targetId),
     }).lean();
 
     return !!existing;
