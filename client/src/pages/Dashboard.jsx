@@ -32,15 +32,15 @@ import useFeatureAccess from "../hooks/useFeatureAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import AppPage from "../components/layout/AppPage";
 
-const ADMIN_ROLES    = ["super_admin", "admin", "moderator", "finance_admin", "support_admin"];
+const ADMIN_ROLES = ["super_admin", "admin", "moderator", "finance_admin", "support_admin"];
 const VERIFIED_ROLES = ["organizer", ...ADMIN_ROLES];
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
 const STAT_COLORS = {
-    blue:  { bar: "bg-blue-500",  icon: "bg-blue-50  text-blue-500"  },
-    pink:  { bar: "bg-pink-500",  icon: "bg-pink-50  text-pink-500"  },
+    blue: { bar: "bg-blue-500", icon: "bg-blue-50  text-blue-500" },
+    pink: { bar: "bg-pink-500", icon: "bg-pink-50  text-pink-500" },
     green: { bar: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600" },
-    red:   { bar: "bg-red-500",   icon: "bg-red-50   text-red-500"   },
+    red: { bar: "bg-red-500", icon: "bg-red-50   text-red-500" },
 };
 
 const StatCard = ({ title, value, icon: Icon, color = "pink" }) => {
@@ -77,12 +77,12 @@ const SectionHeader = ({ title, subtitle, action }) => (
 
 // ── Status pill ───────────────────────────────────────────────────────────────
 const STATUS_MAP = {
-    Live:      { cls: "bg-red-500 text-white animate-pulse", label: "LIVE" },
-    Upcoming:  { cls: "bg-blue-500 text-white",              label: "Upcoming" },
-    Ended:     { cls: "bg-gray-400 text-white",              label: "Ended" },
-    Cancelled: { cls: "bg-red-600 text-white",               label: "Cancelled" },
-    Suspended: { cls: "bg-red-700 text-white",               label: "Suspended" },
-    Published: { cls: "bg-emerald-500 text-white",           label: "Published" },
+    Live: { cls: "bg-red-500 text-white animate-pulse", label: "LIVE" },
+    Upcoming: { cls: "bg-blue-500 text-white", label: "Upcoming" },
+    Ended: { cls: "bg-gray-400 text-white", label: "Ended" },
+    Cancelled: { cls: "bg-red-600 text-white", label: "Cancelled" },
+    Suspended: { cls: "bg-red-700 text-white", label: "Suspended" },
+    Published: { cls: "bg-emerald-500 text-white", label: "Published" },
 };
 
 const StatusPill = ({ status }) => {
@@ -123,49 +123,49 @@ const PanelHead = ({ children }) => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const [events, setEvents]               = useState([]);
-    const [stats, setStats]                 = useState(null);
-    const [loading, setLoading]             = useState(true);
-    const [error, setError]                 = useState(null);
+    const [events, setEvents] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [editModalOpen, setEditModalOpen] = useState(false);
-    const [selectedEventId, setSelectedEventId]     = useState(null);
-    const [teamModalOpen, setTeamModalOpen]         = useState(false);
+    const [selectedEventId, setSelectedEventId] = useState(null);
+    const [teamModalOpen, setTeamModalOpen] = useState(false);
     const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
-    const [transactions, setTransactions]   = useState([]);
+    const [transactions, setTransactions] = useState([]);
     const [financeSummary, setFinanceSummary] = useState(null);
-    const [fraudInfo, setFraudInfo]         = useState(null);
+    const [fraudInfo, setFraudInfo] = useState(null);
     const [payoutHistory, setPayoutHistory] = useState(null);
     const [userVerification, setUserVerification] = useState(null);
 
-    const { hasAccess: canAccessAnalytics,    promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
-    const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive }      = useFeatureAccess("live_stream");
+    const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
+    const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-    const token    = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const navigate = useNavigate();
-    const user     = useMemo(() => getCurrentUser(), []);
+    const user = useMemo(() => getCurrentUser(), []);
     const { openCreateEvent } = useCreateEvent();
 
-    const handleEditClick        = (id) => { setSelectedEventId(id);     setEditModalOpen(true); };
-    const handleModalClose       = ()   => { setEditModalOpen(false);    setSelectedEventId(null); };
-    const handleTeamClick        = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true); };
-    const handleTeamModalClose   = ()   => { setTeamModalOpen(false);    setSelectedTeamEventId(null); };
+    const handleEditClick = (id) => { setSelectedEventId(id); setEditModalOpen(true); };
+    const handleModalClose = () => { setEditModalOpen(false); setSelectedEventId(null); };
+    const handleTeamClick = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true); };
+    const handleTeamModalClose = () => { setTeamModalOpen(false); setSelectedTeamEventId(null); };
 
     const fetchDashboardData = useCallback(() => {
         setLoading(true);
         setError(null);
         Promise.all([
-            API.get("/events/my-events?includeDrafts=true",        { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/stats/stats",                                 { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/organizer/transactions",                      { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/users/me",                                    { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/finance/organizer/balances",                  { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-            API.get("/finance/organizer/payouts?page=1&limit=5",   { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+            API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/users/me", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/finance/organizer/balances", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+            API.get("/finance/organizer/payouts?page=1&limit=5", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         ])
             .then(([eventsRes, statsRes, transactionRes, userRes, balancesRes, payoutsRes]) => {
                 setEvents(eventsRes.data || []);
-                setStats(statsRes.data   || null);
+                setStats(statsRes.data || null);
                 setTransactions(transactionRes.data || []);
-                if (userRes?.data?.verification)   setUserVerification(userRes.data.verification);
+                if (userRes?.data?.verification) setUserVerification(userRes.data.verification);
                 if (balancesRes?.data) {
                     setFinanceSummary(balancesRes.data.summary || balancesRes.data);
                     setFraudInfo(balancesRes.data.fraud || null);
@@ -240,10 +240,10 @@ export default function Dashboard() {
 
     const getPayoutTone = (state) => {
         const s = String(state || "").toLowerCase();
-        if (s === "released" || s === "completed")         return "green";
-        if (s === "pending"  || s === "processing")        return "amber";
-        if (s === "under_review")                          return "pink";
-        if (["frozen", "refunded", "failed"].includes(s))  return "red";
+        if (s === "released" || s === "completed") return "green";
+        if (s === "pending" || s === "processing") return "amber";
+        if (s === "under_review") return "pink";
+        if (["frozen", "refunded", "failed"].includes(s)) return "red";
         return "blue";
     };
 
@@ -251,15 +251,18 @@ export default function Dashboard() {
     const toneClass = (tone) => ({
         green: "bg-emerald-50 text-emerald-700",
         amber: "bg-amber-50  text-amber-700",
-        pink:  "bg-pink-50   text-pink-600",
-        red:   "bg-red-50    text-red-600",
-        blue:  "bg-blue-50   text-blue-700",
+        pink: "bg-pink-50   text-pink-600",
+        red: "bg-red-50    text-red-600",
+        blue: "bg-blue-50   text-blue-700",
     }[tone] || "bg-gray-100 text-gray-600");
 
-    const payoutItems  = payoutHistory?.items || payoutHistory?.history || payoutHistory?.payouts || [];
-    const draftEvents  = events.filter((e) =>  e.isDraft);
+    const payoutItems = payoutHistory?.items || payoutHistory?.history || payoutHistory?.payouts || [];
+    const draftEvents = events.filter((e) => e.isDraft);
     const publishedEvents = events.filter((e) => !e.isDraft);
-    const latestTx     = transactions.slice(0, 3);
+    const latestTx = transactions.slice(0, 3);
+
+
+const isAdminRole = (role) => ADMIN_ROLES.includes(role);
 
     return (
         <AppPage
@@ -267,7 +270,7 @@ export default function Dashboard() {
             description={`Welcome back${user?.username ? `, ${user.username}` : ""}. Manage your events, sales, and live sessions.`}
         >
             {/* Verification status */}
-            {VERIFIED_ROLES.includes(user?.role) && userVerification && (
+            {VERIFIED_ROLES.includes(user?.role) && (
                 <div className="mb-6">
                     <VerificationStatusCard
                         verification={userVerification}
@@ -275,7 +278,7 @@ export default function Dashboard() {
                         onStartVerification={() => navigate("/verification")}
                         onApprove={handleApproveVerification}
                         onReject={handleRejectVerification}
-                        compact
+                         compact={!isAdminRole(user?.role)} 
                     />
                 </div>
             )}
@@ -318,10 +321,10 @@ export default function Dashboard() {
                     {/* ── Core stats ── */}
                     {stats && (
                         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            <StatCard title="Total Events"   value={stats.totalEvents}                        icon={LayoutDashboard} color="blue"  />
-                            <StatCard title="Tickets Sold"   value={formatNum(stats.totalTicketsSold)}        icon={Ticket}          color="pink"  />
-                            <StatCard title="Revenue"        value={`₦${formatNum(stats.totalRevenue)}`}     icon={BarChart3}       color="green" />
-                            <StatCard title="Live Sessions"  value={stats.currentlyLive}                      icon={Radio}           color="red"   />
+                            <StatCard title="Total Events" value={stats.totalEvents} icon={LayoutDashboard} color="blue" />
+                            <StatCard title="Tickets Sold" value={formatNum(stats.totalTicketsSold)} icon={Ticket} color="pink" />
+                            <StatCard title="Revenue" value={`₦${formatNum(stats.totalRevenue)}`} icon={BarChart3} color="green" />
+                            <StatCard title="Live Sessions" value={stats.currentlyLive} icon={Radio} color="red" />
                         </div>
                     )}
 
@@ -329,41 +332,41 @@ export default function Dashboard() {
                     {financeSummary && (
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
-                                <StatCard title="Available Balance"        value={`₦${formatNum(financeSummary.availableBalance       || 0)}`} icon={Wallet}        color="green" />
-                                <StatCard title="Escrow Balance"           value={`₦${formatNum(financeSummary.escrowBalance          || 0)}`} icon={Wallet}        color="pink"  />
-                                <StatCard title="Pending Release"          value={`₦${formatNum(financeSummary.pendingReleaseBalance  || 0)}`} icon={FileClock}     color="blue"  />
-                                <StatCard title="Released Revenue"         value={`₦${formatNum(financeSummary.releasedRevenue        || 0)}`} icon={BarChart3}     color="green" />
-                                <StatCard title="Refunded Revenue"         value={`₦${formatNum(financeSummary.refundedRevenue        || 0)}`} icon={Wallet}        color="red"   />
+                                <StatCard title="Available Balance" value={`₦${formatNum(financeSummary.availableBalance || 0)}`} icon={Wallet} color="green" />
+                                <StatCard title="Escrow Balance" value={`₦${formatNum(financeSummary.escrowBalance || 0)}`} icon={Wallet} color="pink" />
+                                <StatCard title="Pending Release" value={`₦${formatNum(financeSummary.pendingReleaseBalance || 0)}`} icon={FileClock} color="blue" />
+                                <StatCard title="Released Revenue" value={`₦${formatNum(financeSummary.releasedRevenue || 0)}`} icon={BarChart3} color="green" />
+                                <StatCard title="Refunded Revenue" value={`₦${formatNum(financeSummary.refundedRevenue || 0)}`} icon={Wallet} color="red" />
                             </div>
 
                             {fraudInfo && (
                                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                                    <StatCard title="Fraud Alerts"             value={formatNum(fraudInfo.flagCount                         || 0)}  icon={AlertTriangle} color="red"  />
-                                    <StatCard title="Suspicious Transactions"  value={formatNum(fraudInfo.suspiciousTransactionsCount        || 0)}  icon={ShieldAlert}   color="pink" />
-                                    <StatCard title="Refund Spike"             value={`${Math.round((fraudInfo.refundSpike?.ratio || 0) * 100)}%`} icon={AlertTriangle} color="red"  />
-                                    <StatCard title="Suspicious Payouts"       value={formatNum(fraudInfo.suspiciousPayouts?.length          || 0)}  icon={ShieldAlert}   color="pink" />
+                                    <StatCard title="Fraud Alerts" value={formatNum(fraudInfo.flagCount || 0)} icon={AlertTriangle} color="red" />
+                                    <StatCard title="Suspicious Transactions" value={formatNum(fraudInfo.suspiciousTransactionsCount || 0)} icon={ShieldAlert} color="pink" />
+                                    <StatCard title="Refund Spike" value={`${Math.round((fraudInfo.refundSpike?.ratio || 0) * 100)}%`} icon={AlertTriangle} color="red" />
+                                    <StatCard title="Suspicious Payouts" value={formatNum(fraudInfo.suspiciousPayouts?.length || 0)} icon={ShieldAlert} color="pink" />
                                 </div>
                             )}
 
                             {/* Restrictions banner */}
                             {(userVerification?.status !== "approved" ||
-                              (fraudInfo?.flagCount || 0) > 0 ||
-                              (financeSummary.escrowBalance || 0) > 0) && (
-                                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 mb-6">
-                                    <h3 className="text-xs font-extrabold text-amber-900 mb-2">Payout Restrictions</h3>
-                                    <div className="space-y-1.5 text-xs text-amber-800">
-                                        {userVerification?.status !== "approved" && (
-                                            <p>Account verification pending — withdrawals are restricted until approved.</p>
-                                        )}
-                                        {(fraudInfo?.flagCount || 0) > 0 && (
-                                            <p>{formatNum(fraudInfo.flagCount)} active fraud alert(s) may hold payout processing. Contact support.</p>
-                                        )}
-                                        {(financeSummary.escrowBalance || 0) > 0 && (
-                                            <p>Escrow rules are holding ₦{formatNum(financeSummary.escrowBalance)} pending review.</p>
-                                        )}
+                                (fraudInfo?.flagCount || 0) > 0 ||
+                                (financeSummary.escrowBalance || 0) > 0) && (
+                                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 mb-6">
+                                        <h3 className="text-xs font-extrabold text-amber-900 mb-2">Payout Restrictions</h3>
+                                        <div className="space-y-1.5 text-xs text-amber-800">
+                                            {userVerification?.status !== "approved" && (
+                                                <p>Account verification pending — withdrawals are restricted until approved.</p>
+                                            )}
+                                            {(fraudInfo?.flagCount || 0) > 0 && (
+                                                <p>{formatNum(fraudInfo.flagCount)} active fraud alert(s) may hold payout processing. Contact support.</p>
+                                            )}
+                                            {(financeSummary.escrowBalance || 0) > 0 && (
+                                                <p>Escrow rules are holding ₦{formatNum(financeSummary.escrowBalance)} pending review.</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
                         </>
                     )}
 
@@ -420,11 +423,10 @@ export default function Dashboard() {
                                             <p className="text-xs font-semibold text-gray-900 tabular-nums">
                                                 ₦{formatNum(ticketNetToOrganizer(tx))}
                                             </p>
-                                            <span className={`rounded-full px-2.5 py-1 text-[0.6rem] font-bold ${
-                                                tx.status === "success" ? "bg-emerald-50 text-emerald-700"
+                                            <span className={`rounded-full px-2.5 py-1 text-[0.6rem] font-bold ${tx.status === "success" ? "bg-emerald-50 text-emerald-700"
                                                 : tx.status === "pending" ? "bg-amber-50 text-amber-700"
-                                                : "bg-red-50 text-red-600"
-                                            }`}>
+                                                    : "bg-red-50 text-red-600"
+                                                }`}>
                                                 {tx.status}
                                             </span>
                                         </div>
@@ -527,8 +529,8 @@ export default function Dashboard() {
                                         <div className="mt-4 grid grid-cols-3 gap-2">
                                             {[
                                                 { label: "Last saved", value: new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString() },
-                                                { label: "Progress",   value: `Step ${event.draftStep || 1} of 5` },
-                                                { label: "Format",     value: event.eventType || "In-person" },
+                                                { label: "Progress", value: `Step ${event.draftStep || 1} of 5` },
+                                                { label: "Format", value: event.eventType || "In-person" },
                                             ].map(({ label, value }) => (
                                                 <div key={label} className="rounded-xl bg-white border border-amber-100 p-3">
                                                     <p className="text-[0.58rem] font-bold uppercase tracking-widest text-gray-400">{label}</p>
@@ -568,24 +570,24 @@ export default function Dashboard() {
                                         <EventActionMenu
                                             items={[
                                                 {
-                                                    key:    "live",
-                                                    label:  event.liveStream?.isLive ? "Stop Live" : "Go Live",
-                                                    icon:   Radio,
+                                                    key: "live",
+                                                    label: event.liveStream?.isLive ? "Stop Live" : "Go Live",
+                                                    icon: Radio,
                                                     active: Boolean(event.liveStream?.isLive),
                                                     onClick: () =>
                                                         canAccessLiveStreaming
                                                             ? toggleLive(event._id, event.liveStream?.isLive)
                                                             : promptUpgradeLive(),
                                                 },
-                                                { key: "edit",     label: "Edit event",       icon: Pencil,  onClick: () => handleEditClick(event._id) },
-                                                { key: "tickets",  label: "Manage tickets",   icon: Ticket,  to: `/events/${event._id}/tickets` },
+                                                { key: "edit", label: "Edit event", icon: Pencil, onClick: () => handleEditClick(event._id) },
+                                                { key: "tickets", label: "Manage tickets", icon: Ticket, to: `/events/${event._id}/tickets` },
                                                 canAccessAnalytics
-                                                    ? { key: "analytics",        label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
+                                                    ? { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
                                                     : { key: "analytics-upgrade", label: "Analytics", icon: BarChart3, onClick: promptUpgradeAnalytics },
-                                                { key: "team",      label: "Manage team",     icon: Users,   onClick: () => handleTeamClick(event._id) },
-                                                { key: "duplicate", label: "Duplicate event", icon: Copy,    onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
+                                                { key: "team", label: "Manage team", icon: Users, onClick: () => handleTeamClick(event._id) },
+                                                { key: "duplicate", label: "Duplicate event", icon: Copy, onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
                                                 { key: "divider-delete", type: "divider" },
-                                                { key: "delete",    label: "Delete event",    icon: Trash2,  danger: true, onClick: () => handleDelete(event._id) },
+                                                { key: "delete", label: "Delete event", icon: Trash2, danger: true, onClick: () => handleDelete(event._id) },
                                             ]}
                                         />
                                     </div>
