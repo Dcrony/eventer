@@ -112,3 +112,19 @@ export function useAuth() {
   }
   return context;
 }
+
+
+// Add this utility inside or exported from AuthContext
+// Returns: "role" | "verification" | "interests" | null
+export function getNextOnboardingStep(user) {
+  if (!user) return null;
+  if (!user.roleConfirmed) return "role";
+  if (user.role === "organizer") {
+    // Only show verification flow on first time (not re-shown if already submitted/done)
+    const verificationNotStarted =
+      !user.verification || user.verification.status === "not_started";
+    if (verificationNotStarted && !user.onboardingCompletedAt) return "verification";
+  }
+  if (user.role === "user" && !user.interestsSelected) return "interests";
+  return null;
+}
