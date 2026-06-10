@@ -71,6 +71,19 @@ exports.createTicket = async (req, res) => {
       ? eventPricing.find((p) => p.type === normalizedRequestedType)
       : null;
 
+    
+    // ── Enforce maxPerOrder ─────────────────────────────────────────────────────
+if (matchingTier && matchingTier.maxPerOrder > 0) {
+  const requestedQty = Number(quantity) || 1;
+  if (requestedQty > matchingTier.maxPerOrder) {
+    return res.status(400).json({
+      message: `Maximum ${matchingTier.maxPerOrder} ticket(s) per order for the "${matchingTier.label || matchingTier.type}" tier.`,
+      code: "MAX_PER_ORDER_EXCEEDED",
+      maxPerOrder: matchingTier.maxPerOrder,
+    });
+  }
+}
+
     // For paid events, only allow this endpoint when:
     //   (a) the whole event is free, OR
     //   (b) the specific requested tier is free (isFree flag or price === 0)
