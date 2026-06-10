@@ -292,8 +292,8 @@ export default function Checkout() {
                           type="button"
                           onClick={() => setSelectedPricing(p)}
                           className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${active
-                              ? "border-pink-500 bg-pink-50 shadow-md scale-[1.02]"
-                              : "border-gray-200 bg-gray-50 hover:border-pink-200 hover:bg-pink-50/30 hover:-translate-y-0.5"
+                            ? "border-pink-500 bg-pink-50 shadow-md scale-[1.02]"
+                            : "border-gray-200 bg-gray-50 hover:border-pink-200 hover:bg-pink-50/30 hover:-translate-y-0.5"
                             }`}
                         >
                           {/* Name row */}
