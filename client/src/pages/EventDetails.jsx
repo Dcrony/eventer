@@ -754,9 +754,20 @@ export default function EventDetail() {
                       className="w-full p-3 rounded-lg border-2 border-gray-200 bg-white text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 appearance-none bg-no-repeat disabled:opacity-60 disabled:cursor-not-allowed"
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: "right 0.75rem center" }}
                     >
-                      {(isEventFree || selectedTicketType?.isFree ? [1] : [1, 2, 3, 4, 5]).map((v) => (
-                        <option key={v} value={v}>{v}</option>
-                      ))}
+
+{(isEventFree || selectedTicketType?.isFree
+  ? [1]
+  : Array.from(
+      {
+        length: selectedTicketType?.maxPerOrder > 0
+          ? Math.min(selectedTicketType.maxPerOrder, 10)
+          : 5
+      },
+      (_, i) => i + 1
+    )
+).map((v) => (
+  <option key={v} value={v}>{v}</option>
+))}
                     </select>
                     {(isEventFree || selectedTicketType?.isFree) && (
                       <p className="text-[0.65rem] text-gray-400">Free tickets are limited to 1 per person.</p>
