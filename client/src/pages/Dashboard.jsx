@@ -262,7 +262,7 @@ export default function Dashboard() {
     const latestTx = transactions.slice(0, 3);
 
 
-const isAdminRole = (role) => ADMIN_ROLES.includes(role);
+    const isAdminRole = (role) => ADMIN_ROLES.includes(role);
 
     return (
         <AppPage
@@ -278,7 +278,7 @@ const isAdminRole = (role) => ADMIN_ROLES.includes(role);
                         onStartVerification={() => navigate("/verification")}
                         onApprove={handleApproveVerification}
                         onReject={handleRejectVerification}
-                         compact={!isAdminRole(user?.role)} 
+                        compact={!isAdminRole(user?.role)}
                     />
                 </div>
             )}
