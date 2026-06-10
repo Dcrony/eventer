@@ -26,7 +26,7 @@ const {
 } = require("../utils/cloudinaryMedia");
 const {
   transitionEventStatus,
-  getEventStatusInfo,
+  getEventStatusInfo: getEventStatusInfoUtil,  // ← rename the utility
   calculateEventStatus,
 } = require("../utils/eventLifecycle");
 
@@ -1345,7 +1345,7 @@ exports.getEventStatusInfo = async (req, res) => {
     if (!visibility.allowed)
       return res.status(404).json({ message: "Event not found" });
 
-    const statusInfo = getEventStatusInfo(event);
+    const statusInfo = getEventStatusInfoUtil(event);
     const status =
       event.eventLifecycleStatus || calculateEventStatus(event);
 
