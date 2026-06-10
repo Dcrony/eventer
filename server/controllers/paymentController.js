@@ -83,11 +83,24 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    if (order.totalKobo <= 0) {
-      return res.status(400).json({
-        message: "This event is free. Use the free ticket flow instead.",
-      });
-    }
+   // ── Enforce maxPerOrder ─────────────────────────────────────────────────────
+const requestedTier = (event.pricing || []).find(
+  (t) => t.type === order.pricingType && t.isEnabled !== false
+);
+if (requestedTier?.maxPerOrder > 0 && order.quantity > requestedTier.maxPerOrder) {
+  return res.status(400).json({
+    message: `Maximum ${requestedTier.maxPerOrder} ticket(s) per order for the "${requestedTier.label || requestedTier.type}" tier.`,
+    code: "MAX_PER_ORDER_EXCEEDED",
+    maxPerOrder: requestedTier.maxPerOrder,
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+if (order.totalKobo <= 0) {
+  return res.status(400).json({
+    message: "This event is free. Use the free ticket flow instead.",
+  });
+}
 
     const processedMetadata = {
       eventId: String(metadata.eventId),
@@ -222,6 +235,20 @@ exports.verifyPayment = async (req, res) => {
           .json({ message: "Not enough tickets available" });
 
       const order = computeTicketOrderTotal(event, { pricingType, quantity });
+
+      const verifyTier = (event.pricing || []).find(
+  (t) => t.type === order.pricingType && t.isEnabled !== false
+);
+if (verifyTier?.maxPerOrder > 0 && order.quantity > verifyTier.maxPerOrder) {
+  console.warn("❌ maxPerOrder exceeded at verify time", {
+    reference,
+    pricingType,
+    quantity,
+    maxPerOrder: verifyTier.maxPerOrder,
+  });
+  return res.redirect(failedURL);
+}
+
       if (!amountsMatch(data.amount, order.totalKobo)) {
         console.error("Payment amount mismatch", {
           paid: data.amount,
