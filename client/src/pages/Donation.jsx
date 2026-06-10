@@ -152,23 +152,7 @@ export default function Donation() {
               Donate Now
             </button>
           )}
-        </div>
-
-        {/* Impact Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 max-w-3xl mx-auto">
-          <div className="text-center p-4">
-            <div className="text-2xl font-extrabold text-pink-500">50K+</div>
-            <p className="text-sm text-gray-500">Events created</p>
-          </div>
-          <div className="text-center p-4">
-            <div className="text-2xl font-extrabold text-pink-500">500K+</div>
-            <p className="text-sm text-gray-500">Tickets sold</p>
-          </div>
-          <div className="text-center p-4">
-            <div className="text-2xl font-extrabold text-pink-500">10K+</div>
-            <p className="text-sm text-gray-500">Active organizers</p>
-          </div>
-        </div>
+        </div>       
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
           <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr] mt-14">
