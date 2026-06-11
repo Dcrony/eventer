@@ -16,8 +16,20 @@ import {
     Wallet,
     ArrowUpRight,
     RefreshCcw,
+    CheckCircle2,
+    CreditCard,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
 import AdminLayout from "../components/AdminLayout";
 import {
     EmptyState,
@@ -28,8 +40,11 @@ import {
     SurfaceCard,
 } from "../components/AdminComponents";
 import adminService from "../services/adminService";
+import { listPayouts } from "../services/api/payouts";
+import API from "../api/axios";
 import { formatCurrency, formatDateTime, formatNumber, getStatusTone } from "../utils/adminUtils";
 
+/* ─── Module card ─────────────────────────────────────────── */
 function ModuleCard({ to, Icon, title, subtitle, details }) {
     return (
         <Link
@@ -54,6 +69,7 @@ function ModuleCard({ to, Icon, title, subtitle, details }) {
     );
 }
 
+/* ─── Chart tooltip ───────────────────────────────────────── */
 const CustomTooltip = ({ active, payload, label, formatter }) => {
     if (!active || !payload?.length) return null;
     return (
@@ -68,12 +84,20 @@ const CustomTooltip = ({ active, payload, label, formatter }) => {
     );
 };
 
+/* ─── Main component ──────────────────────────────────────── */
 export default function AdminDashboard() {
-    const [stats, setStats] = useState(null);
-    const [metrics, setMetrics] = useState(null);
-    const [revenue, setRevenue] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+    const [stats, setStats]               = useState(null);
+    const [metrics, setMetrics]           = useState(null);
+    const [revenue, setRevenue]           = useState([]);
+    const [finance, setFinance]           = useState(null);
+    const [payoutSummary, setPayoutSummary] = useState(null);
+    const [donationStats, setDonationStats] = useState({ totalRaised: 0, totalDonors: 0 });
+    const [txSummary, setTxSummary]         = useState(null);
+    const [transactions, setTransactions] = useState([]);
+    const [withdrawals, setWithdrawals]   = useState([]);
+    const [logs, setLogs]                 = useState([]);
+    const [loading, setLoading]           = useState(false);
+    const [error, setError]               = useState(null);
 
     useEffect(() => { fetchDashboardData(); }, []);
 
@@ -81,14 +105,42 @@ export default function AdminDashboard() {
         try {
             setLoading(true);
             setError(null);
-            const [statsRes, metricsRes, revenueRes] = await Promise.all([
+
+            const [
+                statsRes,
+                metricsRes,
+                revenueRes,
+                financeRes,
+                txRes,
+                wdRes,
+                logsRes,
+                payoutsRes,
+                donationsRes,
+            ] = await Promise.all([
                 adminService.getPlatformStats(),
                 adminService.getPlatformMetrics(),
                 adminService.getRevenueAnalytics(),
+                adminService.getFinanceOverview(),
+                adminService.getTransactions(1, 5, {}),
+                adminService.getWithdrawals(1, 5, {}),
+                adminService.getActivityLogs(1, 6, {}),
+                listPayouts({ page: 1, limit: 1 }),
+                API.get("/donations/recent"),
             ]);
+
             setStats(statsRes.stats);
             setMetrics(metricsRes.metrics);
             setRevenue(revenueRes.data?.daily || []);
+            setFinance(financeRes?.summary || null);
+            setPayoutSummary(payoutsRes?.summary || null);
+            setDonationStats({
+                totalRaised: donationsRes.data?.totalRaised || 0,
+                totalDonors: donationsRes.data?.totalDonors || 0,
+            });
+            setTransactions(txRes.transactions || []);
+            setTxSummary(txRes.summary || null);
+            setWithdrawals(wdRes.withdrawals || []);
+            setLogs(logsRes.logs || []);
         } catch (err) {
             setError(err.response?.data?.message || "Failed to load dashboard data.");
         } finally {
@@ -96,17 +148,27 @@ export default function AdminDashboard() {
         }
     };
 
+    /* Derived finance values (from AdminFinance + AdminPayouts endpoints) */
+    const grossRevenue      = finance?.grossTicketRevenue  ?? stats?.revenue?.total               ?? 0;
+    const platformRevenue   = finance?.netPlatformRevenue  ?? stats?.revenue?.total               ?? 0;
+    const subscriptionRev   = finance?.subscriptionRevenue ?? stats?.revenue?.subscriptionRevenue ?? 0;
+    const pendingPayouts    = finance?.pendingPayouts       ?? 0;
+    // Net amount paid out to organizers after platform fees — mirrors AdminPayouts "Net Amount" stat
+    const organizerNetAmount = payoutSummary?.netAmount    ?? 0;
+
     return (
         <AdminLayout
             title="Dashboard Analytics"
             description="Monitor users, events, revenue, admin actions, and payout activity across TickiSpot."
         >
             <div className="space-y-4">
-                {/* Header row */}
+                {/* ── Header ── */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-sm font-bold text-gray-900">Platform Overview</h2>
-                        <p className="mt-0.5 text-xs text-gray-400">Live snapshot of growth, queues, and money movement.</p>
+                        <p className="mt-0.5 text-xs text-gray-400">
+                            Live snapshot of growth, queues, and money movement.
+                        </p>
                     </div>
                     <button
                         type="button"
@@ -119,17 +181,71 @@ export default function AdminDashboard() {
                     </button>
                 </div>
 
-                {/* Module cards */}
+                {/* ── Module shortcuts ── */}
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    <ModuleCard to="/admin/users" Icon={Users} title="User Management" subtitle="Manage users, organizers, and suspended accounts." details={`Total ${formatNumber(stats?.users?.total || 0)} · Organizers ${formatNumber(stats?.users?.organizers || 0)} · Suspended ${formatNumber(stats?.users?.suspended || 0)}`} />
-                    <ModuleCard to="/admin/verification" Icon={ShieldCheck} title="Verification" subtitle="Approve and reject organizer verification requests." details={`Verified ${formatNumber(stats?.users?.verifiedOrganizers || 0)} · Pending review in queue`} />
-                    <ModuleCard to="/admin/events" Icon={Calendar} title="Event Management" subtitle="Review events, featured listings, and cancellations." details={`Approved ${formatNumber(stats?.events?.approved || 0)} · Featured ${formatNumber(stats?.events?.featured || 0)}`} />
-                    <ModuleCard to="/admin/finance" Icon={DollarSign} title="Finance" subtitle="Track revenue, commissions, escrow, and liabilities." details={`Revenue ${formatCurrency(stats?.revenue?.total || 0)} · Subscriptions ${formatCurrency(stats?.revenue?.subscriptionRevenue || 0)}`} />
-                    <ModuleCard to="/admin/moderation" Icon={ShieldAlert} title="Moderation & Risk" subtitle="Investigate suspicious transactions and chargeback alerts." details="Pending issues, event risk, and payout flags." />
-                    <ModuleCard to="/admin/moderation" Icon={AlertTriangle} title="Review Moderation" subtitle="Moderate reviews, reports, and community feedback." details="Resolve reputation issues and support cases." />
-                    <ModuleCard to="/admin/payouts" Icon={Wallet} title="Payout Management" subtitle="Release escrow, freeze funds, and manage organizer payouts." details="Review pending payouts and take action." />
-                    <ModuleCard to="/admin/controls" Icon={MessageSquare} title="Operations" subtitle="Send announcements and run global search." details="Route issues, escalate disputes, and monitor complaints." />
-                    <ModuleCard to="/admin/settings" Icon={Settings2} title="System Settings" subtitle="Commission, escrow, verification, and homepage rules." details="Configure platform policies from one place." />
+                    <ModuleCard
+                        to="/admin/users"
+                        Icon={Users}
+                        title="User Management"
+                        subtitle="Manage users, organizers, and suspended accounts."
+                        details={`Total ${formatNumber(stats?.users?.total || 0)} · Organizers ${formatNumber(stats?.users?.organizers || 0)} · Suspended ${formatNumber(stats?.users?.suspended || 0)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/verification"
+                        Icon={ShieldCheck}
+                        title="Verification"
+                        subtitle="Approve and reject organizer verification requests."
+                        details={`Verified ${formatNumber(stats?.users?.verifiedOrganizers || 0)} · Pending review in queue`}
+                    />
+                    <ModuleCard
+                        to="/admin/events"
+                        Icon={Calendar}
+                        title="Event Management"
+                        subtitle="Review events, featured listings, and cancellations."
+                        details={`Approved ${formatNumber(stats?.events?.approved || 0)} · Featured ${formatNumber(stats?.events?.featured || 0)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/finance"
+                        Icon={DollarSign}
+                        title="Finance"
+                        subtitle="Track revenue, commissions, escrow, and liabilities."
+                        details={`Gross ${formatCurrency(grossRevenue)} · Subscriptions ${formatCurrency(subscriptionRev)}`}
+                    />
+                    <ModuleCard
+                        to="/admin/moderation"
+                        Icon={ShieldAlert}
+                        title="Moderation & Risk"
+                        subtitle="Investigate suspicious transactions and chargeback alerts."
+                        details="Pending issues, event risk, and payout flags."
+                    />
+                    <ModuleCard
+                        to="/admin/moderation"
+                        Icon={AlertTriangle}
+                        title="Review Moderation"
+                        subtitle="Moderate reviews, reports, and community feedback."
+                        details="Resolve reputation issues and support cases."
+                    />
+                    <ModuleCard
+                        to="/admin/payouts"
+                        Icon={Wallet}
+                        title="Payout Management"
+                        subtitle="Release escrow, freeze funds, and manage organizer payouts."
+                        details="Review pending payouts and take action."
+                    />
+                    <ModuleCard
+                        to="/admin/controls"
+                        Icon={MessageSquare}
+                        title="Operations"
+                        subtitle="Send announcements and run global search."
+                        details="Route issues, escalate disputes, and monitor complaints."
+                    />
+                    <ModuleCard
+                        to="/admin/settings"
+                        Icon={Settings2}
+                        title="System Settings"
+                        subtitle="Commission, escrow, verification, and homepage rules."
+                        details="Configure platform policies from one place."
+                    />
                 </div>
 
                 {error && <ErrorMessage message={error} onDismiss={() => setError(null)} />}
@@ -138,31 +254,121 @@ export default function AdminDashboard() {
                     <LoadingSpinner label="Loading dashboard analytics..." />
                 ) : stats ? (
                     <>
-                        {/* Primary stats */}
+                        {/* ── Primary stats (revenue from finance endpoint) ── */}
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <StatCard icon={Users} label="Total Users" value={formatNumber(stats.users?.total || 0)} detail={`${formatNumber(stats.users?.active || 0)} active · ${formatNumber(stats.users?.suspended || 0)} suspended`} accent />
-                            <StatCard icon={Calendar} label="Events" value={formatNumber(stats.events?.total || 0)} detail={`${formatNumber(stats.events?.pending || 0)} pending · ${formatNumber(stats.events?.suspended || 0)} suspended`} />
-                            <StatCard icon={Ticket} label="Tickets Sold" value={formatNumber(stats.tickets?.total || 0)} detail={`${formatNumber(stats.tickets?.checkedIn || 0)} checked in`} />
-                            <StatCard icon={DollarSign} label="Revenue" value={formatCurrency(stats.revenue?.total || 0)} detail={`${formatCurrency(stats.revenue?.organizerRevenue || 0)} to organizers`} accent />
+                            <StatCard
+                                icon={Users}
+                                label="Total Users"
+                                value={formatNumber(stats.users?.total || 0)}
+                                detail={`${formatNumber(stats.users?.active || 0)} active · ${formatNumber(stats.users?.suspended || 0)} suspended`}
+                                accent
+                            />
+                            <StatCard
+                                icon={Calendar}
+                                label="Events"
+                                value={formatNumber(stats.events?.total || 0)}
+                                detail={`${formatNumber(stats.events?.pending || 0)} pending · ${formatNumber(stats.events?.suspended || 0)} suspended`}
+                            />
+                            <StatCard
+                                icon={Ticket}
+                                label="Tickets Sold"
+                                value={formatNumber(txSummary?.totalTransactions || 0)}
+                                detail={`${formatNumber(txSummary?.paidTransactions || 0)} paid · ${formatNumber(txSummary?.freeTransactions || 0)} free`}
+                            />
+                            <StatCard
+                                icon={DollarSign}
+                                label="Gross Revenue"
+                                value={formatCurrency(grossRevenue)}
+                                detail={`${formatCurrency(organizerNetAmount)} to organizers`}
+                                accent
+                            />
                         </div>
 
-                        {/* Alert stats */}
+                        {/* ── Finance stats (from getFinanceOverview) ── */}
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <StatCard icon={ShieldCheck} label="Pending Verifications" value={formatNumber(stats.verification?.pendingRequests || 0)} detail="Organizer verification queue" />
-                            <StatCard icon={ShieldAlert} label="Fraud Alerts" value={formatNumber(stats.fraud?.unresolvedAlerts || 0)} detail="Active risk signals" />
-                            <StatCard icon={MessageSquare} label="Open Support Tickets" value={formatNumber(stats.support?.openTickets || 0)} detail="Customer and organizer issues" />
-                            <StatCard icon={AlertTriangle} label="Pending Reports" value={formatNumber(stats.reports?.pending || 0)} detail={`${formatNumber(stats.reports?.flaggedEvents || 0)} flagged events`} />
+                            <StatCard
+                                icon={ShieldCheck}
+                                label="Platform Revenue"
+                                value={formatCurrency(platformRevenue)}
+                                detail="Commissions + subscriptions + fees"
+                            />
+                            <StatCard
+                                icon={CreditCard}
+                                label="Subscription Revenue"
+                                value={formatCurrency(subscriptionRev)}
+                                detail={`${formatNumber(finance?.subscriptionPayments || 0)} charges`}
+                            />
+                            <StatCard
+                                icon={Wallet}
+                                label="Pending Payouts"
+                                value={formatCurrency(pendingPayouts)}
+                                detail="Queued organizer withdrawals"
+                            />
+                            <StatCard
+                                icon={AlertTriangle}
+                                label="Failed Withdrawals"
+                                value={formatNumber(finance?.failedWithdrawals || 0)}
+                                detail={`${formatCurrency(finance?.withdrawalFees || 0)} in fees`}
+                            />
                         </div>
 
-                        {/* Secondary stats */}
+                        {/* ── Alert / queue stats ── */}
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <StatCard icon={Users} label="Organizers" value={formatNumber(stats.users?.organizers || 0)} detail={`${formatNumber(stats.users?.verifiedOrganizers || 0)} verified`} />
-                            <StatCard icon={Star} label="Featured Events" value={formatNumber(stats.events?.featured || 0)} detail={`${formatNumber(stats.events?.approved || 0)} approved`} />
-                            <StatCard icon={Activity} label="Live Events" value={formatNumber(stats.events?.live || 0)} detail={`${formatNumber(stats.events?.rejected || 0)} rejected`} />
-                            <StatCard icon={Wallet} label="Donations" value={formatCurrency(stats.revenue?.donations || 0)} detail={`${formatNumber(stats.revenue?.donationCount || 0)} donations`} />
+                            <StatCard
+                                icon={ShieldCheck}
+                                label="Pending Verifications"
+                                value={formatNumber(stats.verification?.pendingRequests || 0)}
+                                detail="Organizer verification queue"
+                            />
+                            <StatCard
+                                icon={ShieldAlert}
+                                label="Fraud Alerts"
+                                value={formatNumber(stats.fraud?.unresolvedAlerts || 0)}
+                                detail="Active risk signals"
+                            />
+                            <StatCard
+                                icon={MessageSquare}
+                                label="Open Support Tickets"
+                                value={formatNumber(stats.support?.openTickets || 0)}
+                                detail="Customer and organizer issues"
+                            />
+                            <StatCard
+                                icon={AlertTriangle}
+                                label="Pending Reports"
+                                value={formatNumber(stats.reports?.pending || 0)}
+                                detail={`${formatNumber(stats.reports?.flaggedEvents || 0)} flagged events`}
+                            />
                         </div>
 
-                        {/* Charts */}
+                        {/* ── Secondary stats ── */}
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <StatCard
+                                icon={Users}
+                                label="Organizers"
+                                value={formatNumber(stats.users?.organizers || 0)}
+                                detail={`${formatNumber(stats.users?.verifiedOrganizers || 0)} verified`}
+                            />
+                            <StatCard
+                                icon={Star}
+                                label="Featured Events"
+                                value={formatNumber(stats.events?.featured || 0)}
+                                detail={`${formatNumber(stats.events?.approved || 0)} approved`}
+                            />
+                            <StatCard
+                                icon={Activity}
+                                label="Live Events"
+                                value={formatNumber(stats.events?.live || 0)}
+                                detail={`${formatNumber(stats.events?.rejected || 0)} rejected`}
+                            />
+                            <StatCard
+                                icon={Wallet}
+                                label="Donations"
+                                value={formatCurrency(donationStats.totalRaised)}
+                                detail={`${formatNumber(donationStats.totalDonors)} donors`}
+                            />
+                        </div>
+
+                        {/* ── Charts ── */}
                         <div className="grid gap-4 xl:grid-cols-2">
                             <SurfaceCard>
                                 <div className="mb-4 flex items-center gap-2">
@@ -178,11 +384,21 @@ export default function AdminDashboard() {
                                             <XAxis dataKey="_id" stroke="#d1d5db" fontSize={10} tickLine={false} />
                                             <YAxis stroke="#d1d5db" fontSize={10} tickLine={false} />
                                             <Tooltip content={<CustomTooltip formatter={formatCurrency} />} />
-                                            <Line type="monotone" dataKey="revenue" stroke="#ec4899" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#ec4899" }} />
+                                            <Line
+                                                type="monotone"
+                                                dataKey="revenue"
+                                                stroke="#ec4899"
+                                                strokeWidth={2}
+                                                dot={false}
+                                                activeDot={{ r: 4, fill: "#ec4899" }}
+                                            />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <EmptyState title="No revenue data yet" description="Revenue analytics appear once ticket sales begin." />
+                                    <EmptyState
+                                        title="No revenue data yet"
+                                        description="Revenue analytics appear once ticket sales begin."
+                                    />
                                 )}
                             </SurfaceCard>
 
@@ -200,96 +416,167 @@ export default function AdminDashboard() {
                                             <XAxis dataKey="_id" stroke="#d1d5db" fontSize={10} tickLine={false} />
                                             <YAxis stroke="#d1d5db" fontSize={10} tickLine={false} />
                                             <Tooltip content={<CustomTooltip />} />
-                                            <Bar dataKey="count" fill="#fce7f3" radius={[6, 6, 0, 0]} stroke="#ec4899" strokeWidth={1.5} />
+                                            <Bar
+                                                dataKey="count"
+                                                fill="#fce7f3"
+                                                radius={[6, 6, 0, 0]}
+                                                stroke="#ec4899"
+                                                strokeWidth={1.5}
+                                            />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <EmptyState title="No growth data yet" description="User growth populates after new signups are recorded." />
+                                    <EmptyState
+                                        title="No growth data yet"
+                                        description="User growth populates after new signups are recorded."
+                                    />
                                 )}
                             </SurfaceCard>
                         </div>
 
-                        {/* Recent activity tables */}
+                        {/* ── Recent activity tables ── */}
                         <div className="grid gap-4 xl:grid-cols-3">
-                            {/* Recent transactions */}
+
+                            {/* Recent Transactions — from adminService.getTransactions() */}
                             <SurfaceCard>
                                 <div className="mb-3 flex items-center justify-between">
                                     <h3 className="text-xs font-bold text-gray-900">Recent Transactions</h3>
-                                    <Link to="/admin/transactions" className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700">
+                                    <Link
+                                        to="/admin/transactions"
+                                        className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700"
+                                    >
                                         View all →
                                     </Link>
                                 </div>
                                 <div className="space-y-2">
-                                    {(stats.recentTransactions || []).slice(0, 5).map((tx) => (
-                                        <div key={tx._id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-gray-900 truncate">{tx.event?.title || "Unknown event"}</p>
-                                                <p className="mt-0.5 text-[0.6rem] text-gray-400 truncate">{tx.buyer?.name || "Unknown buyer"}</p>
+                                    {transactions.length > 0 ? (
+                                        transactions.slice(0, 5).map((tx) => (
+                                            <div
+                                                key={tx._id}
+                                                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-gray-900 truncate">
+                                                        {tx.event?.title || "—"}
+                                                    </p>
+                                                    <p className="mt-0.5 text-[0.6rem] text-gray-400 truncate">
+                                                        {tx.buyer?.name || tx.buyer?.username || tx.buyer?.email || "—"}
+                                                    </p>
+                                                </div>
+                                                <div className="flex-shrink-0 text-right">
+                                                    <p className="text-xs font-bold text-gray-900 tabular-nums">
+                                                        {formatCurrency(tx.amount || 0)}
+                                                    </p>
+                                                    <StatusBadge
+                                                        tone={
+                                                            tx.paymentStatusLabel === "paid" || tx.paymentStatus === "paid"
+                                                                ? "green"
+                                                                : tx.paymentStatusLabel === "free" || tx.paymentStatus === "free"
+                                                                ? "blue"
+                                                                : "gray"
+                                                        }
+                                                    >
+                                                        {tx.paymentStatusLabel || tx.paymentStatus || "unknown"}
+                                                    </StatusBadge>
+                                                </div>
                                             </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="text-xs font-bold text-gray-900 tabular-nums">{formatCurrency(tx.amount || 0)}</p>
-                                                <StatusBadge tone={tx.paymentStatus === "paid" ? "green" : "gray"}>
-                                                    {tx.paymentStatus === "paid" ? "paid" : tx.paymentStatus}
-                                                </StatusBadge>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {!stats.recentTransactions?.length && <p className="text-xs text-gray-400">No recent transactions.</p>}
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400">No recent transactions.</p>
+                                    )}
                                 </div>
                             </SurfaceCard>
 
-                            {/* Recent withdrawals */}
+                            {/* Recent Withdrawals — from adminService.getWithdrawals() */}
                             <SurfaceCard>
                                 <div className="mb-3 flex items-center justify-between">
                                     <h3 className="text-xs font-bold text-gray-900">Recent Withdrawals</h3>
-                                    <Link to="/admin/withdrawals" className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700">
+                                    <Link
+                                        to="/admin/withdrawals"
+                                        className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700"
+                                    >
                                         View all →
                                     </Link>
                                 </div>
                                 <div className="space-y-2">
-                                    {(stats.recentWithdrawals || []).slice(0, 5).map((w) => (
-                                        <div key={w._id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-gray-900 truncate">{w.organizer?.name || "Unknown"}</p>
-                                                <p className="mt-0.5 text-[0.6rem] text-gray-400">{formatDateTime(w.createdAt)}</p>
+                                    {withdrawals.length > 0 ? (
+                                        withdrawals.slice(0, 5).map((w) => (
+                                            <div
+                                                key={w._id}
+                                                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-gray-900 truncate">
+                                                        {w.organizer?.name || w.organizer?.username || w.organizer?.email || "—"}
+                                                    </p>
+                                                    <p className="mt-0.5 text-[0.6rem] text-gray-400">
+                                                        {formatDateTime(w.createdAt)}
+                                                    </p>
+                                                </div>
+                                                <div className="flex-shrink-0 text-right">
+                                                    <p className="text-xs font-bold text-gray-900 tabular-nums">
+                                                        {formatCurrency(w.amount || 0)}
+                                                    </p>
+                                                    <StatusBadge tone={getStatusTone(w.status)}>
+                                                        {w.status}
+                                                    </StatusBadge>
+                                                </div>
                                             </div>
-                                            <div className="flex-shrink-0 text-right">
-                                                <p className="text-xs font-bold text-gray-900 tabular-nums">{formatCurrency(w.amount || 0)}</p>
-                                                <StatusBadge tone={getStatusTone(w.status)}>{w.status}</StatusBadge>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {!stats.recentWithdrawals?.length && <p className="text-xs text-gray-400">No recent withdrawals.</p>}
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400">No recent withdrawals.</p>
+                                    )}
                                 </div>
                             </SurfaceCard>
 
-                            {/* Admin activity */}
+                            {/* Admin Activity — from adminService.getActivityLogs() */}
                             <SurfaceCard>
                                 <div className="mb-3 flex items-center justify-between">
                                     <h3 className="text-xs font-bold text-gray-900">Admin Activity</h3>
-                                    <Link to="/admin/logs" className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700">
+                                    <Link
+                                        to="/admin/logs"
+                                        className="text-[0.6rem] font-bold uppercase tracking-widest text-pink-500 hover:text-pink-700"
+                                    >
                                         View all →
                                     </Link>
                                 </div>
                                 <div className="space-y-2">
-                                    {(stats.recentActivities || []).slice(0, 6).map((a) => (
-                                        <div key={a._id} className="rounded-xl border border-gray-100 p-3">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <p className="text-xs font-semibold text-gray-900 leading-snug">
-                                                    {(a.action || "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                                    {logs.length > 0 ? (
+                                        logs.slice(0, 6).map((a) => (
+                                            <div key={a._id} className="rounded-xl border border-gray-100 p-3">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <p className="text-xs font-semibold text-gray-900 leading-snug">
+                                                        {(a.action || "")
+                                                            .replace(/_/g, " ")
+                                                            .toLowerCase()
+                                                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                                                    </p>
+                                                    <p className="flex-shrink-0 text-[0.55rem] text-gray-400">
+                                                        {formatDateTime(a.createdAt)}
+                                                    </p>
+                                                </div>
+                                                <p className="mt-0.5 text-[0.6rem] text-gray-400">
+                                                    {a.adminId?.name || a.adminId?.email || "System"}
                                                 </p>
-                                                <p className="flex-shrink-0 text-[0.55rem] text-gray-400">{formatDateTime(a.createdAt)}</p>
+                                                {a.details && (
+                                                    <p className="mt-1 text-[0.58rem] text-gray-300 leading-relaxed truncate">
+                                                        {a.details}
+                                                    </p>
+                                                )}
                                             </div>
-                                            <p className="mt-0.5 text-[0.6rem] text-gray-400">{a.adminId?.name || "Unknown admin"}</p>
-                                        </div>
-                                    ))}
-                                    {!stats.recentActivities?.length && <p className="text-xs text-gray-400">No admin activity logged yet.</p>}
+                                        ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400">No admin activity logged yet.</p>
+                                    )}
                                 </div>
                             </SurfaceCard>
                         </div>
                     </>
                 ) : (
-                    <EmptyState title="No analytics available" description="Dashboard data could not be loaded yet." />
+                    <EmptyState
+                        title="No analytics available"
+                        description="Dashboard data could not be loaded yet."
+                    />
                 )}
             </div>
         </AdminLayout>
