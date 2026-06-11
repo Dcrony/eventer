@@ -1,3 +1,4 @@
+// AdminTransactions.jsx
 import { useEffect, useState } from "react";
 import { Download, FileText, Search, Ticket, Wallet } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
@@ -27,15 +28,17 @@ export default function AdminTransactions() {
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
 
-    // Build filters from current state — used by both useEffect and manual triggers
     const buildFilters = () => ({
-        ...(search    ? { search }    : {}),
-        ...(status    ? { status }    : {}),
+        ...(search ? { search } : {}),
+        ...(status ? { status } : {}),
         ...(startDate ? { startDate } : {}),
-        ...(endDate   ? { endDate }   : {}),
+        ...(endDate ? { endDate } : {}),
     });
 
-    const fetchTransactions = async (filters = buildFilters(), nextPage = page) => {
+    useEffect(() => { fetchTransactions(); }, [page, status, startDate, endDate]);
+
+    const fetchTransactions = async (overrideFilters, nextPage = page) => {
+        const filters = overrideFilters ?? buildFilters();
         try {
             setLoading(true);
             setError(null);
@@ -50,23 +53,14 @@ export default function AdminTransactions() {
         }
     };
 
-    // Re-fetch when page or filter dropdowns / date pickers change
-    useEffect(() => {
-        fetchTransactions(buildFilters(), page);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, status, startDate, endDate]);
-
-    const applySearch = () => {
-        setPage(1);
-        fetchTransactions(buildFilters(), 1);
-    };
+    const applySearch = () => { setPage(1); fetchTransactions(buildFilters(), 1); };
 
     const exportTransactions = async () => {
         try {
             const blob = await adminService.exportTransactions(buildFilters());
-            const url  = window.URL.createObjectURL(blob);
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href     = url;
+            link.href = url;
             link.download = `transactions-${new Date().toISOString().split("T")[0]}.csv`;
             document.body.appendChild(link);
             link.click();
@@ -78,98 +72,80 @@ export default function AdminTransactions() {
         }
     };
 
-    // ── shared input classes ──────────────────────────────────────────────────
-    const inputCls =
-        "w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-100";
-
     return (
-        <AdminLayout
-            title="Transaction Management"
-            description="Track ticket purchases, filter payment history, and export revenue activity."
-        >
+        <AdminLayout title="Transaction Management" description="Track ticket purchases, filter payment history, and export revenue activity.">
             <div className="space-y-5">
-                {/* Search bar + Export */}
-                <div className="flex flex-wrap gap-3 items-center">
-                    <SurfaceCard className="flex-1 min-w-0 p-3">
-                        <div className="flex items-center gap-2">
-                            <Search size={15} className="text-pink-500 flex-shrink-0" />
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
-                                placeholder="Search by reference, buyer, or event"
-                                className="min-w-0 flex-1 bg-transparent text-xs text-gray-800 outline-none placeholder:text-gray-400"
-                            />
-                            <button
-                                type="button"
-                                onClick={applySearch}
-                                className="rounded-lg bg-pink-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-pink-600 transition-colors active:scale-95"
-                            >
-                                Search
-                            </button>
-                        </div>
-                    </SurfaceCard>
-
+                <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="flex flex-1 items-center gap-2 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm focus-within:border-pink-300 focus-within:ring-2 focus-within:ring-pink-50 transition-all">
+                        <Search size={15} className="text-pink-400 flex-shrink-0" />
+                        <input
+                            type="search"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
+                            placeholder="Search by reference, buyer, or event"
+                            className="min-w-0 flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-300"
+                        />
+                        <button
+                            type="button"
+                            onClick={applySearch}
+                            className="rounded-xl bg-pink-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-pink-600 transition-colors"
+                        >
+                            Search
+                        </button>
+                    </div>
                     <button
                         type="button"
                         onClick={exportTransactions}
-                        className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-gray-800 transition-colors active:scale-95"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-100 bg-white px-5 py-3 text-xs font-bold text-gray-700 shadow-sm hover:border-pink-300 hover:text-pink-600 transition-all"
                     >
-                        <Download size={14} />
+                        <Download size={15} />
                         Export CSV
                     </button>
                 </div>
 
-                {/* Stat cards */}
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <StatCard icon={FileText} label="Transactions" value={formatNumber(summary?.totalTransactions  || 0)} detail="Filtered results"        />
-                    <StatCard icon={Wallet}   label="Revenue"      value={formatCurrency(summary?.totalRevenue      || 0)} detail="Paid transactions only"  />
-                    <StatCard icon={Ticket}   label="Paid"         value={formatNumber(summary?.paidTransactions    || 0)} detail="Successful purchases"    />
-                    <StatCard icon={Ticket}   label="Free"         value={formatNumber(summary?.freeTransactions    || 0)} detail="Zero-cost tickets"       />
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <StatCard icon={FileText} label="Transactions" value={formatNumber(summary?.totalTransactions || 0)} detail="Filtered results" />
+                    <StatCard icon={Wallet}   label="Revenue"      value={formatCurrency(summary?.totalRevenue || 0)}    detail="Paid transactions only" />
+                    <StatCard icon={Ticket}   label="Paid"         value={formatNumber(summary?.paidTransactions || 0)}  detail="Successful purchases" />
+                    <StatCard icon={Ticket}   label="Free"         value={formatNumber(summary?.freeTransactions || 0)}  detail="Zero-cost tickets" />
                 </div>
 
-                {/* Filters row */}
                 <div className="grid gap-4 md:grid-cols-4">
                     <SurfaceCard>
-                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Status</p>
+                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Status</p>
                         <select
                             value={status}
                             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-                            className={inputCls}
+                            className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-700 outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-50"
                         >
                             <option value="">All statuses</option>
                             <option value="success">Success</option>
                             <option value="free">Free</option>
                         </select>
                     </SurfaceCard>
-
                     <SurfaceCard>
-                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Start date</p>
+                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Start Date</p>
                         <input
                             type="date"
                             value={startDate}
                             onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
-                            className={inputCls}
+                            className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs text-gray-700 outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-50"
                         />
                     </SurfaceCard>
-
                     <SurfaceCard>
-                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">End date</p>
+                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">End Date</p>
                         <input
                             type="date"
                             value={endDate}
                             onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
-                            className={inputCls}
+                            className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs text-gray-700 outline-none focus:border-pink-300 focus:ring-2 focus:ring-pink-50"
                         />
                     </SurfaceCard>
-
                     <SurfaceCard>
-                        <p className="mb-2 text-[0.6rem] font-bold uppercase tracking-widest text-pink-400">Page info</p>
-                        <p className="text-2xl font-extrabold text-gray-900">{pagination.page || 1}</p>
-                        <p className="mt-1 text-xs text-gray-400">
-                            {formatNumber(pagination.total || 0)} total records
-                        </p>
+                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Current Page</p>
+                        <p className="mt-3 text-2xl font-black text-gray-900 tabular-nums">{pagination.page || 1}</p>
+                        <p className="mt-1 text-xs text-gray-400">{formatNumber(pagination.total || 0)} total records</p>
                     </SurfaceCard>
                 </div>
 
@@ -178,62 +154,41 @@ export default function AdminTransactions() {
                 {loading ? (
                     <LoadingSpinner label="Loading transactions..." />
                 ) : transactions.length === 0 ? (
-                    <EmptyState
-                        icon={FileText}
-                        title="No transactions found"
-                        description="Try widening your filters or search for a different buyer, event, or reference."
-                    />
+                    <EmptyState icon={FileText} title="No transactions found" description="Try widening your filters or search for a different buyer, event, or reference." />
                 ) : (
                     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-100 text-sm">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    {["Reference", "Buyer", "Event", "Qty", "Amount", "Status", "Purchased"].map((col) => (
-                                        <th
-                                            key={col}
-                                            className="px-4 py-3 text-left text-[0.6rem] font-bold uppercase tracking-widest text-gray-400"
-                                        >
-                                            {col}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 bg-white">
-                                {transactions.map((tx) => (
-                                    <tr key={tx._id} className="transition-colors hover:bg-pink-50/40">
-                                        <td className="px-4 py-3.5">
-                                            <span className="text-xs font-semibold text-gray-900 tabular-nums">
-                                                {tx.reference || "N/A"}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3.5">
-                                            <p className="text-xs font-semibold text-gray-900">
-                                                {tx.buyer?.name || tx.buyer?.username || "Unknown"}
-                                            </p>
-                                            <p className="mt-0.5 text-[0.6rem] text-gray-400">{tx.buyer?.email || "No email"}</p>
-                                        </td>
-                                        <td className="px-4 py-3.5">
-                                            <p className="text-xs text-gray-800">{tx.event?.title    || "Unknown event"}</p>
-                                            <p className="mt-0.5 text-[0.6rem] text-gray-400">{tx.event?.category || "No category"}</p>
-                                        </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-700 tabular-nums">
-                                            {formatNumber(tx.quantity || 0)}
-                                        </td>
-                                        <td className="px-4 py-3.5 text-xs font-bold text-gray-900 tabular-nums">
-                                            {formatCurrency(tx.amount || 0)}
-                                        </td>
-                                        <td className="px-4 py-3.5">
-                                            <StatusBadge tone={getStatusTone(tx.paymentStatusLabel)}>
-                                                {tx.paymentStatusLabel || "unknown"}
-                                            </StatusBadge>
-                                        </td>
-                                        <td className="px-4 py-3.5 text-xs text-gray-400">
-                                            {formatDateTime(tx.purchasedAt)}
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-50 text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        {["Reference", "Buyer", "Event", "Qty", "Amount", "Status", "Purchased"].map((col) => (
+                                            <th key={col} className="px-4 py-3.5 text-left text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">{col}</th>
+                                        ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 bg-white">
+                                    {transactions.map((tx) => (
+                                        <tr key={tx._id} className="hover:bg-pink-50/20 transition-colors">
+                                            <td className="px-4 py-3.5 text-xs font-bold text-gray-900">{tx.reference || "N/A"}</td>
+                                            <td className="px-4 py-3.5">
+                                                <div className="text-xs font-semibold text-gray-800">{tx.buyer?.name || tx.buyer?.username || "Unknown"}</div>
+                                                <div className="mt-0.5 text-[0.58rem] text-gray-400">{tx.buyer?.email || "No email"}</div>
+                                            </td>
+                                            <td className="px-4 py-3.5">
+                                                <div className="text-xs font-semibold text-gray-800">{tx.event?.title || "Unknown event"}</div>
+                                                <div className="mt-0.5 text-[0.58rem] text-gray-400">{tx.event?.category || "No category"}</div>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs font-semibold text-gray-700 tabular-nums">{formatNumber(tx.quantity || 0)}</td>
+                                            <td className="px-4 py-3.5 text-xs font-black text-gray-900 tabular-nums">{formatCurrency(tx.amount || 0)}</td>
+                                            <td className="px-4 py-3.5">
+                                                <StatusBadge tone={getStatusTone(tx.paymentStatusLabel)}>{tx.paymentStatusLabel || "unknown"}</StatusBadge>
+                                            </td>
+                                            <td className="px-4 py-3.5 text-xs text-gray-400">{formatDateTime(tx.purchasedAt)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 
