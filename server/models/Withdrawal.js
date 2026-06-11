@@ -1,66 +1,63 @@
 const mongoose = require("mongoose");
 
+/**
+ * Withdrawal — organizer's request to move availableBalance to their bank.
+ *
+ * Lifecycle:
+ *   pending → approved (admin) → processing (Paystack) → completed
+ *           ↘ rejected (admin)
+ *           ↘ failed   (Paystack error)
+ *
+ * A withdrawal can only be created when the organizer has sufficient
+ * availableBalance. availableBalance only grows when a Payout is released.
+ *
+ * The link back to the Payout(s) that funded this withdrawal is recorded
+ * in the Transaction that mirrors this withdrawal.
+ */
 const withdrawalSchema = new mongoose.Schema(
   {
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
 
-    amount: {
-      type: Number,
-      required: true,
-    },
-
-    fee: {
-      type: Number,
-      default: 0,
-    },
-
-    netAmount: {
-      type: Number,
-    },
+    amount:    { type: Number, required: true },
+    fee:       { type: Number, default: 0 },
+    netAmount: { type: Number },
 
     paymentMethod: {
       type: String,
       enum: ["bank", "paystack", "flutterwave"],
-      required: true,
+      default: "bank",
     },
 
     bankDetails: {
-      bankName: String,
+      bankName:      String,
       accountNumber: String,
-      accountName: String,
-      bankCode: String,
+      accountName:   String,
+      bankCode:      String,
     },
 
-    paystackRecipientCode: String,
-    transferReference: String,
+    paystackRecipientCode: { type: String },
+    transferReference:     { type: String },
+    paystackReference:     { type: String },
 
     status: {
-  type: String,
-  enum: [
-    "pending",
-    "approved",
-    "processing",
-    "completed",
-    "rejected",
-    "failed"
-  ],
-  default: "pending",
-},
-
-    paystackReference: String,
-
-    failureReason: String,
-
-    processedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: String,
+      enum: ["pending", "approved", "processing", "completed", "rejected", "failed"],
+      default: "pending",
+      index: true,
     },
 
-    processedAt: Date,
+    failureReason: { type: String },
+
+    processedBy:  { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    processedAt:  { type: Date },
+
+    /** Paystack webhook sets this when transfer is confirmed */
+    completedAt:  { type: Date },
   },
   { timestamps: true }
 );
