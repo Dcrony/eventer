@@ -40,7 +40,7 @@ export default function EventActionMenu({ items = [], align = "right", className
           event.stopPropagation();
           setOpen((current) => !current);
         }}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/60 bg-white/90 text-gray-600 shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white hover:text-gray-900"
+        className="inline-flex z-10 h-10 w-10 items-center justify-center rounded-xl border border-white/60 bg-white/90 text-gray-600 shadow-sm backdrop-blur-md transition-all duration-200 hover:scale-[1.03] hover:bg-white hover:text-gray-900"
         aria-haspopup="menu"
         aria-expanded={open}
       >
