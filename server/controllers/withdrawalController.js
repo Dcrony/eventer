@@ -1,16 +1,16 @@
 require("dotenv").config();
 
-const Withdrawal = require("../models/Withdrawal");
-const Transaction = require("../models/Transaction");
-const User = require("../models/User");
+const Withdrawal   = require("../models/Withdrawal");
+const Transaction  = require("../models/Transaction");
+const User         = require("../models/User");
 const OrganizerVerification = require("../models/OrganizerVerification");
-const ActivityLog = require("../models/ActivityLog");
+const ActivityLog  = require("../models/ActivityLog");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
-const { initiateTransfer } = require("../utils/paystack");
-const { createNotification } = require("../services/notificationService");
+const { initiateTransfer }             = require("../utils/paystack");
+const { createNotification }           = require("../services/notificationService");
 
 const WITHDRAWAL_FEE_PERCENT = Number(process.env.WITHDRAWAL_FEE_PERCENT || 2);
-const MIN_WITHDRAWAL = Number(process.env.MIN_WITHDRAWAL_NGN || 1000);
+const MIN_WITHDRAWAL         = Number(process.env.MIN_WITHDRAWAL_NGN || 1000);
 
 const escapeRegex = (v = "") => String(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -21,23 +21,15 @@ const parsePagination = (page, limit, defaultLimit = 20) => {
 };
 
 const buildPagination = (page, limit, total) => ({
-  page,
-  limit,
-  total,
+  page, limit, total,
   pages: Math.max(Math.ceil(total / limit), 1),
 });
 
 const buildDateRange = (startDate, endDate) => {
   if (!startDate && !endDate) return null;
   const range = {};
-  if (startDate) {
-    const s = new Date(startDate);
-    if (!isNaN(s)) range.$gte = s;
-  }
-  if (endDate) {
-    const e = new Date(endDate);
-    if (!isNaN(e)) { e.setHours(23, 59, 59, 999); range.$lte = e; }
-  }
+  if (startDate) { const s = new Date(startDate); if (!isNaN(s)) range.$gte = s; }
+  if (endDate)   { const e = new Date(endDate);   if (!isNaN(e)) { e.setHours(23, 59, 59, 999); range.$lte = e; } }
   return Object.keys(range).length ? range : null;
 };
 
@@ -65,6 +57,75 @@ async function logAdminActivity(req, action, targetId, details) {
   }
 }
 
+// ─── Helper: mark withdrawal + transaction as completed ───────────────────────
+// Centralised so both the sync Paystack response path AND the async
+// webhook path call exactly the same logic — no duplication, no drift.
+
+async function markWithdrawalCompleted(withdrawal, paystackReference, app = null) {
+  withdrawal.status        = "completed";
+  withdrawal.completedAt   = new Date();
+  if (paystackReference) {
+    withdrawal.paystackReference = paystackReference;
+    withdrawal.transferReference = paystackReference;
+  }
+  await withdrawal.save();
+
+  // Mark the mirrored Transaction as success
+  await Transaction.findOneAndUpdate(
+    { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
+    {
+      $set: {
+        status:    "success",
+        reference: paystackReference || withdrawal.transferReference || null,
+      },
+    },
+  );
+
+  // Notify the organizer
+  try {
+    await createNotification(app, {
+      userId:    withdrawal.organizer,
+      type:      "withdrawal_completed",
+      message:   `₦${withdrawal.netAmount.toLocaleString()} has been sent to your bank account.`,
+      actionUrl: "/dashboard/transactions",
+      entityId:  withdrawal._id,
+      entityType:"withdrawal",
+    });
+  } catch (e) {
+    console.warn("Notification failed (withdrawal_completed):", e.message);
+  }
+}
+
+// ─── Helper: mark withdrawal + transaction as failed ─────────────────────────
+async function markWithdrawalFailed(withdrawal, reason, app = null) {
+  withdrawal.status        = "failed";
+  withdrawal.failureReason = reason || "Transfer failed";
+  await withdrawal.save();
+
+  await Transaction.findOneAndUpdate(
+    { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
+    { $set: { status: "failed" } },
+  );
+
+  // Refund the availableBalance since we already deducted it at approval time
+  await User.findByIdAndUpdate(withdrawal.organizer, {
+    $inc: { availableBalance: withdrawal.amount },
+  });
+
+  try {
+    await createNotification(app, {
+      userId:    withdrawal.organizer,
+      type:      "withdrawal_failed",
+      message:   `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} failed. Funds have been returned to your balance. Reason: ${withdrawal.failureReason}`,
+      actionUrl: "/support",
+      entityId:  withdrawal._id,
+      entityType:"withdrawal",
+    });
+  } catch (e) {
+    console.warn("Notification failed (withdrawal_failed):", e.message);
+  }
+}
+
 // ─── Organizer: request withdrawal ───────────────────────────────────────────
 
 exports.requestWithdrawal = async (req, res) => {
@@ -75,23 +136,20 @@ exports.requestWithdrawal = async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({ message: "Invalid amount" });
     }
-
     if (amount < MIN_WITHDRAWAL) {
       return res.status(400).json({ message: `Minimum withdrawal is ₦${MIN_WITHDRAWAL.toLocaleString()}` });
     }
 
-    // Must be verified
     const vs = await getVerificationStatus(organizerId);
     if (!vs.isVerified) {
       return res.status(403).json({
-        code:              "VERIFICATION_REQUIRED",
-        message:           "Complete your organizer verification before withdrawing",
-        verificationStatus:vs.status,
-        rejectionReason:   vs.rejectionReason,
+        code:               "VERIFICATION_REQUIRED",
+        message:            "Complete your organizer verification before withdrawing",
+        verificationStatus: vs.status,
+        rejectionReason:    vs.rejectionReason,
       });
     }
 
-    // Fraud check
     try {
       const fraudService = require("../services/fraudService");
       const flagged = await fraudService.isOrganizerFlagged(organizerId);
@@ -110,20 +168,13 @@ exports.requestWithdrawal = async (req, res) => {
       return res.status(400).json({ code: "PAYOUT_ACCOUNT_INACTIVE", message: "Your payout account is not active" });
     }
 
-    /**
-     * Key invariant:
-     * Organizers can ONLY withdraw from availableBalance.
-     * availableBalance increases ONLY when a Payout is released (event ended).
-     * pendingBalance = funds still in escrow, NOT withdrawable.
-     */
     const maxWithdrawable = await capOrganizerAvailableBalance(organizerId, organizer.availableBalance);
-
     if (amount > maxWithdrawable) {
       return res.status(400).json({
-        message:           "Insufficient available balance",
-        availableBalance:  maxWithdrawable,
-        requestedAmount:   amount,
-        hint:              "Funds are released after your event ends.",
+        message:          "Insufficient available balance",
+        availableBalance: maxWithdrawable,
+        requestedAmount:  amount,
+        hint:             "Funds are released after your event ends.",
       });
     }
 
@@ -135,12 +186,12 @@ exports.requestWithdrawal = async (req, res) => {
       amount,
       fee,
       netAmount,
-      paymentMethod:"bank",
-      bankDetails:  organizer.payoutAccount.bankDetails,
-      status:       "pending",
+      paymentMethod: "bank",
+      bankDetails:   organizer.payoutAccount.bankDetails,
+      status:        "pending",
     });
 
-    // Ledger entry — mirrors the withdrawal
+    // Mirrored Transaction — stays "pending" until admin approves + Paystack confirms
     await Transaction.create({
       organizer:   organizerId,
       type:        "withdrawal",
@@ -184,7 +235,7 @@ exports.requestWithdrawal = async (req, res) => {
 exports.adminUpdateWithdrawal = async (req, res) => {
   try {
     const requestedStatus = String(req.body.status || "").trim().toLowerCase();
-    const withdrawalId = req.params.id;
+    const withdrawalId    = req.params.id;
 
     if (!["approved", "rejected"].includes(requestedStatus)) {
       return res.status(400).json({ message: "status must be 'approved' or 'rejected'" });
@@ -201,18 +252,21 @@ exports.adminUpdateWithdrawal = async (req, res) => {
 
     // ── Reject ───────────────────────────────────────────────────────────────
     if (requestedStatus === "rejected") {
-      withdrawal.status       = "rejected";
-      withdrawal.processedBy  = req.user.id;
-      withdrawal.processedAt  = new Date();
-      withdrawal.failureReason= String(req.body.reason || "Rejected by admin");
+      withdrawal.status        = "rejected";
+      withdrawal.processedBy   = req.user.id;
+      withdrawal.processedAt   = new Date();
+      withdrawal.failureReason = String(req.body.reason || "Rejected by admin");
       await withdrawal.save();
 
+      // Mark the mirrored Transaction as failed
       await Transaction.findOneAndUpdate(
         { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
-        { $set: { status: "failed" } }
+        { $set: { status: "failed" } },
       );
 
-      // Funds were still in availableBalance (not yet deducted), so no refund needed.
+      // Funds were never deducted from availableBalance at request time —
+      // they are only deducted at approval time, so no refund needed here.
+
       try {
         await createNotification(req.app, {
           userId:    organizer._id,
@@ -240,7 +294,7 @@ exports.adminUpdateWithdrawal = async (req, res) => {
       return res.status(400).json({ message: "Organizer has insufficient balance" });
     }
 
-    // Deduct from availableBalance now (before transfer so we don't double-count)
+    // Deduct availableBalance now so the organizer can't double-spend
     organizer.availableBalance = maxWithdrawable - withdrawal.amount;
     await organizer.save();
 
@@ -253,22 +307,41 @@ exports.adminUpdateWithdrawal = async (req, res) => {
       }
 
       const transfer = await initiateTransfer(
-        Math.round(withdrawal.netAmount * 100), // Paystack expects kobo
+        Math.round(withdrawal.netAmount * 100),   // Paystack expects kobo
         payoutAccount.paystackRecipientCode,
         `ts_withdrawal_${withdrawal._id}`,
       );
 
-      withdrawal.status                = "processing";
-      withdrawal.paystackRecipientCode = payoutAccount.paystackRecipientCode;
-      withdrawal.transferReference     = transfer.reference;
-      withdrawal.paystackReference     = transfer.reference;
-      withdrawal.processedBy           = req.user.id;
-      withdrawal.processedAt           = new Date();
+      // ── Paystack can return status "success" synchronously (e.g. test mode)
+      // In that case we can complete the withdrawal right now without waiting
+      // for the webhook.
+      if (transfer.status === "success") {
+        withdrawal.processedBy            = req.user.id;
+        withdrawal.processedAt            = new Date();
+        withdrawal.paystackRecipientCode  = payoutAccount.paystackRecipientCode;
+
+        await markWithdrawalCompleted(withdrawal, transfer.reference, req.app);
+
+        await logAdminActivity(req, "WITHDRAWAL_APPROVED", withdrawal._id,
+          `${organizer?.email || organizer?.username} withdrawal approved + completed (sync) — ref: ${transfer.reference}`);
+
+        return res.json({ message: "Transfer completed", withdrawal });
+      }
+
+      // ── Normal async path — webhook will fire later ───────────────────────
+      withdrawal.status                 = "processing";
+      withdrawal.paystackRecipientCode  = payoutAccount.paystackRecipientCode;
+      withdrawal.transferReference      = transfer.reference;
+      withdrawal.paystackReference      = transfer.reference;
+      withdrawal.processedBy            = req.user.id;
+      withdrawal.processedAt            = new Date();
       await withdrawal.save();
 
+      // Update the mirrored Transaction with the Paystack reference so we can
+      // reconcile later, but keep status "pending" until the webhook confirms.
       await Transaction.findOneAndUpdate(
         { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
-        { $set: { status: "pending", reference: transfer.reference } }
+        { $set: { reference: transfer.reference } },
       );
 
       try {
@@ -288,7 +361,7 @@ exports.adminUpdateWithdrawal = async (req, res) => {
       return res.json({ message: "Transfer initiated", withdrawal });
 
     } catch (paystackError) {
-      // Roll back balance deduction
+      // Roll back the availableBalance deduction
       organizer.availableBalance += withdrawal.amount;
       await organizer.save();
 
@@ -298,9 +371,10 @@ exports.adminUpdateWithdrawal = async (req, res) => {
       withdrawal.processedAt   = new Date();
       await withdrawal.save();
 
+      // Mark the mirrored Transaction as failed
       await Transaction.findOneAndUpdate(
         { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
-        { $set: { status: "failed" } }
+        { $set: { status: "failed" } },
       );
 
       console.error("Paystack transfer error:", paystackError.response?.data || paystackError.message);
@@ -313,68 +387,38 @@ exports.adminUpdateWithdrawal = async (req, res) => {
   }
 };
 
-// ─── Paystack webhook: mark withdrawal completed ──────────────────────────────
+// ─── Paystack webhook: transfer.success / transfer.failed ────────────────────
+// Called directly from your webhook handler — NOT an Express route.
 
-/**
- * Called from your Paystack webhook handler when event = "transfer.success"
- * or "transfer.failed". Not an Express route — call it directly.
- */
-exports.handlePaystackTransferWebhook = async (data) => {
+exports.handlePaystackTransferWebhook = async (data, app = null) => {
   const { reference, status } = data;
   if (!reference) return;
 
   const withdrawal = await Withdrawal.findOne({
-    $or: [{ paystackReference: reference }, { transferReference: reference }],
+    $or: [
+      { paystackReference: reference },
+      { transferReference: reference },
+    ],
   });
-  if (!withdrawal) return;
 
-  if (status === "success" && withdrawal.status === "processing") {
-    withdrawal.status      = "completed";
-    withdrawal.completedAt = new Date();
-    await withdrawal.save();
-
-    await Transaction.findOneAndUpdate(
-      { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
-      { $set: { status: "success" } }
-    );
-
-    try {
-      await createNotification(null, {
-        userId:    withdrawal.organizer,
-        type:      "withdrawal_completed",
-        message:   `₦${withdrawal.netAmount.toLocaleString()} has been sent to your bank account.`,
-        actionUrl: "/dashboard/transactions",
-        entityId:  withdrawal._id,
-        entityType:"withdrawal",
-      });
-    } catch (e) { console.warn("Notification failed:", e.message); }
+  if (!withdrawal) {
+    console.warn(`handlePaystackTransferWebhook: no withdrawal found for ref ${reference}`);
+    return;
   }
 
-  if (status === "failed" && withdrawal.status === "processing") {
-    withdrawal.status        = "failed";
-    withdrawal.failureReason = data.reason || "Transfer failed";
-    await withdrawal.save();
+  // Guard: only act on withdrawals that are still in flight
+  if (!["processing", "approved"].includes(withdrawal.status)) {
+    console.warn(`handlePaystackTransferWebhook: withdrawal ${withdrawal._id} already in terminal state ${withdrawal.status}`);
+    return;
+  }
 
-    // Refund availableBalance
-    await User.findByIdAndUpdate(withdrawal.organizer, {
-      $inc: { availableBalance: withdrawal.amount },
-    });
+  if (status === "success") {
+    await markWithdrawalCompleted(withdrawal, reference, app);
+  }
 
-    await Transaction.findOneAndUpdate(
-      { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
-      { $set: { status: "failed" } }
-    );
-
-    try {
-      await createNotification(null, {
-        userId:    withdrawal.organizer,
-        type:      "withdrawal_failed",
-        message:   `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} failed. Funds have been returned to your balance.`,
-        actionUrl: "/support",
-        entityId:  withdrawal._id,
-        entityType:"withdrawal",
-      });
-    } catch (e) { console.warn("Notification failed:", e.message); }
+  if (status === "failed") {
+    // availableBalance was deducted at approval — refund it now
+    await markWithdrawalFailed(withdrawal, data.reason || "Paystack transfer failed", app);
   }
 };
 
@@ -405,7 +449,7 @@ exports.getAdminWithdrawals = async (req, res) => {
     }
 
     const sortOption =
-      sort === "oldest" ? { createdAt: 1 } :
+      sort === "oldest"  ? { createdAt: 1 } :
       sort === "largest" ? { amount: -1, createdAt: -1 } :
       { createdAt: -1 };
 
@@ -422,11 +466,11 @@ exports.getAdminWithdrawals = async (req, res) => {
         { $match: filter },
         {
           $group: {
-            _id:              null,
-            totalRequested:   { $sum: "$amount" },
-            totalCompleted:   { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
-            totalPending:     { $sum: { $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0] } },
-            totalPlatformFees:{ $sum: "$fee" },
+            _id:               null,
+            totalRequested:    { $sum: "$amount" },
+            totalCompleted:    { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
+            totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0] } },
+            totalPlatformFees: { $sum: "$fee" },
           },
         },
       ]),
@@ -449,10 +493,10 @@ exports.getWithdrawalAnalytics = async (req, res) => {
     const [summary, statusBreakdown] = await Promise.all([
       Withdrawal.aggregate([{
         $group: {
-          _id:              null,
-          totalPaid:        { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
-          totalPending:     { $sum: { $cond: [{ $in: ["$status", ["pending","approved","processing"]] }, "$amount", 0] } },
-          totalPlatformFees:{ $sum: "$fee" },
+          _id:               null,
+          totalPaid:         { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
+          totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0] } },
+          totalPlatformFees: { $sum: "$fee" },
         },
       }]),
       Withdrawal.aggregate([
@@ -469,11 +513,21 @@ exports.getWithdrawalAnalytics = async (req, res) => {
 exports.getMonthlyWithdrawalTrend = async (req, res) => {
   try {
     const monthly = await Withdrawal.aggregate([
-      { $group: { _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } }, total: { $sum: "$amount" }, completed: { $sum: { $cond: [{ $eq: ["$status","completed"] }, "$amount", 0] } } } },
+      {
+        $group: {
+          _id:       { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+          total:     { $sum: "$amount" },
+          completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
+        },
+      },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
       { $limit: 12 },
     ]);
-    return res.json(monthly.map((m) => ({ month: `${m._id.month}/${m._id.year}`, total: m.total, completed: m.completed })));
+    return res.json(monthly.map((m) => ({
+      month:     `${m._id.month}/${m._id.year}`,
+      total:     m.total,
+      completed: m.completed,
+    })));
   } catch (error) {
     return res.status(500).json({ message: "Monthly analytics failed" });
   }
@@ -493,15 +547,19 @@ exports.exportAdminWithdrawals = async (req, res) => {
 
     const withdrawals = await Withdrawal.find(filter)
       .populate("organizer", "name username email")
-      .sort({ createdAt: -1 }).lean();
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const escape = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+    const escape = (v) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
     const rows = [
-      ["Organizer","Email","Amount","Fee","Net Amount","Status","Paystack Ref","Created At"],
+      ["Organizer", "Email", "Amount", "Fee", "Net Amount", "Status", "Paystack Ref", "Created At"],
       ...withdrawals.map((w) => [
         w.organizer?.name || w.organizer?.username || "",
         w.organizer?.email || "",
-        w.amount || 0, w.fee || 0, w.netAmount || 0, w.status || "",
+        w.amount    || 0,
+        w.fee       || 0,
+        w.netAmount || 0,
+        w.status    || "",
         w.paystackReference || w.transferReference || "",
         w.createdAt ? new Date(w.createdAt).toISOString() : "",
       ]),
@@ -520,7 +578,8 @@ exports.getOrganizerTransactions = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
     const transactions = await Transaction.find({ organizer: req.user.id })
-      .sort({ createdAt: -1 }).lean();
+      .sort({ createdAt: -1 })
+      .lean();
     return res.json(transactions);
   } catch (error) {
     console.error("getOrganizerTransactions error:", error);
