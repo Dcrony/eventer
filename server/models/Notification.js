@@ -40,6 +40,7 @@ const notificationSchema = new mongoose.Schema(
         "payout_account_connected",
         "payout_account_updated",
         "payout_account_disconnected",
+        "withdrawal_processing",
         'withdrawal_requested',
         'withdrawal_completed',
         'withdrawal_failed',
