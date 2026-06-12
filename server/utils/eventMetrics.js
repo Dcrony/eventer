@@ -43,6 +43,12 @@ const recordEventMetrics = (event, delta = {}, dateKey = getDateKey()) => {
     metric[key] = Math.max(0, Number(metric[key] || 0) + nextValue);
   });
 
+
+  if (typeof event.markModified === "function") {
+    event.markModified("analytics");
+    event.markModified("analytics.daily");
+  }
+
   return event;
 };
 
