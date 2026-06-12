@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, Calendar, ExternalLink, Eye, Ticket, TrendingUp, Wallet, Lock, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  Calendar,
+  ExternalLink,
+  Eye,
+  Ticket,
+  TrendingUp,
+  Wallet,
+  Lock,
+  ArrowUpRight,
+  MousePointerClick,
+  CircleDollarSign,
+  ChevronRight,
+} from "lucide-react";
 import {
   Bar,
   CartesianGrid,
@@ -8,7 +21,6 @@ import {
   ComposedChart,
   Legend,
   Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -20,7 +32,6 @@ import API from "../api/axios";
 import { getCurrentUser } from "../utils/auth";
 import { isAdminRole } from "../utils/adminAccess";
 import useFeatureAccess from "../hooks/useFeatureAccess";
-import { promptUpgrade } from "../utils/planAccess";
 import {
   formatCurrency,
   formatEventDate,
@@ -28,21 +39,41 @@ import {
   getEventImageUrl,
 } from "../utils/eventHelpers";
 
-function MetricCard({ label, value, isBlurred = false, onUpgrade }) {
+// ── Metric card ───────────────────────────────────────────────────────────────
+function MetricCard({ label, value, isBlurred = false, onUpgrade, accent = false }) {
   return (
-    <div className={`relative overflow-hidden p-5 rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-pink-200/40 ${isBlurred ? "blurred-metric" : ""}`}>
-      <div className="absolute top-0 right-0 w-2/5 h-0.5 bg-gradient-to-r from-transparent to-pink-500 rounded-tr-xl" />
-      <span className="block mb-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
+    <div
+      className={`relative overflow-hidden rounded-2xl border p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        accent
+          ? "border-pink-200 bg-gradient-to-br from-pink-500 to-rose-500 text-white"
+          : "border-gray-200 bg-white"
+      }`}
+    >
+      <span
+        className={`block mb-1 text-[0.6rem] font-black uppercase tracking-widest ${
+          accent ? "text-pink-100" : "text-gray-400"
+        }`}
+      >
         {label}
       </span>
-      <strong className="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900">
+      <strong
+        className={`text-2xl font-black tracking-tight tabular-nums ${
+          accent ? "text-white" : "text-gray-900"
+        }`}
+      >
         {value}
       </strong>
+
       {isBlurred && (
-        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 rounded-xl text-center p-4 z-10">
-          <Lock size={20} className="text-gray-400" />
-          <span className="font-bold text-sm text-gray-700">Pro Feature</span>
-          <button onClick={onUpgrade} className="text-xs font-semibold text-pink-500 underline hover:text-pink-600">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-white/90 text-center backdrop-blur-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+            <Lock size={14} className="text-gray-400" />
+          </div>
+          <span className="text-xs font-bold text-gray-700">Pro feature</span>
+          <button
+            onClick={onUpgrade}
+            className="text-[0.65rem] font-bold text-pink-500 underline underline-offset-2 hover:text-pink-700"
+          >
             Upgrade to unlock
           </button>
         </div>
@@ -51,35 +82,102 @@ function MetricCard({ label, value, isBlurred = false, onUpgrade }) {
   );
 }
 
+// ── Event thumbnail ───────────────────────────────────────────────────────────
 function EventThumb({ event }) {
   const url = getEventImageUrl(event);
-  if (url) {
-    return <img src={url} alt={event.title} className="w-10 h-10 rounded-lg object-cover border border-gray-200 flex-shrink-0" />;
-  }
+  if (url)
+    return (
+      <img
+        src={url}
+        alt={event.title}
+        className="h-10 w-10 flex-shrink-0 rounded-xl border border-gray-200 object-cover"
+      />
+    );
   return (
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-pink-100/60 to-blue-100/40 text-pink-500 text-[0.6rem] font-extrabold tracking-wide border border-gray-200 flex-shrink-0">
+    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 to-rose-100 text-[0.55rem] font-black text-pink-500">
       EVENT
+    </div>
+  );
+}
+
+// ── Chart tooltip ─────────────────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg text-sm">
+      <p className="mb-1.5 text-[0.6rem] font-black uppercase tracking-widest text-gray-400">
+        {label}
+      </p>
+      {payload.map((p) => (
+        <p key={p.dataKey} className="flex items-center gap-1.5 text-xs">
+          <span
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: p.color }}
+          />
+          <span className="text-gray-500">{p.name}:</span>{" "}
+          <span className="font-bold text-gray-900">
+            {p.dataKey === "revenue" ? formatCurrency(p.value) : formatFullNumber(p.value)}
+          </span>
+        </p>
+      ))}
+    </div>
+  );
+}
+
+// ── Chart card wrapper ────────────────────────────────────────────────────────
+function ChartCard({ title, subtitle, children }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 px-5 py-4">
+        <h3 className="text-sm font-black text-gray-900">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-gray-400">{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ── Pro gate ──────────────────────────────────────────────────────────────────
+function ProGate({ onUpgrade, title, description }) {
+  return (
+    <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 text-center p-8">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
+        <Lock size={22} className="text-gray-400" />
+      </div>
+      <div>
+        <h3 className="font-black text-gray-900">{title}</h3>
+        <p className="mt-1.5 max-w-xs text-sm text-gray-400 leading-relaxed">{description}</p>
+      </div>
+      <button
+        onClick={onUpgrade}
+        className="inline-flex h-9 items-center gap-2 rounded-xl bg-pink-500 px-5 text-xs font-bold text-white shadow-md shadow-pink-500/25 transition-all hover:bg-pink-600 hover:-translate-y-0.5"
+      >
+        Unlock with Pro <ArrowUpRight size={13} />
+      </button>
     </div>
   );
 }
 
 export default function PlatformAnalytics() {
   const user = getCurrentUser();
-  const { hasAccess: hasFullAccess, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
+  const { hasAccess: hasFullAccess, promptUpgrade: promptUpgradeAnalytics } =
+    useFeatureAccess("analytics");
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const canOrganize = user?.role === "organizer" || user?.isOrganizer === true || isAdminRole(user?.role);
+  const canOrganize =
+    user?.role === "organizer" ||
+    user?.isOrganizer === true ||
+    isAdminRole(user?.role);
 
   useEffect(() => {
     if (!hasFullAccess) {
       setLoading(false);
       return;
     }
-
-    const loadAnalytics = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         const { data } = await API.get("/analytics/overview");
@@ -91,8 +189,7 @@ export default function PlatformAnalytics() {
         setLoading(false);
       }
     };
-
-    loadAnalytics();
+    load();
   }, [hasFullAccess]);
 
   const basicStats = {
@@ -103,8 +200,10 @@ export default function PlatformAnalytics() {
 
   const organizerEvents = stats?.perEventStats || [];
   const attendeePurchases = stats?.attendee?.recentPurchases || [];
-
-  const totalViews = organizerEvents.reduce((sum, event) => sum + Number(event.viewCount || 0), 0);
+  const totalViews = organizerEvents.reduce(
+    (sum, e) => sum + Number(e.viewCount || 0),
+    0
+  );
 
   const conversionRate = useMemo(() => {
     const views = Number(stats?.totalViews || 0);
@@ -119,17 +218,20 @@ export default function PlatformAnalytics() {
     return events ? revenue / events : 0;
   }, [stats]);
 
-  const topOrganizerEvents = useMemo(() => {
-    return [...organizerEvents]
-      .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))
-      .slice(0, 6)
-      .map((event) => ({
-        name: event.title?.length > 20 ? `${event.title.slice(0, 20)}...` : event.title || "Event",
-        views: Number(event.viewCount || 0),
-        tickets: Number(event.ticketsSold || 0),
-        revenue: Number(event.revenue || 0),
-      }));
-  }, [organizerEvents]);
+  const topOrganizerEvents = useMemo(
+    () =>
+      [...organizerEvents]
+        .sort((a, b) => Number(b.revenue || 0) - Number(a.revenue || 0))
+        .slice(0, 6)
+        .map((e) => ({
+          name:
+            e.title?.length > 18 ? `${e.title.slice(0, 18)}…` : e.title || "Event",
+          views: Number(e.viewCount || 0),
+          tickets: Number(e.ticketsSold || 0),
+          revenue: Number(e.revenue || 0),
+        })),
+    [organizerEvents]
+  );
 
   const attendeeSpendTrend = useMemo(() => {
     const buckets = new Map();
@@ -137,7 +239,10 @@ export default function PlatformAnalytics() {
       const date = new Date(purchase.purchasedAt);
       if (isNaN(date.getTime())) continue;
       const key = date.toISOString().slice(0, 10);
-      const label = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      const label = date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
       const current = buckets.get(key) || { label, spent: 0, tickets: 0 };
       current.spent += Number(purchase.amount || 0);
       current.tickets += Number(purchase.quantity || 0);
@@ -146,301 +251,466 @@ export default function PlatformAnalytics() {
     return Array.from(buckets.values()).slice(-8);
   }, [attendeePurchases]);
 
-  const revenueSalesTrendData = useMemo(() => {
-    return organizerEvents.map((e) => ({
-      label: e.title?.length > 25 ? `${e.title.slice(0, 25)}…` : e.title || "Event",
-      revenue: Number(e.revenue || 0),
-      ticketsSold: Number(e.ticketsSold || 0),
-    }));
-  }, [organizerEvents]);
-
   const shareData = useMemo(() => {
     const orgRev = Number(stats?.totalRevenue || 0);
     const attSpent = Number(stats?.attendee?.totalSpent || 0);
     return [
-      { name: "Organizer Revenue", value: orgRev },
-      { name: "Attendee Spend", value: attSpent },
-    ].filter((item) => item.value > 0);
+      { name: "Organizer revenue", value: orgRev },
+      { name: "Attendee spend", value: attSpent },
+    ].filter((i) => i.value > 0);
   }, [stats]);
 
-  const donutColors = ["#ec4899", "#3b82f6"];
+  const donutColors = ["#f43f8e", "#3b82f6"];
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist py-6">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Hero Section */}
-        <div className="relative mb-6 p-5 sm:p-6 md:p-8 rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 shadow-xl overflow-hidden">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(ellipse,rgba(244,63,142,0.12)_0%,transparent_70%)] pointer-events-none" />
-          
-          <div className="relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-pink-500/15 border border-pink-500/30 text-pink-400 text-[0.65rem] font-bold uppercase tracking-wider mb-4">
-              <BarChart3 size={14} /> ANALYTICS
-            </span>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-2">
-              Platform Analytics
-            </h1>
-            <p className="text-gray-300 text-sm max-w-2xl leading-relaxed">
-              Track your events performance, revenue, and attendee behavior.
-            </p>
+    <div className="min-h-screen bg-gray-50 font-geist">
+      {/* ── Page header ─────────────────────────────────────────────────── */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-pink-500">
+                  <BarChart3 size={14} className="text-white" />
+                </div>
+                <span className="text-[0.65rem] font-black uppercase tracking-widest text-pink-500">
+                  Analytics
+                </span>
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-gray-900">
+                Platform analytics
+              </h1>
+              <p className="mt-0.5 text-sm text-gray-400">
+                Track event performance, revenue, and attendee behavior.
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Pro Upgrade Banner */}
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+        {/* ── Pro upgrade banner ──────────────────────────────────────────── */}
         {!hasFullAccess && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-5 rounded-xl bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 border border-purple-200 mb-6">
-            <Lock size={22} className="text-pink-500 flex-shrink-0" />
-            <div className="flex-1">
-              <strong className="font-bold text-gray-900 block mb-0.5">Upgrade to Pro for full analytics</strong>
-              <p className="text-sm text-gray-500 m-0">Unlock revenue insights, charts, conversion rates, and detailed reports.</p>
+          <div className="flex flex-col gap-4 rounded-2xl border border-purple-200 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 p-5 sm:flex-row sm:items-center">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+              <Lock size={18} className="text-pink-500" />
             </div>
-            <button onClick={promptUpgradeAnalytics} className="px-5 py-2.5 rounded-full bg-pink-500 text-white font-bold text-sm transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/25">
-              Upgrade to Pro
+            <div className="flex-1">
+              <strong className="block font-black text-gray-900">
+                Upgrade to Pro for full analytics
+              </strong>
+              <p className="mt-0.5 text-sm text-gray-500">
+                Unlock revenue insights, charts, conversion rates, and detailed reports.
+              </p>
+            </div>
+            <button
+              onClick={promptUpgradeAnalytics}
+              className="inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-xl bg-pink-500 px-5 text-xs font-bold text-white shadow-md shadow-pink-500/25 transition-all hover:bg-pink-600 hover:-translate-y-0.5"
+            >
+              Upgrade to Pro <ArrowUpRight size={13} />
             </button>
           </div>
         )}
 
-        {/* Loading & Error States */}
+        {/* Loading */}
         {loading && (
-  <div className="space-y-4 animate-pulse">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-24 bg-white rounded-xl border border-gray-200 shadow-sm" />
-      ))}
-    </div>
-    <div className="h-80 bg-white rounded-2xl border border-gray-200 shadow-sm" />
-    <div className="h-64 bg-white rounded-2xl border border-gray-200 shadow-sm" />
-  </div>
-)}
-        
-        {error && (
-          <div className="bg-red-50 rounded-xl border border-red-200 shadow-sm p-8 text-center">
-            <p className="text-red-600 font-semibold">{error}</p>
+          <div className="animate-pulse space-y-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-24 rounded-2xl bg-gray-200" />
+              ))}
+            </div>
+            <div className="h-80 rounded-2xl bg-gray-200" />
+            <div className="h-64 rounded-2xl bg-gray-200" />
           </div>
         )}
 
-        {/* Overview Metrics */}
-        <section className="mb-6 p-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-          <h2 className="flex items-center gap-2 text-base font-extrabold text-gray-900 mb-4">
-            <Wallet size={18} className="text-pink-500" /> Overview
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <MetricCard label="Events Created" value={formatFullNumber(basicStats.totalEvents)} />
-            <MetricCard label="Total Views" value={formatFullNumber(totalViews || basicStats.totalViews)} />
-            <MetricCard label="Tickets Sold" value={formatFullNumber(basicStats.totalTicketsSold)} />
-            <MetricCard
-              label="Total Revenue"
-              value={hasFullAccess ? formatCurrency(stats?.totalRevenue || 0) : "₦——"}
-              isBlurred={!hasFullAccess}
-              onUpgrade={promptUpgradeAnalytics}
-            />
-            <MetricCard
-              label="Conversion Rate"
-              value={hasFullAccess ? `${conversionRate}%` : "—"}
-              isBlurred={!hasFullAccess}
-              onUpgrade={promptUpgradeAnalytics}
-            />
-            <MetricCard
-              label="Avg Revenue per Event"
-              value={hasFullAccess ? formatCurrency(avgRevenuePerEvent) : "—"}
-              isBlurred={!hasFullAccess}
-              onUpgrade={promptUpgradeAnalytics}
-            />
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="font-bold text-red-700">{error}</p>
           </div>
-        </section>
+        )}
 
-        {/* Charts Section */}
-        <section className="mb-6 p-5 rounded-2xl bg-white border border-gray-200 shadow-sm">
-          <h2 className="flex items-center gap-2 text-base font-extrabold text-gray-900 mb-4">
-            <TrendingUp size={18} className="text-pink-500" /> Insights & Charts
-          </h2>
-
-          {!hasFullAccess ? (
-            <div className="relative min-h-[400px] rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/50 overflow-hidden">
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-10 text-center p-6">
-                <Lock size={32} className="text-gray-400" />
-                <h3 className="text-lg font-extrabold text-gray-900">Advanced Charts & Insights</h3>
-                <p className="text-sm text-gray-500 max-w-md">Revenue trends, performance comparison, and attendee behavior are Pro features.</p>
-                <button onClick={promptUpgradeAnalytics} className="px-6 py-2.5 rounded-full bg-pink-500 text-white font-bold text-sm transition-all duration-200 hover:bg-pink-600 shadow-md">
-                  Unlock with Pro
-                </button>
+        {/* ── Overview metrics ────────────────────────────────────────────── */}
+        {!loading && !error && (
+          <>
+            <section>
+              <div className="mb-4 flex items-center gap-2">
+                <Wallet size={16} className="text-pink-500" />
+                <h2 className="text-sm font-black text-gray-900">Overview</h2>
               </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Top Events Performance */}
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-                  <h3 className="font-bold text-gray-900">Top Events Performance</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Views vs Tickets Sold</p>
-                </div>
-                <div className="h-80 p-3">
-                  {topOrganizerEvents.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={topOrganizerEvents}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} />
-                        <YAxis yAxisId="left" tickLine={false} axisLine={false} fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} fontSize={12} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="views" name="Views" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                        <Line yAxisId="right" dataKey="tickets" name="Tickets Sold" stroke="#ec4899" strokeWidth={3} dot={{ r: 4 }} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">No event data yet.</div>
-                  )}
-                </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <MetricCard
+                  label="Events created"
+                  value={formatFullNumber(basicStats.totalEvents)}
+                />
+                <MetricCard
+                  label="Total views"
+                  value={formatFullNumber(totalViews || basicStats.totalViews)}
+                />
+                <MetricCard
+                  label="Tickets sold"
+                  value={formatFullNumber(basicStats.totalTicketsSold)}
+                />
+                <MetricCard
+                  label="Total revenue"
+                  value={hasFullAccess ? formatCurrency(stats?.totalRevenue || 0) : "₦——"}
+                  isBlurred={!hasFullAccess}
+                  onUpgrade={promptUpgradeAnalytics}
+                  accent={hasFullAccess}
+                />
+                <MetricCard
+                  label="Conversion rate"
+                  value={hasFullAccess ? `${conversionRate}%` : "—%"}
+                  isBlurred={!hasFullAccess}
+                  onUpgrade={promptUpgradeAnalytics}
+                />
+                <MetricCard
+                  label="Avg revenue / event"
+                  value={hasFullAccess ? formatCurrency(avgRevenuePerEvent) : "₦——"}
+                  isBlurred={!hasFullAccess}
+                  onUpgrade={promptUpgradeAnalytics}
+                />
               </div>
+            </section>
 
-              {/* Purchase Trend */}
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-                  <h3 className="font-bold text-gray-900">Purchase Trend</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Recent attendee activity</p>
-                </div>
-                <div className="h-80 p-3">
-                  {attendeeSpendTrend.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={attendeeSpendTrend}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={12} />
-                        <YAxis yAxisId="left" tickLine={false} axisLine={false} fontSize={12} />
-                        <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} fontSize={12} />
-                        <Tooltip formatter={(value, name) => (name === "Spent" ? formatCurrency(value) : value)} />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="tickets" name="Tickets" fill="#6366f1" radius={[6, 6, 0, 0]} />
-                        <Line yAxisId="right" dataKey="spent" name="Spent" stroke="#0f766e" strokeWidth={3} dot={{ r: 4 }} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">No purchase data yet.</div>
-                  )}
-                </div>
+            {/* ── Charts section ──────────────────────────────────────────── */}
+            <section>
+              <div className="mb-4 flex items-center gap-2">
+                <TrendingUp size={16} className="text-pink-500" />
+                <h2 className="text-sm font-black text-gray-900">Insights & charts</h2>
               </div>
 
-              {/* Revenue Split Donut */}
-              <div className="rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-3 border-b border-gray-100 bg-gray-50/50">
-                  <h3 className="font-bold text-gray-900">Revenue vs Spend Split</h3>
+              {!hasFullAccess ? (
+                <ProGate
+                  onUpgrade={promptUpgradeAnalytics}
+                  title="Advanced charts & insights"
+                  description="Revenue trends, performance comparison, and attendee behavior are available on Pro."
+                />
+              ) : (
+                <div className="space-y-5">
+                  {/* Top events chart */}
+                  <ChartCard
+                    title="Top events performance"
+                    subtitle="Views vs tickets sold across your best-performing events"
+                  >
+                    <div className="h-80 p-4">
+                      {topOrganizerEvents.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={topOrganizerEvents}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              dataKey="name"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <YAxis
+                              yAxisId="left"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <YAxis
+                              yAxisId="right"
+                              orientation="right"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <Tooltip content={<ChartTooltip />} />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="views"
+                              name="Views"
+                              fill="#bfdbfe"
+                              radius={[5, 5, 0, 0]}
+                            />
+                            <Line
+                              yAxisId="right"
+                              dataKey="tickets"
+                              name="Tickets sold"
+                              stroke="#f43f8e"
+                              strokeWidth={2.5}
+                              dot={{ r: 4, fill: "#f43f8e", strokeWidth: 0 }}
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                          No event data yet.
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-5 border-t border-gray-50 px-5 py-3">
+                      <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-200" />
+                        Views
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-pink-500" />
+                        Tickets sold
+                      </span>
+                    </div>
+                  </ChartCard>
+
+                  {/* Purchase trend */}
+                  <ChartCard
+                    title="Purchase trend"
+                    subtitle="Recent attendee ticket purchases over the last 8 days"
+                  >
+                    <div className="h-80 p-4">
+                      {attendeeSpendTrend.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={attendeeSpendTrend}>
+                            <CartesianGrid
+                              strokeDasharray="3 3"
+                              vertical={false}
+                              stroke="#f1f5f9"
+                            />
+                            <XAxis
+                              dataKey="label"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <YAxis
+                              yAxisId="left"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <YAxis
+                              yAxisId="right"
+                              orientation="right"
+                              tickLine={false}
+                              axisLine={false}
+                              fontSize={11}
+                              tick={{ fill: "#94a3b8" }}
+                            />
+                            <Tooltip
+                              content={<ChartTooltip />}
+                              formatter={(value, name) =>
+                                name === "Spent" ? formatCurrency(value) : value
+                              }
+                            />
+                            <Bar
+                              yAxisId="left"
+                              dataKey="tickets"
+                              name="Tickets"
+                              fill="#c4b5fd"
+                              radius={[5, 5, 0, 0]}
+                            />
+                            <Line
+                              yAxisId="right"
+                              dataKey="spent"
+                              name="Spent"
+                              stroke="#0f766e"
+                              strokeWidth={2.5}
+                              dot={{ r: 4, fill: "#0f766e", strokeWidth: 0 }}
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                          No purchase data yet.
+                        </div>
+                      )}
+                    </div>
+                  </ChartCard>
+
+                  {/* Revenue split donut */}
+                  <ChartCard title="Revenue vs spend split">
+                    <div className="h-72 p-4">
+                      {shareData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={shareData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={72}
+                              outerRadius={108}
+                              dataKey="value"
+                              nameKey="name"
+                              paddingAngle={3}
+                            >
+                              {shareData.map((_, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={donutColors[index % donutColors.length]}
+                                  strokeWidth={0}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              formatter={(value) => formatCurrency(value)}
+                            />
+                            <Legend
+                              iconType="circle"
+                              iconSize={8}
+                              formatter={(value) => (
+                                <span className="text-xs text-gray-600">{value}</span>
+                              )}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm text-gray-400">
+                          No data to display yet.
+                        </div>
+                      )}
+                    </div>
+                  </ChartCard>
                 </div>
-                <div className="h-80 p-3">
-                  {shareData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={shareData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={68}
-                          outerRadius={104}
-                          dataKey="value"
-                          nameKey="name"
-                          paddingAngle={2}
-                        >
-                          {shareData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={donutColors[index % donutColors.length]} strokeWidth={0} />
+              )}
+            </section>
+
+            {/* ── Events performance table ─────────────────────────────────── */}
+            <section>
+              <div className="mb-4 flex items-center gap-2">
+                <Eye size={16} className="text-pink-500" />
+                <h2 className="text-sm font-black text-gray-900">
+                  Your events performance
+                </h2>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                {!hasFullAccess ? (
+                  <div className="relative">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-white/85 backdrop-blur-sm text-center p-8">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100">
+                        <Lock size={20} className="text-gray-400" />
+                      </div>
+                      <p className="max-w-sm text-sm text-gray-500">
+                        Detailed per-event analytics and revenue tracking are available on Pro.
+                      </p>
+                      <button
+                        onClick={promptUpgradeAnalytics}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-pink-500 px-5 text-xs font-bold text-white shadow-md shadow-pink-500/25 transition-all hover:bg-pink-600"
+                      >
+                        Upgrade to Pro
+                      </button>
+                    </div>
+                    <table className="w-full blur-sm opacity-40">
+                      <thead className="border-b border-gray-100 bg-gray-50/60">
+                        <tr>
+                          {["Event", "Views", "Tickets", "Revenue"].map((h) => (
+                            <th
+                              key={h}
+                              className="px-5 py-3.5 text-left text-[0.6rem] font-black uppercase tracking-widest text-gray-400"
+                            >
+                              {h}
+                            </th>
                           ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-400 text-sm">No data to display yet.</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Events Performance Table */}
-        <section className="mb-6 rounded-2xl bg-white border border-gray-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-gray-200">
-            <h2 className="flex items-center gap-2 text-base font-extrabold text-gray-900">
-              <Eye size={18} className="text-pink-500" /> Your Events Performance
-            </h2>
-          </div>
-
-          {!hasFullAccess ? (
-            <div className="relative min-h-[300px] overflow-hidden">
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-10 text-center p-6">
-                <Lock size={28} className="text-gray-400" />
-                <p className="text-sm text-gray-500 max-w-md">Detailed per-event analytics and revenue tracking are available on Pro.</p>
-                <button onClick={promptUpgradeAnalytics} className="px-5 py-2 rounded-full bg-pink-500 text-white font-bold text-sm transition-all duration-200 hover:bg-pink-600 shadow-md">
-                  Upgrade to Pro
-                </button>
-              </div>
-              <table className="w-full border-collapse opacity-50 blur-sm">
-                <thead className="bg-gray-50/80">
-                  <tr>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Event</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Views</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Tickets</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Revenue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i} className="border-b border-gray-100">
-                      <td className="p-3 text-gray-500">Sample Event {i + 1}</td>
-                      <td className="p-3 text-gray-400">—</td>
-                      <td className="p-3 text-gray-400">—</td>
-                      <td className="p-3 text-gray-400">—</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : organizerEvents.length === 0 ? (
-            <div className="p-12 text-center text-gray-400 text-sm">You haven't created any events yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead className="bg-gray-50/60 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Event</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Views</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Tickets Sold</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Revenue</th>
-                    <th className="text-left p-3 text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {organizerEvents.map((event) => (
-                    <tr key={event.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <EventThumb event={event} />
-                          <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-gray-900 truncate">{event.title}</h4>
-                            <span className="text-xs text-gray-400">{formatEventDate(event.startDate)}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3 text-sm font-medium text-gray-700">{formatFullNumber(event.viewCount)}</td>
-                      <td className="p-3 text-sm font-medium text-gray-700">{formatFullNumber(event.ticketsSold)}</td>
-                      <td className="p-3 text-sm font-bold text-gray-900">{formatCurrency(event.revenue)}</td>
-                      <td className="p-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Link to={`/event/${event.id}`} className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-gray-200 bg-white text-gray-600 text-xs font-semibold transition-all duration-200 hover:border-pink-300 hover:text-pink-500">
-                            <ExternalLink size={14} /> View
-                          </Link>
-                          {canOrganize && (
-                            <Link to={`/events/${event.id}/analytics`} className="inline-flex items-center gap-1 h-8 px-3 rounded-full bg-pink-500 text-white text-xs font-semibold transition-all duration-200 hover:bg-pink-600 shadow-sm">
-                              <BarChart3 size={14} /> Details
-                            </Link>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <tr key={i} className="border-b border-gray-50">
+                            <td className="px-5 py-4 text-sm text-gray-500">
+                              Sample Event {i + 1}
+                            </td>
+                            <td className="px-5 py-4 text-sm text-gray-400">—</td>
+                            <td className="px-5 py-4 text-sm text-gray-400">—</td>
+                            <td className="px-5 py-4 text-sm text-gray-400">—</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : organizerEvents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100">
+                      <Calendar size={20} className="text-gray-400" />
+                    </div>
+                    <p className="font-bold text-gray-700">No events yet</p>
+                    <p className="mt-1 text-sm text-gray-400">
+                      Create your first event to see analytics here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50/60">
+                          {["Event", "Views", "Tickets sold", "Revenue", "Actions"].map(
+                            (h) => (
+                              <th
+                                key={h}
+                                className="px-5 py-3.5 text-left text-[0.6rem] font-black uppercase tracking-widest text-gray-400"
+                              >
+                                {h}
+                              </th>
+                            )
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {organizerEvents.map((event) => (
+                          <tr
+                            key={event.id}
+                            className="transition-colors hover:bg-gray-50/60"
+                          >
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <EventThumb event={event} />
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-bold text-gray-900">
+                                    {event.title}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    {formatEventDate(event.startDate)}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-4 text-sm tabular-nums text-gray-600">
+                              {formatFullNumber(event.viewCount)}
+                            </td>
+                            <td className="px-5 py-4 text-sm tabular-nums text-gray-600">
+                              {formatFullNumber(event.ticketsSold)}
+                            </td>
+                            <td className="px-5 py-4 text-sm font-black tabular-nums text-gray-900">
+                              {formatCurrency(event.revenue)}
+                            </td>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  to={`/event/${event.id}`}
+                                  className="inline-flex h-8 items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-600 transition-all hover:border-pink-200 hover:text-pink-600"
+                                >
+                                  <ExternalLink size={12} /> View
+                                </Link>
+                                {canOrganize && (
+                                  <Link
+                                    to={`/events/${event.id}/analytics`}
+                                    className="inline-flex h-8 items-center gap-1 rounded-xl bg-gray-900 px-3 text-xs font-semibold text-white transition-all hover:bg-gray-700"
+                                  >
+                                    <BarChart3 size={12} /> Details
+                                  </Link>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );
