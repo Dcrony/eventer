@@ -66,6 +66,22 @@ const ticketSchema = new mongoose.Schema({
     enum: ["active", "checked-in", "refunded", "cancelled"],
     default: "active",
   },
+  refundedAt: {
+    type: Date,
+  },
+  refundedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  refundReason: {
+    type: String,
+    trim: true,
+  },
+  amountRefunded: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   purchasedAt: {
     type: Date,
     default: Date.now,
