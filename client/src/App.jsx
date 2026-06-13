@@ -31,6 +31,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 const MyTickets = lazy(() => import("./pages/MyTickets"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Failed = lazy(() => import("./pages/Failed"));
 const Success = lazy(() => import("./pages/Success"));
 const Sidebar = lazy(() => import("./components/SideBar"));
 const MobileBottomNav = lazy(() => import("./components/MobileBottomNav"));
@@ -388,6 +389,14 @@ function Layout() {
                 element={
                   <ProtectedRoute>
                     <PlatformAnalytics />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/failed"
+                element={
+                  <ProtectedRoute>
+                    <Failed />
                   </ProtectedRoute>
                 }
               />
