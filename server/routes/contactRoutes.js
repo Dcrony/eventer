@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const sendEmail = require("../services/emailService"); // adjust path if needed
+const sendEmail = require("../utils/email"); 
 
 /**
  * POST /api/contact
