@@ -17,6 +17,10 @@ const {
   amountsMatch,
 } = require("../utils/ticketPricing");
 const { canPurchaseTickets } = require("../utils/eventLifecycle");
+const {
+  ticketPurchaseEmail,
+  organizerTicketAlertEmail,
+} = require("../utils/emailTemplates");
 
 const PAYSTACK_SECRET =
   process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET;
@@ -83,24 +87,24 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-   // ── Enforce maxPerOrder ─────────────────────────────────────────────────────
-const requestedTier = (event.pricing || []).find(
-  (t) => t.type === order.pricingType && t.isEnabled !== false
-);
-if (requestedTier?.maxPerOrder > 0 && order.quantity > requestedTier.maxPerOrder) {
-  return res.status(400).json({
-    message: `Maximum ${requestedTier.maxPerOrder} ticket(s) per order for the "${requestedTier.label || requestedTier.type}" tier.`,
-    code: "MAX_PER_ORDER_EXCEEDED",
-    maxPerOrder: requestedTier.maxPerOrder,
-  });
-}
-// ─────────────────────────────────────────────────────────────────────────────
+    // ── Enforce maxPerOrder ─────────────────────────────────────────────────────
+    const requestedTier = (event.pricing || []).find(
+      (t) => t.type === order.pricingType && t.isEnabled !== false
+    );
+    if (requestedTier?.maxPerOrder > 0 && order.quantity > requestedTier.maxPerOrder) {
+      return res.status(400).json({
+        message: `Maximum ${requestedTier.maxPerOrder} ticket(s) per order for the "${requestedTier.label || requestedTier.type}" tier.`,
+        code: "MAX_PER_ORDER_EXCEEDED",
+        maxPerOrder: requestedTier.maxPerOrder,
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────────
 
-if (order.totalKobo <= 0) {
-  return res.status(400).json({
-    message: "This event is free. Use the free ticket flow instead.",
-  });
-}
+    if (order.totalKobo <= 0) {
+      return res.status(400).json({
+        message: "This event is free. Use the free ticket flow instead.",
+      });
+    }
 
     const processedMetadata = {
       eventId: String(metadata.eventId),
@@ -237,17 +241,17 @@ exports.verifyPayment = async (req, res) => {
       const order = computeTicketOrderTotal(event, { pricingType, quantity });
 
       const verifyTier = (event.pricing || []).find(
-  (t) => t.type === order.pricingType && t.isEnabled !== false
-);
-if (verifyTier?.maxPerOrder > 0 && order.quantity > verifyTier.maxPerOrder) {
-  console.warn("❌ maxPerOrder exceeded at verify time", {
-    reference,
-    pricingType,
-    quantity,
-    maxPerOrder: verifyTier.maxPerOrder,
-  });
-  return res.redirect(failedURL);
-}
+        (t) => t.type === order.pricingType && t.isEnabled !== false
+      );
+      if (verifyTier?.maxPerOrder > 0 && order.quantity > verifyTier.maxPerOrder) {
+        console.warn("❌ maxPerOrder exceeded at verify time", {
+          reference,
+          pricingType,
+          quantity,
+          maxPerOrder: verifyTier.maxPerOrder,
+        });
+        return res.redirect(failedURL);
+      }
 
       if (!amountsMatch(data.amount, order.totalKobo)) {
         console.error("Payment amount mismatch", {
@@ -309,19 +313,16 @@ if (verifyTier?.maxPerOrder > 0 && order.quantity > verifyTier.maxPerOrder) {
         meta: { reference: data.reference },
       });
 
-      // Update event tickets
       // ✅ Snapshot capacity if not already set, then decrement only totalTickets
-if (!event.capacity || event.capacity === 0) {
-  event.capacity = Number(event.totalTickets || 0) + Number(event.ticketsSold || 0);
-}
-event.ticketsSold += quantity;
-event.totalTickets = Math.max(0, Number(event.totalTickets || 0) - quantity);
-recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
-await event.save();
+      if (!event.capacity || event.capacity === 0) {
+        event.capacity = Number(event.totalTickets || 0) + Number(event.ticketsSold || 0);
+      }
+      event.ticketsSold += quantity;
+      event.totalTickets = Math.max(0, Number(event.totalTickets || 0) - quantity);
+      recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
+      await event.save();
 
-      // Transaction and payout record have been created via the payout service (escrow).
-      // Link the ticketId to the matching payment transaction and ensure the
-      // payout transaction remains pending for later release.
+      // Link ticket to payout transaction
       try {
         await Transaction.updateMany(
           { reference: data.reference },
@@ -343,10 +344,11 @@ await event.save();
       const qrFileName = `${ticket._id}.png`;
       const qrPath = path.join(qrDir, qrFileName);
       await QRCode.toFile(qrPath, qrData);
-      
+
       // Read QR code as buffer for email attachment
       const qrBuffer = fs.readFileSync(qrPath);
-      
+      const qrBase64 = qrBuffer.toString("base64");
+
       ticket.qrCode = `qrcodes/${qrFileName}`;
       await ticket.save();
 
@@ -355,103 +357,17 @@ await event.save();
         const buyerEmailResult = await sendEmail({
           to: user.email,
           subject: "🎟️ Ticket Confirmation - TickiSpot",
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <style>
-                body { font-family: 'Inter', sans-serif; background: #f9fafb; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-                .header { background: linear-gradient(135deg, #ec4899, #f43f5e); padding: 30px; text-align: center; }
-                .header h1 { color: white; margin: 0; font-size: 28px; }
-                .content { padding: 40px 30px; }
-                .event-details { background: #f8fafc; border-radius: 16px; padding: 20px; margin: 20px 0; }
-                .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-                .detail-row:last-child { border-bottom: none; }
-                .label { color: #64748b; font-weight: 500; }
-                .value { color: #0f172a; font-weight: 600; }
-                .qr-section { text-align: center; margin: 30px 0; padding: 20px; background: white; border-radius: 16px; border: 2px dashed #ec4899; }
-                .qr-code { width: 200px; height: 200px; margin: 0 auto; }
-                .footer { text-align: center; padding: 30px; background: #f1f5f9; color: #64748b; }
-                .button { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #ec4899, #f43f5e); color: white; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>🎉 Payment Successful!</h1>
-                </div>
-                <div class="content">
-                  <h2>Hi ${user.name || user.username || "there"}!</h2>
-                  <p>Your ticket for <strong>${event.title}</strong> has been confirmed. We can't wait to see you there!</p>
-                  
-                  <div class="event-details">
-                    <div class="detail-row">
-                      <span class="label">Event:</span>
-                      <span class="value">${event.title}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Date:</span>
-                      <span class="value">${new Date(
-                        event.startDate || event.date
-                      ).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Time:</span>
-                      <span class="value">${event.startTime || "Check event details"}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Location:</span>
-                      <span class="value">${event.location || "Online Event"}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Ticket Type:</span>
-                      <span class="value">${pricingType || "Standard"}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Quantity:</span>
-                      <span class="value">${quantity}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Price per ticket:</span>
-                      <span class="value">₦${ticketPrice.toLocaleString()}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Total paid:</span>
-                      <span class="value">₦${(
-                        ticketPrice * quantity
-                      ).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div class="qr-section">
-                    <h3 style="color: #ec4899; margin-bottom: 15px;">Your QR Code</h3>
-                    <p style="color: #64748b; margin-bottom: 20px;">Show this QR code at the entrance for quick check-in</p>
-                    <img src="cid:qr-code" alt="QR Code" class="qr-code" />
-                  </div>
-
-                  <div style="text-align: center;">
-                    <a href="${FRONTEND_URL}/my-tickets" class="button">View My Tickets</a>
-                  </div>
-                </div>
-                <div class="footer">
-                  <p>Reference: ${reference}</p>
-                  <p>© ${new Date().getFullYear()} TickiSpot. All rights reserved.</p>
-                </div>
-              </div>
-            </body>
-            </html>
-          `,
+          html: ticketPurchaseEmail(
+            user.name || user.username || "Guest",
+            event.title,
+            quantity
+          ),
           attachments: [
             {
-              filename: "qr-code.png",
-              content: qrBuffer,
-              cid: "qr-code", // Content ID for embedding
+              filename: "ticket-qr.png",
+              content: qrBase64,
+              encoding: "base64",
+              cid: "ticketqr",
             },
           ],
         });
@@ -476,7 +392,6 @@ await event.save();
         });
         await buyerNotification.save();
 
-        // Emit real-time notification if socket.io is available
         const io = req.app.get("io");
         if (io?.emitToUser) {
           io.emitToUser(finalUserId, "new_notification", buyerNotification.toJSON());
@@ -498,7 +413,6 @@ await event.save();
         });
         await notification.save();
 
-        // Emit real-time notification if socket.io is available
         const io = req.app.get("io");
         if (io?.emitToUser) {
           io.emitToUser(event.createdBy, "new_notification", notification.toJSON());
@@ -514,76 +428,12 @@ await event.save();
         const organizerEmailResult = await sendEmail({
           to: organizer.email,
           subject: "🎟️ New Ticket Sale - TickiSpot",
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <style>
-                body { font-family: 'Inter', sans-serif; background: #f9fafb; margin: 0; padding: 0; }
-                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-                .header { background: linear-gradient(135deg, #10b981, #059669); padding: 30px; text-align: center; }
-                .header h1 { color: white; margin: 0; font-size: 28px; }
-                .content { padding: 40px 30px; }
-                .sale-details { background: #f8fafc; border-radius: 16px; padding: 20px; margin: 20px 0; }
-                .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
-                .detail-row:last-child { border-bottom: none; }
-                .label { color: #64748b; font-weight: 500; }
-                .value { color: #0f172a; font-weight: 600; }
-                .footer { text-align: center; padding: 30px; background: #f1f5f9; color: #64748b; }
-                .button { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #10b981, #059669); color: white; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>🎟️ New Ticket Sale!</h1>
-                </div>
-                <div class="content">
-                  <h2>Hi ${organizer.name || organizer.username || "there"}!</h2>
-                  <p>Great news! Someone just purchased tickets for your event.</p>
-                  
-                  <div class="sale-details">
-                    <h3 style="color: #10b981; margin-bottom: 15px;">Sale Summary</h3>
-                    <div class="detail-row">
-                      <span class="label">Event:</span>
-                      <span class="value">${event.title}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Buyer:</span>
-                      <span class="value">${user.name || user.username || user.email}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Quantity:</span>
-                      <span class="value">${quantity}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Ticket Type:</span>
-                      <span class="value">${pricingType || "Standard"}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Price per ticket:</span>
-                      <span class="value">₦${ticketPrice.toLocaleString()}</span>
-                    </div>
-                    <div class="detail-row">
-                      <span class="label">Total Amount:</span>
-                      <span class="value">₦${(
-                        ticketPrice * quantity
-                      ).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div style="text-align: center; margin-top: 30px;">
-                    <a href="${FRONTEND_URL}/organizer/events/${event._id}" class="button">View Event Dashboard</a>
-                  </div>
-                </div>
-                <div class="footer">
-                  <p>Reference: ${reference}</p>
-                  <p>© ${new Date().getFullYear()} TickiSpot. All rights reserved.</p>
-                </div>
-              </div>
-            </body>
-            </html>
-          `,
+          html: organizerTicketAlertEmail(
+            organizer.name || organizer.username || "Organizer",
+            event.title,
+            user.name || user.username || user.email,
+            quantity
+          ),
         });
 
         if (organizerEmailResult.success) {
