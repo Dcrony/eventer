@@ -15,9 +15,11 @@ import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Users, CheckCircle2, Clock, XCircle,
   Search, QrCode, RefreshCw, AlertTriangle, Wifi, WifiOff,
-  BarChart2, Activity, Ticket, ChevronRight,
+  BarChart2, Activity, Ticket, ChevronRight, Undo2,
 } from "lucide-react";
 import API from "../api/axios";
+import Modal from "../components/ui/modal";
+import { useToast } from "../components/ui/toast";
 import { canCheckIn } from "../utils/eventPermissions";
 import { formatDate } from "../utils/eventHelpers";
 
@@ -69,7 +71,7 @@ function ActivityItem({ item }) {
 }
 
 /* ─── Manual search row ──────────────────────────────────────────────────── */
-function AttendeeRow({ ticket, onCheckIn, checkingIn }) {
+function AttendeeRow({ ticket, onCheckIn, onRefund, checkingIn, processingRefund }) {
   const statusColors = {
     "checked-in": "bg-emerald-50 text-emerald-700",
     "active": "bg-gray-100 text-gray-600",
@@ -84,21 +86,33 @@ function AttendeeRow({ ticket, onCheckIn, checkingIn }) {
       <td className="px-4 py-3 text-sm text-gray-600">{ticket.ticketType}</td>
       <td className="px-4 py-3">
         <span className={`text-xs font-bold px-2 py-1 rounded-full ${statusColors[ticket.status] || statusColors.active}`}>
-          {ticket.status === "checked-in" ? "Checked In" : ticket.status || "Active"}
+          {ticket.status === "checked-in" ? "Checked In" : ticket.status === "refunded" ? "Refunded" : ticket.status || "Active"}
         </span>
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 flex flex-wrap items-center gap-2">
         {(ticket.status === "active" || !ticket.status) && (
-          <button
-            onClick={() => onCheckIn(ticket._id)}
-            disabled={checkingIn === ticket._id}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-all"
-          >
-            {checkingIn === ticket._id
-              ? <RefreshCw size={11} className="animate-spin" />
-              : <CheckCircle2 size={11} />}
-            Check In
-          </button>
+          <>
+            <button
+              onClick={() => onCheckIn(ticket._id)}
+              disabled={checkingIn === ticket._id}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-all"
+            >
+              {checkingIn === ticket._id
+                ? <RefreshCw size={11} className="animate-spin" />
+                : <CheckCircle2 size={11} />}
+              Check In
+            </button>
+            <button
+              onClick={() => onRefund(ticket)}
+              disabled={processingRefund === ticket._id}
+              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-100 hover:bg-red-100 disabled:opacity-50 transition-all"
+            >
+              {processingRefund === ticket._id
+                ? <RefreshCw size={11} className="animate-spin" />
+                : <Undo2 size={11} />}
+              Refund
+            </button>
+          </>
         )}
       </td>
     </tr>
@@ -120,6 +134,9 @@ export default function EventDayDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [activity, setActivity] = useState([]);
   const [activeTab, setActiveTab] = useState("search"); // "search" | "activity" | "stats"
+  const [refundModal, setRefundModal] = useState({ open: false, ticket: null, reason: "" });
+  const [processingRefund, setProcessingRefund] = useState(false);
+  const toast = useToast();
   const pollRef = useRef(null);
 
   /* ─── Online / offline listener ─────────────────────────────────────────── */
@@ -210,6 +227,34 @@ export default function EventDayDashboard() {
       { ...item, time: new Date().toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" }), id: Date.now() },
       ...prev.slice(0, 49),
     ]);
+  };
+
+  const openRefundModal = (ticket) => {
+    setRefundModal({ open: true, ticket, reason: "" });
+  };
+
+  const closeRefundModal = () => {
+    setRefundModal({ open: false, ticket: null, reason: "" });
+  };
+
+  const handleRefundSubmit = async () => {
+    if (!refundModal.ticket) return;
+    setProcessingRefund(refundModal.ticket._id);
+
+    try {
+      await API.post(`/tickets/${refundModal.ticket._id}/refund`, {
+        refundReason: refundModal.reason,
+      });
+      toast.success("Refund submitted successfully");
+      setTickets((prev) => prev.map((ticket) =>
+        ticket._id === refundModal.ticket._id ? { ...ticket, status: "refunded" } : ticket
+      ));
+      closeRefundModal();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Unable to issue refund");
+    } finally {
+      setProcessingRefund(null);
+    }
   };
 
   /* ─── Stats ─────────────────────────────────────────────────────────────── */
@@ -373,7 +418,9 @@ export default function EventDayDashboard() {
                       key={ticket._id}
                       ticket={ticket}
                       onCheckIn={handleCheckIn}
+                      onRefund={openRefundModal}
                       checkingIn={checkingIn}
+                      processingRefund={processingRefund}
                     />
                   ))}
                 </tbody>
@@ -390,6 +437,44 @@ export default function EventDayDashboard() {
         )}
 
         {/* ── Activity Tab ── */}
+        <Modal
+          open={refundModal.open}
+          title="Confirm refund"
+          description={refundModal.ticket ? `Refund ticket for ${refundModal.ticket.buyer?.name || "attendee"}` : ""}
+          onClose={closeRefundModal}
+        >
+          <div className="space-y-4">
+            <div className="text-sm text-gray-600">
+              This will mark the ticket as refunded and return the buyer's payment to the original method if available.
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500">Reason</label>
+              <textarea
+                value={refundModal.reason}
+                onChange={(e) => setRefundModal((prev) => ({ ...prev, reason: e.target.value }))}
+                rows={4}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-pink-400 focus:ring-pink-50 focus:outline-none"
+                placeholder="Optional: note for buyer and audit log"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={closeRefundModal}
+                className="inline-flex items-center justify-center rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRefundSubmit}
+                disabled={processingRefund === refundModal.ticket?._id}
+                className="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-all"
+              >
+                {processingRefund === refundModal.ticket?._id ? "Processing…" : "Refund ticket"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
         {activeTab === "activity" && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
