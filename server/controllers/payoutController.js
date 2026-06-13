@@ -39,10 +39,23 @@ const getVerificationStatus = async (userId) => {
  * @param {number}   opts.platformFee    — platform commission (NGN)
  * @param {Object}   opts.meta
  */
+const resolvePayoutReleaseAfter = (endDate, endTime) => {
+  if (!endDate) return new Date();
+  const resolved = new Date(endDate);
+  if (endTime && typeof endTime === "string") {
+    const [hours, minutes] = endTime.split(":").map(Number);
+    if (!Number.isNaN(hours)) {
+      resolved.setHours(hours || 0, minutes || 0, 0, 0);
+    }
+  }
+  return resolved;
+};
+
 const createPayoutForSale = async ({
   organizerId,
   eventId,
   eventEndDate,
+  eventEndTime,
   ticketIds = [],
   grossAmount = 0,
   platformFee = 0,
@@ -51,6 +64,7 @@ const createPayoutForSale = async ({
   if (!eventEndDate) throw new Error("eventEndDate is required to create a payout");
 
   const netAmount = Math.max(0, grossAmount - platformFee);
+  const releaseAfter = resolvePayoutReleaseAfter(eventEndDate, eventEndTime);
 
   const payout = await Payout.create({
     organizer:    organizerId,
@@ -60,7 +74,7 @@ const createPayoutForSale = async ({
     platformFee,
     netAmount,
     state:        "pending",
-    releaseAfter: new Date(eventEndDate), // ← funds locked until event ends
+    releaseAfter,
     meta,
     audit: [{ action: "created", note: "payout created on ticket sale" }],
   });

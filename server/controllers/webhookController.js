@@ -25,6 +25,8 @@ const {
   computeTicketOrderTotal,
   amountsMatch,
 } = require("../utils/ticketPricing");
+const { createPayoutForSale } = require("./payoutController");
+const { handlePaystackTransferWebhook } = require("./withdrawalController");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -196,34 +198,27 @@ exports.handlePaystackWebhook = async (req, res) => {
       await ticket.save();
 
       const grossNaira = data.amount / 100;
-      const { platformFee, netToOrganizer } = splitTicketSaleForOrganizer(grossNaira);
+      const { platformFee } = splitTicketSaleForOrganizer(grossNaira);
 
-      const organizer = await User.findById(eventDoc.createdBy);
-
-      if (organizer) {
-        organizer.availableBalance += netToOrganizer;
-        await organizer.save();
-      }
+      await createPayoutForSale({
+        organizerId: eventDoc.createdBy,
+        eventId: eventDoc._id,
+        eventEndDate: eventDoc.endDate || eventDoc.startDate || new Date(),
+        eventEndTime: eventDoc.endTime || eventDoc.startTime || undefined,
+        ticketIds: [ticket._id],
+        grossAmount: grossNaira,
+        platformFee,
+        meta: { reference: data.reference },
+      });
 
       // Update event tickets
+      if (!eventDoc.capacity || eventDoc.capacity === 0) {
+        eventDoc.capacity = Number(eventDoc.totalTickets || 0) + Number(eventDoc.ticketsSold || 0);
+      }
       eventDoc.ticketsSold += quantity;
-      eventDoc.totalTickets -= quantity;
+      eventDoc.totalTickets = Math.max(0, Number(eventDoc.totalTickets || 0) - quantity);
       recordTicketPurchaseMetrics(eventDoc, quantity, ticketPrice * quantity);
       await eventDoc.save();
-
-      // Create transaction record (amount = buyer total; fee = platform commission)
-      await Transaction.create({
-        organizer: eventDoc.createdBy,
-        type: "ticket",
-        amount: grossNaira,
-        fee: platformFee,
-        status: "success",
-        reference: data.reference,
-        metadata: {
-          eventId: eventDoc._id,
-          ticketId: ticket._id,
-        },
-      });
 
       // Generate QR code
       const QRCode = require("qrcode");
@@ -612,87 +607,9 @@ exports.handlePaystackWebhook = async (req, res) => {
     | TRANSFER SUCCESS (Withdrawal Completed)
     |--------------------------------------------------------------------------
     */
-    if (event.event === "transfer.success") {
-      const reference = event.data.reference;
-
-      const withdrawal = await Withdrawal.findOne({
-        paystackReference: reference,
-      }).populate("organizer");
-
-      if (!withdrawal || withdrawal.status === "completed") {
-        return res.sendStatus(200);
-      }
-
-      withdrawal.status = "completed";
-      await withdrawal.save();
-
-      // Update transaction record
-      await Transaction.findOneAndUpdate(
-        { reference: reference, type: "withdrawal" },
-        { status: "success" }
-      );
-
-      // Send success notification
-      if (withdrawal.organizer) {
-        await createNotification(req.app, {
-          userId: withdrawal.organizer._id,
-          type: "withdrawal_completed",
-          message: `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} has been completed successfully`,
-          actionUrl: "/transactions",
-          entityId: withdrawal._id,
-          entityType: "withdrawal",
-        });
-      }
-
-      console.log("💸 Withdrawal completed:", reference);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | TRANSFER FAILED
-    |--------------------------------------------------------------------------
-    */
-    if (event.event === "transfer.failed") {
-      const reference = event.data.reference;
-
-      const withdrawal = await Withdrawal.findOne({
-        paystackReference: reference,
-      }).populate("organizer");
-
-      if (!withdrawal || withdrawal.status === "failed") {
-        return res.sendStatus(200);
-      }
-
-      // REFUND BALANCE
-      const organizer = withdrawal.organizer;
-      if (organizer) {
-        organizer.availableBalance += withdrawal.amount;
-        await organizer.save();
-      }
-
-      withdrawal.status = "failed";
-      withdrawal.failureReason = event.data.failure_reason || "Transfer failed";
-      await withdrawal.save();
-
-      // Update transaction record
-      await Transaction.findOneAndUpdate(
-        { reference: reference, type: "withdrawal" },
-        { status: "failed" }
-      );
-
-      // Send failure notification
-      if (organizer) {
-        await createNotification(req.app, {
-          userId: organizer._id,
-          type: "withdrawal_failed",
-          message: `Your withdrawal of ₦${withdrawal.amount.toLocaleString()} failed: ${withdrawal.failureReason}`,
-          actionUrl: "/transactions",
-          entityId: withdrawal._id,
-          entityType: "withdrawal",
-        });
-      }
-
-      console.log("❌ Withdrawal failed and refunded:", reference);
+    if (event.event === "transfer.success" || event.event === "transfer.failed") {
+      await handlePaystackTransferWebhook(event.data, req.app);
+      return res.sendStatus(200);
     }
 
     res.sendStatus(200);

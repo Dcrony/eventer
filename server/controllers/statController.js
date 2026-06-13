@@ -7,6 +7,26 @@ const { getPlatformTicketFeePercent } = require("../utils/platformFee");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
 const { isAdminRole } = require("../middleware/adminAccess");
 
+const buildDateKey = (date) => {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toISOString().slice(0, 10);
+};
+
+const normalizeStartOfDay = (date) => {
+  const result = date instanceof Date ? new Date(date) : new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+};
+
+const calculateGrowth = (current, previous) => {
+  const currentValue = Number(current || 0);
+  const previousValue = Number(previous || 0);
+  if (previousValue === 0) {
+    return currentValue === 0 ? 0 : 100;
+  }
+  return Math.round(((currentValue - previousValue) / previousValue) * 100);
+};
+
 exports.getStats = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -24,6 +44,49 @@ exports.getStats = async (req, res) => {
     const totalTicketsSold = tickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
     const totalRevenue = tickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
     const currentlyLive = events.filter((event) => event.liveStream?.isLive).length;
+
+    const today = new Date();
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const previousMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(currentMonthStart);
+    previousMonthEnd.setMilliseconds(-1);
+
+    const currentMonthTickets = tickets.filter((ticket) => {
+      const purchasedAt = ticket.purchasedAt ? new Date(ticket.purchasedAt) : null;
+      return purchasedAt && purchasedAt >= currentMonthStart;
+    });
+    const previousMonthTickets = tickets.filter((ticket) => {
+      const purchasedAt = ticket.purchasedAt ? new Date(ticket.purchasedAt) : null;
+      return purchasedAt && purchasedAt >= previousMonthStart && purchasedAt <= previousMonthEnd;
+    });
+
+    const currentMonthEvents = events.filter((event) => new Date(event.createdAt) >= currentMonthStart);
+    const previousMonthEvents = events.filter((event) => {
+      const createdAt = new Date(event.createdAt);
+      return createdAt >= previousMonthStart && createdAt <= previousMonthEnd;
+    });
+
+    const currentMonthTicketsSold = currentMonthTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
+    const previousMonthTicketsSold = previousMonthTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
+    const currentMonthRevenue = currentMonthTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+    const previousMonthRevenue = previousMonthTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+
+    const ticketsSoldTrend = calculateGrowth(currentMonthTicketsSold, previousMonthTicketsSold);
+    const revenueTrend = calculateGrowth(currentMonthRevenue, previousMonthRevenue);
+    const eventsCreatedTrend = calculateGrowth(currentMonthEvents.length, previousMonthEvents.length);
+
+    const sparkStart = normalizeStartOfDay(new Date(today));
+    sparkStart.setDate(sparkStart.getDate() - 6);
+    const ticketSalesSpark = Array.from({ length: 7 }, () => 0);
+
+    tickets.forEach((ticket) => {
+      const purchasedAt = ticket.purchasedAt ? new Date(ticket.purchasedAt) : null;
+      if (!purchasedAt || purchasedAt < sparkStart) return;
+      const dayIndex = Math.floor((normalizeStartOfDay(purchasedAt) - sparkStart) / (24 * 60 * 60 * 1000));
+      if (dayIndex >= 0 && dayIndex < ticketSalesSpark.length) {
+        ticketSalesSpark[dayIndex] += ticket.quantity;
+      }
+    });
 
     const perEventStats = events.map((event) => {
       const eventTickets = tickets.filter(
@@ -70,6 +133,12 @@ exports.getStats = async (req, res) => {
       perEventStats,
       availableBalance,
       pendingBalance: user?.pendingBalance || 0,
+      currentMonthTicketsSold,
+      currentMonthRevenue,
+      ticketSalesSpark,
+      ticketsSoldTrend,
+      revenueTrend,
+      eventsCreatedTrend,
     };
 
     if (isAdminRole(userRole)) {

@@ -71,8 +71,22 @@ async function markWithdrawalCompleted(withdrawal, paystackReference, app = null
   await withdrawal.save();
 
   // Mark the mirrored Transaction as success
-  await Transaction.findOneAndUpdate(
-    { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
+  if (!withdrawal.processedAt) withdrawal.processedAt = new Date();
+  withdrawal.status = "completed";
+  withdrawal.completedAt = new Date();
+  if (paystackReference) {
+    withdrawal.paystackReference = paystackReference;
+    withdrawal.transferReference = paystackReference;
+  }
+  await withdrawal.save();
+
+  await Transaction.updateMany(
+    {
+      $or: [
+        { "metadata.withdrawalId": withdrawal._id, type: "withdrawal" },
+        { referenceId: withdrawal._id, type: "withdrawal" },
+      ],
+    },
     {
       $set: {
         status:    "success",
@@ -391,8 +405,12 @@ exports.adminUpdateWithdrawal = async (req, res) => {
 // Called directly from your webhook handler — NOT an Express route.
 
 exports.handlePaystackTransferWebhook = async (data, app = null) => {
-  const { reference, status } = data;
-  if (!reference) return;
+  const reference = data.reference || data.transfer_code || data.transferCode || data.transfer?.reference || null;
+  const status = String(data.status || data.transfer?.status || "").toLowerCase();
+  if (!reference) {
+    console.warn("handlePaystackTransferWebhook: missing reference in webhook payload", data);
+    return;
+  }
 
   const withdrawal = await Withdrawal.findOne({
     $or: [
@@ -414,12 +432,20 @@ exports.handlePaystackTransferWebhook = async (data, app = null) => {
 
   if (status === "success") {
     await markWithdrawalCompleted(withdrawal, reference, app);
+    return;
   }
 
   if (status === "failed") {
     // availableBalance was deducted at approval — refund it now
-    await markWithdrawalFailed(withdrawal, data.reason || "Paystack transfer failed", app);
+    await markWithdrawalFailed(
+      withdrawal,
+      data.reason || data.failure_reason || "Paystack transfer failed",
+      app,
+    );
+    return;
   }
+
+  console.warn(`handlePaystackTransferWebhook: unsupported transfer status '${status}' for reference ${reference}`);
 };
 
 // ─── Admin: list withdrawals ──────────────────────────────────────────────────

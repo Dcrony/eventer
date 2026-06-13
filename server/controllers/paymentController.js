@@ -294,13 +294,15 @@ if (verifyTier?.maxPerOrder > 0 && order.quantity > verifyTier.maxPerOrder) {
       }
 
       const grossNaira = data.amount / 100;
-      const { platformFee, netToOrganizer } = splitTicketSaleForOrganizer(grossNaira);
+      const { platformFee } = splitTicketSaleForOrganizer(grossNaira);
 
       // Create escrow payout record instead of immediately crediting available balance
       const { createPayoutForSale } = require("./payoutController");
       await createPayoutForSale({
         organizerId: organizer._id,
         eventId: event._id,
+        eventEndDate: event.endDate || event.startDate || new Date(),
+        eventEndTime: event.endTime || event.startTime || undefined,
         ticketIds: [ticket._id],
         grossAmount: grossNaira,
         platformFee,
@@ -318,10 +320,17 @@ recordTicketPurchaseMetrics(event, quantity, ticketPrice * quantity);
 await event.save();
 
       // Transaction and payout record have been created via the payout service (escrow).
-      // Link the ticketId to any existing payout/transaction metadata for traceability.
+      // Link the ticketId to the matching payment transaction and ensure the
+      // payout transaction remains pending for later release.
       try {
-        await Transaction.updateMany({ reference: data.reference }, { $set: { "metadata.ticketId": ticket._id } });
-        await Transaction.updateMany({ "metadata.payoutId": { $exists: true } }, { $set: { status: "pending" } });
+        await Transaction.updateMany(
+          { reference: data.reference },
+          { $set: { "metadata.ticketId": ticket._id } },
+        );
+        await Transaction.updateMany(
+          { reference: data.reference, "metadata.payoutId": { $exists: true } },
+          { $set: { status: "pending" } },
+        );
       } catch (e) {
         console.warn("Failed to link ticket to payout transaction:", e.message);
       }
