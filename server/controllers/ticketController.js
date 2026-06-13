@@ -18,6 +18,8 @@ const {
   ticketPurchaseEmail,
   organizerTicketAlertEmail,
 } = require("../utils/emailTemplates");
+const { refundTransaction } = require("../utils/paystack");
+const { createNotification } = require("../services/notificationService");
 
 exports.getMyTickets = async (req, res) => {
   try {
@@ -348,12 +350,15 @@ exports.getEventTickets = async (req, res) => {
 exports.refundTicket = async (req, res) => {
   try {
     const { ticketId } = req.params;
+    const { refundReason } = req.body || {};
 
     if (!ticketId || !mongoose.Types.ObjectId.isValid(ticketId)) {
       return res.status(400).json({ message: "Invalid ticket ID" });
     }
 
-    const ticket = await Ticket.findById(ticketId).populate("event");
+    const ticket = await Ticket.findById(ticketId)
+      .populate("event")
+      .populate("buyer", "name email");
     if (!ticket) {
       return res.status(404).json({ message: "Ticket not found" });
     }
@@ -373,7 +378,29 @@ exports.refundTicket = async (req, res) => {
       return res.status(400).json({ message: "Cannot refund checked-in ticket" });
     }
 
+    let refundReference = null;
+
+    if (!ticket.isFree && ticket.amountPaid > 0) {
+      if (!ticket.reference) {
+        return res.status(400).json({ message: "Original payment reference is not available for refund" });
+      }
+
+      const refundAmount = Number(req.body.refundAmount || ticket.amountPaid);
+      if (refundAmount <= 0 || refundAmount !== ticket.amountPaid) {
+        return res.status(400).json({
+          message: "Only full paid refunds are supported at this time",
+        });
+      }
+
+      const refundData = await refundTransaction(ticket.reference, refundAmount);
+      refundReference = refundData.reference || refundData.transaction?.reference || ticket.reference;
+    }
+
     ticket.status = "refunded";
+    ticket.refundedAt = new Date();
+    ticket.refundedBy = req.user._id;
+    ticket.refundReason = String(refundReason || "Organizer initiated refund").trim();
+    ticket.amountRefunded = ticket.amountPaid || 0;
     await ticket.save();
 
     ticket.event.ticketsSold = Math.max(
@@ -393,10 +420,42 @@ exports.refundTicket = async (req, res) => {
 
       try {
         const { refundPayoutByTicketId } = require("./payoutController");
-        await refundPayoutByTicketId(ticket._id, req.user._id, "organizer-ticket-refund");
+        await refundPayoutByTicketId(ticket._id, req.user._id, "organizer-ticket-refund", refundReference);
       } catch (refundError) {
         console.warn("Failed to reconcile payout refund for ticket refund:", refundError.message);
       }
+    }
+
+    try {
+      if (ticket.buyer?.email) {
+        await sendEmail({
+          to: ticket.buyer.email,
+          subject: "Your ticket refund is processing",
+          html: `
+            <p>Hi ${ticket.buyer.name || "there"},</p>
+            <p>Your ticket for <strong>${ticket.event.title}</strong> has been refunded.</p>
+            <p>Amount returned: <strong>₦${(ticket.amountPaid || 0).toLocaleString()}</strong>.</p>
+            <p>If you have questions, contact the organizer or support.</p>
+          `,
+        });
+      }
+    } catch (emailError) {
+      console.warn("Failed to send refund email to buyer:", emailError.message);
+    }
+
+    try {
+      await createNotification(null, {
+        userId: ticket.buyer?._id,
+        actorId: req.user._id,
+        type: "ticket_refunded",
+        message: `Your ticket refund for ${ticket.event.title} is complete.`,
+        actionUrl: `/event/${ticket.event._id}`,
+        entityId: ticket._id,
+        entityType: "Ticket",
+        meta: { refundReference },
+      });
+    } catch (notificationError) {
+      console.warn("Failed to create refund notification:", notificationError.message);
     }
 
     res.status(200).json({ message: "Ticket refunded successfully", ticket });

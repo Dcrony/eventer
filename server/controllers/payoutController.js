@@ -195,16 +195,16 @@ const findPayoutByReference = async (reference) => {
   });
 };
 
-const refundPayoutByReference = async (reference, actorId = null, note = "paystack-refund") => {
+const refundPayoutByReference = async (reference, actorId = null, note = "paystack-refund", refundReference = null) => {
   const payout = await findPayoutByReference(reference);
   if (!payout) throw new Error("Payout not found for refund reference");
-  return await refundPayout(payout._id, actorId, note);
+  return await refundPayout(payout._id, actorId, note, refundReference);
 };
 
-const refundPayoutByTicketId = async (ticketId, actorId = null, note = "ticket-refund") => {
+const refundPayoutByTicketId = async (ticketId, actorId = null, note = "ticket-refund", refundReference = null) => {
   const payout = await Payout.findOne({ tickets: ticketId });
   if (!payout) throw new Error("Payout not found for ticket refund");
-  return await refundPayout(payout._id, actorId, note);
+  return await refundPayout(payout._id, actorId, note, refundReference);
 };
 
 // ─── Freeze ───────────────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ const freezePayout = async (payoutId, actorId = null, note = "manual-freeze") =>
 
 // ─── Refund ───────────────────────────────────────────────────────────────────
 
-const refundPayout = async (payoutId, actorId = null, note = "manual-refund") => {
+const refundPayout = async (payoutId, actorId = null, note = "manual-refund", refundReference = null) => {
   const payout = await Payout.findById(payoutId);
   if (!payout) throw new Error("Payout not found");
   if (payout.state === "refunded") return payout;
@@ -267,6 +267,7 @@ const refundPayout = async (payoutId, actorId = null, note = "manual-refund") =>
     amount:     payout.grossAmount,
     fee:        0,
     status:     "success",
+    reference:  refundReference || undefined,
     metadata:   { payoutId: payout._id, ticketIds: payout.tickets },
   });
 
