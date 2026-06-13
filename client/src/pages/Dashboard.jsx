@@ -43,7 +43,7 @@ import useFeatureAccess from "../hooks/useFeatureAccess";
 import TrialNotificationBanner from "../components/TrialNotificationBanner";
 import AppPage from "../components/layout/AppPage";
 
-const ADMIN_ROLES   = ["super_admin", "admin", "moderator", "finance_admin", "support_admin"];
+const ADMIN_ROLES = ["super_admin", "admin", "moderator", "finance_admin", "support_admin"];
 const VERIFIED_ROLES = ["organizer", ...ADMIN_ROLES];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -52,46 +52,47 @@ const fmt = (n) =>
 
 const fmtShort = (n) => {
     if (!n || isNaN(n)) return "0";
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
     return String(n);
 };
 
 const payoutTone = (state) => {
     const s = String(state || "").toLowerCase();
-    if (["released","completed","success"].includes(s)) return "green";
-    if (["pending","processing"].includes(s))            return "amber";
-    if (s === "under_review")                            return "pink";
-    if (["frozen","refunded","failed"].includes(s))      return "red";
+    if (["released", "completed", "success"].includes(s)) return "green";
+    if (["pending", "processing"].includes(s)) return "amber";
+    if (s === "under_review") return "pink";
+    if (["frozen", "refunded", "failed"].includes(s)) return "red";
     return "blue";
 };
 
 const toneStyles = {
     green: "bg-emerald-50 text-emerald-700 border-emerald-100",
     amber: "bg-amber-50  text-amber-700  border-amber-100",
-    pink:  "bg-pink-50   text-pink-600   border-pink-100",
-    red:   "bg-red-50    text-red-600    border-red-100",
-    blue:  "bg-blue-50   text-blue-700   border-blue-100",
+    pink: "bg-pink-50   text-pink-600   border-pink-100",
+    red: "bg-red-50    text-red-600    border-red-100",
+    blue: "bg-blue-50   text-blue-700   border-blue-100",
 };
 
 const LIFECYCLE_STYLES = {
-    Live:      { bar: "bg-red-500",     dot: "animate-ping bg-red-400",    label: "Live now" },
-    Upcoming:  { bar: "bg-blue-500",    dot: "bg-blue-400",                label: "Upcoming" },
-    Ended:     { bar: "bg-gray-400",    dot: "bg-gray-300",                label: "Ended"    },
-    Cancelled: { bar: "bg-red-600",     dot: "bg-red-500",                 label: "Cancelled"},
-    Suspended: { bar: "bg-orange-500",  dot: "bg-orange-400",              label: "Suspended"},
-    Published: { bar: "bg-emerald-500", dot: "bg-emerald-400",             label: "Published"},
+    Live: { bar: "bg-red-500", dot: "animate-ping bg-red-400", label: "Live now" },
+    Upcoming: { bar: "bg-blue-500", dot: "bg-blue-400", label: "Upcoming" },
+    Ended: { bar: "bg-gray-400", dot: "bg-gray-300", label: "Ended" },
+    Cancelled: { bar: "bg-red-600", dot: "bg-red-500", label: "Cancelled" },
+    Suspended: { bar: "bg-orange-500", dot: "bg-orange-400", label: "Suspended" },
+    Published: { bar: "bg-emerald-500", dot: "bg-emerald-400", label: "Published" },
 };
 
 // ─── micro-components ─────────────────────────────────────────────────────────
 
 function KpiCard({ icon: Icon, label, value, sub, color = "pink", trend }) {
     const colors = {
-        pink:   { accent: "bg-pink-500",    icon: "bg-pink-50 text-pink-500",     text: "text-pink-600"   },
-        blue:   { accent: "bg-blue-500",    icon: "bg-blue-50 text-blue-500",     text: "text-blue-600"   },
-        green:  { accent: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600",text: "text-emerald-600"},
-        red:    { accent: "bg-red-500",     icon: "bg-red-50 text-red-500",       text: "text-red-500"    },
-        violet: { accent: "bg-violet-500",  icon: "bg-violet-50 text-violet-500", text: "text-violet-600" },
+        pink: { accent: "bg-pink-500", icon: "bg-pink-50 text-pink-500", text: "text-pink-600" },
+        blue: { accent: "bg-blue-500", icon: "bg-blue-50 text-blue-500", text: "text-blue-600" },
+        green: { accent: "bg-emerald-500", icon: "bg-emerald-50 text-emerald-600", text: "text-emerald-600" },
+        red: { accent: "bg-red-500", icon: "bg-red-50 text-red-500", text: "text-red-500" },
+        violet: { accent: "bg-violet-500", icon: "bg-violet-50 text-violet-500", text: "text-violet-600" },
     };
     const c = colors[color] || colors.pink;
     return (
@@ -121,18 +122,27 @@ function KpiCard({ icon: Icon, label, value, sub, color = "pink", trend }) {
 
 function MiniBarChart({ data = [], color = "bg-pink-500" }) {
     const max = Math.max(...data, 1);
-    const days = ["M","T","W","T","F","S","S"];
+    const today = new Date();
+    const days = Array.from({ length: data.length }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (data.length - 1 - i));
+        return d.toLocaleDateString("en-US", { weekday: "short" }).charAt(0);
+    });
     return (
-        <div className="flex items-end gap-1 h-16">
-            {data.slice(-7).map((v, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                        className={`w-full rounded-t-sm transition-all duration-500 ${i === data.slice(-7).length - 1 ? color : "bg-pink-100"}`}
-                        style={{ height: `${Math.max(4, (v / max) * 52)}px` }}
-                    />
-                    <span className="text-[0.5rem] text-gray-300">{days[i]}</span>
-                </div>
-            ))}
+        <div className="flex items-end gap-1.5 h-28">
+            {data.map((v, i) => {
+                const pct = Math.max(6, (v / max) * 100);
+                const isLast = i === data.length - 1;
+                return (
+                    <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+                        <div
+                            className={`w-full rounded-t-lg transition-all duration-700 ${isLast ? color : "bg-pink-100"}`}
+                            style={{ height: `${pct}%` }}
+                        />
+                        <span className="text-[0.5rem] font-medium text-gray-300">{days[i]}</span>
+                    </div>
+                );
+            })}
         </div>
     );
 }
@@ -206,44 +216,45 @@ function EmptyEvents({ onCreateEvent }) {
 
 // ─── main component ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const [events,          setEvents]          = useState([]);
-    const [stats,           setStats]           = useState(null);
-    const [loading,         setLoading]         = useState(true);
-    const [error,           setError]           = useState(null);
-    const [editModalOpen,   setEditModalOpen]   = useState(false);
+    const [events, setEvents] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
     const [selectedEventId, setSelectedEventId] = useState(null);
-    const [teamModalOpen,   setTeamModalOpen]   = useState(false);
+    const [teamModalOpen, setTeamModalOpen] = useState(false);
     const [selectedTeamEventId, setSelectedTeamEventId] = useState(null);
-    const [transactions,    setTransactions]    = useState([]);
-    const [financeSummary,  setFinanceSummary]  = useState(null);
-    const [fraudInfo,       setFraudInfo]       = useState(null);
-    const [payoutHistory,   setPayoutHistory]   = useState(null);
+    const [transactions, setTransactions] = useState([]);
+    const [financeSummary, setFinanceSummary] = useState(null);
+    const [fraudInfo, setFraudInfo] = useState(null);
+    const [payoutHistory, setPayoutHistory] = useState(null);
     const [userVerification, setUserVerification] = useState(null);
-    const [activeTab,       setActiveTab]       = useState("overview");
+    const [activeTab, setActiveTab] = useState("overview");
 
-    const { hasAccess: canAccessAnalytics,    promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
-    const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive }     = useFeatureAccess("live_stream");
+    const { hasAccess: canAccessAnalytics, promptUpgrade: promptUpgradeAnalytics } = useFeatureAccess("analytics");
+    const { hasAccess: canAccessLiveStreaming, promptUpgrade: promptUpgradeLive } = useFeatureAccess("live_stream");
 
-    const token    = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
     const navigate = useNavigate();
-    const user     = useMemo(() => getCurrentUser(), []);
+    const user = useMemo(() => getCurrentUser(), []);
+    const isAdminUser = useMemo(() => ADMIN_ROLES.includes(user?.role), [user]);
     const { openCreateEvent } = useCreateEvent();
 
-    const handleEditClick     = (id) => { setSelectedEventId(id);     setEditModalOpen(true);  };
-    const handleModalClose    = ()  => { setEditModalOpen(false);     setSelectedEventId(null);  };
-    const handleTeamClick     = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true);  };
-    const handleTeamModalClose= ()  => { setTeamModalOpen(false);     setSelectedTeamEventId(null); };
+    const handleEditClick = (id) => { setSelectedEventId(id); setEditModalOpen(true); };
+    const handleModalClose = () => { setEditModalOpen(false); setSelectedEventId(null); };
+    const handleTeamClick = (id) => { setSelectedTeamEventId(id); setTeamModalOpen(true); };
+    const handleTeamModalClose = () => { setTeamModalOpen(false); setSelectedTeamEventId(null); };
 
     const fetchDashboardData = useCallback(() => {
         setLoading(true);
         setError(null);
         Promise.all([
-            API.get("/events/my-events?includeDrafts=true",     { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/stats/stats",                             { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/organizer/transactions",                  { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/users/me",                                { headers: { Authorization: `Bearer ${token}` } }),
-            API.get("/finance/organizer/balances",              { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
-            API.get("/finance/organizer/payouts?page=1&limit=5",{ headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+            API.get("/events/my-events?includeDrafts=true", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/stats/stats", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/organizer/transactions", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/users/me", { headers: { Authorization: `Bearer ${token}` } }),
+            API.get("/finance/organizer/balances", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+            API.get("/finance/organizer/payouts?page=1&limit=5", { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         ])
             .then(([eventsRes, statsRes, txRes, userRes, balancesRes, payoutsRes]) => {
                 setEvents(eventsRes.data || []);
@@ -260,7 +271,11 @@ export default function Dashboard() {
             .catch(() => { setError("Failed to load dashboard data"); setLoading(false); });
     }, [token]);
 
-    useEffect(() => { fetchDashboardData(); }, [fetchDashboardData]);
+    useEffect(() => {
+        fetchDashboardData();
+        const interval = setInterval(fetchDashboardData, 60000); // refresh every 60s
+        return () => clearInterval(interval);
+    }, [fetchDashboardData]);
 
     const handleApproveVerification = async () => {
         if (!userVerification?._id) return;
@@ -305,14 +320,13 @@ export default function Dashboard() {
         } catch { setError("Failed to delete draft."); }
     };
 
-    const payoutItems    = payoutHistory?.items || payoutHistory?.history || payoutHistory?.payouts || [];
-    const draftEvents    = events.filter((e) => e.isDraft);
+    const payoutItems = payoutHistory?.items || payoutHistory?.history || payoutHistory?.payouts || [];
+    const draftEvents = events.filter((e) => e.isDraft);
     const publishedEvents = events.filter((e) => !e.isDraft);
-    const liveEvents     = publishedEvents.filter((e) => e.liveStream?.isLive);
-    const latestTx       = transactions.slice(0, 5);
+    const liveEvents = publishedEvents.filter((e) => e.liveStream?.isLive);
+    const latestTx = transactions.slice(0, 5);
 
-    // Fake 7-day sparkline data from transactions
-    const sparkData = [12, 19, 14, 28, 22, 35, transactions.length];
+    const sparkData = stats?.ticketSalesSpark || Array.from({ length: 7 }, () => 0);
 
     const isAdminRole = (role) => ADMIN_ROLES.includes(role);
 
@@ -321,6 +335,7 @@ export default function Dashboard() {
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
     const TABS = ["overview", "events", "finance"];
+
 
     return (
         <AppPage
@@ -382,11 +397,10 @@ export default function Dashboard() {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all ${
-                            activeTab === tab
-                                ? "bg-white text-gray-900 shadow-sm"
-                                : "text-gray-400 hover:text-gray-700"
-                        }`}
+                        className={`rounded-lg px-4 py-1.5 text-xs font-bold capitalize transition-all ${activeTab === tab
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-400 hover:text-gray-700"
+                            }`}
                     >
                         {tab}
                     </button>
@@ -420,6 +434,7 @@ export default function Dashboard() {
                                     value={stats?.totalEvents ?? 0}
                                     sub={`${publishedEvents.length} published`}
                                     color="blue"
+                                    trend={stats?.eventsCreatedTrend ?? 0}
                                 />
                                 <KpiCard
                                     icon={Ticket}
@@ -427,7 +442,7 @@ export default function Dashboard() {
                                     value={fmtShort(stats?.totalTicketsSold)}
                                     sub="All time"
                                     color="pink"
-                                    trend={18}
+                                    trend={stats?.ticketsSoldTrend ?? 0}
                                 />
                                 <KpiCard
                                     icon={BarChart3}
@@ -435,7 +450,7 @@ export default function Dashboard() {
                                     value={`₦${fmtShort(stats?.totalRevenue)}`}
                                     sub="Gross, all events"
                                     color="green"
-                                    trend={24}
+                                    trend={stats?.revenueTrend ?? 0}
                                 />
                                 <KpiCard
                                     icon={Radio}
@@ -444,6 +459,7 @@ export default function Dashboard() {
                                     sub={liveEvents.length > 0 ? "Events broadcasting" : "No active streams"}
                                     color="red"
                                 />
+
                             </div>
 
                             {/* Chart + activity row */}
@@ -454,8 +470,9 @@ export default function Dashboard() {
                                         title="Ticket sales"
                                         subtitle="Last 7 days"
                                         action={
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[0.6rem] font-bold text-emerald-700">
-                                                <TrendingUp size={10} /> +18%
+                                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.6rem] font-bold ${stats?.ticketsSoldTrend >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                                                {stats?.ticketsSoldTrend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                                                {stats?.ticketsSoldTrend >= 0 ? "+" : ""}{stats?.ticketsSoldTrend ?? 0}%
                                             </span>
                                         }
                                     >
@@ -477,24 +494,7 @@ export default function Dashboard() {
                                         </div>
 
                                         {/* Bar chart */}
-                                        <div className="flex items-end gap-1.5 h-28">
-                                            {sparkData.map((v, i) => {
-                                                const max = Math.max(...sparkData, 1);
-                                                const pct = Math.max(6, (v / max) * 100);
-                                                const isLast = i === sparkData.length - 1;
-                                                return (
-                                                    <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-                                                        <div
-                                                            className={`w-full rounded-t-lg transition-all duration-700 ${isLast ? "bg-pink-500" : "bg-pink-100"}`}
-                                                            style={{ height: `${pct}%` }}
-                                                        />
-                                                        <span className="text-[0.5rem] font-medium text-gray-300">
-                                                            {["M","T","W","T","F","S","S"][i]}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
+                                        <MiniBarChart data={sparkData} color="bg-pink-500" />
 
                                         {/* Finance quick stats */}
                                         {financeSummary && (
@@ -545,10 +545,10 @@ export default function Dashboard() {
                                             <p className="text-[0.58rem] font-black uppercase tracking-widest text-gray-400 mb-3">Quick actions</p>
                                             <div className="space-y-2">
                                                 {[
-                                                    { label: "Create an event",    icon: PlusCircle,  action: () => openCreateEvent(),                color: "text-pink-500"    },
-                                                    { label: "Browse all events",  icon: Eye,         action: () => navigate("/events"),             color: "text-blue-500"    },
-                                                    { label: "View transactions",  icon: BarChart3,   action: () => navigate("/transactions"),       color: "text-emerald-600" },
-                                                    { label: "Go to payouts",      icon: Wallet,      action: () => navigate("/dashboard/payouts"),  color: "text-violet-500"  },
+                                                    { label: "Create an event", icon: PlusCircle, action: () => openCreateEvent(), color: "text-pink-500" },
+                                                    { label: "Browse all events", icon: Eye, action: () => navigate("/events"), color: "text-blue-500" },
+                                                    { label: "View transactions", icon: BarChart3, action: () => navigate("/transactions"), color: "text-emerald-600" },
+                                                    { label: "Go to payouts", icon: Wallet, action: () => navigate("/dashboard/payouts"), color: "text-violet-500" },
                                                 ].map(({ label, icon: Icon, action, color }) => (
                                                     <button key={label} onClick={action}
                                                         className="flex w-full items-center gap-2.5 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs font-semibold text-gray-700 hover:border-pink-100 hover:bg-pink-50/30 transition-colors group">
@@ -592,7 +592,7 @@ export default function Dashboard() {
                             </div>
 
                             {/* Payout restrictions */}
-                            {financeSummary && (
+                            {financeSummary && !isAdminUser && (
                                 (userVerification?.status !== "approved" || (fraudInfo?.flagCount || 0) > 0 || (financeSummary.escrowBalance || 0) > 0) && (
                                     <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
                                         <div className="flex items-start gap-3">
@@ -601,7 +601,7 @@ export default function Dashboard() {
                                                 <h3 className="text-xs font-black text-amber-900">Payout restrictions active</h3>
                                                 <div className="mt-1.5 space-y-1 text-xs text-amber-700">
                                                     {userVerification?.status !== "approved" && (
-                                                        <p>Verification pending — withdrawals are blocked until your account is approved.</p>
+                                                        <p>Verification pending, withdrawals are blocked until your account is approved.</p>
                                                     )}
                                                     {(fraudInfo?.flagCount || 0) > 0 && (
                                                         <p>{fmt(fraudInfo.flagCount)} fraud alert(s) are holding payouts. Contact support.</p>
@@ -619,10 +619,10 @@ export default function Dashboard() {
                             {/* Fraud row */}
                             {fraudInfo && ((fraudInfo.flagCount || 0) > 0 || (fraudInfo.suspiciousTransactionsCount || 0) > 0) && (
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                    <KpiCard icon={AlertTriangle} label="Fraud alerts"            value={fmt(fraudInfo.flagCount || 0)}                             sub="Active flags"       color="red"    />
-                                    <KpiCard icon={ShieldAlert}   label="Suspicious transactions" value={fmt(fraudInfo.suspiciousTransactionsCount || 0)}           sub="Under review"      color="pink"   />
-                                    <KpiCard icon={TrendingUp}    label="Refund spike"             value={`${Math.round((fraudInfo.refundSpike?.ratio || 0)*100)}%`} sub="vs normal rate"   color="red"    />
-                                    <KpiCard icon={Activity}      label="Suspicious payouts"       value={fmt(fraudInfo.suspiciousPayouts?.length || 0)}             sub="Flagged transfers" color="violet" />
+                                    <KpiCard icon={AlertTriangle} label="Fraud alerts" value={fmt(fraudInfo.flagCount || 0)} sub="Active flags" color="red" />
+                                    <KpiCard icon={ShieldAlert} label="Suspicious transactions" value={fmt(fraudInfo.suspiciousTransactionsCount || 0)} sub="Under review" color="pink" />
+                                    <KpiCard icon={TrendingUp} label="Refund spike" value={`${Math.round((fraudInfo.refundSpike?.ratio || 0) * 100)}%`} sub="vs normal rate" color="red" />
+                                    <KpiCard icon={Activity} label="Suspicious payouts" value={fmt(fraudInfo.suspiciousPayouts?.length || 0)} sub="Flagged transfers" color="violet" />
                                 </div>
                             )}
 
@@ -752,9 +752,9 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="mt-4 grid grid-cols-3 gap-2">
                                                     {[
-                                                        { label: "Last saved",  value: new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString() },
-                                                        { label: "Progress",    value: `Step ${event.draftStep || 1} of 5` },
-                                                        { label: "Format",      value: event.eventType || "In-person" },
+                                                        { label: "Last saved", value: new Date(event.draftUpdatedAt || event.createdAt).toLocaleDateString() },
+                                                        { label: "Progress", value: `Step ${event.draftStep || 1} of 5` },
+                                                        { label: "Format", value: event.eventType || "In-person" },
                                                     ].map(({ label, value }) => (
                                                         <div key={label} className="rounded-xl border border-amber-100 bg-white p-2.5">
                                                             <p className="text-[0.55rem] font-black uppercase tracking-widest text-gray-400">{label}</p>
@@ -789,7 +789,7 @@ export default function Dashboard() {
                                 ) : (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                         {publishedEvents.map((event) => {
-                                            const lc   = LIFECYCLE_STYLES[event.eventLifecycleStatus] || LIFECYCLE_STYLES.Published;
+                                            const lc = LIFECYCLE_STYLES[event.eventLifecycleStatus] || LIFECYCLE_STYLES.Published;
                                             const cover = getEventImageUrl(event);
                                             return (
                                                 <div key={event._id}
@@ -801,16 +801,16 @@ export default function Dashboard() {
                                                     <div className="absolute top-4 right-3 z-10">
                                                         <EventActionMenu
                                                             items={[
-                                                                { key:"live",      label: event.liveStream?.isLive ? "Stop Live":"Go Live", icon:Radio,    active:Boolean(event.liveStream?.isLive), onClick:()=>canAccessLiveStreaming?toggleLive(event._id,event.liveStream?.isLive):promptUpgradeLive() },
-                                                                { key:"edit",      label:"Edit event",     icon:Pencil,   onClick:()=>handleEditClick(event._id) },
-                                                                { key:"tickets",   label:"Manage tickets", icon:Ticket,   to:`/events/${event._id}/tickets` },
+                                                                { key: "live", label: event.liveStream?.isLive ? "Stop Live" : "Go Live", icon: Radio, active: Boolean(event.liveStream?.isLive), onClick: () => canAccessLiveStreaming ? toggleLive(event._id, event.liveStream?.isLive) : promptUpgradeLive() },
+                                                                { key: "edit", label: "Edit event", icon: Pencil, onClick: () => handleEditClick(event._id) },
+                                                                { key: "tickets", label: "Manage tickets", icon: Ticket, to: `/events/${event._id}/tickets` },
                                                                 canAccessAnalytics
-                                                                    ? { key:"analytics",  label:"Analytics", icon:BarChart3, to:`/events/${event._id}/analytics` }
-                                                                    : { key:"analytics-upgrade", label:"Analytics", icon:BarChart3, onClick:promptUpgradeAnalytics },
-                                                                { key:"team",      label:"Manage team",    icon:Users,    onClick:()=>handleTeamClick(event._id) },
-                                                                { key:"duplicate", label:"Duplicate",      icon:Copy,     onClick:()=>openCreateEvent({duplicateEventId:event._id}) },
-                                                                { key:"divider-delete", type:"divider" },
-                                                                { key:"delete",    label:"Delete event",   icon:Trash2,   danger:true, onClick:()=>handleDelete(event._id) },
+                                                                    ? { key: "analytics", label: "Analytics", icon: BarChart3, to: `/events/${event._id}/analytics` }
+                                                                    : { key: "analytics-upgrade", label: "Analytics", icon: BarChart3, onClick: promptUpgradeAnalytics },
+                                                                { key: "team", label: "Manage team", icon: Users, onClick: () => handleTeamClick(event._id) },
+                                                                { key: "duplicate", label: "Duplicate", icon: Copy, onClick: () => openCreateEvent({ duplicateEventId: event._id }) },
+                                                                { key: "divider-delete", type: "divider" },
+                                                                { key: "delete", label: "Delete event", icon: Trash2, danger: true, onClick: () => handleDelete(event._id) },
                                                             ]}
                                                         />
                                                     </div>
@@ -846,7 +846,7 @@ export default function Dashboard() {
                                                         <div className="mt-auto space-y-1">
                                                             <div className="flex items-center gap-1.5 text-[0.62rem] text-gray-500">
                                                                 <Calendar size={11} className="text-pink-400 flex-shrink-0" />
-                                                                {new Date(event.startDate).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})} · {event.startTime}
+                                                                {new Date(event.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {event.startTime}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 text-[0.62rem] text-gray-500">
                                                                 <MapPin size={11} className="text-pink-400 flex-shrink-0" />
@@ -886,11 +886,11 @@ export default function Dashboard() {
                             {financeSummary ? (
                                 <>
                                     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                                        <KpiCard icon={Wallet}    label="Available"        value={`₦${fmtShort(financeSummary.availableBalance||0)}`}         sub="Ready to withdraw"     color="green"  />
-                                        <KpiCard icon={Clock}     label="Escrow"            value={`₦${fmtShort(financeSummary.escrowBalance||0)}`}            sub="Post-event release"    color="blue"   />
-                                        <KpiCard icon={FileClock} label="Pending release"   value={`₦${fmtShort(financeSummary.pendingReleaseBalance||0)}`}    sub="In review"             color="pink"   />
-                                        <KpiCard icon={BarChart3} label="Released revenue"  value={`₦${fmtShort(financeSummary.releasedRevenue||0)}`}          sub="Paid out total"        color="green"  />
-                                        <KpiCard icon={Wallet}    label="Refunded"          value={`₦${fmtShort(financeSummary.refundedRevenue||0)}`}          sub="Returned to buyers"    color="red"    />
+                                        <KpiCard icon={Wallet} label="Available" value={`₦${fmtShort(financeSummary.availableBalance || 0)}`} sub="Ready to withdraw" color="green" />
+                                        <KpiCard icon={Clock} label="Escrow" value={`₦${fmtShort(financeSummary.escrowBalance || 0)}`} sub="Post-event release" color="blue" />
+                                        <KpiCard icon={FileClock} label="Pending release" value={`₦${fmtShort(financeSummary.pendingReleaseBalance || 0)}`} sub="In review" color="pink" />
+                                        <KpiCard icon={BarChart3} label="Released revenue" value={`₦${fmtShort(financeSummary.releasedRevenue || 0)}`} sub="Paid out total" color="green" />
+                                        <KpiCard icon={Wallet} label="Refunded" value={`₦${fmtShort(financeSummary.refundedRevenue || 0)}`} sub="Returned to buyers" color="red" />
                                     </div>
 
                                     {/* Payout list */}
@@ -924,9 +924,9 @@ export default function Dashboard() {
                                                             <tr key={p._id || p.id} className="hover:bg-gray-50/60 transition-colors">
                                                                 <td className="py-3 pr-4 text-xs font-bold text-gray-900 truncate max-w-[140px]">{p.event?.title || "Event Payout"}</td>
                                                                 <td className="py-3 pr-4 text-xs text-gray-400 whitespace-nowrap">{new Date(p.createdAt).toLocaleDateString()}</td>
-                                                                <td className="py-3 pr-4 text-xs font-black text-gray-900 tabular-nums whitespace-nowrap">₦{fmt(p.netAmount||p.amount||0)}</td>
+                                                                <td className="py-3 pr-4 text-xs font-black text-gray-900 tabular-nums whitespace-nowrap">₦{fmt(p.netAmount || p.amount || 0)}</td>
                                                                 <td className="py-3">
-                                                                    <Badge tone={payoutTone(p.state)}>{p.state||p.status||"unknown"}</Badge>
+                                                                    <Badge tone={payoutTone(p.state)}>{p.state || p.status || "unknown"}</Badge>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -966,7 +966,7 @@ export default function Dashboard() {
                                                                 <td className="py-3 pr-4 text-xs text-gray-400 whitespace-nowrap">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                                                 <td className="py-3 pr-4 text-xs font-black text-gray-900 tabular-nums whitespace-nowrap">₦{fmt(ticketNetToOrganizer(tx))}</td>
                                                                 <td className="py-3">
-                                                                    <Badge tone={tx.status==="success"?"green":tx.status==="pending"?"amber":"red"}>{tx.status}</Badge>
+                                                                    <Badge tone={tx.status === "success" ? "green" : tx.status === "pending" ? "amber" : "red"}>{tx.status}</Badge>
                                                                 </td>
                                                             </tr>
                                                         ))}
