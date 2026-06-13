@@ -280,14 +280,14 @@ const runPayoutReleaseWorker = async () => {
     const now = new Date();
 
     // Find eligible payouts in pending or scheduled state
-    const filter = { state: { $in: ["pending", "scheduled"] } };
+    const filter = {
+      state: { $in: ["pending", "scheduled"] },
+      releaseAfter: { $lte: now },
+    };
     const candidates = await Payout.find(filter).sort({ createdAt: 1 }).limit(maxBatch).lean();
 
     for (const p of candidates) {
       try {
-        // skip if already scheduled for future release
-        if (p.releaseDate && new Date(p.releaseDate) > now) continue;
-
         // organizer checks
         const organizer = await User.findById(p.organizer).lean();
         if (!organizer) continue;
@@ -298,11 +298,23 @@ const runPayoutReleaseWorker = async () => {
         if (requireEventComplete && p.event) {
           const event = await Event.findById(p.event).lean();
           if (!event) continue;
+
           const eventEnd = event.endDate || event.startDate || null;
           if (!eventEnd) continue; // cannot auto-release without event end
+
           const releaseAfter = new Date(eventEnd);
+          if (event.endTime) {
+            const [hours, minutes] = String(event.endTime).split(":").map(Number);
+            if (!Number.isNaN(hours)) {
+              releaseAfter.setHours(hours || 0, minutes || 0, 0, 0);
+            }
+          }
           releaseAfter.setDate(releaseAfter.getDate() + cooldownDays);
+
           if (now < releaseAfter) continue;
+
+          // The payout is eligible once the configured event end + cooldown has passed.
+          // Do not block release if lifecycle status was not updated in time.
         }
 
         // basic fraud assessment

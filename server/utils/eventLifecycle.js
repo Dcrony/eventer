@@ -128,7 +128,7 @@ function canPurchaseTickets(event) {
   }
 
   // Check if tickets are sold out
-  if (event.totalTickets && event.ticketsSold >= event.totalTickets) {
+  if (typeof event.totalTickets === 'number' && event.totalTickets <= 0) {
     return { allowed: false, reason: 'All tickets for this event are sold out.' };
   }
 

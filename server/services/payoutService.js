@@ -1,12 +1,13 @@
 const Payout = require('../models/Payout');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const { capOrganizerAvailableBalance } = require('../utils/organizerBalance');
 
 async function getOrganizerBalances(organizerId) {
   const organizer = await User.findById(organizerId).lean();
   if (!organizer) throw new Error('Organizer not found');
 
-  const available = Number(organizer.availableBalance || 0);
+  const rawAvailable = Number(organizer.availableBalance || 0);
   const pending = Number(organizer.pendingBalance || 0);
   // escrow: compute sum of payouts in state pending/under_review/frozen
   const escrowAgg = await Payout.aggregate([
@@ -29,8 +30,12 @@ async function getOrganizerBalances(organizerId) {
   ]);
   const refunded = refundedAgg[0]?.total || 0;
 
+  const reconciledAvailableBalance = await capOrganizerAvailableBalance(organizerId, rawAvailable);
+
   return {
-    availableBalance: available,
+    rawAvailableBalance: rawAvailable,
+    availableBalance: reconciledAvailableBalance,
+    reconciledAvailableBalance,
     pendingReleaseBalance: pending,
     escrowBalance: escrow,
     releasedRevenue: released,
