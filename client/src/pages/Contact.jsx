@@ -1,20 +1,44 @@
 import { useState } from "react";
-import { Send, Mail, User, MessageSquare, CheckCircle } from "lucide-react";
+import { Send, Mail, User, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
+import API from "../api/axios"; // your existing axios instance
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 focus:bg-white transition-all";
 
 export default function Contact() {
-  const [form, setForm]         = useState({ name: "", email: "", message: "" });
-  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm]       = useState({ name: "", email: "", message: "" });
+  const [status, setStatus]   = useState("idle"); // "idle" | "loading" | "success" | "error"
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
-    setForm({ name: "", email: "", message: "" });
-    setTimeout(() => setSubmitted(false), 4000);
+    setStatus("loading");
+    setErrorMsg("");
+
+    try {
+      const { data } = await API.post("/contact", {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        message: form.message.trim(),
+      });
+
+      if (data?.success) {
+        setStatus("success");
+        setForm({ name: "", email: "", message: "" });
+        setTimeout(() => setStatus("idle"), 5000);
+      } else {
+        throw new Error(data?.error || "Something went wrong.");
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to send message. Please try again.";
+      setErrorMsg(msg);
+      setStatus("error");
+    }
   };
 
   return (
@@ -31,10 +55,18 @@ export default function Contact() {
         </div>
 
         {/* Success banner */}
-        {submitted && (
+        {status === "success" && (
           <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold rounded-xl px-4 py-3 mb-5">
             <CheckCircle size={16} className="shrink-0" />
             Your message has been sent! We'll be in touch soon.
+          </div>
+        )}
+
+        {/* Error banner */}
+        {status === "error" && (
+          <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-600 text-sm font-semibold rounded-xl px-4 py-3 mb-5">
+            <AlertCircle size={16} className="shrink-0" />
+            {errorMsg}
           </div>
         )}
 
@@ -56,6 +88,7 @@ export default function Contact() {
                   value={form.name}
                   onChange={handleChange}
                   required
+                  disabled={status === "loading"}
                   className={`${inputCls} pl-10`}
                 />
               </div>
@@ -74,6 +107,7 @@ export default function Contact() {
                   value={form.email}
                   onChange={handleChange}
                   required
+                  disabled={status === "loading"}
                   className={`${inputCls} pl-10`}
                 />
               </div>
@@ -92,6 +126,7 @@ export default function Contact() {
                   onChange={handleChange}
                   required
                   rows={5}
+                  disabled={status === "loading"}
                   className={`${inputCls} pl-10 resize-none`}
                 />
               </div>
@@ -99,10 +134,23 @@ export default function Contact() {
 
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-full bg-pink-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-pink-200 transition-all"
+              disabled={status === "loading"}
+              className="w-full inline-flex items-center justify-center gap-2 h-12 rounded-full bg-pink-500 text-white text-sm font-bold shadow-md shadow-pink-200 hover:bg-pink-600 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-pink-200 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
             >
-              <Send size={15} />
-              Send Message
+              {status === "loading" ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Sending…
+                </>
+              ) : (
+                <>
+                  <Send size={15} />
+                  Send Message
+                </>
+              )}
             </button>
           </form>
         </div>
