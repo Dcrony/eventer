@@ -25,7 +25,7 @@ const {
   computeTicketOrderTotal,
   amountsMatch,
 } = require("../utils/ticketPricing");
-const { createPayoutForSale } = require("./payoutController");
+const { createPayoutForSale, refundPayoutByReference } = require("./payoutController");
 const { handlePaystackTransferWebhook } = require("./withdrawalController");
 
 exports.handlePaystackWebhook = async (req, res) => {
@@ -599,6 +599,58 @@ exports.handlePaystackWebhook = async (req, res) => {
       });
 
       console.log("✅ Subscription invoice recorded:", reference);
+      return res.sendStatus(200);
+    }
+
+    if (
+      event.event === "charge.refund" ||
+      event.event === "refund.success" ||
+      event.event === "refund.failed" ||
+      event.event === "charge.refunded"
+    ) {
+      const refundData = event.data || {};
+      const reference =
+        refundData.reference ||
+        refundData.transaction?.reference ||
+        refundData.charge?.reference ||
+        refundData.transfer?.reference ||
+        null;
+      const status = String(refundData.status || refundData.transaction?.status || "").toLowerCase();
+
+      if (!reference) {
+        console.warn("Paystack refund webhook missing reference", refundData);
+        return res.sendStatus(200);
+      }
+
+      if (status !== "success") {
+        console.log(`Paystack refund webhook for ${reference} is not final: ${status}`);
+        return res.sendStatus(200);
+      }
+
+      try {
+        const payout = await refundPayoutByReference(reference, null, `paystack-webhook:${event.event}`);
+        if (payout) {
+          const ticketIds = Array.isArray(payout.tickets) ? payout.tickets : [];
+          if (ticketIds.length) {
+            const tickets = await Ticket.find({ _id: { $in: ticketIds }, status: { $nin: ["refunded", "cancelled"] } });
+            for (const ticket of tickets) {
+              if (ticket.status !== "refunded") {
+                const eventDoc = await Event.findById(ticket.event);
+                if (eventDoc) {
+                  eventDoc.ticketsSold = Math.max(0, Number(eventDoc.ticketsSold || 0) - Number(ticket.quantity || 1));
+                  eventDoc.totalTickets = Number(eventDoc.totalTickets || 0) + Number(ticket.quantity || 1);
+                  await eventDoc.save();
+                }
+                ticket.status = "refunded";
+                await ticket.save();
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to reconcile Paystack refund webhook:", err.message);
+      }
+
       return res.sendStatus(200);
     }
 

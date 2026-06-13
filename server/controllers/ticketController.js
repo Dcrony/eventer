@@ -385,10 +385,17 @@ exports.refundTicket = async (req, res) => {
     await ticket.event.save();
 
     if (!ticket.isFree && ticket.amountPaid > 0) {
-      const transaction = await Transaction.findOne({ ticket: ticketId });
+      const transaction = await Transaction.findOne({ "metadata.ticketId": ticketId });
       if (transaction) {
         transaction.status = "refunded";
         await transaction.save();
+      }
+
+      try {
+        const { refundPayoutByTicketId } = require("./payoutController");
+        await refundPayoutByTicketId(ticket._id, req.user._id, "organizer-ticket-refund");
+      } catch (refundError) {
+        console.warn("Failed to reconcile payout refund for ticket refund:", refundError.message);
       }
     }
 

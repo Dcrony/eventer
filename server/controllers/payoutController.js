@@ -185,6 +185,28 @@ const releasePayout = async (payoutId, actorId = null, note = "auto-release") =>
   return payout;
 };
 
+const findPayoutByReference = async (reference) => {
+  if (!reference) return null;
+  return await Payout.findOne({
+    $or: [
+      { "meta.reference": reference },
+      { "meta.paymentReference": reference },
+    ],
+  });
+};
+
+const refundPayoutByReference = async (reference, actorId = null, note = "paystack-refund") => {
+  const payout = await findPayoutByReference(reference);
+  if (!payout) throw new Error("Payout not found for refund reference");
+  return await refundPayout(payout._id, actorId, note);
+};
+
+const refundPayoutByTicketId = async (ticketId, actorId = null, note = "ticket-refund") => {
+  const payout = await Payout.findOne({ tickets: ticketId });
+  if (!payout) throw new Error("Payout not found for ticket refund");
+  return await refundPayout(payout._id, actorId, note);
+};
+
 // ─── Freeze ───────────────────────────────────────────────────────────────────
 
 const freezePayout = async (payoutId, actorId = null, note = "manual-freeze") => {
@@ -218,20 +240,23 @@ const freezePayout = async (payoutId, actorId = null, note = "manual-freeze") =>
 const refundPayout = async (payoutId, actorId = null, note = "manual-refund") => {
   const payout = await Payout.findById(payoutId);
   if (!payout) throw new Error("Payout not found");
+  if (payout.state === "refunded") return payout;
 
   const organizer = await User.findById(payout.organizer);
   if (!organizer) throw new Error("Organizer not found");
 
-  // Deduct from whichever balance holds the funds
-  if (payout.state === "released") {
+  const isReleased = ["released", "completed"].includes(payout.state);
+  if (isReleased) {
     organizer.availableBalance = Math.max(0, (organizer.availableBalance || 0) - payout.netAmount);
   } else {
     organizer.pendingBalance = Math.max(0, (organizer.pendingBalance || 0) - payout.netAmount);
   }
   await organizer.save();
 
-  payout.state = "refunded";
-  payout.reason = note || payout.reason;
+  payout.state       = "refunded";
+  payout.processedBy = actorId;
+  payout.processedAt = new Date();
+  payout.reason      = note || payout.reason;
   payout.audit.push({ actor: actorId, action: "refunded", note, at: new Date() });
   await payout.save();
 
@@ -242,13 +267,13 @@ const refundPayout = async (payoutId, actorId = null, note = "manual-refund") =>
     amount:     payout.grossAmount,
     fee:        0,
     status:     "success",
-    metadata:   { payoutId: payout._id },
+    metadata:   { payoutId: payout._id, ticketIds: payout.tickets },
   });
 
-  // Mark the original ticket transaction as failed
+  // Mark the original ticket transaction as refunded
   await Transaction.updateMany(
     { "metadata.payoutId": payout._id, type: "ticket" },
-    { $set: { status: "failed" } }
+    { $set: { status: "refunded" } }
   );
 
   try {
@@ -598,6 +623,8 @@ module.exports = {
   releasePayout,
   freezePayout,
   refundPayout,
+  refundPayoutByReference,
+  refundPayoutByTicketId,
 
   // HTTP handlers
   listPayouts,
