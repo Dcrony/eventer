@@ -485,7 +485,7 @@ export default function EventDayDashboard() {
               {activity.length === 0 ? (
                 <div className="py-12 text-center text-gray-400">
                   <Activity size={32} className="mx-auto mb-2 opacity-25" />
-                  <p className="text-sm">No activity yet — check-ins will appear here</p>
+                  <p className="text-sm">No activity yet, check-ins will appear here</p>
                 </div>
               ) : (
                 activity.map((item) => <ActivityItem key={item.id} item={item} />)

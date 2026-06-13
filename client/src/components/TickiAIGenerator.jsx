@@ -260,10 +260,10 @@ function AIStepBar({ current }) {
  * TickiAIGenerator
  *
  * Props:
- *  onGenerate(payload, imageFile, imagePreviewUrl) — called when user applies the event.
+ *  onGenerate(payload, imageFile, imagePreviewUrl), called when user applies the event.
  *    payload covers ALL CreateEvent wizard fields (Steps 1–4).
  *    imageFile may be null; imagePreviewUrl is a string URL if an image was chosen.
- *  compact — when true, render inline (no outer padding), used inside CreateEvent Step 1.
+ *  compact, when true, render inline (no outer padding), used inside CreateEvent Step 1.
  */
 const TickiAIGenerator = ({ onGenerate, compact = false }) => {
   const [aiStep,   setAiStep]   = useState(1);  // 1=prompt, 2=review, 3=cover
@@ -289,7 +289,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
       const response = await API.post("/ai/generate-event", { prompt: trimmed });
       const raw = response.data.event;
 
-      // Pricing — normalize the three tiers
+      // Pricing, normalize the three tiers
       const slots = [{ type: "Regular", price: "" }, { type: "VIP", price: "" }, { type: "VVIP", price: "" }];
       let pricing = slots;
       if (Array.isArray(raw.pricing) && raw.pricing.length) {
@@ -393,7 +393,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
     setChosenImagePreview(previewUrl);
   };
 
-  /* ── Render: step 1 — prompt screen ────────────────────────────────────── */
+  /* ── Render: step 1, prompt screen ────────────────────────────────────── */
 
   if (aiStep === 1) {
     return (
@@ -457,7 +457,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
     );
   }
 
-  /* ── Render: step 2 — review & edit ────────────────────────────────────── */
+  /* ── Render: step 2, review & edit ────────────────────────────────────── */
 
   if (aiStep === 2) {
     return (
@@ -473,7 +473,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
 
         <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
           <CheckCircle2 size={13} />
-          <span>Event generated — review each field, then click <strong>Continue to cover image</strong>.</span>
+          <span>Event generated, review each field, then click <strong>Continue to cover image</strong>.</span>
         </div>
 
         {/* ── Basic info ─────────────────────────────────────────────────── */}
@@ -515,7 +515,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
           </div>
           {isFree ? (
             <div className="rounded-xl border border-pink-200 bg-pink-50 px-3 py-2 text-xs text-pink-700">
-              Free event — attendees reserve without payment.
+              Free event, attendees reserve without payment.
             </div>
           ) : (
             <div className="space-y-2">
@@ -551,7 +551,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
     );
   }
 
-  /* ── Render: step 3 — cover image ──────────────────────────────────────── */
+  /* ── Render: step 3, cover image ──────────────────────────────────────── */
 
   return (
     <div className="space-y-4">
@@ -566,7 +566,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
 
       <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-700">
         <Image size={13} />
-        <span>Add a cover image — or skip to go straight to preview.</span>
+        <span>Add a cover image, or skip to go straight to preview.</span>
       </div>
 
       {/* Image generator */}
@@ -599,7 +599,7 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
       <div className="flex gap-3">
         <button type="button" onClick={handleApply}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-full border-2 border-gray-200 bg-white py-2.5 text-sm font-bold text-gray-600 transition hover:border-pink-300 hover:text-pink-500">
-          Skip image — Apply event
+          Skip image, Apply event
         </button>
         <button type="button" onClick={handleApply}
           className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-pink-500 py-2.5 text-sm font-bold text-white shadow-md shadow-pink-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-pink-600">

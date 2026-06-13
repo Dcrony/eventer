@@ -51,7 +51,7 @@ function CompactView({ config, status, isVerified, rejectionReason, userRole, on
     const isClickable = !adminView && (status === "not_started" || status === "rejected");
 
     const subtitleMap = {
-        not_started: "Tap to submit your documents — takes under 2 minutes",
+        not_started: "Tap to submit your documents, takes under 2 minutes",
         rejected: rejectionReason || "Tap to resubmit your documents",
         pending: "Your documents are under review. We'll notify you within 48 hours.",
         approved: "Your account is fully verified.",
@@ -98,7 +98,7 @@ function AdminView({ config, status, isVerified, rejectionReason, documents, cre
         not_started: "Organizer has not submitted any documents yet.",
         pending:     "Documents submitted and awaiting admin review.",
         approved:    "Organizer is verified and fully active.",
-        rejected:    "Verification was rejected — organizer may resubmit.",
+        rejected:    "Verification was rejected, organizer may resubmit.",
     };
 
     return (
@@ -258,11 +258,11 @@ function AdminView({ config, status, isVerified, rejectionReason, documents, cre
                                 onClick={onApprove}
                                 className="w-full py-2.5 px-4 rounded-xl border border-green-200 bg-green-50 text-green-700 text-xs font-extrabold hover:bg-green-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
-                                <BadgeCheck size={15} /> Override — Approve Anyway
+                                <BadgeCheck size={15} /> Override, Approve Anyway
                             </button>
                         )}
 
-                        {/* Not started — no actions available */}
+                        {/* Not started, no actions available */}
                         {status === "not_started" && (
                             <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200">
                                 <AlertTriangle size={13} className="text-amber-500 flex-shrink-0" />

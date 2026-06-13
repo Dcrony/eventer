@@ -54,7 +54,7 @@ export default function TrialNotificationBanner() {
           <div className="flex-1">
             <p className="text-sm font-extrabold text-white mb-1">Welcome! Your 14-day Pro trial has started</p>
             <p className="text-xs text-white/80 leading-relaxed">
-              You have full access to live streaming, advanced analytics, and all Pro features — free for 14 days. No credit card needed.
+              You have full access to live streaming, advanced analytics, and all Pro features, free for 14 days. No credit card needed.
             </p>
             <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={handleExplore} className="px-4 py-1.5 rounded-full bg-white text-pink-600 text-xs font-bold hover:bg-gray-100 transition-all">Explore Pro features</button>
@@ -106,7 +106,7 @@ export default function TrialNotificationBanner() {
         <div className="flex-1">
           <p className="text-sm font-extrabold text-white mb-1">
             {endingSoon
-              ? `Only ${daysLeft} day${daysLeft === 1 ? "" : "s"} left — your trial is ending soon`
+              ? `Only ${daysLeft} day${daysLeft === 1 ? "" : "s"} left, your trial is ending soon`
               : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left on your Pro trial`}
           </p>
           <p className="text-xs text-white/80 leading-relaxed">

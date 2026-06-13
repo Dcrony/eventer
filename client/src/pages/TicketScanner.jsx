@@ -58,13 +58,13 @@ function appendScanLog(entry) {
 /* ─── Offline verifier ───────────────────────────────────────────────────── */
 function verifyOffline(ticketId, eventId) {
   const cache = getOfflineCache(eventId);
-  if (!cache) return null; // no cache — can't verify
+  if (!cache) return null; // no cache, can't verify
 
   const ticket = cache.tickets.find((t) => String(t._id) === ticketId);
   if (!ticket) return { success: false, message: "Ticket not found in offline cache" };
   if (ticket.status === "checked-in") return { success: false, message: "Ticket already used (offline)" };
   if (ticket.status === "refunded")   return { success: false, message: "Ticket has been refunded" };
-  return { success: true, message: "Ticket valid (offline — will sync)", event: ticket.event, ticket, offline: true };
+  return { success: true, message: "Ticket valid (offline, will sync)", event: ticket.event, ticket, offline: true };
 }
 
 /* ─── Result card component ──────────────────────────────────────────────── */
@@ -80,7 +80,7 @@ function ResultCard({ result, onDownload, onScanAnother, isOffline }) {
           <h2 className="text-base font-bold text-gray-900">{result.message}</h2>
           {result.offline && (
             <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-semibold mt-0.5">
-              <WifiOff size={11} /> Offline check — will sync
+              <WifiOff size={11} /> Offline check, will sync
             </span>
           )}
         </div>
@@ -248,7 +248,7 @@ export default function TicketScannerPro({ presetEventId = null }) {
           setTimeout(() => { scannedBlockRef.current = false; setCooldown(false); }, 1200);
         }
       } else {
-        setError("No offline data available — connect to the internet to verify this ticket.");
+        setError("No offline data available, connect to the internet to verify this ticket.");
         playBeep("./sound/bbb.wav");
         vibrate(200);
         setCooldown(true);
@@ -291,14 +291,14 @@ export default function TicketScannerPro({ presetEventId = null }) {
     doc.setFontSize(18);
     doc.text("Ticket check-in receipt", 20, 20);
     doc.setFontSize(12);
-    doc.text(`Status: ${result.success ? "Valid — checked in" : "Not valid"}`, 20, 36);
+    doc.text(`Status: ${result.success ? "Valid, checked in" : "Not valid"}`, 20, 36);
     doc.text(`Message: ${result.message || ""}`, 20, 46);
     if (result.event) {
       doc.text(`Event: ${result.event.title || ""}`, 20, 60);
       doc.text(`When: ${formatWhen(result.event)}`, 20, 70);
       doc.text(`Location: ${result.event.location || ""}`, 20, 80);
     }
-    if (result.offline) doc.text("Note: Verified offline — sync required", 20, 94);
+    if (result.offline) doc.text("Note: Verified offline, sync required", 20, 94);
     doc.save("ticket-check-in.pdf");
   };
 
@@ -390,7 +390,7 @@ export default function TicketScannerPro({ presetEventId = null }) {
               )}
               {!isOnline && (
                 <span className="text-xs text-amber-600 font-semibold flex items-center gap-1">
-                  <WifiOff size={11} /> Offline — using cached data
+                  <WifiOff size={11} /> Offline, using cached data
                 </span>
               )}
             </div>

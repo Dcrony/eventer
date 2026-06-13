@@ -529,7 +529,7 @@ export default function EventDetail() {
                     {/* Upcoming — tickets are on sale */}
                     {isEventUpcoming && (
                       <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm font-semibold">
-                        🗓 Tickets on sale — event starts{" "}
+                        🗓 Tickets on sale, event starts{" "}
                         {event.startDate
                           ? new Date(event.startDate).toLocaleDateString(undefined, {
                               weekday: "short",

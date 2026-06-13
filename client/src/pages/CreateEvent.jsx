@@ -738,7 +738,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
     setShowAIGen(false);
     setActiveStep(5);
-    toast.success("TickiAI filled your entire event — review the preview before publishing.");
+    toast.success("TickiAI filled your entire event, review the preview before publishing.");
   };
 
   /* ── Navigation ── */
@@ -945,7 +945,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                 <div className="space-y-4">
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 1 — Basic Info
+                      STEP 1, Basic Info
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 1 && (
                     <>
@@ -983,7 +983,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                         ) : (
                           <div className="rounded-xl border border-dashed border-pink-200 bg-white/70 px-4 py-3 text-center">
                             <p className="text-xs text-gray-500">
-                              Click <strong className="text-pink-600">Use TickiAI</strong> to auto-fill all 5 wizard steps — title, schedule, tickets, pricing, settings, and cover image — then jump straight to preview.
+                              Click <strong className="text-pink-600">Use TickiAI</strong> to auto-fill all 5 wizard steps, title, schedule, tickets, pricing, settings, and cover image, then jump straight to preview.
                             </p>
                           </div>
                         )}
@@ -1050,7 +1050,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   )}
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 2 — Media
+                      STEP 2, Media
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 2 && (
                     <Card>
@@ -1093,7 +1093,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   )}
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 3 — Tickets (UPDATED)
+                      STEP 3, Tickets (UPDATED)
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 3 && (
                     <div className="space-y-4">
@@ -1122,7 +1122,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                             <h3 className="text-sm font-bold text-gray-900">Ticket tiers</h3>
                             <p className="text-xs text-gray-500">
                               {isFreeEvent
-                                ? "All tiers are free — toggle individual tiers on/off to control visibility."
+                                ? "All tiers are free, toggle individual tiers on/off to control visibility."
                                 : "Enable, disable, customise or add tiers. Disabled tiers won't appear to buyers."}
                             </p>
                           </div>
@@ -1139,7 +1139,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
 
                         {isFreeEvent ? (
                           <div className="rounded-xl border border-pink-200 bg-pink-50 px-3 py-2.5 text-xs text-pink-700">
-                            Free event mode — attendees reserve spots without payment. All pricing is hidden from buyers.
+                            Free event mode, attendees reserve spots without payment. All pricing is hidden from buyers.
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -1205,7 +1205,7 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   )}
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 4 — Settings
+                      STEP 4, Settings
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 4 && (
                     <>
@@ -1295,12 +1295,12 @@ export default function CreateEvent({ isOpen, onClose, initialOptions = null }) 
                   )}
 
                   {/* ══════════════════════════════════════════════════════
-                      STEP 5 — Preview
+                      STEP 5, Preview
                   ══════════════════════════════════════════════════════ */}
                   {activeStep === 5 && (
                     <Card>
                       <h3 className="mb-0.5 text-sm font-bold text-gray-900">Preview before publish</h3>
-                      <p className="mb-4 text-xs text-gray-500">Final pass — make sure everything looks clean.</p>
+                      <p className="mb-4 text-xs text-gray-500">Final pass, make sure everything looks clean.</p>
 
                       {form.title && (
                         <div className="mb-4 flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-700">

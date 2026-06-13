@@ -62,7 +62,7 @@ export default function UpgradeExperienceModal({ open, onClose, featureName = ""
         {/* Pink accent bar */}
         <div className="h-1 w-full bg-gradient-to-r from-pink-500 to-fuchsia-500 flex-shrink-0" />
 
-        {/* Drag handle — mobile only */}
+        {/* Drag handle, mobile only */}
         <div className="flex justify-center pt-2 pb-0 sm:hidden flex-shrink-0">
           <div className="w-9 h-1 rounded-full bg-gray-200" />
         </div>
@@ -77,7 +77,7 @@ export default function UpgradeExperienceModal({ open, onClose, featureName = ""
               Upgrade to Pro
             </h2>
             <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-              Unlock {featureLabel} — start with a 14-day free trial.
+              Unlock {featureLabel}, start with a 14-day free trial.
             </p>
           </div>
           <button
@@ -135,7 +135,7 @@ export default function UpgradeExperienceModal({ open, onClose, featureName = ""
           </div>
         </div>
 
-        {/* Footer actions — always visible, never scrolls away */}
+        {/* Footer actions, always visible, never scrolls away */}
         <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 flex-shrink-0 flex flex-col gap-2">
           <button
             onClick={handleUpgrade}

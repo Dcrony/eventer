@@ -46,7 +46,7 @@ export default function AboutUs() {
           <p className="text-slate-600 leading-relaxed text-[15px]">
             At <strong className="text-slate-900">TickiSpot</strong>, we believe everyone should have the power to
             create meaningful experiences. We built a simple, reliable, and powerful platform that helps
-            organizers focus on what matters most — delivering amazing events — while we handle the rest.
+            organizers focus on what matters most, delivering amazing events, while we handle the rest.
           </p>
         </section>
 
@@ -59,7 +59,7 @@ export default function AboutUs() {
           <p className="text-slate-600 leading-relaxed text-[15px]">
             Born in Nigeria, TickiSpot was founded by event lovers who were frustrated with the complexity
             and high costs of existing ticketing tools. We started with one goal: to make event management
-            seamless for African organizers — from small community gatherings to large festivals and conferences.
+            seamless for African organizers, from small community gatherings to large festivals and conferences.
           </p>
         </section>
 

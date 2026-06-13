@@ -25,7 +25,7 @@ const QUICK_PROMPTS = {
 
 const WELCOME_MESSAGE = {
   organizer:
-    "Hey! I'm TickiAI, your event planning assistant 👋\n\nAsk me anything — pricing strategy, marketing copy, ticket setup, event logistics, analytics, or general event planning advice. I'm here to help you run a successful event.",
+    "Hey! I'm TickiAI, your event planning assistant 👋\n\nAsk me anything, pricing strategy, marketing copy, ticket setup, event logistics, analytics, or general event planning advice. I'm here to help you run a successful event.",
   user:
     "Hey! I'm TickiAI, your event concierge 👋\n\nAsk me about events on TickiSpot, what to expect at events, how to pick tickets, what to bring, or anything else about going out and having a great time.",
 };
@@ -135,7 +135,7 @@ export default function TickiAIChat({ event, user, initialRole = "user" }) {
     } catch (err) {
       const msg =
         err.response?.status === 429
-          ? "Too many messages — wait a moment and try again."
+          ? "Too many messages, wait a moment and try again."
           : "Unable to reach TickiAI. Please try again.";
       setError(msg);
       appendMessage({ sender: "assistant", text: msg });

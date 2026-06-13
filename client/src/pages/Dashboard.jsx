@@ -201,7 +201,7 @@ function EmptyEvents({ onCreateEvent }) {
             </div>
             <p className="text-sm font-black text-gray-900">No events published yet</p>
             <p className="mt-1.5 max-w-xs text-xs text-gray-400 leading-relaxed">
-                Create your first event — sell tickets, run a live stream, or host a free meetup.
+                Create your first event, sell tickets, run a live stream, or host a free meetup.
             </p>
             <button
                 onClick={onCreateEvent}

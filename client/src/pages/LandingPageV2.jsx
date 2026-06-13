@@ -60,12 +60,12 @@ const FEATURES = [
   {
     icon: Ticket,
     title: "Smart ticketing",
-    desc: "Multi-tier pricing, instant checkout, and scannable QR tickets — free or paid.",
+    desc: "Multi-tier pricing, instant checkout, and scannable QR tickets , free or paid.",
   },
   {
     icon: Radio,
     title: "Built-in livestream",
-    desc: "Broadcast your event to any device. Virtual, hybrid, or in-person — same platform.",
+    desc: "Broadcast your event to any device. Virtual, hybrid, or in-person, same platform.",
   },
   {
     icon: BarChart3,
@@ -93,12 +93,12 @@ const STEPS = [
   { n: "1", title: "Create your event", body: "Set ticket types, pricing, stream settings, and go live in minutes." },
   { n: "2", title: "Sell and promote", body: "Share your event page and track sales in real time from your dashboard." },
   { n: "3", title: "Stream or scan", body: "Go live to virtual attendees while scanning tickets at the door." },
-  { n: "4", title: "Measure and grow", body: "See exactly what worked — ticket sales, viewer counts, revenue breakdown." },
+  { n: "4", title: "Measure and grow", body: "See exactly what worked , ticket sales, viewer counts, revenue breakdown." },
 ];
 
 const SOCIAL_PROOF = [
   { quote: "TickiSpot made our sold-out Lagos concert genuinely effortless to run.", name: "Adaeze O.", role: "Concert promoter" },
-  { quote: "We sold 2,000 tickets for our tech summit and streamed to 800 online — all from one dashboard.", name: "Taiwo B.", role: "Conference organizer" },
+  { quote: "We sold 2,000 tickets for our tech summit and streamed to 800 online , all from one dashboard.", name: "Taiwo B.", role: "Conference organizer" },
   { quote: "The QR scanner saved us 40 minutes at the door. Attendees were through in seconds.", name: "Chidi M.", role: "Campus event lead" },
 ];
 
@@ -253,7 +253,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto mt-7 max-w-2xl text-center text-lg leading-relaxed text-gray-500 sm:text-xl">
-            TickiSpot handles ticketing, live streaming, door scanning, and analytics — so you can
+            TickiSpot handles ticketing, live streaming, door scanning, and analytics , so you can
             focus on the show. Built for organisers across Nigeria and Africa.
           </p>
 
@@ -305,7 +305,7 @@ export default function LandingPage() {
             Free to start · No credit card required · 14-day Pro trial
           </p>
 
-          {/* Hero visual — dashboard mockup */}
+          {/* Hero visual , dashboard mockup */}
           <div className="mx-auto mt-16 max-w-5xl">
             <div className="relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl shadow-gray-200/80">
               {/* Fake browser chrome */}
@@ -343,7 +343,7 @@ export default function LandingPage() {
                   {/* Fake chart */}
                   <div className="rounded-2xl border border-gray-100 bg-white p-5">
                     <div className="mb-4 flex items-center justify-between">
-                      <p className="text-xs font-bold text-gray-700">Ticket sales — last 7 days</p>
+                      <p className="text-xs font-bold text-gray-700">Ticket sales , last 7 days</p>
                       <span className="rounded-full bg-pink-50 px-2.5 py-1 text-[10px] font-bold text-pink-600">+18%</span>
                     </div>
                     <div className="flex h-24 items-end gap-1.5">
@@ -393,7 +393,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── SOCIAL PROOF BAR ─────────────────────────────────────────────── */}
-      <section className="border-y border-gray-100 bg-gray-50 py-5">
+      {/* <section className="border-y border-gray-100 bg-gray-50 py-5">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14">
             {[
@@ -409,7 +409,7 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ── FEATURES GRID ────────────────────────────────────────────────── */}
       <section className="px-5 py-20 sm:px-8 sm:py-28">
@@ -422,7 +422,7 @@ export default function LandingPage() {
               One platform. Every event type.
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-lg text-gray-500">
-              From intimate workshops to 5,000-person concerts — TickiSpot scales with you.
+              From intimate workshops to 5,000-person concerts , TickiSpot scales with you.
             </p>
           </div>
 
@@ -488,7 +488,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── TESTIMONIALS ─────────────────────────────────────────────────── */}
-      <section className="px-5 py-20 sm:px-8 sm:py-28">
+      {/* <section className="px-5 py-20 sm:px-8 sm:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="mb-14 text-center">
             <p className="mb-3 text-xs font-black uppercase tracking-widest text-pink-500">Testimonials</p>
@@ -520,7 +520,7 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* ── EVENTS DIRECTORY ─────────────────────────────────────────────── */}
       <section className="border-t border-gray-100 px-5 py-20 sm:px-8 sm:py-28">
@@ -744,7 +744,7 @@ export default function LandingPage() {
                 </span>
               </Link>
               <p className="mt-4 max-w-xs text-sm leading-relaxed">
-                Event ticketing, live streaming, and analytics — one home for your shows, conferences,
+                Event ticketing, live streaming, and analytics , one home for your shows, conferences,
                 and communities across Africa.
               </p>
               <div className="mt-5 flex gap-2">

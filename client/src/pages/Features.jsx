@@ -72,7 +72,7 @@ export default function FeaturesPage() {
           
           {/* Main Description */}
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto mt-6 leading-relaxed">
-            TickiSpot gives you everything you need to create, manage, and scale events —
+            TickiSpot gives you everything you need to create, manage, and scale events,
             from ticket sales to live streaming and real-time analytics.
           </p>
           

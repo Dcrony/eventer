@@ -306,7 +306,7 @@ export default function Home() {
                 <p className="text-sm text-gray-400 max-w-sm mx-auto mb-4">
                   {search
                     ? `We couldn't find anything for "${search}". Try a different term.`
-                    : "Check back soon — new events are added every day."}
+                    : "Check back soon, new events are added every day."}
                 </p>
                 {search && (
                   <button

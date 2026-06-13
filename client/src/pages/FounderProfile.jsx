@@ -13,11 +13,11 @@ const founder = {
 
 const story = {
   title: "How TickiSpot started",
-  content: `TickiSpot started from a simple frustration — organizing events was messy.
+  content: `TickiSpot started from a simple frustration, organizing events was messy.
 
 From ticket sales to tracking attendees and handling payments, everything lived in different tools that didn't talk to each other. As someone who worked closely with event communities and creators, I kept seeing the same problem: organizers were spending more time managing tools than actually building experiences.
 
-The idea for TickiSpot came during a small campus event where managing attendance and ticket verification became chaotic. That moment made it clear — events needed one system, not five.
+The idea for TickiSpot came during a small campus event where managing attendance and ticket verification became chaotic. That moment made it clear, events needed one system, not five.
 
 So I started building a platform that brings ticketing, event management, analytics, and audience engagement into one place. What began as a personal solution quickly turned into a product designed for organizers, creators, and communities who want to scale real-world experiences without friction.`
 };
@@ -75,7 +75,7 @@ export default function FounderProfile() {
               </div>
               <p className="text-sm text-gray-700">
                 To empower creators and organizers with technology that makes event management seamless, 
-                so they can focus on what matters most — building memorable experiences.
+                so they can focus on what matters most, building memorable experiences.
               </p>
             </div>
 
