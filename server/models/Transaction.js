@@ -43,7 +43,7 @@ const transactionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "success", "failed"],
+      enum: ["pending", "success", "failed", "refunded", "chargeback"],
       default: "pending",
       index: true,
     },
@@ -62,9 +62,10 @@ const transactionSchema = new mongoose.Schema(
     },
 
     metadata: {
-      eventId:    { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
-      ticketId:   { type: mongoose.Schema.Types.ObjectId },
-      payoutId:   { type: mongoose.Schema.Types.ObjectId, ref: "Payout" },
+      eventId:      { type: mongoose.Schema.Types.ObjectId, ref: "Event" },
+      ticketId:     { type: mongoose.Schema.Types.ObjectId },
+      ticketIds:    [{ type: mongoose.Schema.Types.ObjectId }],
+      payoutId:     { type: mongoose.Schema.Types.ObjectId, ref: "Payout" },
       withdrawalId: { type: mongoose.Schema.Types.ObjectId, ref: "Withdrawal" },
     },
   },
