@@ -17,7 +17,7 @@ const createRecipient = async (bankDetails) => {
       type: "nuban",
       name: bankDetails.accountName,
       account_number: bankDetails.accountNumber,
-      bank_code: bankDetails.bankCode, // IMPORTANT
+      bank_code: bankDetails.bankCode,
       currency: "NGN",
     },
     { headers }
@@ -42,7 +42,26 @@ const initiateTransfer = async (amount, recipientCode, reference) => {
   return response.data.data;
 };
 
+// 3️⃣ Refund a Paystack transaction
+const refundTransaction = async (reference, amount) => {
+  if (!PAYSTACK_SECRET) {
+    throw new Error("Paystack secret not configured");
+  }
+  if (!reference) {
+    throw new Error("Missing payment reference for refund");
+  }
+
+  const payload = { transaction: reference };
+  if (typeof amount === "number" && amount > 0) {
+    payload.amount = Math.round(amount * 100);
+  }
+
+  const response = await axios.post(`${BASE_URL}/refund`, payload, { headers });
+  return response.data.data;
+};
+
 module.exports = {
   createRecipient,
   initiateTransfer,
+  refundTransaction,
 };
