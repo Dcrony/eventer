@@ -85,9 +85,17 @@ const makeTier = (overrides = {}) => ({
   price: "",
   isEnabled: true,
   isFree: false,
+  isRefundable: true,
+  isTransferable: true,
   label: "",
   color: "",
   description: "",
+  benefits: "",
+  groupSize: "1",
+  availableQuantity: "",
+  saleStartDate: "",
+  saleEndDate: "",
+  priceIncreaseDate: "",
   maxPerOrder: "",
   ...overrides,
 });
@@ -109,9 +117,17 @@ const normalizePricingFromServer = (pricing) => {
       price: t?.price != null ? String(t.price) : "",
       isEnabled: t?.isEnabled !== false,
       isFree: Boolean(t?.isFree),
+      isRefundable: t?.isRefundable !== false,
+      isTransferable: t?.isTransferable !== false,
       label: t?.label || "",
       color: t?.color || "",
       description: t?.description || "",
+      benefits: t?.benefits || "",
+      groupSize: t?.groupSize != null ? String(t.groupSize) : "1",
+      availableQuantity: t?.availableQuantity != null ? String(t.availableQuantity) : "",
+      saleStartDate: t?.saleStartDate || "",
+      saleEndDate: t?.saleEndDate || "",
+      priceIncreaseDate: t?.priceIncreaseDate || "",
       maxPerOrder: t?.maxPerOrder ? String(t.maxPerOrder) : "",
     })
   );
@@ -325,6 +341,103 @@ function TierEditor({ tier, index, onChange, onDelete, isEventFree }) {
             />
           </div>
           <div>
+            <FieldLabel>Benefits summary (optional)</FieldLabel>
+            <input
+              value={tier.benefits}
+              onChange={(e) => update({ benefits: e.target.value })}
+              placeholder="e.g. Priority entry, complimentary drink"
+              className={F}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <FieldLabel>Refundable</FieldLabel>
+              <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={tier.isRefundable}
+                  onChange={() => update({ isRefundable: !tier.isRefundable })}
+                  className="accent-pink-500"
+                />
+                Allowed
+              </label>
+            </div>
+            <div>
+              <FieldLabel>Transferable</FieldLabel>
+              <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={tier.isTransferable}
+                  onChange={() => update({ isTransferable: !tier.isTransferable })}
+                  className="accent-pink-500"
+                />
+                Allowed
+              </label>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <FieldLabel>Group size</FieldLabel>
+              <input
+                type="number"
+                min="1"
+                value={tier.groupSize}
+                onChange={(e) => update({ groupSize: e.target.value })}
+                className={F}
+              />
+            </div>
+            <div>
+              <FieldLabel>Available quantity</FieldLabel>
+              <input
+                type="number"
+                min="0"
+                value={tier.availableQuantity}
+                onChange={(e) => update({ availableQuantity: e.target.value })}
+                className={F}
+              />
+            </div>
+            <div>
+              <FieldLabel>Max per order</FieldLabel>
+              <input
+                type="number"
+                min="0"
+                value={tier.maxPerOrder}
+                onChange={(e) => update({ maxPerOrder: e.target.value })}
+                placeholder="Unlimited"
+                className={F}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <FieldLabel>Sale starts</FieldLabel>
+              <input
+                type="date"
+                value={tier.saleStartDate}
+                onChange={(e) => update({ saleStartDate: e.target.value })}
+                className={F}
+              />
+            </div>
+            <div>
+              <FieldLabel>Sale ends</FieldLabel>
+              <input
+                type="date"
+                value={tier.saleEndDate}
+                onChange={(e) => update({ saleEndDate: e.target.value })}
+                className={F}
+              />
+            </div>
+            <div>
+              <FieldLabel>Price increase</FieldLabel>
+              <input
+                type="date"
+                value={tier.priceIncreaseDate}
+                onChange={(e) => update({ priceIncreaseDate: e.target.value })}
+                className={F}
+              />
+            </div>
+          </div>
+          <div>
             <FieldLabel>Accent colour</FieldLabel>
             <div className="flex flex-wrap items-center gap-2">
               {TIER_COLORS.map((c) => (
@@ -515,15 +628,48 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
   const handleAI = (aiData, aiImageFile = null, aiImagePreview = null) => {
     setForm((prev) => {
       let nextPricing = prev.pricing;
-      if (Array.isArray(aiData.pricing) && aiData.pricing.length) {
-        nextPricing = prev.pricing.map((slot) => {
-          const match = aiData.pricing.find(
-            (t) => t.type?.toLowerCase() === slot.type.toLowerCase()
-          );
-          return match && match.price !== undefined
-            ? { ...slot, price: String(match.price) }
-            : slot;
+      const normalizedAIPricing = Array.isArray(aiData.pricing) && aiData.pricing.length
+        ? aiData.pricing
+            .map((tier) => ({
+              type: String(tier?.type || tier?.label || tier?.name || "").trim(),
+              price: tier?.price != null
+                ? String(tier.price)
+                : tier?.amount != null
+                  ? String(tier.amount)
+                  : "",
+              isEnabled: tier?.isEnabled !== false,
+              isFree: Boolean(tier?.isFree) || Number(tier?.price ?? tier?.amount ?? 0) === 0,
+              isRefundable: tier?.isRefundable !== false,
+              isTransferable: tier?.isTransferable !== false,
+              label: tier?.label || "",
+              color: tier?.color || "",
+              description: tier?.description || "",
+              benefits: tier?.benefits || "",
+              groupSize: tier?.groupSize != null ? String(tier.groupSize) : "1",
+              availableQuantity: tier?.availableQuantity != null ? String(tier.availableQuantity) : "",
+              saleStartDate: tier?.saleStartDate || "",
+              saleEndDate: tier?.saleEndDate || "",
+              priceIncreaseDate: tier?.priceIncreaseDate || "",
+              maxPerOrder: tier?.maxPerOrder != null ? String(tier.maxPerOrder) : "",
+            }))
+            .filter((tier) => tier.type)
+        : [];
+
+      if (normalizedAIPricing.length) {
+        const existingByType = new Map(prev.pricing.map((tier) => [String(tier.type || "").toLowerCase(), tier]));
+        const merged = normalizedAIPricing.map((aiTier) => {
+          const existing = existingByType.get(aiTier.type.toLowerCase());
+          return {
+            ...existing,
+            ...aiTier,
+            price: aiTier.price != null ? aiTier.price : existing?.price || "",
+            groupSize: aiTier.groupSize || existing?.groupSize || "1",
+            availableQuantity: aiTier.availableQuantity || existing?.availableQuantity || "",
+            maxPerOrder: aiTier.maxPerOrder || existing?.maxPerOrder || "",
+          };
         });
+        const appended = prev.pricing.filter((tier) => !normalizedAIPricing.some((aiTier) => aiTier.type.toLowerCase() === String(tier.type || "").toLowerCase()));
+        nextPricing = [...merged, ...appended];
       } else if (aiData.ticketPrice != null) {
         nextPricing = prev.pricing.map((t) =>
           t.type === "Regular"
@@ -554,7 +700,9 @@ export default function EditEvent({ isOpen, onClose, eventId, onEventUpdated }) 
       };
     });
 
-    const inferFree = aiData.isFree ?? aiData.isFreeEvent ?? (aiData.ticketPrice === 0) ?? false;
+    const inferFree = aiData.isFree ?? aiData.isFreeEvent ?? (Array.isArray(aiData.pricing) && aiData.pricing.length
+      ? aiData.pricing.every((tier) => Number(tier?.price ?? tier?.amount ?? 0) === 0 || tier?.isFree)
+      : aiData.ticketPrice === 0) ?? false;
     setIsFreeEvent(Boolean(inferFree));
 
     if (aiImageFile) {

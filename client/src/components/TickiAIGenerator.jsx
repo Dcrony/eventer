@@ -33,8 +33,8 @@ const CATEGORY_OPTIONS = [
   "Health", "Education", "Fashion", "Comedy", "Fitness", "Networking",
   "Film", "Religious", "Charity", "Other",
 ];
-const EVENT_TYPE_OPTIONS  = ["In-person", "Virtual", "Hybrid"];
-const VISIBILITY_OPTIONS  = ["public", "private"];
+const EVENT_TYPE_OPTIONS = ["In-person", "Virtual", "Hybrid"];
+const VISIBILITY_OPTIONS = ["public", "private"];
 const STREAM_TYPE_OPTIONS = ["Camera", "YouTube", "Facebook", "Custom"];
 
 /* ─── Normalizers ──────────────────────────────────────────────────────────── */
@@ -53,7 +53,7 @@ const normalizeTime = (raw) => {
   try {
     const d = new Date(`1970-01-01T${raw}`);
     if (!isNaN(d.getTime())) return d.toTimeString().slice(0, 5);
-  } catch {}
+  } catch { }
   return "14:00";
 };
 
@@ -141,10 +141,10 @@ function PricingRow({ tier, value, onChange, disabled }) {
 /* ─── Image generation panel ───────────────────────────────────────────────── */
 
 function ImageGeneratorPanel({ eventTitle, eventDescription, imageSearchQuery, onImageSelect }) {
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading] = useState(false);
   const [imageData, setImageData] = useState(null);
-  const [error, setError]         = useState(null);
-  const [query, setQuery]         = useState(imageSearchQuery || "");
+  const [error, setError] = useState(null);
+  const [query, setQuery] = useState(imageSearchQuery || "");
 
   const fetchImage = async (customQuery) => {
     setLoading(true);
@@ -234,8 +234,8 @@ function ImageGeneratorPanel({ eventTitle, eventDescription, imageSearchQuery, o
 
 const AI_STEPS = [
   { id: 1, label: "Describe" },
-  { id: 2, label: "Review"   },
-  { id: 3, label: "Cover"    },
+  { id: 2, label: "Review" },
+  { id: 3, label: "Cover" },
 ];
 
 function AIStepBar({ current }) {
@@ -266,15 +266,15 @@ function AIStepBar({ current }) {
  *  compact, when true, render inline (no outer padding), used inside CreateEvent Step 1.
  */
 const TickiAIGenerator = ({ onGenerate, compact = false }) => {
-  const [aiStep,   setAiStep]   = useState(1);  // 1=prompt, 2=review, 3=cover
-  const [prompt,   setPrompt]   = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState(null);
+  const [aiStep, setAiStep] = useState(1);  // 1=prompt, 2=review, 3=cover
+  const [prompt, setPrompt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [generated, setGenerated] = useState(null);
-  const [isFree,   setIsFree]   = useState(false);
+  const [isFree, setIsFree] = useState(false);
 
   // Image
-  const [chosenImageFile,    setChosenImageFile]    = useState(null);
+  const [chosenImageFile, setChosenImageFile] = useState(null);
   const [chosenImagePreview, setChosenImagePreview] = useState(null);
 
   /* ── Generate ───────────────────────────────────────────────────────────── */
@@ -293,43 +293,56 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
       const slots = [{ type: "Regular", price: "" }, { type: "VIP", price: "" }, { type: "VVIP", price: "" }];
       let pricing = slots;
       if (Array.isArray(raw.pricing) && raw.pricing.length) {
-        pricing = slots.map((def) => {
-          const match = raw.pricing.find((p) => p.type?.toLowerCase() === def.type.toLowerCase());
-          return match ? { type: def.type, price: match.price != null ? String(match.price) : "" } : def;
-        });
+        pricing = raw.pricing.map((tier) => ({
+          type: String(tier?.type || tier?.name || tier?.label || "").trim() || "",
+          price: Number(tier?.price ?? tier?.amount ?? 0) > 0 ? String(Number(tier?.price ?? tier?.amount ?? 0)) : "",
+          isEnabled: tier?.isEnabled !== false,
+          isFree: Boolean(tier?.isFree) || Number(tier?.price ?? tier?.amount ?? 0) === 0,
+          label: tier?.label || "",
+          description: tier?.description || "",
+          benefits: tier?.benefits || "",
+          isRefundable: tier?.isRefundable !== false,
+          isTransferable: tier?.isTransferable !== false,
+          groupSize: tier?.groupSize != null ? String(tier.groupSize) : "1",
+          availableQuantity: tier?.availableQuantity != null ? String(tier.availableQuantity) : "",
+          saleStartDate: tier?.saleStartDate || "",
+          saleEndDate: tier?.saleEndDate || "",
+          priceIncreaseDate: tier?.priceIncreaseDate || "",
+          maxPerOrder: tier?.maxPerOrder != null ? String(tier.maxPerOrder) : "",
+        })).filter((tier) => tier.type);
       } else {
-        const reg  = raw.regularPrice ?? raw.ticketPrice ?? 0;
-        const vip  = raw.vipPrice  ?? 0;
+        const reg = raw.regularPrice ?? raw.ticketPrice ?? 0;
+        const vip = raw.vipPrice ?? 0;
         const vvip = raw.vvipPrice ?? 0;
         pricing = [
-          { type: "Regular", price: reg  > 0 ? String(reg)  : "" },
-          { type: "VIP",     price: vip  > 0 ? String(vip)  : "" },
-          { type: "VVIP",    price: vvip > 0 ? String(vvip) : "" },
+          { type: "Regular", price: reg > 0 ? String(reg) : "", isEnabled: true, isFree: reg === 0, label: "", description: "", benefits: "", isRefundable: true, isTransferable: true, groupSize: "1", availableQuantity: "", saleStartDate: "", saleEndDate: "", priceIncreaseDate: "", maxPerOrder: "" },
+          { type: "VIP", price: vip > 0 ? String(vip) : "", isEnabled: true, isFree: vip === 0, label: "", description: "", benefits: "", isRefundable: true, isTransferable: true, groupSize: "1", availableQuantity: "", saleStartDate: "", saleEndDate: "", priceIncreaseDate: "", maxPerOrder: "" },
+          { type: "VVIP", price: vvip > 0 ? String(vvip) : "", isEnabled: true, isFree: vvip === 0, label: "", description: "", benefits: "", isRefundable: true, isTransferable: true, groupSize: "1", availableQuantity: "", saleStartDate: "", saleEndDate: "", priceIncreaseDate: "", maxPerOrder: "" },
         ];
       }
 
       const inferFree = raw.isFree ?? raw.isFreeEvent ?? pricing.every((t) => !t.price || Number(t.price) === 0);
-      const startDate  = normalizeDate(raw.startDate || raw.date);
-      const startTime  = normalizeTime(raw.startTime || raw.time);
+      const startDate = normalizeDate(raw.startDate || raw.date);
+      const startTime = normalizeTime(raw.startTime || raw.time);
 
       setGenerated({
         // Step 1
-        title:       raw.title || "",
+        title: raw.title || "",
         description: raw.description || "",
-        category:    raw.category || "Other",
-        eventType:   raw.eventType || "In-person",
-        location:    raw.eventType === "Virtual" ? "" : (raw.location || ""),
-        visibility:  raw.visibility || "public",
+        category: raw.category || "Other",
+        eventType: raw.eventType || "In-person",
+        location: raw.eventType === "Virtual" ? "" : (raw.location || ""),
+        visibility: raw.visibility || "public",
         startDate,
-        endDate:     normalizeDate(raw.endDate) || startDate,
+        endDate: normalizeDate(raw.endDate) || startDate,
         startTime,
-        endTime:     normalizeTime(raw.endTime) || startTime,
+        endTime: normalizeTime(raw.endTime) || startTime,
         // Step 3
         totalTickets: String(raw.totalTickets || raw.capacity || 100),
         pricing,
         // Step 4
         streamType: raw.streamType || "Camera",
-        streamURL:  raw.streamURL  || "",
+        streamURL: raw.streamURL || "",
         // Image hint
         imageSearchQuery: raw.imageSearchQuery || raw.title || "",
       });
@@ -362,26 +375,26 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
     if (!generated) return;
     const payload = {
       // Original handleAI keys
-      title:       generated.title,
+      title: generated.title,
       description: generated.description,
-      category:    generated.category,
-      location:    generated.location,
-      date:        generated.startDate,
-      time:        generated.startTime,
-      capacity:    generated.totalTickets,
+      category: generated.category,
+      location: generated.location,
+      date: generated.startDate,
+      time: generated.startTime,
+      capacity: generated.totalTickets,
       ticketPrice: Number(generated.pricing?.[0]?.price) || 0,
       isFree,
-      eventType:   generated.eventType,
+      eventType: generated.eventType,
       // Extended keys
-      endDate:     generated.endDate,
-      endTime:     generated.endTime,
-      visibility:  generated.visibility,
-      streamType:  generated.streamType,
-      streamURL:   generated.streamURL,
-      pricing:     isFree ? [] : generated.pricing.map((t) => ({ ...t, price: t.price || "0" })),
+      endDate: generated.endDate,
+      endTime: generated.endTime,
+      visibility: generated.visibility,
+      streamType: generated.streamType,
+      streamURL: generated.streamURL,
+      pricing: isFree ? [] : generated.pricing.map((t) => ({ ...t, price: t.price || "0" })),
       totalTickets: generated.totalTickets,
-      startDate:   generated.startDate,
-      startTime:   generated.startTime,
+      startDate: generated.startDate,
+      startTime: generated.startTime,
     };
     if (onGenerate) onGenerate(payload, chosenImageFile, chosenImagePreview);
   };
@@ -495,8 +508,8 @@ const TickiAIGenerator = ({ onGenerate, compact = false }) => {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <EditableField label="Start date" value={generated.startDate} onChange={update("startDate")} type="date" />
             <EditableField label="Start time" value={generated.startTime} onChange={update("startTime")} type="time" />
-            <EditableField label="End date"   value={generated.endDate}   onChange={update("endDate")}   type="date" />
-            <EditableField label="End time"   value={generated.endTime}   onChange={update("endTime")}   type="time" />
+            <EditableField label="End date" value={generated.endDate} onChange={update("endDate")} type="date" />
+            <EditableField label="End time" value={generated.endTime} onChange={update("endTime")} type="time" />
           </div>
         </Section>
 
