@@ -1,6 +1,7 @@
 /**
  * Server-side ticket price calculation — never trust client amount.
  */
+const { getPlatformTicketFeePercent } = require("./platformFee");
 
 function resolveTicketUnitPrice(event, pricingType) {
   if (!event) {
@@ -31,13 +32,20 @@ function computeTicketOrderTotal(event, { pricingType, quantity }) {
   const qty = Math.max(1, Math.min(50, parseInt(quantity, 10) || 1));
   const unitPrice = resolveTicketUnitPrice(event, pricingType);
   const totalNaira = unitPrice * qty;
+  const feePercent = getPlatformTicketFeePercent();
+  const platformFeeNaira = Math.round((totalNaira * feePercent) / 100);
+  const totalWithFeeNaira = totalNaira + platformFeeNaira;
 
   return {
     quantity: qty,
     unitPrice,
     totalNaira,
     totalKobo: Math.round(totalNaira * 100),
+    platformFeeNaira,
+    totalWithFeeNaira,
+    totalWithFeeKobo: Math.round(totalWithFeeNaira * 100),
     pricingType: pricingType || event.pricing?.[0]?.type || "Standard",
+    feePercent,
   };
 }
 
