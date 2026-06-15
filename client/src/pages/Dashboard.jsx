@@ -340,7 +340,6 @@ export default function Dashboard() {
     return (
         <AppPage
             title="Dashboard"
-            description={`${greeting}${user?.username ? `, ${user.username}` : ""}. Here's what's happening.`}
         >
             {/* ── Verification banner ── */}
             {VERIFIED_ROLES.includes(user?.role) && userVerification && (

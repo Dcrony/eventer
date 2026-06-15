@@ -81,9 +81,18 @@ export default function Checkout() {
     [selectedPricing, price]
   );
 
+  const platformFeePercent = Number(event?.platformFeePercent ?? 0) || 0;
+  const feeAmount = useMemo(
+    () => Math.round((unitPrice * (quantity || 0) * platformFeePercent) / 100),
+    [unitPrice, quantity, platformFeePercent]
+  );
   const lineTotal = useMemo(
     () => unitPrice * (quantity || 0),
     [unitPrice, quantity]
+  );
+  const grandTotal = useMemo(
+    () => lineTotal + feeAmount,
+    [lineTotal, feeAmount]
   );
 
   /* ── Guard: missing state ── */
@@ -179,7 +188,7 @@ export default function Checkout() {
     : "Review your tickets and pay securely. You'll get a confirmation by email.";
   const ctaCopy = tierIsFree
     ? "Reserve Free Ticket"
-    : `Pay ₦${lineTotal.toLocaleString()}`;
+    : `Pay ₦${grandTotal.toLocaleString()}`;
 
   return (
     <div className="min-h-screen bg-gray-50 font-geist relative overflow-x-hidden">
@@ -377,7 +386,7 @@ export default function Checkout() {
                   Order summary
                 </span>
                 <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
-                  {tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}
+                  {tierIsFree ? "Free" : `₦${grandTotal.toLocaleString()}`}
                 </span>
               </div>
 
@@ -425,9 +434,18 @@ export default function Checkout() {
                   <div className="h-px bg-gray-200 my-2" />
 
                   <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900">Subtotal</span>
+                    <span className="text-sm font-semibold text-gray-900">{tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900">Platform fee ({platformFeePercent}%)</span>
+                    <span className="text-sm font-semibold text-gray-900">{tierIsFree ? "Free" : `₦${feeAmount.toLocaleString()}`}</span>
+                  </div>
+                  <div className="h-px bg-gray-200 my-2" />
+                  <div className="flex justify-between items-center">
                     <span className="font-bold text-gray-900">Total</span>
                     <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
-                      {tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}
+                      {tierIsFree ? "Free" : `₦${grandTotal.toLocaleString()}`}
                     </span>
                   </div>
                 </div>

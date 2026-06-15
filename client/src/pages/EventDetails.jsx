@@ -81,36 +81,130 @@ const deriveDisplayStatus = (event) => {
   return stored || "Published";
 };
 
-function TicketTypeButton({ ticketType, isSelected, isEventFree, onClick }) {
+function TicketTypeButton({ ticketType, event, isSelected, isEventFree, quantity, onSelect, onQuantityChange, buyDisabled }) {
   const displayName = getTierDisplayName(ticketType);
   const accentColor = getTierAccentColor(ticketType);
   const free = isTierFree(ticketType, isEventFree);
   const priceDisplay = free ? "Free" : formatCurrency(ticketType.price);
+  const groupSize = Number(ticketType.groupSize || 1);
+  const maxPerOrder = free ? 1 : Number(ticketType.maxPerOrder || 0);
+  const qtyLimit = free ? 1 : maxPerOrder > 0 ? Math.min(maxPerOrder, 10) : 5;
+  const quantityValue = isSelected ? quantity : Math.min(quantity, qtyLimit);
+  const availableTickets = Number(ticketType.availableQuantity ?? event?.totalTickets ?? 0);
+  const remainingLabel = availableTickets > 0
+    ? availableTickets <= 20
+      ? `Only ${availableTickets} remaining`
+      : `${availableTickets} remaining`
+    : "Sold out";
+  const groupLabel = groupSize > 1 ? `${groupSize} people per group` : "Individual entry";
+  const deadlineDate = ticketType.saleEndDate ? new Date(ticketType.saleEndDate) : null;
+  const increaseDate = ticketType.priceIncreaseDate ? new Date(ticketType.priceIncreaseDate) : null;
+  const formatTierDate = (date) => {
+    if (!date || Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
+  const saleDeadline = deadlineDate && deadlineDate > new Date() ? formatTierDate(deadlineDate) : null;
+  const priceIncrease = increaseDate && increaseDate > new Date() ? formatTierDate(increaseDate) : null;
 
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`w-full flex justify-between items-center gap-3 p-3 rounded-lg border-2 text-left transition-all duration-200 hover:-translate-y-0.5 ${isSelected
-        ? "border-pink-500 bg-pink-50 shadow-md"
-        : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/30"
+      onClick={onSelect}
+      className={`w-full rounded-3xl border p-5 text-left transition-all duration-200 ${isSelected
+        ? "border-pink-500 bg-pink-50 shadow-lg"
+        : "border-gray-200 bg-white hover:border-pink-200 hover:bg-pink-50/40"
         }`}
     >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />
-        <div className="space-y-0.5 min-w-0">
-          <strong className="text-sm font-bold text-gray-900 block truncate">{displayName}</strong>
-          {ticketType.description && (
-            <span className="text-xs text-gray-400 block truncate">{ticketType.description}</span>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-pink-100 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-pink-700">TickiSpot</span>
+              {free ? (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-emerald-700">Free</span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-700">Premium</span>
+              )}
+              {isSelected && (
+                <span className="rounded-full bg-pink-500 px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white">Selected</span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-extrabold text-gray-900 truncate">{displayName}</h3>
+              {ticketType.type && ticketType.type !== displayName && (
+                <span className="rounded-full bg-gray-100 px-2 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-gray-600">{ticketType.type}</span>
+              )}
+            </div>
+            {ticketType.description && (
+              <p className="text-sm leading-6 text-gray-600">{ticketType.description}</p>
+            )}
+          </div>
+
+          <div className="flex-shrink-0 text-right">
+            <div className="text-3xl font-extrabold tracking-tight text-gray-900">{priceDisplay}</div>
+            <div className="mt-1 text-[0.65rem] uppercase tracking-[0.22em] text-gray-500">
+              {free ? "No fee" : "Ticket price"}
+            </div>
+          </div>
+        </div>
+
+        {ticketType.benefits && (
+          <div className="grid gap-2 rounded-3xl border border-gray-200 bg-gradient-to-r from-white to-pink-50/80 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-pink-600">Benefits</span>
+              <span className="text-[0.65rem] font-semibold text-gray-500">VIP access included</span>
+            </div>
+            <p className="text-sm text-gray-700">{ticketType.benefits}</p>
+          </div>
+        )}
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          {saleDeadline && (
+            <div className="rounded-3xl bg-pink-50 px-4 py-3 text-sm font-semibold text-pink-700">Sale ends {saleDeadline}</div>
           )}
-          {ticketType.maxPerOrder > 0 && (
-            <span className="text-[0.6rem] text-gray-400 block">Max {ticketType.maxPerOrder} per order</span>
+          {priceIncrease && (
+            <div className="rounded-3xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">Price increases {priceIncrease}</div>
+          )}
+          <div className="rounded-3xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">{remainingLabel}</div>
+          <div className="rounded-3xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">{groupLabel}</div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {ticketType.isRefundable && (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[0.7rem] font-semibold text-emerald-700">Refundable</span>
+          )}
+          {ticketType.isTransferable && (
+            <span className="rounded-full bg-cyan-50 px-3 py-1 text-[0.7rem] font-semibold text-cyan-700">Transferable</span>
+          )}
+          {free && (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-[0.7rem] font-semibold text-emerald-700">Free access</span>
           )}
         </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label htmlFor={`ticket-quantity-${ticketType.type}`} className="block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-gray-400">Quantity</label>
+            <select
+              id={`ticket-quantity-${ticketType.type}`}
+              value={quantityValue}
+              disabled={!isSelected || buyDisabled}
+              onFocus={() => !isSelected && onSelect()}
+              onChange={(e) => {
+                if (!isSelected) onSelect();
+                onQuantityChange(Number(e.target.value));
+              }}
+              className="mt-2 w-full max-w-[120px] rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {Array.from({ length: qtyLimit }, (_, idx) => idx + 1).map((value) => (
+                <option key={value} value={value}>{value}</option>
+              ))}
+            </select>
+          </div>
+          <div className="text-right text-[0.68rem] uppercase tracking-[0.2em] text-gray-400">
+            Powered by TickiSpot
+          </div>
+        </div>
       </div>
-      <strong className="text-sm font-extrabold flex-shrink-0" style={{ color: isSelected ? accentColor : "#ec4899" }}>
-        {priceDisplay}
-      </strong>
     </button>
   );
 }
@@ -720,20 +814,24 @@ export default function EventDetail() {
                     <p className="text-xs text-gray-400 mt-1">Starting price for this event</p>
                   </div>
 
-                  {/* Ticket type selector — only enabled tiers */}
-                  <div className="space-y-2">
+                  {/* Ticket cards — only enabled tiers */}
+                  <div className="space-y-4">
                     {visiblePricing.length ? (
                       visiblePricing.map((ticketType) => (
                         <TicketTypeButton
                           key={ticketType._id || ticketType.type}
                           ticketType={ticketType}
+                          event={event}
                           isSelected={selectedTicketType?.type === ticketType.type}
                           isEventFree={isEventFree}
-                          onClick={() => setSelectedTicketType(ticketType)}
+                          quantity={quantity}
+                          buyDisabled={buyDisabled}
+                          onSelect={() => setSelectedTicketType(ticketType)}
+                          onQuantityChange={(nextQuantity) => setQuantity(nextQuantity)}
                         />
                       ))
                     ) : (
-                      <div className="flex justify-between items-center gap-3 p-3 rounded-lg border-2 border-gray-200 bg-white">
+                      <div className="flex justify-between items-center gap-3 p-3 rounded-2xl border-2 border-gray-200 bg-white">
                         <div className="space-y-0.5">
                           <strong className="text-sm font-bold text-gray-900 block">Free admission</strong>
                           <span className="text-xs text-gray-400 block">Reserve your spot instantly.</span>
@@ -743,49 +841,16 @@ export default function EventDetail() {
                     )}
                   </div>
 
-                  {/* Quantity selector */}
-                  <div className="space-y-1">
-                    <label htmlFor="event-quantity" className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">Quantity</label>
-                    <select
-                      id="event-quantity"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value))}
-                      disabled={isEventFree || selectedTicketType?.isFree}
-                      className="w-full p-3 rounded-lg border-2 border-gray-200 bg-white text-sm text-gray-900 outline-none transition-all duration-200 focus:border-pink-500 focus:ring-2 focus:ring-pink-100 appearance-none bg-no-repeat disabled:opacity-60 disabled:cursor-not-allowed"
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: "right 0.75rem center" }}
-                    >
-
-{(isEventFree || selectedTicketType?.isFree
-  ? [1]
-  : Array.from(
-      {
-        length: selectedTicketType?.maxPerOrder > 0
-          ? Math.min(selectedTicketType.maxPerOrder, 10)
-          : 5
-      },
-      (_, i) => i + 1
-    )
-).map((v) => (
-  <option key={v} value={v}>{v}</option>
-))}
-                    </select>
-                    {(isEventFree || selectedTicketType?.isFree) && (
-                      <p className="text-[0.65rem] text-gray-400">Free tickets are limited to 1 per person.</p>
-                    )}
-                    {selectedTicketType?.maxPerOrder > 0 && !isEventFree && !selectedTicketType?.isFree && (
-                      <p className="text-[0.65rem] text-gray-400">Max {selectedTicketType.maxPerOrder} per order.</p>
-                    )}
-                  </div>
-
-                  {/* Availability stats */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-center p-3 rounded-lg bg-gray-50 border border-gray-200">
-                      <strong className="block text-lg font-extrabold tracking-tight text-gray-900">{remainingTickets}</strong>
-                      <span className="text-[0.65rem] font-medium text-gray-400">tickets remaining</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center rounded-3xl bg-white p-4 border border-gray-200 shadow-sm">
+                      <div className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Remaining</div>
+                      <div className="mt-2 text-3xl font-extrabold text-gray-900">{remainingTickets}</div>
+                      <div className="mt-1 text-[0.75rem] text-gray-500">tickets still available</div>
                     </div>
-                    <div className="text-center p-3 rounded-lg bg-gray-50 border border-gray-200">
-                      <strong className="block text-lg font-extrabold tracking-tight text-gray-900">{event.ticketsSold || 0}</strong>
-                      <span className="text-[0.65rem] font-medium text-gray-400">tickets sold</span>
+                    <div className="text-center rounded-3xl bg-white p-4 border border-gray-200 shadow-sm">
+                      <div className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Sold</div>
+                      <div className="mt-2 text-3xl font-extrabold text-gray-900">{event.ticketsSold || 0}</div>
+                      <div className="mt-1 text-[0.75rem] text-gray-500">confirmed purchases</div>
                     </div>
                   </div>
 
