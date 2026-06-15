@@ -36,6 +36,11 @@ const ticketSchema = new mongoose.Schema({
     default: 0,
     min: 0,
   },
+  platformFee: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   paymentStatus: {
     type: String,
     enum: ["paid", "free"],
@@ -97,6 +102,7 @@ ticketSchema.pre("validate", function normalizeTicketForValidation(next) {
     this.price = 0;
     this.amount = 0;
     this.amountPaid = 0;
+    this.platformFee = 0;
     this.paymentStatus = "free";
     this.ticketType = String(this.ticketType || "Free").trim() || "Free";
   } else {

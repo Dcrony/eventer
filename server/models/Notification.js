@@ -57,6 +57,8 @@ const notificationSchema = new mongoose.Schema(
         'event_rescheduled',
         'event_update',
         'event_ended',
+        'event_went_live',
+      
         'subscription_renewal',
         'subscription_cancellation',
         'subscription_expired',

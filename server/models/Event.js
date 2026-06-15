@@ -42,14 +42,22 @@ const pricingTierSchema = new mongoose.Schema(
     price: { type: Number, default: 0 },
 
     // Per-tier controls (NEW)
-    isEnabled: { type: Boolean, default: true },   // false → hidden everywhere
-    isFree:    { type: Boolean, default: false },  // tier-level free override
+    isEnabled:     { type: Boolean, default: true },   // false → hidden everywhere
+    isFree:        { type: Boolean, default: false },  // tier-level free override
+    isRefundable:  { type: Boolean, default: true },  // whether this ticket can be refunded
+    isTransferable:{ type: Boolean, default: true },  // whether this ticket can be transferred
 
     // Customisation (NEW)
-    label:       { type: String, default: "" },    // display name override
-    color:       { type: String, default: "" },    // hex / tailwind token
-    description: { type: String, default: "" },    // short benefit text
-    maxPerOrder: { type: Number, default: 0 },     // 0 = unlimited
+    label:             { type: String, default: "" },    // display name override
+    color:             { type: String, default: "" },    // hex / tailwind token
+    description:       { type: String, default: "" },    // short benefit text
+    benefits:          { type: String, default: "" },    // additional benefit details
+    groupSize:         { type: Number, default: 1 },       // seats in a group / bundle
+    availableQuantity: { type: Number, default: 0 },       // per-tier availability (0 = unlimited/unspecified)
+    saleStartDate:     { type: Date,   default: null },    // when this tier becomes available
+    saleEndDate:       { type: Date,   default: null },    // when this tier stops selling
+    priceIncreaseDate: { type: Date,   default: null },    // when price increases for this tier
+    maxPerOrder:       { type: Number, default: 0 },       // 0 = unlimited
   },
   { _id: false }
 );
