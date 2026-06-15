@@ -42,7 +42,7 @@ exports.getStats = async (req, res) => {
     );
 
     const totalTicketsSold = tickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
-    const totalRevenue = tickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+    const totalRevenue = tickets.reduce((sum, ticket) => sum + (ticket.amountPaid || 0), 0);
     const currentlyLive = events.filter((event) => event.liveStream?.isLive).length;
 
     const today = new Date();
@@ -68,8 +68,8 @@ exports.getStats = async (req, res) => {
 
     const currentMonthTicketsSold = currentMonthTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
     const previousMonthTicketsSold = previousMonthTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
-    const currentMonthRevenue = currentMonthTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
-    const previousMonthRevenue = previousMonthTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+    const currentMonthRevenue = currentMonthTickets.reduce((sum, ticket) => sum + (ticket.amountPaid || 0), 0);
+    const previousMonthRevenue = previousMonthTickets.reduce((sum, ticket) => sum + (ticket.amountPaid || 0), 0);
 
     const ticketsSoldTrend = calculateGrowth(currentMonthTicketsSold, previousMonthTicketsSold);
     const revenueTrend = calculateGrowth(currentMonthRevenue, previousMonthRevenue);
@@ -94,7 +94,7 @@ exports.getStats = async (req, res) => {
       );
 
       const sold = eventTickets.reduce((sum, ticket) => sum + ticket.quantity, 0);
-      const rev = eventTickets.reduce((sum, ticket) => sum + (ticket.amount || 0), 0);
+      const rev = eventTickets.reduce((sum, ticket) => sum + (ticket.amountPaid || 0), 0);
 
       return {
         id: event._id,
@@ -164,7 +164,7 @@ exports.getStats = async (req, res) => {
       .sort({ purchasedAt: -1 })
       .lean();
 
-    const totalSpentAsAttendee = purchasedTickets.reduce((sum, t) => sum + (t.amount || 0), 0);
+    const totalSpentAsAttendee = purchasedTickets.reduce((sum, t) => sum + (t.amountPaid || 0), 0);
     const totalTicketsAsAttendee = purchasedTickets.reduce((sum, t) => sum + (t.quantity || 0), 0);
 
     response.attendee = {
@@ -174,7 +174,7 @@ exports.getStats = async (req, res) => {
       recentPurchases: purchasedTickets.slice(0, 50).map((t) => ({
         ticketId: t._id,
         quantity: t.quantity,
-        amount: t.amount,
+        amount: t.amountPaid,
         ticketType: t.ticketType,
         purchasedAt: t.purchasedAt,
         event: t.event
@@ -216,11 +216,11 @@ exports.getOrganizerEarnings = async (req, res) => {
     const tickets =
       eventIds.length === 0 ? [] : await Ticket.find({ event: { $in: eventIds } }).lean();
 
-    const grossTicketSales = tickets.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-
+    const grossTicketSales = tickets.reduce((sum, t) => sum + (Number(t.amountPaid) || 0), 0);
+    const totalPlatformFees = tickets.reduce((sum, t) => sum + (Number(t.platformFee) || 0), 0);
     const platformTicketFeePct = getPlatformTicketFeePercent();
-    const platformCommissionOnSales = Math.round((grossTicketSales * platformTicketFeePct) / 100);
-    const netAfterSalesCommission = grossTicketSales - platformCommissionOnSales;
+    const platformCommissionOnSales = totalPlatformFees;
+    const netAfterSalesCommission = Math.max(0, grossTicketSales - platformCommissionOnSales);
 
     const oid = new mongoose.Types.ObjectId(userId);
 
@@ -240,16 +240,16 @@ exports.getOrganizerEarnings = async (req, res) => {
     const perEvent = events
       .map((event) => {
         const evTickets = tickets.filter((t) => t.event.toString() === event._id.toString());
-        const revenue = evTickets.reduce((s, t) => s + (Number(t.amount) || 0), 0);
-        const commission = Math.round((revenue * platformTicketFeePct) / 100);
+        const revenue = evTickets.reduce((s, t) => s + (Number(t.amountPaid) || 0), 0);
+        const platformCommission = evTickets.reduce((s, t) => s + (Number(t.platformFee) || 0), 0);
         return {
           eventId: event._id,
           title: event.title,
           image: event.image,
           startDate: event.startDate,
           grossRevenue: revenue,
-          platformCommission: commission,
-          netEarnings: revenue - commission,
+          platformCommission,
+          netEarnings: Math.max(0, revenue - platformCommission),
           ticketsSold: evTickets.reduce((s, t) => s + (Number(t.quantity) || 0), 0),
         };
       })

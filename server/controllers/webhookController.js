@@ -13,7 +13,6 @@ const Notification = require("../models/Notification");
 const Referral = require("../models/Referral");
 const sendEmail = require("../utils/email");
 const { recordTicketPurchaseMetrics } = require("./eventController");
-const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
 const {
   normalizePlan,
   normalizeInterval,
@@ -170,16 +169,19 @@ exports.handlePaystackWebhook = async (req, res) => {
       }
 
       const order = computeTicketOrderTotal(eventDoc, { pricingType, quantity });
-      if (!amountsMatch(data.amount, order.totalKobo)) {
+      if (!amountsMatch(data.amount, order.totalWithFeeKobo)) {
         console.error("❌ Webhook payment amount mismatch", {
           paid: data.amount,
-          expected: order.totalKobo,
+          expected: order.totalWithFeeKobo,
           reference,
         });
         return res.sendStatus(200);
       }
 
       const ticketPrice = order.unitPrice;
+      const ticketAmount = ticketPrice * quantity;
+      const totalPaid = order.totalWithFeeNaira;
+      const platformFee = order.platformFeeNaira;
 
       // Create ticket
       const ticket = new Ticket({
@@ -187,8 +189,9 @@ exports.handlePaystackWebhook = async (req, res) => {
         buyer: finalUserId,
         quantity,
         price: ticketPrice,
-        amount: ticketPrice * quantity,
-        amountPaid: ticketPrice * quantity,
+        amount: ticketAmount,
+        amountPaid: totalPaid,
+        platformFee,
         paymentStatus: "paid",
         isFree: false,
         reference,
@@ -197,16 +200,13 @@ exports.handlePaystackWebhook = async (req, res) => {
 
       await ticket.save();
 
-      const grossNaira = data.amount / 100;
-      const { platformFee } = splitTicketSaleForOrganizer(grossNaira);
-
       await createPayoutForSale({
         organizerId: eventDoc.createdBy,
         eventId: eventDoc._id,
         eventEndDate: eventDoc.endDate || eventDoc.startDate || new Date(),
         eventEndTime: eventDoc.endTime || eventDoc.startTime || undefined,
         ticketIds: [ticket._id],
-        grossAmount: grossNaira,
+        grossAmount: totalPaid,
         platformFee,
         meta: { reference: data.reference },
       });
