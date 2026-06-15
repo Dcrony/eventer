@@ -19,6 +19,7 @@ const {
   canViewEvent,
   normalizeVisibility,
 } = require("../utils/eventVisibility");
+const { getPlatformTicketFeePercent } = require("../utils/platformFee");
 const {
   isConfigured,
   uploadImageBuffer,
@@ -124,6 +125,7 @@ const buildEventPayload = (event, currentUserId, extras = {}) => {
     shareCount: Number(data.shareCount || 0),
     isLiked: currentUserId ? likeIds.includes(String(currentUserId)) : false,
     comments: enrichComments(Array.isArray(data.comments) ? data.comments : []),
+    platformFeePercent: getPlatformTicketFeePercent(),
     ...extras,
   };
 };
@@ -160,14 +162,22 @@ const normalizePricingInput = (pricing) => {
 
   return parsedPricing
     .map((tier) => ({
-      type:        String(tier?.type || "").trim(),
-      price:       tier?.isFree ? 0 : Number(tier?.price || 0),
-      isEnabled:   tier?.isEnabled !== false,
-      isFree:      parseBooleanFlag(tier?.isFree),
-      label:       String(tier?.label       || "").trim(),
-      color:       String(tier?.color       || "").trim(),
-      description: String(tier?.description || "").trim(),
-      maxPerOrder: Number(tier?.maxPerOrder || 0),
+      type:             String(tier?.type || "").trim(),
+      price:            tier?.isFree ? 0 : Number(tier?.price || 0),
+      isEnabled:        tier?.isEnabled !== false,
+      isFree:           parseBooleanFlag(tier?.isFree),
+      isRefundable:     parseBooleanFlag(tier?.isRefundable) !== false,
+      isTransferable:   parseBooleanFlag(tier?.isTransferable) !== false,
+      label:            String(tier?.label       || "").trim(),
+      color:            String(tier?.color       || "").trim(),
+      description:      String(tier?.description || "").trim(),
+      benefits:         String(tier?.benefits    || "").trim(),
+      groupSize:        Number(tier?.groupSize || 1),
+      availableQuantity:Number(tier?.availableQuantity || 0),
+      saleStartDate:    tier?.saleStartDate ? new Date(tier.saleStartDate) : null,
+      saleEndDate:      tier?.saleEndDate   ? new Date(tier.saleEndDate)   : null,
+      priceIncreaseDate:tier?.priceIncreaseDate ? new Date(tier.priceIncreaseDate) : null,
+      maxPerOrder:      Number(tier?.maxPerOrder || 0),
     }))
     .filter((tier) => tier.type);
 };
@@ -330,14 +340,22 @@ exports.duplicateEvent = async (req, res) => {
       image:       source.image,
       pricing: Array.isArray(source.pricing)
         ? source.pricing.map((tier) => ({
-            type:        tier.type,
-            price:       tier.price,
-            isEnabled:   tier.isEnabled !== false,
-            isFree:      Boolean(tier.isFree),
-            label:       tier.label       || "",
-            color:       tier.color       || "",
-            description: tier.description || "",
-            maxPerOrder: tier.maxPerOrder || 0,
+            type:             tier.type,
+            price:            tier.price,
+            isEnabled:        tier.isEnabled !== false,
+            isFree:           Boolean(tier.isFree),
+            isRefundable:     Boolean(tier.isRefundable !== false),
+            isTransferable:   Boolean(tier.isTransferable !== false),
+            label:            tier.label       || "",
+            color:            tier.color       || "",
+            description:      tier.description || "",
+            benefits:         tier.benefits    || "",
+            groupSize:        tier.groupSize   || 1,
+            availableQuantity:tier.availableQuantity || 0,
+            saleStartDate:    tier.saleStartDate || null,
+            saleEndDate:      tier.saleEndDate   || null,
+            priceIncreaseDate:tier.priceIncreaseDate || null,
+            maxPerOrder:      tier.maxPerOrder || 0,
           }))
         : [],
       isFree:       source.isFree,
