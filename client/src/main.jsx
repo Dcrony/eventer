@@ -29,7 +29,7 @@ registerSW({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}> 
       <App />
     </QueryClientProvider>
   </React.StrictMode>,
