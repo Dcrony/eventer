@@ -240,7 +240,6 @@ exports.getPlatformStats = async (req, res) => {
     const settings = await getOrCreatePlatformSettings();
     const now = new Date();
     const rangeStart = getRangeStart(req.query.days || 30);
-    const commissionPercent = Number(settings.commissionPercent || getPlatformTicketFeePercent() || 0);
 
     const [
       totalUsers,
@@ -264,14 +263,15 @@ exports.getPlatformStats = async (req, res) => {
       paidRevenueAgg,
       rangeRevenueAgg,
       subscriptionRevenueAgg,
+      totalPlatformFeesAgg,
       pendingPayoutAgg,
       completedPayoutAgg,
       payoutEscrowPendingAgg,
-      pendingReports,         // ← was missing
-  flaggedEventReports,    // ← was missing
-  pendingVerifications,   // ← was missing
-  unresolvedFraudAlerts,  // ← was missing
-  openSupportTickets,     // ← was missing
+      pendingReports,
+  flaggedEventReports,
+  pendingVerifications,
+  unresolvedFraudAlerts,
+  openSupportTickets,
   donationAgg,
       recentTransactions,
       recentWithdrawals,
@@ -298,11 +298,12 @@ exports.getPlatformStats = async (req, res) => {
       Ticket.aggregate([{ $group: { _id: null, total: { $sum: "$quantity" } } }]),
       Ticket.aggregate([{ $match: { status: "refunded" } }, { $group: { _id: null, total: { $sum: "$quantity" } } }]),
       Ticket.aggregate([{ $match: { status: "checked-in" } }, { $group: { _id: null, total: { $sum: "$quantity" } } }]),
-      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
+      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, total: { $sum: "$amountPaid" } } }]),
       Ticket.aggregate([
         { $match: { paymentStatus: "paid", purchasedAt: { $gte: rangeStart } } },
-        { $group: { _id: null, total: { $sum: "$amount" } } },
+        { $group: { _id: null, total: { $sum: "$amountPaid" } } },
       ]),
+      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, totalPlatformFees: { $sum: "$platformFee" } } }]),
       BillingHistory.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
       Withdrawal.aggregate([
         { $match: { status: { $in: ["pending", "approved", "processing"] } } },
@@ -341,7 +342,7 @@ exports.getPlatformStats = async (req, res) => {
         {
           $group: {
             _id: "$event",
-            revenue: { $sum: "$amount" },
+            revenue: { $sum: "$amountPaid" },
             ticketsSold: { $sum: "$quantity" },
           },
         },
@@ -371,7 +372,7 @@ exports.getPlatformStats = async (req, res) => {
         {
           $group: {
             _id: "$event.createdBy",
-            revenue: { $sum: "$amount" },
+            revenue: { $sum: "$amountPaid" },
             ticketsSold: { $sum: "$quantity" },
           },
         },
@@ -391,8 +392,8 @@ exports.getPlatformStats = async (req, res) => {
 
     const grossRevenue = paidRevenueAgg[0]?.total || 0;
     const subscriptionRevenue = subscriptionRevenueAgg[0]?.total || 0;
-    const commissionRevenue = Math.round((grossRevenue * commissionPercent) / 100);
-    const organizerRevenue = Math.max(grossRevenue - commissionRevenue, 0);
+    const commissionRevenue = totalPlatformFeesAgg[0]?.totalPlatformFees || 0;
+    const organizerRevenue = grossRevenue - commissionRevenue;
 
     return res.json({
       success: true,
@@ -481,7 +482,7 @@ exports.getRevenueAnalytics = async (req, res) => {
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$purchasedAt" } },
-            revenue: { $sum: "$amount" },
+            revenue: { $sum: "$amountPaid" },
             ticketsSold: { $sum: "$quantity" },
           },
         },
@@ -510,7 +511,7 @@ exports.getRevenueAnalytics = async (req, res) => {
         { $sort: { _id: 1 } },
       ]),
       Promise.all([
-        Ticket.aggregate([{ $match: { paymentStatus: "paid", purchasedAt: { $gte: start, $lte: end } } }, { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: "$quantity" } } }]),
+        Ticket.aggregate([{ $match: { paymentStatus: "paid", purchasedAt: { $gte: start, $lte: end } } }, { $group: { _id: null, total: { $sum: "$amountPaid" }, count: { $sum: "$quantity" } } }]),
         BillingHistory.aggregate([{ $match: { status: "success", createdAt: { $gte: start, $lte: end } } }, { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } }]),
         Withdrawal.aggregate([{ $match: { createdAt: { $gte: start, $lte: end } } }, { $group: { _id: null, total: { $sum: "$fee" } } }]),
       ]),
@@ -563,7 +564,7 @@ exports.getPlatformMetrics = async (req, res) => {
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$purchasedAt" } },
-            revenue: { $sum: "$amount" },
+            revenue: { $sum: "$amountPaid" },
             count: { $sum: "$quantity" },
           },
         },
@@ -1200,7 +1201,7 @@ exports.getTransactions = async (req, res) => {
             totalTransactions: { $sum: 1 },
             paidTransactions: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, 1, 0] } },
             freeTransactions: { $sum: { $cond: [{ $eq: ["$paymentStatus", "free"] }, 1, 0] } },
-            totalRevenue: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$amount", 0] } },
+            totalRevenue: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$amountPaid", 0] } },
           },
         },
       ]),
@@ -1263,7 +1264,7 @@ exports.exportTransactions = async (req, res) => {
         ticket.buyer?.email || "",
         ticket.event?.title || "",
         ticket.quantity || 0,
-        ticket.amount || 0,
+        ticket.amountPaid || 0,
         ticketStatusLabel(ticket),
         ticket.status || "",
         ticket.purchasedAt ? new Date(ticket.purchasedAt).toISOString() : "",
@@ -1282,10 +1283,10 @@ exports.exportTransactions = async (req, res) => {
 exports.getFinanceOverview = async (req, res) => {
   try {
     const rangeStart = getRangeStart(req.query.days || 30);
-    const commissionPercent = getPlatformTicketFeePercent();
 
     const [
       ticketSalesAgg,
+      platformFeeAgg,
       subscriptionAgg,
       payoutAgg,
       withdrawalFeeAgg,
@@ -1293,7 +1294,8 @@ exports.getFinanceOverview = async (req, res) => {
       pendingPayouts,
       monthlyFinance,
     ] = await Promise.all([
-      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, revenue: { $sum: "$amount" }, tickets: { $sum: "$quantity" } } }]),
+      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, revenue: { $sum: "$amountPaid" }, tickets: { $sum: "$quantity" } } }]),
+      Ticket.aggregate([{ $match: { paymentStatus: "paid" } }, { $group: { _id: null, totalPlatformFees: { $sum: "$platformFee" } } }]),
       BillingHistory.aggregate([{ $match: { status: "success" } }, { $group: { _id: null, revenue: { $sum: "$amount" }, count: { $sum: 1 } } }]),
       Withdrawal.aggregate([{ $match: { status: "completed" } }, { $group: { _id: null, total: { $sum: "$amount" } } }]),
       Withdrawal.aggregate([{ $group: { _id: null, total: { $sum: "$fee" } } }]),
@@ -1304,7 +1306,7 @@ exports.getFinanceOverview = async (req, res) => {
         {
           $group: {
             _id: { $dateToString: { format: "%Y-%m-%d", date: "$purchasedAt" } },
-            ticketRevenue: { $sum: "$amount" },
+            ticketRevenue: { $sum: "$amountPaid" },
             ticketsSold: { $sum: "$quantity" },
           },
         },
@@ -1313,7 +1315,7 @@ exports.getFinanceOverview = async (req, res) => {
     ]);
 
     const grossTicketRevenue = ticketSalesAgg[0]?.revenue || 0;
-    const platformCommission = Math.round((grossTicketRevenue * commissionPercent) / 100);
+    const platformCommission = platformFeeAgg[0]?.totalPlatformFees || 0;
 
     return res.json({
       success: true,
@@ -1331,6 +1333,7 @@ exports.getFinanceOverview = async (req, res) => {
       },
       trend: monthlyFinance,
     });
+
   } catch (error) {
     console.error("Error fetching finance overview:", error);
     return res.status(500).json({ message: "Failed to fetch finance overview" });
