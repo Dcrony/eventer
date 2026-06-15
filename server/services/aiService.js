@@ -15,6 +15,12 @@ const sanitizeText = (value) => {
   return String(value).replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim();
 };
 
+const parseBooleanFlag = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") return value.toLowerCase() === "true";
+  return Boolean(value);
+};
+
 const sanitizeContextObject = (context) => {
   if (!context || typeof context !== "object") return {};
   return { event: context.event || null, user: context.user || null, analytics: context.analytics || null };
@@ -232,17 +238,12 @@ const createAIResponse = async ({ role, message, context = {} }) => {
 
 /* ─── Enhanced generateEventFromPrompt ───────────────────────────────────────
  *
- * Now returns a fully-hydrated event object covering ALL CreateEvent wizard
- * steps:
+ * Returns a fully-hydrated event object covering ALL CreateEvent wizard steps:
  *   Step 1: title, description, category, location, eventType, visibility,
  *           startDate, startTime, endDate, endTime
- *   Step 2: imagePrompt (for cover image generation on the frontend)
- *   Step 3: totalTickets, pricing (Regular/VIP/VVIP), isFree
+ *   Step 2: imageSearchQuery (for cover image fetch via Unsplash/Picsum)
+ *   Step 3: totalTickets, pricing (flexible tiers), isFree
  *   Step 4: streamType, streamURL
- *
- * The AI also returns a suggested `imageSearchQuery` so the frontend can
- * auto-fetch a cover image via Unsplash/Pexels without needing a paid
- * image-generation API.
  * ─────────────────────────────────────────────────────────────────────────── */
 const generateEventFromPrompt = async ({ prompt }) => {
   if (!GROQ_API_KEY) throw new Error("Missing GROQ_API_KEY environment variable.");
@@ -258,39 +259,56 @@ const generateEventFromPrompt = async ({ prompt }) => {
     "Use Nigerian Naira (₦) for prices unless another currency is specified.",
     "Dates must be YYYY-MM-DD format. Times must be HH:MM 24-hour format. Default time: 14:00.",
     "Generate an engaging, vivid description (2-3 sentences) that sells the event.",
-    "For ticket pricing: Nigerian event norms — Regular is the base, VIP typically 2-3x Regular, VVIP 4-5x Regular.",
-    "Set vipPrice/vvipPrice to 0 only if the user explicitly mentions only one ticket tier.",
+    "For ticket pricing: choose tier names and structures that fit the event type and category.",
+    "For conferences, use Student/Professional/VIP or similar; for music events, use Regular/VIP/VVIP, Early Bird, Backstage, or Premium; for festivals, use General Admission, VIP, and Weekend Pass when appropriate.",
+    "Return a pricing array when possible. Each tier should include type, price, label, description, benefits, maxPerOrder, and any relevant sale dates or availability details.",
+    "Set vipPrice/vvipPrice to 0 only if the user explicitly mentions only one paid ticket tier.",
     "imageSearchQuery: a Unsplash/Pexels search string (5-8 words, NO brand names) that would return a great cover photo for this event. Be vivid and specific.",
     "tags: 3-5 lowercase hyphenated tags.",
   ].join(" ");
 
-  const userPrompt = [
-    `Convert this event description into a complete JSON object:`,
-    `"${safePrompt}"`,
-    ``,
-    `Return ONLY this JSON structure (all fields required):`,
-    `{`,
-    `  "title": "string — event name",`,
-    `  "description": "string — 2-3 sentence engaging description",`,
-    `  "category": "string — one of: Tech, Music, Business, Sports, Arts, Food & Drink, Health, Education, Fashion, Comedy, Fitness, Networking, Film, Religious, Charity, Other",`,
-    `  "eventType": "string — one of: In-person, Virtual, Hybrid",`,
-    `  "location": "string — venue/city or 'Online' for virtual",`,
-    `  "visibility": "string — public or private (default: public)",`,
-    `  "startDate": "YYYY-MM-DD",`,
-    `  "startTime": "HH:MM",`,
-    `  "endDate": "YYYY-MM-DD (same as startDate if single-day)",`,
-    `  "endTime": "HH:MM (2 hours after startTime if not specified)",`,
-    `  "totalTickets": "number — attendee capacity",`,
-    `  "regularPrice": "number — Regular ticket price in Naira (0 for free)",`,
-    `  "vipPrice": "number — VIP ticket price in Naira (0 if no VIP)",`,
-    `  "vvipPrice": "number — VVIP ticket price in Naira (0 if no VVIP)",`,
-    `  "isFree": "boolean",`,
-    `  "streamType": "string — Camera, YouTube, Facebook, or Custom (Camera for in-person)",`,
-    `  "streamURL": "string — URL if streamType is not Camera, else empty string",`,
-    `  "imageSearchQuery": "string — vivid 5-8 word Unsplash search query for a great cover photo",`,
-    `  "tags": ["array", "of", "tags"]`,
-    `}`,
-  ].join("\n");
+  const pricingSchema = JSON.stringify({
+    type: "string",
+    price: "number",
+    label: "string",
+    description: "string",
+    benefits: "string",
+    isRefundable: "boolean",
+    isTransferable: "boolean",
+    groupSize: "number",
+    availableQuantity: "number",
+    saleStartDate: "YYYY-MM-DD or empty string",
+    saleEndDate: "YYYY-MM-DD or empty string",
+    priceIncreaseDate: "YYYY-MM-DD or empty string",
+    maxPerOrder: "number",
+  });
+
+  const userPrompt = `Convert this event description into a complete JSON object:
+"${safePrompt}"
+
+Return ONLY this JSON structure (all fields required):
+{
+  "title": "string — event name",
+  "description": "string — 2-3 sentence engaging description",
+  "category": "string — one of: Tech, Music, Business, Sports, Arts, Food & Drink, Health, Education, Fashion, Comedy, Fitness, Networking, Film, Religious, Charity, Other",
+  "eventType": "string — one of: In-person, Virtual, Hybrid",
+  "location": "string — venue/city or 'Online' for virtual",
+  "visibility": "string — public or private (default: public)",
+  "startDate": "YYYY-MM-DD",
+  "startTime": "HH:MM",
+  "endDate": "YYYY-MM-DD (same as startDate if single-day)",
+  "endTime": "HH:MM (2 hours after startTime if not specified)",
+  "totalTickets": "number — attendee capacity",
+  "pricing": [${pricingSchema}],
+  "regularPrice": "number — Regular ticket price in Naira (0 for free)",
+  "vipPrice": "number — VIP ticket price in Naira (0 if no VIP)",
+  "vvipPrice": "number — VVIP ticket price in Naira (0 if no VVIP)",
+  "isFree": "boolean",
+  "streamType": "string — Camera, YouTube, Facebook, or Custom (Camera for in-person)",
+  "streamURL": "string — URL if streamType is not Camera, else empty string",
+  "imageSearchQuery": "string — vivid 5-8 word Unsplash search query for a great cover photo",
+  "tags": ["array", "of", "tags"]
+}`;
 
   const messages = [
     { role: "system", content: systemPrompt },
@@ -316,9 +334,49 @@ const generateEventFromPrompt = async ({ prompt }) => {
     }
 
     // ── Normalize all fields ────────────────────────────────────────────────
-    const regularPrice = Math.max(0, parseFloat(parsed.regularPrice ?? parsed.ticketPrice ?? 0) || 0);
-    const vipPrice     = Math.max(0, parseFloat(parsed.vipPrice ?? 0) || 0);
-    const vvipPrice    = Math.max(0, parseFloat(parsed.vvipPrice ?? 0) || 0);
+    const normalizePricingDate = (value) => {
+      if (!value) return null;
+      const d = new Date(String(value));
+      return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+    };
+
+    const eventType = (() => {
+      const t = sanitizeText(parsed.eventType || "").toLowerCase();
+      if (t.includes("virtual") || t.includes("online")) return "Virtual";
+      if (t.includes("hybrid")) return "Hybrid";
+      return "In-person";
+    })();
+
+    const pricing = Array.isArray(parsed.pricing) && parsed.pricing.length
+      ? parsed.pricing.map((tier) => {
+          const priceValue = Math.max(0, parseFloat(tier?.price ?? tier?.amount ?? 0) || 0);
+          return {
+            type:              sanitizeText(tier?.type || tier?.name || tier?.label || ""),
+            price:             priceValue > 0 ? String(priceValue) : "",
+            isEnabled:         tier?.isEnabled !== false,
+            isFree:            parseBooleanFlag(tier?.isFree) || priceValue === 0,
+            label:             sanitizeText(tier?.label || ""),
+            description:       sanitizeText(tier?.description || ""),
+            benefits:          sanitizeText(tier?.benefits || ""),
+            isRefundable:      tier?.isRefundable !== false,
+            isTransferable:    tier?.isTransferable !== false,
+            groupSize:         Number(tier?.groupSize || 1),
+            availableQuantity: Number(tier?.availableQuantity || 0),
+            saleStartDate:     normalizePricingDate(tier?.saleStartDate),
+            saleEndDate:       normalizePricingDate(tier?.saleEndDate),
+            priceIncreaseDate: normalizePricingDate(tier?.priceIncreaseDate),
+            maxPerOrder:       Number(tier?.maxPerOrder || 0),
+          };
+        })
+      : [
+          { type: "Regular", price: Math.max(0, parseFloat(parsed.regularPrice ?? parsed.ticketPrice ?? 0) || 0) > 0 ? String(Math.max(0, parseFloat(parsed.regularPrice ?? parsed.ticketPrice ?? 0) || 0)) : "" },
+          { type: "VIP",     price: Math.max(0, parseFloat(parsed.vipPrice ?? 0) || 0) > 0 ? String(Math.max(0, parseFloat(parsed.vipPrice ?? 0) || 0)) : "" },
+          { type: "VVIP",    price: Math.max(0, parseFloat(parsed.vvipPrice ?? 0) || 0) > 0 ? String(Math.max(0, parseFloat(parsed.vvipPrice ?? 0) || 0)) : "" },
+        ];
+
+    const regularPrice = Number(pricing[0]?.price || 0);
+    const vipPrice     = Number(pricing[1]?.price || 0);
+    const vvipPrice    = Number(pricing[2]?.price || 0);
     const isFree       = parsed.isFree === true || (regularPrice === 0 && vipPrice === 0 && vvipPrice === 0);
 
     const startDate = sanitizeText(parsed.startDate || "");
@@ -333,19 +391,6 @@ const generateEventFromPrompt = async ({ prompt }) => {
         endTime = `${String(end.getHours()).padStart(2, "0")}:${String(end.getMinutes()).padStart(2, "0")}`;
       } catch { endTime = "16:00"; }
     }
-
-    const eventType = (() => {
-      const t = sanitizeText(parsed.eventType || "").toLowerCase();
-      if (t.includes("virtual") || t.includes("online")) return "Virtual";
-      if (t.includes("hybrid")) return "Hybrid";
-      return "In-person";
-    })();
-
-    const pricing = [
-      { type: "Regular", price: regularPrice > 0 ? String(regularPrice) : "" },
-      { type: "VIP",     price: vipPrice > 0     ? String(vipPrice)     : "" },
-      { type: "VVIP",    price: vvipPrice > 0     ? String(vvipPrice)    : "" },
-    ];
 
     const transformedEvent = {
       // ── Step 1 fields ─────────────────────────────────────────────────────
@@ -395,7 +440,6 @@ const generateEventFromPrompt = async ({ prompt }) => {
  * Returns: { imageUrl, photographer, photographerUrl, downloadUrl }
  * ─────────────────────────────────────────────────────────────────────────── */
 const generateEventImage = async ({ title, description, searchQuery }) => {
-  // Build a clean search query from provided fields
   const query = sanitizeText(
     searchQuery || `${title || ""} ${description || ""}`.slice(0, 80)
   );
@@ -405,7 +449,6 @@ const generateEventImage = async ({ title, description, searchQuery }) => {
   const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
   if (!UNSPLASH_ACCESS_KEY) {
-    // Fallback: return a Picsum placeholder when no key is configured
     return {
       imageUrl: `https://picsum.photos/seed/${encodeURIComponent(query)}/1200/600`,
       photographer: null,
@@ -430,7 +473,6 @@ const generateEventImage = async ({ title, description, searchQuery }) => {
       };
     }
 
-    // Pick the best result (first is most relevant by default)
     const photo = photos[0];
     return {
       imageUrl: photo.urls?.regular || photo.urls?.full,
@@ -441,7 +483,6 @@ const generateEventImage = async ({ title, description, searchQuery }) => {
       source: "unsplash",
     };
   } catch (error) {
-    // Graceful fallback
     return {
       imageUrl: `https://picsum.photos/seed/${encodeURIComponent(query)}/1200/600`,
       photographer: null, photographerUrl: null, downloadUrl: null,
