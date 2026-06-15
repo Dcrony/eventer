@@ -10,7 +10,6 @@ const sendEmail = require("../utils/email");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const { recordTicketPurchaseMetrics } = require("./eventController");
-const { splitTicketSaleForOrganizer } = require("../utils/platformFee");
 const { canViewEvent } = require("../utils/eventVisibility");
 const {
   computeTicketOrderTotal,
@@ -127,7 +126,7 @@ exports.initiatePayment = async (req, res) => {
       "https://api.paystack.co/transaction/initialize",
       {
         email: paystackEmail,
-        amount: order.totalKobo,
+        amount: order.totalWithFeeKobo,
         callback_url: PAYSTACK_CALLBACK,
         metadata: processedMetadata,
       },
@@ -253,16 +252,19 @@ exports.verifyPayment = async (req, res) => {
         return res.redirect(failedURL);
       }
 
-      if (!amountsMatch(data.amount, order.totalKobo)) {
+      if (!amountsMatch(data.amount, order.totalWithFeeKobo)) {
         console.error("Payment amount mismatch", {
           paid: data.amount,
-          expected: order.totalKobo,
+          expected: order.totalWithFeeKobo,
           reference,
         });
         return res.redirect(failedURL);
       }
 
       const ticketPrice = order.unitPrice;
+      const ticketAmount = ticketPrice * quantity;
+      const totalPaid = order.totalWithFeeNaira;
+      const platformFee = order.platformFeeNaira;
 
       // Create ticket
       const ticket = new Ticket({
@@ -270,8 +272,9 @@ exports.verifyPayment = async (req, res) => {
         buyer: finalUserId,
         quantity,
         price: ticketPrice,
-        amount: ticketPrice * quantity,
-        amountPaid: ticketPrice * quantity,
+        amount: ticketAmount,
+        amountPaid: totalPaid,
+        platformFee,
         paymentStatus: "paid",
         isFree: false,
         reference,
@@ -297,9 +300,6 @@ exports.verifyPayment = async (req, res) => {
         return res.status(404).json({ message: "Organizer not found" });
       }
 
-      const grossNaira = data.amount / 100;
-      const { platformFee } = splitTicketSaleForOrganizer(grossNaira);
-
       // Create escrow payout record instead of immediately crediting available balance
       const { createPayoutForSale } = require("./payoutController");
       await createPayoutForSale({
@@ -308,7 +308,7 @@ exports.verifyPayment = async (req, res) => {
         eventEndDate: event.endDate || event.startDate || new Date(),
         eventEndTime: event.endTime || event.startTime || undefined,
         ticketIds: [ticket._id],
-        grossAmount: grossNaira,
+        grossAmount: totalPaid,
         platformFee,
         meta: { reference: data.reference },
       });
