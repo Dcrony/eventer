@@ -17,13 +17,47 @@ import {
   CheckCircle,
   AlertCircle,
   Sparkles,
+  ChevronRight,
+  Tag,
+  Zap,
+  Info,
 } from "lucide-react";
 
-/* ─── Tier helpers (mirrors EventDetail.jsx exactly) ─────────────────────── */
+/* ─── Tier helpers ───────────────────────────────────────────────────────── */
 const getTierDisplayName = (tier) => tier?.label?.trim() || tier?.type || "Ticket";
 const getTierAccentColor = (tier) => tier?.color?.trim() || "#ec4899";
 const isTierFree = (tier, isEventFree) =>
   isEventFree || Boolean(tier?.isFree) || Number(tier?.price || 0) === 0;
+
+/* ─── Small reusable bits ────────────────────────────────────────────────── */
+function SectionTitle({ children }) {
+  return (
+    <h3 className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400 mb-3">
+      {children}
+    </h3>
+  );
+}
+
+function OrderRow({ label, value, bold, large, accent }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2">
+      <span className={`text-sm ${bold ? "font-bold text-gray-900" : "text-gray-500"}`}>
+        {label}
+      </span>
+      <span
+        className={`tabular-nums ${
+          large
+            ? "text-2xl font-black tracking-tight text-pink-500"
+            : bold
+            ? "font-bold text-gray-900"
+            : "text-sm text-gray-700"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default function Checkout() {
   const { state } = useLocation();
@@ -34,85 +68,66 @@ export default function Checkout() {
   const { event, quantity, user, ticketType, price } = state || {};
   const isFreeEvent = event?.isFreeEvent || event?.isFree;
 
-  // Track referral clicks and conversions
   const { referrerId, recordConversion } = useReferralTracking(event?._id);
 
-  // Replace the existing visiblePricing useMemo
   const visiblePricing = useMemo(
     () =>
       (event?.pricing || []).filter(
-        (p) =>
-          p.isEnabled !== false &&
-          !p.isFree &&
-          Number(p.price || 0) > 0
+        (p) => p.isEnabled !== false && !p.isFree && Number(p.price || 0) > 0
       ),
     [event]
   );
 
-  // Replace the existing selectedPricing useState
-  const [selectedPricing, setSelectedPricing] = useState(() =>
-    visiblePricing.find((p) => p.type === ticketType) ||
-    visiblePricing[0] ||
-    null
+  const [selectedPricing, setSelectedPricing] = useState(
+    () =>
+      visiblePricing.find((p) => p.type === ticketType) ||
+      visiblePricing[0] ||
+      null
   );
 
-  /* ── If the resolved tier (or the whole event) is free, skip checkout ── */
+  /* ── Skip checkout for free tiers ── */
   useEffect(() => {
     const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
     if (!event || !tierIsFree) return;
-
     API.post("/tickets/create", {
       eventId: event._id,
       quantity: 1,
       ticketType: selectedPricing?.type || "Free",
       isFree: true,
     })
-      .then(() => {
-        toast.success("Ticket reserved successfully");
-        navigate("/my-tickets");
-      })
+      .then(() => { toast.success("Ticket reserved!"); navigate("/my-tickets"); })
       .catch((err) => {
         toast.error(err.response?.data?.message || "Failed to reserve ticket");
         navigate(`/event/${event._id}`);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const unitPrice = useMemo(
-    () => selectedPricing?.price ?? price ?? 0,
-    [selectedPricing, price]
-  );
 
+  const unitPrice = useMemo(() => selectedPricing?.price ?? price ?? 0, [selectedPricing, price]);
   const platformFeePercent = Number(event?.platformFeePercent ?? 0) || 0;
   const feeAmount = useMemo(
     () => Math.round((unitPrice * (quantity || 0) * platformFeePercent) / 100),
     [unitPrice, quantity, platformFeePercent]
   );
-  const lineTotal = useMemo(
-    () => unitPrice * (quantity || 0),
-    [unitPrice, quantity]
-  );
-  const grandTotal = useMemo(
-    () => lineTotal + feeAmount,
-    [lineTotal, feeAmount]
-  );
+  const lineTotal = useMemo(() => unitPrice * (quantity || 0), [unitPrice, quantity]);
+  const grandTotal = useMemo(() => lineTotal + feeAmount, [lineTotal, feeAmount]);
 
-  /* ── Guard: missing state ── */
+  /* ── Guard ── */
   if (!event || !quantity || !user || !ticketType || price == null) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8 pb-24 font-geist">
-        <div className="flex flex-col items-center justify-center gap-5 p-12 text-center max-w-md">
-          <div className="w-16 h-16 rounded-full bg-red-50 grid place-items-center text-red-500">
-            <AlertCircle size={40} strokeWidth={1.5} />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8 font-geist">
+        <div className="text-center max-w-sm space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+            <AlertCircle size={28} className="text-red-400" />
           </div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 m-0">
-            Couldn&apos;t load checkout
-          </h2>
-          <p className="text-sm text-gray-400 m-0">
-            Go back to the event and select tickets again.
-          </p>
+          <div>
+            <h2 className="text-xl font-black text-gray-900 mb-2">Checkout unavailable</h2>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              Go back to the event and select your tickets again.
+            </p>
+          </div>
           <button
-            type="button"
             onClick={() => navigate("/events")}
-            className="h-11 px-7 bg-pink-500 text-white rounded-full font-bold text-sm transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 shadow-md shadow-pink-500/20"
+            className="inline-flex h-11 items-center gap-2 px-6 rounded-2xl bg-pink-500 text-white font-bold text-sm shadow-lg shadow-pink-500/25 hover:bg-pink-600 transition-all hover:-translate-y-0.5"
           >
             Browse events
           </button>
@@ -121,32 +136,26 @@ export default function Checkout() {
     );
   }
 
-  /* ── Payment handler ── */
+  /* ── Payment ── */
   const handleConfirmPayment = async () => {
     if (!event || !quantity || !user || !ticketType || price == null) {
-      toast.error("Invalid checkout data. Please try again.");
+      toast.error("Invalid checkout data.");
       navigate("/events");
       return;
     }
-
     const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
-
     setLoading(true);
     try {
       if (tierIsFree) {
         await API.post("/tickets/create", {
-          eventId: event._id,
-          quantity: 1,
-          ticketType: selectedPricing?.type || "Free",
-          isFree: true,
+          eventId: event._id, quantity: 1,
+          ticketType: selectedPricing?.type || "Free", isFree: true,
         });
-        // Record referral conversion for free tickets
         recordConversion({ ticketCount: 1, revenue: 0 });
-        toast.success("Ticket reserved successfully");
+        toast.success("Ticket reserved!");
         navigate("/my-tickets");
         return;
       }
-
       const res = await API.post("/payment/initiate", {
         email: user.email,
         metadata: {
@@ -155,16 +164,11 @@ export default function Checkout() {
           quantity: quantity.toString(),
           price: unitPrice.toString(),
           pricingType: selectedPricing?.type || ticketType,
-          referrerId: referrerId || "", // Pass referrer ID for webhook tracking
+          referrerId: referrerId || "",
         },
       });
-
-      const { url } = res.data;
-      if (url) {
-        window.location.href = url;
-      } else {
-        toast.error("Failed to initiate payment");
-      }
+      if (res.data?.url) window.location.href = res.data.url;
+      else toast.error("Failed to initiate payment");
     } catch (err) {
       toast.error(err.response?.data?.message || "Payment failed. Try again.");
     } finally {
@@ -172,338 +176,327 @@ export default function Checkout() {
     }
   };
 
-  const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+  const formatDate = (d) =>
+    new Date(d).toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric", year: "numeric",
     });
 
   const eventImg = getEventImageUrl(event);
   const tierIsFree = isTierFree(selectedPricing, isFreeEvent);
-  const topTrustCopy = tierIsFree ? "Instant ticket reservation" : "Secure payment via Paystack";
-  const heroCopy = tierIsFree
-    ? "Review your ticket details and reserve your spot instantly."
-    : "Review your tickets and pay securely. You'll get a confirmation by email.";
-  const ctaCopy = tierIsFree
-    ? "Reserve Free Ticket"
-    : `Pay ₦${grandTotal.toLocaleString()}`;
+  const ctaCopy = tierIsFree ? "Reserve free ticket" : `Pay ₦${grandTotal.toLocaleString()}`;
+
+  /* ── Sold progress ── */
+  const soldPct = Math.min(
+    100,
+    ((event.ticketsSold || 0) / ((event.ticketsSold || 0) + (event.totalTickets || 1))) * 100
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-geist relative overflow-x-hidden">
-      {/* Subtle pink radial background */}
-      <div
-        className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_15%_25%,rgba(244,63,142,0.05)_0%,transparent_50%),radial-gradient(circle_at_85%_75%,rgba(244,63,142,0.04)_0%,transparent_50%)]"
-        aria-hidden="true"
-      />
+    <div className="min-h-screen bg-gray-50 font-geist">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-10">
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-5 lg:px-6 py-5 pb-16 sm:pb-20">
-
-        {/* ── Top Bar ── */}
-        <nav className="flex items-center justify-between gap-4 flex-wrap mb-7">
+        {/* ── Nav bar ── */}
+        <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
           <button
-            type="button"
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-white border border-gray-200 text-gray-600 text-sm font-semibold transition-all duration-200 hover:border-pink-500 hover:text-pink-500 hover:bg-pink-50 hover:-translate-x-0.5 shadow-sm"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 shadow-sm transition-all hover:border-pink-300 hover:text-pink-600"
           >
-            <ArrowLeft size={18} strokeWidth={2} />
-            <span>Back</span>
+            <ArrowLeft size={14} /> Back
           </button>
-          <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-            <ShieldCheck size={16} className="text-green-500" />
-            <span>{topTrustCopy}</span>
-          </div>
-        </nav>
 
-        {/* ── Header ── */}
-        <header className="mb-8">
-          <div className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-pink-50 border border-pink-200 text-pink-500 text-[0.65rem] font-bold uppercase tracking-wider mb-3">
-            <Sparkles size={14} /> Checkout
+          {/* Step indicator */}
+          <div className="hidden sm:flex items-center gap-2 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <span className="h-5 w-5 rounded-full bg-pink-500 text-white text-[0.55rem] font-black flex items-center justify-center">1</span>
+              <span className="font-semibold text-gray-700">Review</span>
+            </span>
+            <ChevronRight size={12} className="text-gray-300" />
+            <span className="flex items-center gap-1.5">
+              <span className="h-5 w-5 rounded-full bg-gray-200 text-gray-500 text-[0.55rem] font-black flex items-center justify-center">2</span>
+              <span>Payment</span>
+            </span>
+            <ChevronRight size={12} className="text-gray-300" />
+            <span className="flex items-center gap-1.5">
+              <span className="h-5 w-5 rounded-full bg-gray-200 text-gray-500 text-[0.55rem] font-black flex items-center justify-center">3</span>
+              <span>Confirm</span>
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-tight text-gray-900 mb-2">
-            Complete your order
+
+          <div className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+            <ShieldCheck size={14} className="text-emerald-500" />
+            {tierIsFree ? "Instant reservation" : "Secured by Paystack"}
+          </div>
+        </div>
+
+        {/* ── Page title ── */}
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-1.5 h-7 px-3 rounded-full bg-pink-50 border border-pink-200 text-pink-600 text-[0.6rem] font-black uppercase tracking-wider mb-3">
+            <Ticket size={12} /> Checkout
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900">
+            {tierIsFree ? "Reserve your spot" : "Complete your order"}
           </h1>
-          <p className="max-w-2xl text-sm text-gray-400 leading-relaxed">{heroCopy}</p>
-        </header>
+          <p className="mt-1 text-sm text-gray-400">
+            {tierIsFree
+              ? "Confirm your details and reserve your free ticket instantly."
+              : "Review your tickets and complete your secure payment."}
+          </p>
+        </div>
 
-        {/* ── Two Column Layout ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+        {/* ── Two-col layout ── */}
+        <div className="grid lg:grid-cols-[1fr_360px] gap-6 items-start">
 
-          {/* ── Main Column ── */}
-          <div className="min-w-0">
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden animate-fade-in-up">
+          {/* ── Left column ── */}
+          <div className="space-y-4">
 
-              {/* Event Summary */}
-              <div className="relative overflow-hidden p-5 sm:p-6 bg-gradient-to-br from-pink-50/60 via-transparent to-transparent border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-4 items-start">
-                  <div className="w-20 h-20 rounded-xl bg-pink-100 border border-pink-200 flex items-center justify-center text-pink-500 overflow-hidden flex-shrink-0">
-                    {eventImg ? (
-                      <img src={eventImg} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <Calendar size={36} strokeWidth={1.5} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-extrabold tracking-tight text-gray-900 mb-2">
-                      {event.title}
-                    </h2>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {event.category && (
-                        <span className="inline-flex items-center h-6 px-2.5 rounded-full text-[0.65rem] font-bold bg-pink-50 text-pink-500 border border-pink-200">
-                          {event.category}
-                        </span>
-                      )}
-                      <span className="inline-flex items-center h-6 px-2.5 rounded-full text-[0.65rem] font-bold bg-gray-100 text-gray-500 border border-gray-200">
-                        {event.eventType || "In person"}
+            {/* Event summary */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-start gap-4 p-5 sm:p-6 border-b border-gray-100">
+                {/* Thumbnail */}
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0">
+                  {eventImg ? (
+                    <img src={eventImg} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Calendar size={24} className="text-gray-300" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {event.category && (
+                      <span className="inline-flex h-5 px-2 items-center rounded-full bg-pink-50 text-pink-600 text-[0.55rem] font-bold border border-pink-200">
+                        {event.category}
                       </span>
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Calendar size={14} className="text-pink-500 flex-shrink-0" />
-                        <span>{formatDate(event.startDate)}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Clock size={14} className="text-pink-500 flex-shrink-0" />
-                        <span>{event.startTime}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <MapPin size={14} className="text-pink-500 flex-shrink-0" />
-                        <span>{event.location || "Online"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Users size={14} className="text-pink-500 flex-shrink-0" />
-                        <span>{event.ticketsSold ?? 0} attending</span>
-                      </div>
-                    </div>
+                    )}
+                    <span className="inline-flex h-5 px-2 items-center rounded-full bg-gray-100 text-gray-500 text-[0.55rem] font-bold">
+                      {event.eventType || "In-person"}
+                    </span>
                   </div>
+                  <h2 className="text-base sm:text-lg font-black text-gray-900 mb-3 leading-tight">
+                    {event.title}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-1.5 gap-x-4">
+                    {[
+                      { icon: Calendar, value: formatDate(event.startDate) },
+                      { icon: Clock,    value: event.startTime },
+                      { icon: MapPin,   value: event.location || "Online" },
+                      { icon: Users,    value: `${event.ticketsSold ?? 0} attending` },
+                    ].map(({ icon: Icon, value }) => (
+                      <div key={value} className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Icon size={12} className="text-pink-400 flex-shrink-0" />
+                        <span className="truncate">{value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Sold progress */}
+                  {soldPct > 0 && (
+                    <div className="mt-3">
+                      <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-pink-500 transition-all duration-700"
+                          style={{ width: `${soldPct}%` }}
+                        />
+                      </div>
+                      {soldPct >= 75 && (
+                        <p className="text-[0.6rem] text-amber-600 font-bold mt-1 flex items-center gap-1">
+                          <Zap size={9} /> Selling fast
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ── Ticket Type Selection — mirrors EventDetail visiblePricing ── */}
-              {visiblePricing.length > 1 && (
-                <section className="p-5 sm:p-6 border-b border-gray-200">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Ticket size={20} className="text-pink-500" />
-                    <h3 className="text-sm font-bold text-gray-900 m-0">Ticket type</h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {visiblePricing.map((p) => {
-                      const active = selectedPricing?.type === p.type;
-                      const displayName = getTierDisplayName(p);
-                      const accentColor = getTierAccentColor(p);
-                      const free = isTierFree(p, isFreeEvent);
-                      const priceDisplay = free ? "Free" : `₦${Number(p.price).toLocaleString()}`;
-
-                      return (
-                        <button
-                          key={p.type}
-                          type="button"
-                          onClick={() => setSelectedPricing(p)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${active
-                            ? "border-pink-500 bg-pink-50 shadow-md scale-[1.02]"
-                            : "border-gray-200 bg-gray-50 hover:border-pink-200 hover:bg-pink-50/30 hover:-translate-y-0.5"
-                            }`}
-                        >
-                          {/* Name row */}
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <div
-                                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                                style={{ backgroundColor: accentColor }}
-                              />
-                              <span className="font-bold text-sm text-gray-900 truncate">
-                                {displayName}
-                              </span>
-                            </div>
-                            {active && <CheckCircle size={18} className="text-pink-500 shrink-0" />}
-                          </div>
-
-                          {/* Price */}
-                          <div
-                            className="text-xl font-extrabold tracking-tight mb-1"
-                            style={{ color: active ? accentColor : "#ec4899" }}
-                          >
-                            {priceDisplay}
-                          </div>
-
-                          {/* Benefit description */}
-                          {p.description && (
-                            <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                              {p.description}
-                            </p>
-                          )}
-
-                          {/* Max per order */}
-                          {p.maxPerOrder > 0 && (
-                            <p className="text-[0.6rem] text-gray-400 mt-1">
-                              Max {p.maxPerOrder} per order
-                            </p>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
-
-              {/* Buyer Info */}
-              <section className="p-5 sm:p-6 border-b border-gray-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users size={20} className="text-pink-500" />
-                  <h3 className="text-sm font-bold text-gray-900 m-0">Buyer</h3>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <UserAvatar user={user} className="w-10 h-10 rounded-lg flex-shrink-0" />
-                    <div>
-                      <div className="font-bold text-sm text-gray-900">{user.username}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{user.email}</div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* About Event */}
+              {/* Description */}
               {event.description && (
-                <section className="p-5 sm:p-6 bg-gray-50/50">
-                  <h4 className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400 mb-2">
-                    About this event
-                  </h4>
-                  <p className="text-sm text-gray-500 leading-relaxed m-0">{event.description}</p>
-                </section>
+                <div className="px-5 sm:px-6 py-4">
+                  <SectionTitle>About this event</SectionTitle>
+                  <p className="text-sm text-gray-500 leading-relaxed">{event.description}</p>
+                </div>
               )}
+            </div>
+
+            {/* Ticket type selection */}
+            {visiblePricing.length > 1 && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
+                <SectionTitle>Select ticket type</SectionTitle>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {visiblePricing.map((p) => {
+                    const active = selectedPricing?.type === p.type;
+                    const name = getTierDisplayName(p);
+                    const accent = getTierAccentColor(p);
+                    const free = isTierFree(p, isFreeEvent);
+                    const priceStr = free ? "Free" : `₦${Number(p.price).toLocaleString()}`;
+
+                    return (
+                      <button
+                        key={p.type}
+                        type="button"
+                        onClick={() => setSelectedPricing(p)}
+                        className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                          active
+                            ? "border-pink-500 bg-pink-50/60 shadow-md shadow-pink-500/10"
+                            : "border-gray-200 bg-white hover:border-pink-300 hover:bg-pink-50/20"
+                        }`}
+                      >
+                        {active && (
+                          <div className="absolute top-3 right-3">
+                            <CheckCircle size={16} className="text-pink-500" />
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <div
+                            className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: accent }}
+                          />
+                          <span className="text-sm font-black text-gray-900 truncate pr-5">{name}</span>
+                        </div>
+
+                        <div
+                          className="text-xl font-black tracking-tight mb-1"
+                          style={{ color: active ? accent : "#ec4899" }}
+                        >
+                          {priceStr}
+                        </div>
+
+                        {p.description && (
+                          <p className="text-xs text-gray-400 leading-relaxed mt-1">{p.description}</p>
+                        )}
+                        {p.maxPerOrder > 0 && (
+                          <p className="text-[0.58rem] text-gray-400 mt-1.5 flex items-center gap-1">
+                            <Tag size={9} /> Max {p.maxPerOrder} per order
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Buyer info */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6">
+              <SectionTitle>Ticket buyer</SectionTitle>
+              <div className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 bg-gray-50">
+                <UserAvatar user={user} className="w-10 h-10 rounded-xl flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-gray-900">{user.username}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+                <span className="inline-flex h-6 px-2 items-center rounded-full bg-emerald-50 text-emerald-700 text-[0.55rem] font-bold border border-emerald-200">
+                  Verified
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* ── Sidebar ── */}
-          <aside className="lg:sticky lg:top-5 flex flex-col gap-4">
+          {/* ── Right column: order summary ── */}
+          <aside className="lg:sticky lg:top-6 space-y-4">
+
+            {/* Summary card */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-              {/* Order Summary Header */}
-              <div className="flex items-baseline justify-between gap-4 p-5 pb-4 bg-gradient-to-br from-pink-50/40 via-transparent to-transparent border-b border-gray-200">
-                <span className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
-                  Order summary
-                </span>
-                <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
+              {/* Header */}
+              <div className="p-5 border-b border-gray-100 bg-gradient-to-br from-gray-900 to-gray-800">
+                <p className="text-[0.6rem] font-black uppercase tracking-widest text-gray-400 mb-1">
+                  Order total
+                </p>
+                <p className="text-4xl font-black tracking-tight text-white">
                   {tierIsFree ? "Free" : `₦${grandTotal.toLocaleString()}`}
-                </span>
+                </p>
+                {!tierIsFree && (
+                  <p className="text-[0.65rem] text-gray-500 mt-1">
+                    Incl. {platformFeePercent}% platform fee
+                  </p>
+                )}
               </div>
 
-              {/* Order Details */}
+              {/* Tier + details */}
               <div className="p-5">
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-
-                  {/* Tier — show colour dot + display name */}
-                  <div className="flex justify-between items-center text-sm gap-2">
-                    <span className="text-gray-400">Type</span>
-                    <div className="flex items-center gap-1.5">
-                      {selectedPricing && (
-                        <div
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: getTierAccentColor(selectedPricing) }}
-                        />
+                {/* Selected tier */}
+                {selectedPricing && (
+                  <div className="flex items-center gap-2.5 mb-4 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                    <div
+                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: getTierAccentColor(selectedPricing) }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-gray-900 truncate">
+                        {getTierDisplayName(selectedPricing)}
+                      </p>
+                      {selectedPricing.description && (
+                        <p className="text-[0.6rem] text-gray-400 truncate">{selectedPricing.description}</p>
                       )}
-                      <span className="font-semibold text-gray-900">
-                        {getTierDisplayName(selectedPricing) || ticketType}
-                      </span>
                     </div>
                   </div>
+                )}
 
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">Unit price</span>
-                    <span className="font-semibold text-gray-900">
-                      {tierIsFree ? "Free" : `₦${unitPrice.toLocaleString()}`}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400">Quantity</span>
-                    <span className="font-semibold text-gray-900">{quantity}</span>
-                  </div>
-
-                  {selectedPricing?.maxPerOrder > 0 && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Max per order</span>
-                      <span className="font-semibold text-gray-900">
-                        {selectedPricing.maxPerOrder}
-                      </span>
-                    </div>
+                {/* Line items */}
+                <div className="divide-y divide-gray-50">
+                  <OrderRow label="Unit price" value={tierIsFree ? "Free" : `₦${unitPrice.toLocaleString()}`} />
+                  <OrderRow label={`Quantity`} value={`× ${quantity}`} />
+                  <OrderRow label="Subtotal" value={tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`} bold />
+                  {!tierIsFree && platformFeePercent > 0 && (
+                    <OrderRow label={`Platform fee (${platformFeePercent}%)`} value={`₦${feeAmount.toLocaleString()}`} />
                   )}
+                </div>
 
-                  <div className="h-px bg-gray-200 my-2" />
-
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900">Subtotal</span>
-                    <span className="text-sm font-semibold text-gray-900">{tierIsFree ? "Free" : `₦${lineTotal.toLocaleString()}`}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900">Platform fee ({platformFeePercent}%)</span>
-                    <span className="text-sm font-semibold text-gray-900">{tierIsFree ? "Free" : `₦${feeAmount.toLocaleString()}`}</span>
-                  </div>
-                  <div className="h-px bg-gray-200 my-2" />
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-gray-900">Total</span>
-                    <span className="text-2xl font-extrabold text-pink-500 tracking-tight">
-                      {tierIsFree ? "Free" : `₦${grandTotal.toLocaleString()}`}
-                    </span>
-                  </div>
+                <div className="mt-3 pt-3 border-t-2 border-gray-200">
+                  <OrderRow
+                    label="Total"
+                    value={tierIsFree ? "Free" : `₦${grandTotal.toLocaleString()}`}
+                    bold
+                    large
+                  />
                 </div>
               </div>
 
-              {/* Benefit description in sidebar too (if present) */}
-              {selectedPricing?.description && (
-                <div className="px-5 pb-3">
-                  <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-500 leading-relaxed">
-                    {selectedPricing.description}
-                  </div>
-                </div>
-              )}
-
-              {/* Pay / Reserve Button */}
-              <div className="px-5 pb-4">
+              {/* CTA */}
+              <div className="px-5 pb-5">
                 <button
                   type="button"
                   onClick={handleConfirmPayment}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 h-12 rounded-full bg-pink-500 text-white font-bold text-sm transition-all duration-200 hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-pink-500/30"
+                  className="w-full h-13 py-3.5 rounded-2xl bg-pink-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30 transition-all hover:bg-pink-600 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
                 >
                   {loading ? (
                     <>
-                      <div
-                        className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
-                        aria-hidden
-                      />
-                      Processing...
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Processing…
                     </>
                   ) : (
                     <>
-                      <Lock size={20} strokeWidth={2} />
+                      <Lock size={16} />
                       {ctaCopy}
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Trust Badges */}
-              <div className="flex justify-center gap-4 flex-wrap p-4 pt-2 border-t border-gray-200">
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400">
-                  <ShieldCheck size={14} className="text-green-500" />
-                  {tierIsFree ? "Instant confirmation" : "Encrypted checkout"}
+              {/* Trust badges */}
+              <div className="flex items-center justify-center gap-4 flex-wrap px-5 pb-5 pt-1">
+                <span className="inline-flex items-center gap-1.5 text-[0.6rem] text-gray-400">
+                  <ShieldCheck size={12} className="text-emerald-500" />
+                  {tierIsFree ? "Instant confirmation" : "Encrypted payment"}
                 </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400">
-                  <Ticket size={14} className="text-green-500" />
-                  E-tickets by email
+                <span className="inline-flex items-center gap-1.5 text-[0.6rem] text-gray-400">
+                  <Ticket size={12} className="text-emerald-500" />
+                  E-ticket by email
                 </span>
               </div>
             </div>
 
-            {/* Refund Notice — hide for free tickets */}
+            {/* Refund notice */}
             {!tierIsFree && (
-              <div className="flex gap-2 p-3 rounded-xl bg-amber-50/60 border border-amber-200 text-xs text-gray-500 leading-relaxed">
-                <AlertCircle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="m-0">
-                  Refunds may be available up to 24 hours before the event, per organizer policy.
+              <div className="flex items-start gap-2.5 p-4 rounded-xl border border-amber-200 bg-amber-50/60">
+                <Info size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  Refunds may be available up to 24 hours before the event, subject to organizer policy.
                 </p>
               </div>
             )}
@@ -512,23 +505,28 @@ export default function Checkout() {
       </div>
 
       {/* ── Mobile sticky footer ── */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur-sm p-3 shadow-[0_-8px_32px_rgba(0,0,0,0.08)] lg:hidden">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[0.65rem] font-bold uppercase tracking-wider text-gray-400">
-              {getTierDisplayName(selectedPricing) || "Tickets"}
-            </div>
-            <div className="truncate text-lg font-extrabold tracking-tight text-gray-900">
+            <p className="text-[0.55rem] font-black uppercase tracking-wider text-gray-400">
+              {getTierDisplayName(selectedPricing) || "Ticket"}
+            </p>
+            <p className="text-lg font-black text-gray-900 truncate">
               {tierIsFree ? "Free reservation" : ctaCopy}
-            </div>
+            </p>
           </div>
           <button
             type="button"
             onClick={handleConfirmPayment}
             disabled={loading}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-pink-500 px-5 text-sm font-bold text-white shadow-lg shadow-pink-500/25 transition-all duration-200 hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-pink-500 px-5 text-sm font-black text-white shadow-lg shadow-pink-500/25 transition-all hover:bg-pink-600 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Processing..." : tierIsFree ? "Reserve" : "Pay now"}
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Lock size={15} />
+            )}
+            {loading ? "…" : tierIsFree ? "Reserve" : "Pay now"}
           </button>
         </div>
       </div>
