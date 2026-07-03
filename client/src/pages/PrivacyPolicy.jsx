@@ -1,5 +1,6 @@
 import React from "react";
-import { Shield, Lock, Eye, Database, Mail } from "lucide-react";
+import { Shield, Lock, Eye, Database, Mail, ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function PrivacyPolicy() {
   const lastUpdated = new Date().toLocaleDateString('en-US', {
@@ -38,7 +39,12 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="min-h-full w-full bg-gray-50 font-geist ">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-12">
+        {/* Back Button */}
+                <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         {/* Header */}
         <div className="text-center mb-8 pb-6 border-b border-gray-200">
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 mb-2">
