@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { X, Heart, Sparkles, CheckCircle, AlertCircle, Shield, CreditCard, Lock } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { X, Heart, Sparkles, CheckCircle, AlertCircle, Shield, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import API from "../api/axios";
 
 export default function Donation() {
@@ -104,6 +104,10 @@ export default function Donation() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50/20 font-geist ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         <div className="text-center">
           {/* Header */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-4">
