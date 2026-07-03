@@ -15,8 +15,9 @@ import {
   Search, AlertCircle, SearchX, Sparkles, X, SlidersHorizontal,
   ChevronLeft, ChevronRight, Calendar, MapPin, Ticket,
   TrendingUp, ArrowUpRight,
+  ArrowLeft,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const CHIPS = [
   { id: "all",      label: "All Events", icon: null             },
@@ -299,6 +300,10 @@ export default function Home() {
         <div className="absolute -bottom-24 -left-24 w-[360px] h-[360px] bg-pink-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 lg:py-20">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
           <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-pink-500 mb-3">
             Discover · Attend · Experience
           </p>
