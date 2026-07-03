@@ -223,33 +223,10 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
             <div className="absolute bottom-2.5 right-2.5 z-10 bg-black/75 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full">
               {formatEventPrice(eventState)}
             </div>
-          </div>
-
-          {/* ── Body ── */}
-          <div className="px-4 pt-3.5 pb-3">
-            {/* Title + description */}
-            <h3 className="text-sm font-semibold text-gray-900 leading-snug truncate mb-1">
-              {eventState.title}
-            </h3>
-            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
-              {eventState.description || "Discover a new experience happening on TickiSpot."}
-            </p>
-
-            {/* Date + Location */}
-            <div className="space-y-1.5 mb-3">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
-                <span>{formatEventDate(eventState.startDate || eventState.date)}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <MapPin size={12} className="text-pink-500 flex-shrink-0" />
-                <span className="truncate">{eventState.location || "Online event"}</span>
-              </div>
-            </div>
 
             {/* Capacity bar */}
             {totalTickets > 0 && (
-              <div className="mb-3">
+              <div className=" absolute bottom-2.5 lef-2.5 z-10 bg-black/75 backdrop-blur-sm font-semibold px-2.5 py-1 rounded-full">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="flex items-center gap-1.5 text-[0.65rem] text-gray-500">
                     <Users size={10} className="text-pink-500" />
@@ -275,6 +252,31 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                 </div>
               </div>
             )}
+          </div>
+
+          {/* ── Body ── */}
+          <div className="px-4 pt-3.5 pb-3">
+            {/* Title + description */}
+            <h3 className="text-sm font-semibold text-gray-900 leading-snug truncate mb-1">
+              {eventState.title}
+            </h3>
+            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
+              {eventState.description || "Discover a new experience happening on TickiSpot."}
+            </p>
+
+            {/* Date + Location */}
+            <div className="space-y-1.5 mb-3">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <CalendarDays size={12} className="text-pink-500 flex-shrink-0" />
+                <span>{formatEventDate(eventState.startDate || eventState.date)}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <MapPin size={12} className="text-pink-500 flex-shrink-0" />
+                <span className="truncate">{eventState.location || "Online event"}</span>
+              </div>
+            </div>
+
+            
 
             {/* Organizer row */}
             <div
