@@ -323,7 +323,7 @@ export default function LandingPage() {
               {/* Dashboard content mockup */}
               <div className="bg-gray-50 p-6">
                 {/* Stats row */}
-                <div className="grid grid-cols-4 gap-3 sm:grid-cols-4">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
                     { label: "Tickets sold", value: "2,847", delta: "+18%", color: "text-pink-600" },
                     { label: "Revenue",       value: "₦4.2M",  delta: "+24%", color: "text-green-600" },
