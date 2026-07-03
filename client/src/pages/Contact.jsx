@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Send, Mail, User, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
+import { Send, Mail, User, MessageSquare, CheckCircle, AlertCircle, ArrowLeft } from "lucide-react";
 import API from "../api/axios"; // your existing axios instance
+import { Link } from "react-router-dom";
 
 const inputCls =
   "w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 focus:bg-white transition-all";
@@ -45,6 +46,10 @@ export default function Contact() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-lg">
 
+<Link  to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-xs font-bold uppercase tracking-widest text-pink-500 mb-2">Get in touch</p>
