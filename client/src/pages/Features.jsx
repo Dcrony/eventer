@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Features } from "@/components/blocks/features-10";
-import { Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, ArrowRight, CheckCircle2, ArrowLeft } from "lucide-react";
 
 export default function FeaturesPage() {
   const headerRef = useRef(null);
@@ -49,6 +49,11 @@ export default function FeaturesPage() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-pink-500/20 rounded-full blur-[100px] opacity-30" />
 
       <div className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
+
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         {/* Hero Section - Always visible, then animates in */}
         <div 
           ref={headerRef}
