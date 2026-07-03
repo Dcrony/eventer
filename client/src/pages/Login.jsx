@@ -252,7 +252,7 @@ export default function Login() {
                 <p className="text-sm text-gray-500 leading-relaxed">
                   Everything you need to run smooth events and increase ticket sales is one sign-in away.
                 </p>
-                <div className="mt-5 space-y-2">
+                <div className="mt-5 space-y-2 flex flex-col">
                   <p className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <CheckCircle2 size={14} className="text-pink-500" /> Live sales and payout visibility
                   </p>
