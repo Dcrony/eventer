@@ -1,11 +1,16 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Code2, Package, Webhook, ArrowRight, Shield, Zap, Server, Clock, Sparkles } from "lucide-react";
+import { Code2, Package, Webhook, ArrowRight, Shield, Zap, Server, Clock, Sparkles, ArrowLeft } from "lucide-react";
 
 export default function Documentation() {
   return (
-    <div className="min-h-full w-full bg-gray-50 font-geist ">
+    <div className="min-h-full w-full bg-gray-50 font-geist py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         {/* Hero Section - Light Theme */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-4">
