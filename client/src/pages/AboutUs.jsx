@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCreateEvent } from "../context/CreateEventContext";
-import { Ticket, Radio, BarChart2, Globe, ArrowRight } from "lucide-react";
+import { Ticket, Radio, BarChart2, Globe, ArrowRight, ArrowLeft } from "lucide-react";
 
 const FEATURES = [
   { icon: Ticket,   title: "Smart Ticketing",     desc: "Easy ticket creation, secure payments, and instant payouts." },
@@ -26,6 +26,10 @@ export default function AboutUs() {
     <div className="min-h-screen bg-white ">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 space-y-14">
 
+<Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
         {/* ── Header ── */}
         <header className="text-center space-y-3 pb-10 border-b border-slate-100">
           <p className="text-xs font-bold uppercase tracking-widest text-pink-500">About us</p>
