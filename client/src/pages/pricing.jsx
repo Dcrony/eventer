@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
@@ -25,6 +26,7 @@ import {
   isTrialActive,
   normalizePlan,
 } from "../utils/planAccess";
+import { Link } from "react-router-dom";
 
 const formatMoney = (amount) => `₦${Number(amount || 0).toLocaleString()}`;
 
@@ -187,6 +189,10 @@ export default function Pricing() {
         className="pointer-events-none absolute inset-x-0 top-0 h-[600px] z-0"
         style={{ background: "radial-gradient(circle at 50% -10%, #fdf2f8 0%, rgba(255,255,255,0) 65%)" }}
       />
+      <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-pink-500 transition-colors mb-6">
+                  <ArrowLeft size={16} />
+                  Back to Home
+                </Link>
 
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Hero Section */}
