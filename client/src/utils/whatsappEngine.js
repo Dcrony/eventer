@@ -39,73 +39,73 @@ export function generateWhatsAppCaption(
   const priceStr = price > 0 ? `₦${price.toLocaleString()}` : "FREE";
 
   // Location/date line — only include if data exists
-  const dateLine     = date     ? `📅 ${date}${time ? ` at ${time}` : ""}` : null;
-  const locationLine = location ? `📍 ${location}`                          : null;
+  const dateLine     = date     ? `${date}${time ? ` at ${time}` : ""}` : null;
+  const locationLine = location ? `${location}`                          : null;
 
   const templates = {
     [CAPTION_TYPES.LAUNCH]: [
       [
-        `🎉 *${event.title}*`,
+        `*${event.title}*`,
         dateLine,
         locationLine,
-        price > 0 ? `🎟️ Tickets from ${priceStr}` : "🎟️ Free entry",
-        `\nGet your ticket now 👇\n${shareUrl}`,
+        price > 0 ? `Tickets from ${priceStr}` : "Free entry",
+        `\nGet your ticket now\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
 
       [
-        `Hey! Check out *${event.title}* 🚀`,
+        `Hey! Check out *${event.title}*`,
         dateLine,
         locationLine,
-        `💰 ${priceStr}`,
+        `${priceStr}`,
         `\nDon't miss it — grab your spot:\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
 
       [
-        `✨ You're invited to *${event.title}*`,
+        `You're invited to *${event.title}*`,
         dateLine,
         locationLine,
-        `\n👉 ${shareUrl}`,
+        `\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
     ],
 
     [CAPTION_TYPES.URGENCY]: [
       [
-        `⚠️ Almost sold out! *${event.title}*`,
+        `Almost sold out! *${event.title}*`,
         dateLine,
         locationLine,
-        `🔥 Only a few tickets left at ${priceStr}`,
+        `Only a few tickets left at ${priceStr}`,
         `\nSecure yours NOW:\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
 
       [
-        `⏰ Last chance! Tickets for *${event.title}* are running out.`,
+        `Last chance! Tickets for *${event.title}* are running out.`,
         [dateLine, locationLine].filter(Boolean).join(" • "),
         `From ${priceStr}`,
-        `\n👉 ${shareUrl}`,
+        `\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
     ],
 
     [CAPTION_TYPES.REMINDER]: [
       [
-        date ? `📣 Reminder: *${event.title}* is happening ${date}!` : `📣 Reminder: *${event.title}*`,
+        date ? `Reminder: *${event.title}* is happening ${date}!` : `Reminder: *${event.title}*`,
         locationLine,
-        time ? `🕐 ${time}` : null,
-        `\nHaven't grabbed your ticket yet?\n👉 ${shareUrl}`,
+        time ? `${time}` : null,
+        `\nHaven't grabbed your ticket yet?\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
 
       [
-        date ? `🔔 Don't forget! *${event.title}* is ${date}.` : `🔔 Don't forget *${event.title}*!`,
+        date ? `Don't forget! *${event.title}* is ${date}.` : `Don't forget *${event.title}*!`,
         `\nMake sure you have your ticket:\n${shareUrl}`,
       ].filter(Boolean).join("\n"),
     ],
 
     [CAPTION_TYPES.LIVESTREAM]: [
-      `🔴 *${event.title}* is LIVE RIGHT NOW!\n\nJoin us:\n👉 ${shareUrl}\n\nShare with your friends! 📲`,
-      `We're LIVE! 🎥 *${event.title}*\n\nWatch now:\n${shareUrl}`,
+      `*${event.title}* is LIVE RIGHT NOW!\n\nJoin us:\n${shareUrl}\n\nShare with your friends!`,
+      `We're LIVE! *${event.title}*\n\nWatch now:\n${shareUrl}`,
     ],
 
     [CAPTION_TYPES.SOLD_OUT]: [
-      `😲 *${event.title}* is SOLD OUT!\n\nJoin the waitlist:\n👉 ${shareUrl}`,
+      `*${event.title}* is SOLD OUT!\n\nJoin the waitlist:\n${shareUrl}`,
     ],
   };
 
