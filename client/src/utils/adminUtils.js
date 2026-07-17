@@ -49,8 +49,8 @@ export function getStatusTone(status) {
   const normalized = String(status || "").toLowerCase();
 
   if (["approved", "success", "paid", "completed", "active"].includes(normalized)) return "emerald";
-  if (["pending", "processing", "review"].includes(normalized)) return "amber";
-  if (["rejected", "failed", "suspended", "deleted"].includes(normalized)) return "rose";
+  if (["pending", "pending_admin_approval", "processing", "review"].includes(normalized)) return "amber";
+  if (["rejected", "failed", "reversed", "suspended", "deleted"].includes(normalized)) return "rose";
   if (["featured", "admin"].includes(normalized)) return "pink";
   if (["organizer"].includes(normalized)) return "blue";
 

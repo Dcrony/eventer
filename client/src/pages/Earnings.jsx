@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useEffect, useMemo, useState } from "react";
 import API from "../api/axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Banknote,
@@ -16,8 +16,10 @@ import {
   AlertCircle,
   Building2,
   CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { getEventImageUrl } from "../utils/eventHelpers";
+import { requestEarlyPayout } from "../services/api/payouts";
 
 // ── Shared formatter ──────────────────────────────────────────────────────────
 const fmt = (n) => {
@@ -26,44 +28,39 @@ const fmt = (n) => {
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, hint, icon: Icon, accent = false, delta }) {
+function StatCard({ label, value, hint, icon, accent = false, delta }) {
   return (
     <div
-      className={`relative flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
-        accent
+      className={`relative flex flex-col gap-3 rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${accent
           ? "border-pink-200 bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/20"
           : "border-gray-200 bg-white shadow-sm"
-      }`}
+        }`}
     >
       <div className="flex items-start justify-between">
         <span
-          className={`text-[0.65rem] font-black uppercase tracking-widest ${
-            accent ? "text-pink-100" : "text-gray-400"
-          }`}
+          className={`text-[0.65rem] font-black uppercase tracking-widest ${accent ? "text-pink-100" : "text-gray-400"
+            }`}
         >
           {label}
         </span>
         <div
-          className={`flex h-8 w-8 items-center justify-center rounded-xl ${
-            accent ? "bg-white/20" : "bg-gray-100"
-          }`}
+          className={`flex h-8 w-8 items-center justify-center rounded-xl ${accent ? "bg-white/20" : "bg-gray-100"
+            }`}
         >
-          <Icon size={15} className={accent ? "text-white" : "text-gray-500"} />
+          {icon ? createElement(icon, { size: 15, className: accent ? "text-white" : "text-gray-500" }) : null}
         </div>
       </div>
       <div>
         <p
-          className={`text-2xl font-black tracking-tight tabular-nums ${
-            accent ? "text-white" : "text-gray-900"
-          }`}
+          className={`text-2xl font-black tracking-tight tabular-nums ${accent ? "text-white" : "text-gray-900"
+            }`}
         >
           {value}
         </p>
         {hint && (
           <p
-            className={`mt-1 text-xs leading-relaxed ${
-              accent ? "text-pink-100" : "text-gray-400"
-            }`}
+            className={`mt-1 text-xs leading-relaxed ${accent ? "text-pink-100" : "text-gray-400"
+              }`}
           >
             {hint}
           </p>
@@ -71,9 +68,8 @@ function StatCard({ label, value, hint, icon: Icon, accent = false, delta }) {
       </div>
       {delta != null && (
         <div
-          className={`inline-flex items-center gap-1 text-[0.65rem] font-bold ${
-            accent ? "text-pink-100" : delta >= 0 ? "text-emerald-600" : "text-red-500"
-          }`}
+          className={`inline-flex items-center gap-1 text-[0.65rem] font-bold ${accent ? "text-pink-100" : delta >= 0 ? "text-emerald-600" : "text-red-500"
+            }`}
         >
           <TrendingUp size={11} />
           {delta >= 0 ? "+" : ""}
@@ -143,7 +139,11 @@ export default function Earnings() {
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showConnectAccountModal, setShowConnectAccountModal] = useState(false);
+  const [showEarlyPayoutModal, setShowEarlyPayoutModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [earlyPayoutAmount, setEarlyPayoutAmount] = useState("");
+  const [earlyPayoutEventId, setEarlyPayoutEventId] = useState("");
+  const [earlyPayoutLoading, setEarlyPayoutLoading] = useState(false);
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [connectLoading, setConnectLoading] = useState(false);
   const [bankDetails, setBankDetails] = useState({
@@ -192,7 +192,7 @@ export default function Earnings() {
   useEffect(() => {
     API.get("/banks")
       .then((res) => setBanks(res.data || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleWithdraw = async () => {
@@ -235,8 +235,32 @@ export default function Earnings() {
     }
   };
 
+  const handleEarlyPayoutRequest = async () => {
+    if (!earlyPayoutEventId || !earlyPayoutAmount || Number(earlyPayoutAmount) <= 0) {
+      return alert("Select an event and enter a valid amount");
+    }
+
+    try {
+      setEarlyPayoutLoading(true);
+      await requestEarlyPayout({ eventId: earlyPayoutEventId, amount: Number(earlyPayoutAmount) });
+      alert("Early payout request submitted successfully");
+      setShowEarlyPayoutModal(false);
+      setEarlyPayoutAmount("");
+      setEarlyPayoutEventId("");
+      loadEarnings();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to submit early payout request");
+    } finally {
+      setEarlyPayoutLoading(false);
+    }
+  };
+
   const minW = data?.minWithdrawalAmount ?? 1000;
   const platformPct = data?.platformTicketFeePercent ?? 10;
+  const organizerLevel = data?.organizerLevel || "NEW";
+  const maxEarlyPayoutPercent = data?.organizerPolicy?.allowedEarlyPercent || data?.perEvent?.[0]?.maxEarlyPayoutPercent || 0;
+  const availableEarlyPayout = data?.availableEarlyPayout || 0;
+  const remainingHeldBalance = data?.remainingHeldBalance || 0;
 
   return (
     <div className="min-h-screen bg-gray-50 font-geist">
@@ -312,7 +336,7 @@ export default function Earnings() {
         {!loading && !error && data && (
           <div className="space-y-8">
             {/* ── Stat grid ──────────────────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
               <StatCard
                 label="Gross ticket sales"
                 value={`₦${fmt(data.grossTicketSales)}`}
@@ -331,6 +355,12 @@ export default function Earnings() {
                 hint="Ready for payout"
                 icon={Wallet}
                 accent
+              />
+              <StatCard
+                label="Held balance"
+                value={`₦${fmt(remainingHeldBalance)}`}
+                hint="Waiting for automatic release"
+                icon={Clock}
               />
               <StatCard
                 label="Total withdrawn"
@@ -412,6 +442,28 @@ export default function Earnings() {
                     </button>
                   )}
                 </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-widest text-gray-400">Smart payout status</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">Level: {organizerLevel}</p>
+                  <p className="text-xs text-gray-500">Early payout availability: {maxEarlyPayoutPercent}% of eligible revenue</p>
+                  <p className="text-xs text-gray-500">Available early payout: ₦{fmt(availableEarlyPayout)}</p>
+                  {data?.nextAutomaticPayoutAt ? (
+                    <p className="text-xs text-gray-500">Next automatic payout: {new Date(data.nextAutomaticPayoutAt).toLocaleString()}</p>
+                  ) : (
+                    <p className="text-xs text-gray-500">Next automatic payout: pending.</p>
+                  )}
+              </div>
+                <button
+                  onClick={() => setShowEarlyPayoutModal(true)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition-all hover:bg-emerald-700"
+                >
+                  <Banknote size={13} /> Request early payout
+                </button>
               </div>
             </div>
 
@@ -546,6 +598,46 @@ export default function Earnings() {
             className="mt-1 w-full rounded-xl bg-pink-500 py-3 text-sm font-bold text-white shadow-lg shadow-pink-500/25 transition-all hover:bg-pink-600 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {withdrawLoading ? "Submitting…" : "Submit withdrawal request"}
+          </button>
+        </Modal>
+      )}
+
+      {/* ── Early payout modal ────────────────────────────────────────── */}
+      {showEarlyPayoutModal && (
+        <Modal
+          onClose={() => setShowEarlyPayoutModal(false)}
+          title="Request early payout"
+          subtitle="Submit a payout request before the event has fully completed."
+        >
+          <Field label="Event">
+            <select
+              className={inputCls}
+              value={earlyPayoutEventId}
+              onChange={(e) => setEarlyPayoutEventId(e.target.value)}
+            >
+              <option value="">Select event</option>
+              {data?.perEvent?.map((event) => (
+                <option key={event.eventId} value={event.eventId}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Amount (₦)">
+            <input
+              className={inputCls}
+              type="number"
+              placeholder="Enter amount"
+              value={earlyPayoutAmount}
+              onChange={(e) => setEarlyPayoutAmount(e.target.value)}
+            />
+          </Field>
+          <button
+            onClick={handleEarlyPayoutRequest}
+            disabled={earlyPayoutLoading}
+            className="mt-2 w-full rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {earlyPayoutLoading ? "Submitting…" : "Submit early payout request"}
           </button>
         </Modal>
       )}

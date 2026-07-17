@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Download, Search, Wallet, XCircle, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import AdminLayout from "../components/AdminLayout";
 import adminService from "../services/adminService";
-import { formatCurrency, formatDateTime, formatNumber, getStatusTone } from "../utils/adminUtils";
+import { formatCurrency, formatDateTime, formatNumber, formatStatus, getStatusTone } from "../utils/adminUtils";
 import { useToast } from "../components/ui/toast";
 
 function StatCard({ icon: Icon, label, value, detail }) {
@@ -85,6 +85,10 @@ function StatusBadge({ tone = "gray", children }) {
         pink: "bg-pink-50 text-pink-700 border border-pink-100",
         gray: "bg-gray-50 text-gray-600 border border-gray-100",
         blue: "bg-blue-50 text-blue-700 border border-blue-100",
+        emerald: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+        rose: "bg-rose-50 text-rose-700 border border-rose-100",
+        slate: "bg-slate-50 text-slate-600 border border-slate-100",
+        purple: "bg-purple-50 text-purple-700 border border-purple-100",
     };
     return (
         <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold capitalize ${tones[tone] || tones.gray}`}>
@@ -280,8 +284,8 @@ export default function AdminWithdrawals() {
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                             className="mt-3 w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs font-medium text-gray-700 outline-none transition focus:border-pink-400 focus:ring-2 focus:ring-pink-50"
                         >
-                            {["all", "pending", "processing", "completed", "rejected", "failed"].map((s) => (
-                                <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                            {["all", "PENDING_ADMIN_APPROVAL", "PROCESSING", "PAID", "FAILED", "REVERSED"].map((s) => (
+                                <option key={s} value={s}>{s === "all" ? "All" : formatStatus(s)}</option>
                             ))}
                         </select>
                     </SurfaceCard>
@@ -356,11 +360,11 @@ export default function AdminWithdrawals() {
                                                 <div className="mt-0.5 text-[0.6rem] text-gray-400">Fee: {formatCurrency(w.fee || 0)}</div>
                                             </td>
                                             <td className="px-5 py-4">
-                                                <StatusBadge tone={getStatusTone(w.status)}>{w.status}</StatusBadge>
+                                                <StatusBadge tone={getStatusTone(w.status)}>{formatStatus(w.status)}</StatusBadge>
                                             </td>
                                             <td className="px-5 py-4 text-xs text-gray-400">{formatDateTime(w.createdAt)}</td>
                                             <td className="px-5 py-4">
-                                                {w.status === "pending" ? (
+                                                {["pending", "PENDING_ADMIN_APPROVAL"].includes(String(w.status)) ? (
                                                     <div className="flex flex-wrap gap-1.5">
                                                         <button
                                                             type="button"
