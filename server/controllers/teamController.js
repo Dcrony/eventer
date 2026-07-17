@@ -485,7 +485,7 @@ exports.getMyTeamEvents = async (req, res) => {
         path: "event",
         populate: {
           path: "createdBy",
-          select: "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus",
+          select: "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy",
         },
       })
       .populate("members.user", "name username");

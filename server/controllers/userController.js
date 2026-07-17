@@ -30,12 +30,13 @@ const getOrganizerVerificationStatus = async (userId) => {
   }).sort({ createdAt: -1 });
 
   return {
-    status: verification?.status || "not_started",
+    organizerVerificationStatus: verification?.status || "not_started",
     isVerified: verification?.status === "approved",
     rejectionReason: verification?.rejectionReason,
     documents: verification?.documents || [],
     reviewedAt: verification?.reviewedAt,
     createdAt: verification?.createdAt,
+    reviewedBy: verification?.reviewedBy || null,
   };
 };
 
@@ -197,17 +198,17 @@ const getMyProfile = async (req, res) => {
 
     const user = await User.findById(uid).select("-password").populate({
       path: "favorites",
-      populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+      populate: { path: "createdBy", select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy" },
     });
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const userId = uid;
     const tickets = await Ticket.find({ buyer: userId }).populate("event").exec();
     const createdEvents = await Event.find({ createdBy: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy")
       .exec();
     const likedEventDocs = await Event.find({ likes: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy")
       .sort({ createdAt: -1 })
       .exec();
     const likedEvents = await filterViewableEvents(likedEventDocs, req.user, {
@@ -261,6 +262,7 @@ const getMyProfile = async (req, res) => {
     // Add verification status if organizer
     if (verificationStatus) {
       profileResponse.verification = verificationStatus;
+      profileResponse.organizerVerification = verificationStatus;
     }
 
     res.json(profileResponse);
@@ -539,7 +541,7 @@ const getUserProfile = async (req, res) => {
       .select("-password")
       .populate({
         path: "favorites",
-        populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+        populate: { path: "createdBy", select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy" },
       })
       .populate("followers", "_id name username profilePic ")
       .populate("following", "_id name username profilePic");
@@ -550,9 +552,9 @@ const getUserProfile = async (req, res) => {
 
     const tickets = await Ticket.find({ buyer: userId }).populate("event");
     const createdEventDocs = await Event.find({ createdBy: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus");
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy");
     const likedEventDocs = await Event.find({ likes: userId })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy")
       .sort({ createdAt: -1 });
     const isOwner = String(currentUserId) === String(userId);
     const createdEvents = isOwner
@@ -609,7 +611,7 @@ const getPublicProfile = async (req, res) => {
       .select("-password")
       .populate({
         path: "favorites",
-        populate: { path: "createdBy", select: "name username profilePic role billing isVerified" },
+        populate: { path: "createdBy", select: "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy" },
       })
       .populate("followers", "_id name username profilePic")
       .populate("following", "_id name username profilePic");
@@ -617,10 +619,10 @@ const getPublicProfile = async (req, res) => {
     if (!user) return res.status(404).json({ msg: "User not found" });
 
     const createdEvents = await Event.find({ createdBy: user._id })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy")
       .sort({ createdAt: -1 });
     const likedEventDocs = await Event.find({ likes: user._id })
-      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus")
+      .populate("createdBy", "name username profilePic role billing isVerified plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy")
       .sort({ createdAt: -1 });
     const visibleCreatedEvents = await filterViewableEvents(createdEvents, null, {
       allowPrivateLink: false,

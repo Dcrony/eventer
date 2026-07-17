@@ -13,7 +13,7 @@ const PAYOUT_STATUS = { PENDING: "PENDING", PROCESSING: "PROCESSING", PAID: "PAI
 
 const getEffectiveOrganizerLevel = (organizer = {}) => {
   const storedLevel = String(organizer.organizerLevel || "NEW").toUpperCase();
-  const verified = Boolean(organizer.isVerified);
+  const verified = String(organizer.organizerVerificationStatus || "").toLowerCase() === "approved";
   const earlyPayoutEnabled = Boolean(organizer.earlyPayoutEnabled);
   const trustScore = Number(organizer.trustScore || 0);
   const successfulEvents = Number(organizer.totalSuccessfulEvents || 0);
@@ -85,7 +85,7 @@ const getOrganizerTrustState = async (organizerId) => {
   const organizer = await User.findById(organizerId).lean();
   if (!organizer) return null;
 
-  const verified = Boolean(organizer.isVerified);
+  const verified = String(organizer.organizerVerificationStatus || "").toLowerCase() === "approved";
   const organizerLevel = getEffectiveOrganizerLevel(organizer);
   const earlyPayoutEnabled = Boolean(organizer.earlyPayoutEnabled);
 

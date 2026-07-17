@@ -19,6 +19,7 @@ const { ADMIN_ROLES, ROLE_PERMISSIONS } = require("../middleware/adminAccess");
 const { getPlatformTicketFeePercent } = require("../utils/platformFee");
 const { normalizePlan, syncUserBillingState } = require("../services/billingService");
 const { assignTrialToUser } = require("../services/subscriptionService");
+const { applyOrganizerVerificationState } = require("../services/verificationService");
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -106,7 +107,9 @@ const summarizeRiskIndicators = (user, extras = {}) => {
 
   if (user?.isSuspended) indicators.push({ tone: "rose", label: "Suspended account" });
   if (user?.isDeleted) indicators.push({ tone: "rose", label: "Deactivated account" });
-  if (user?.role === "organizer" && !user?.isVerified) indicators.push({ tone: "amber", label: "Organizer not verified" });
+  if (user?.role === "organizer" && user?.organizerVerificationStatus !== "approved") {
+    indicators.push({ tone: "amber", label: "Organizer not verified" });
+  }
   if ((extras.failedPayments || 0) > 2) indicators.push({ tone: "amber", label: "Multiple failed payments" });
   if ((extras.refundedTickets || 0) > 3) indicators.push({ tone: "amber", label: "High refund activity" });
   if ((extras.pendingWithdrawals || 0) > 0) indicators.push({ tone: "blue", label: "Pending payout activity" });
@@ -169,7 +172,7 @@ exports.getGlobalSearch = async (req, res) => {
         isDeleted: { $ne: true },
         $or: [{ name: regex }, { username: regex }, { email: regex }],
       })
-        .select("name username email role plan isVerified isSuspended")
+        .select("name username email role plan subscriptionStatus organizerVerificationStatus isSuspended")
         .sort({ updatedAt: -1 })
         .limit(6)
         .lean(),
@@ -284,7 +287,7 @@ exports.getPlatformStats = async (req, res) => {
       User.countDocuments({ createdAt: { $gte: rangeStart }, isDeleted: { $ne: true } }),
       User.countDocuments({ isSuspended: true, isDeleted: { $ne: true } }),
       User.countDocuments({ role: "organizer", isDeleted: { $ne: true } }),
-      User.countDocuments({ role: "organizer", isVerified: true, isDeleted: { $ne: true } }),
+      User.countDocuments({ role: "organizer", organizerVerificationStatus: "approved", isDeleted: { $ne: true } }),
       User.countDocuments({ role: { $in: ADMIN_ROLES }, isDeleted: { $ne: true } }),
       Event.countDocuments(),
       Event.countDocuments({ status: "pending" }),
@@ -627,8 +630,8 @@ exports.getAllUsers = async (req, res) => {
     if (status === "suspended") filter.isSuspended = true;
     else if (status === "active") filter.isSuspended = false;
 
-    if (verified === "true") filter.isVerified = true;
-    if (verified === "false") filter.isVerified = false;
+    if (verified === "true") filter.organizerVerificationStatus = "approved";
+    if (verified === "false") filter.organizerVerificationStatus = { $ne: "approved" };
 
     const sortOption = sort === "oldest" ? { createdAt: 1 } : sort === "name" ? { name: 1 } : { createdAt: -1 };
 
@@ -644,7 +647,7 @@ exports.getAllUsers = async (req, res) => {
             admins: { $sum: { $cond: [{ $in: ["$role", ADMIN_ROLES] }, 1, 0] } },
             organizers: { $sum: { $cond: [{ $eq: ["$role", "organizer"] }, 1, 0] } },
             verifiedOrganizers: {
-              $sum: { $cond: [{ $and: [{ $eq: ["$role", "organizer"] }, { $eq: ["$isVerified", true] }] }, 1, 0] },
+              $sum: { $cond: [{ $and: [{ $eq: ["$role", "organizer"] }, { $eq: ["$organizerVerificationStatus", "approved"] }] }, 1, 0] },
             },
             suspended: { $sum: { $cond: [{ $eq: ["$isSuspended", true] }, 1, 0] } },
             proUsers: { $sum: { $cond: [{ $eq: ["$plan", "pro"] }, 1, 0] } },
@@ -785,15 +788,21 @@ exports.toggleUserVerification = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.isVerified = verified;
+    applyOrganizerVerificationState({
+      user,
+      status: verified ? "approved" : "rejected",
+      reviewerId: req.user._id,
+      reviewedAt: new Date(),
+      rejectionReason: verified ? "" : "Manually revoked by admin",
+    });
     await user.save();
 
     await logAdminActivity(
       req,
-      verified ? "USER_VERIFIED" : "USER_UNVERIFIED",
+      verified ? "USER_VERIFICATION_APPROVED" : "USER_VERIFICATION_REVOKED",
       "User",
       userId,
-      `${user.email} organizer verification set to ${verified}`,
+      `${user.email} organizer verification set to ${verified ? "approved" : "rejected"}`,
     );
 
     return res.json({ success: true, user });
@@ -945,7 +954,7 @@ exports.getAllEvents = async (req, res) => {
 
     const [events, total, summaryAgg] = await Promise.all([
       Event.find(filter)
-        .populate("createdBy", "name username email isVerified")
+        .populate("createdBy", "name username email isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan billing")
         .sort(sortOption)
         .skip(skip)
         .limit(limit)

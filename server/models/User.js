@@ -53,6 +53,36 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    organizerVerificationStatus: {
+      type: String,
+      enum: ["not_started", "pending", "approved", "rejected"],
+      default: "not_started",
+    },
+    organizerVerificationSubmittedAt: {
+      type: Date,
+      default: null,
+    },
+    organizerVerificationReviewedAt: {
+      type: Date,
+      default: null,
+    },
+    organizerVerificationRejectedAt: {
+      type: Date,
+      default: null,
+    },
+    organizerVerificationRejectionReason: {
+      type: String,
+      default: "",
+    },
+    organizerVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    organizerVerifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     organizerLevel: {
       type: String,
       enum: ["NEW", "VERIFIED", "TRUSTED"],

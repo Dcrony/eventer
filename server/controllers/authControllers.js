@@ -64,6 +64,13 @@ const buildAuthUserPayload = (user) => {
     trialDaysRemaining: getTrialDaysRemaining(user),
     eventCount: typeof user.eventCount === "number" ? user.eventCount : 0,
     isVerified: user.isVerified,
+    organizerVerificationStatus: user.organizerVerificationStatus || "not_started",
+    organizerVerificationSubmittedAt: user.organizerVerificationSubmittedAt || null,
+    organizerVerificationReviewedAt: user.organizerVerificationReviewedAt || null,
+    organizerVerificationRejectedAt: user.organizerVerificationRejectedAt || null,
+    organizerVerificationRejectionReason: user.organizerVerificationRejectionReason || "",
+    organizerVerifiedAt: user.organizerVerifiedAt || null,
+    organizerVerifiedBy: user.organizerVerifiedBy || null,
   };
 };
 
@@ -133,6 +140,7 @@ exports.register = async (req, res) => {
       role: "user",   
 roleConfirmed: false,   
       isVerified: false,
+      organizerVerificationStatus: "not_started",
       verificationCode: hashedOtp,
       verificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
     });

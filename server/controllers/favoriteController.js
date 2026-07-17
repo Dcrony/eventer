@@ -4,7 +4,7 @@ const User = require("../models/User");
 const { canViewEvent, filterViewableEvents } = require("../utils/eventVisibility");
 
 const eventPopulate = [
-  { path: "createdBy", select: "name username profilePic role isVerified billing" },
+  { path: "createdBy", select: "name username profilePic role isVerified billing plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy" },
   { path: "comments.user", select: "name username profilePic billing" },
 ];
 

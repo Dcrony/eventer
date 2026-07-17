@@ -42,7 +42,7 @@ const getOrganizerVerificationStatus = async (userId) => {
   }).sort({ createdAt: -1 });
 
   return {
-    status: verification?.status || "not_started",
+    organizerVerificationStatus: verification?.status || "not_started",
     isVerified: verification?.status === "approved",
     rejectionReason: verification?.rejectionReason,
   };
@@ -139,7 +139,7 @@ const buildEventPayloadFull = (event, currentUserId, extras = {}) => {
 };
 
 const eventPopulateOptions = [
-  { path: "createdBy", select: "name username email profilePic role isVerified billing" },
+  { path: "createdBy", select: "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy" },
   { path: "comments.user", select: "name username profilePic billing" },
 ];
 

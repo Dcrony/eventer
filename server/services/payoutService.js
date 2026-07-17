@@ -59,7 +59,7 @@ async function getOrganizerBalances(organizerId) {
   const effectiveOrganizerLevel = smartPayoutService.getEffectiveOrganizerLevel(organizer);
   const policy = smartPayoutService.getOrganizerPayoutPolicy({
     organizerLevel: effectiveOrganizerLevel,
-    isVerified: organizer.isVerified,
+    isVerified: String(organizer.organizerVerificationStatus || "").toLowerCase() === "approved",
     earlyPayoutEnabled: organizer.earlyPayoutEnabled,
   });
   const availableEarlyPayout = Math.max(0, Math.round((payoutTotals.pendingHeldAmount || 0) * (policy.allowedEarlyPercent / 100)));

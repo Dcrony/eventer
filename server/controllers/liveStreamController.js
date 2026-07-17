@@ -33,7 +33,7 @@ exports.getAgoraToken = async (req, res) => {
 
     const event = await Event.findById(eventId).populate(
       "createdBy",
-      "name username email profilePic role plan trialEndsAt subscriptionStatus",
+      "name username email profilePic role plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy",
     );
 
     if (!event) {

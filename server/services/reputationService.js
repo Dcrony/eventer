@@ -101,7 +101,7 @@ exports.calculateOrganizerTrustScore = async (organizerId) => {
     let score = 50; // Base score
 
     // Verification boost: +30 points
-    if (organizer.isVerified) {
+    if (organizer.organizerVerificationStatus === "approved") {
       score += 30;
     }
 

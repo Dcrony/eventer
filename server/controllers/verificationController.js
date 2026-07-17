@@ -5,6 +5,7 @@ const { uploadImageBuffer, cloudinary } = require("../utils/cloudinaryMedia");
 const { uploadImageMemory } = require("../middleware/imageUploadMemory");
 const sendEmail = require("../utils/email");
 const { createNotification } = require("../services/notificationService");
+const { applyOrganizerVerificationState } = require("../services/verificationService");
 const {
   verificationRequestNotificationEmail,
   verificationApprovedEmail,
@@ -69,6 +70,18 @@ exports.submitVerification = async (req, res, next) => {
       };
       await existing.save();
 
+      await User.findByIdAndUpdate(req.user._id, {
+        $set: {
+          organizerVerificationStatus: "pending",
+          organizerVerificationSubmittedAt: new Date(),
+          organizerVerificationReviewedAt: null,
+          organizerVerificationRejectedAt: null,
+          organizerVerificationRejectionReason: "",
+          organizerVerifiedAt: null,
+          organizerVerifiedBy: null,
+        },
+      });
+
       sendEmail({
         to: ADMIN_EMAIL,
         subject: "Organizer verification resubmitted",
@@ -99,6 +112,18 @@ exports.submitVerification = async (req, res, next) => {
         eventsCompleted: req.user.eventCount || 0,
         totalTicketsSold: req.user.eventCount || 0,
         accountAgeDays,
+      },
+    });
+
+    await User.findByIdAndUpdate(req.user._id, {
+      $set: {
+        organizerVerificationStatus: "pending",
+        organizerVerificationSubmittedAt: new Date(),
+        organizerVerificationReviewedAt: null,
+        organizerVerificationRejectedAt: null,
+        organizerVerificationRejectionReason: "",
+        organizerVerifiedAt: null,
+        organizerVerifiedBy: null,
       },
     });
 
@@ -207,15 +232,17 @@ exports.adminReview = async (req, res) => {
       verification.reviewedAt = new Date();
       await verification.save();
 
-      // mark user verified
-      await User.findByIdAndUpdate(verification.organizer, {
-        $set: {
-          isVerified: true,
-          organizerLevel: "VERIFIED",
-          earlyPayoutEnabled: true,
-          trustScore: 50,
-        },
-      });
+      const organizerUser = await User.findById(verification.organizer);
+      if (organizerUser) {
+        applyOrganizerVerificationState({
+          user: organizerUser,
+          status: "approved",
+          reviewerId: req.user._id,
+          reviewedAt: verification.reviewedAt,
+          submittedAt: verification.createdAt,
+        });
+        await organizerUser.save();
+      }
 
       if (organizer?.email) {
         sendEmail({
@@ -241,13 +268,18 @@ exports.adminReview = async (req, res) => {
       verification.reviewedAt = new Date();
       await verification.save();
 
-      // ensure user remains unverified
-      await User.findByIdAndUpdate(verification.organizer, {
-        $set: {
-          isVerified: false,
-          earlyPayoutEnabled: false,
-        },
-      });
+      const organizerUser = await User.findById(verification.organizer);
+      if (organizerUser) {
+        applyOrganizerVerificationState({
+          user: organizerUser,
+          status: "rejected",
+          reviewerId: req.user._id,
+          reviewedAt: verification.reviewedAt,
+          rejectionReason: verification.rejectionReason,
+          submittedAt: verification.createdAt,
+        });
+        await organizerUser.save();
+      }
 
       if (organizer?.email) {
         sendEmail({
@@ -507,7 +539,17 @@ exports.adminRestoreVerification = async (req, res) => {
       verification.suspension_reason = "";
       verification.suspended_by = null;
       verification.suspended_at = null;
-      await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: true } });
+      const organizerUser = await User.findById(verification.organizer);
+      if (organizerUser) {
+        applyOrganizerVerificationState({
+          user: organizerUser,
+          status: "approved",
+          reviewerId: req.user._id,
+          reviewedAt: verification.reviewedAt,
+          submittedAt: verification.createdAt,
+        });
+        await organizerUser.save();
+      }
     } else if (action === "reject") {
       verification.status = "rejected";
       verification.rejectionReason = notes || "Verification rejected after review";
@@ -516,6 +558,18 @@ exports.adminRestoreVerification = async (req, res) => {
       verification.suspension_reason = "";
       verification.suspended_by = null;
       verification.suspended_at = null;
+      const organizerUser = await User.findById(verification.organizer);
+      if (organizerUser) {
+        applyOrganizerVerificationState({
+          user: organizerUser,
+          status: "rejected",
+          reviewerId: req.user._id,
+          reviewedAt: verification.reviewedAt,
+          rejectionReason: verification.rejectionReason,
+          submittedAt: verification.createdAt,
+        });
+        await organizerUser.save();
+      }
     } else {
       return res.status(400).json({ message: "Invalid action. Use: requeue, approve, or reject" });
     }

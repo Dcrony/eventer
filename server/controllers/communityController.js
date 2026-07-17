@@ -4,11 +4,11 @@ const { createNotification } = require("../services/notificationService");
 
 const postPopulateUser = {
   path: "user",
-  select: "name username profilePic role isVerified",
+  select: "name username profilePic role isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan",
 };
 const postPopulateAuthor = {
   path: "author",
-  select: "name username profilePic role isVerified",
+  select: "name username profilePic role isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan",
 };
 
 exports.getPosts = async (req, res) => {
@@ -21,7 +21,7 @@ exports.getPosts = async (req, res) => {
 
     const postIds = posts.map((post) => post._id);
     const comments = await Comment.find({ post: { $in: postIds } })
-      .populate({ path: "author", select: "name username profilePic role isVerified" })
+      .populate({ path: "author", select: "name username profilePic role isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan" })
       .sort({ createdAt: 1 })
       .lean();
 
@@ -149,7 +149,7 @@ exports.addComment = async (req, res) => {
 
     const populated = await Comment.findById(comment._id).populate({
       path: "author",
-      select: "name username profilePic role isVerified",
+      select: "name username profilePic role isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan",
     });
 
     const actorId = String(req.user._id || req.user.id);
@@ -190,7 +190,7 @@ exports.addComment = async (req, res) => {
 exports.getCommentsByPost = async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.postId })
-      .populate({ path: "author", select: "name username profilePic role isVerified" })
+      .populate({ path: "author", select: "name username profilePic role isVerified organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy subscriptionStatus plan" })
       .sort({ createdAt: 1 })
       .lean();
     return res.status(200).json(comments);

@@ -4,7 +4,7 @@ const User = require("../models/User");
 const { hasAccess, getFeatureLabel } = require("../services/featureService");
 const { isAdminRole } = require("../middleware/adminAccess");
 
-const OWNER_USER_SELECT = "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus";
+const OWNER_USER_SELECT = "name username email profilePic role isVerified billing plan trialEndsAt subscriptionStatus organizerVerificationStatus organizerVerifiedAt organizerVerifiedBy organizerVerificationReviewedAt organizerVerificationSubmittedAt";
 
 const PERMISSION_KEYS = Object.freeze([
   "canEditEvent",
@@ -147,7 +147,7 @@ const findActiveMember = (eventTeam, userId) => {
 const ensureOwnerUser = async (event) => {
   if (!event?.createdBy) return null;
 
-  if (event.createdBy?.plan || event.createdBy?.username || event.createdBy?.email) {
+  if (event.createdBy?.plan || event.createdBy?.username || event.createdBy?.email || event.createdBy?.organizerVerificationStatus) {
     return event.createdBy;
   }
 
