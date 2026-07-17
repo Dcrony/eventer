@@ -41,7 +41,7 @@ export function PremiumOrganizerBadge({ user, subscriptionStatus, className }) {
 
   if (!premium) return null;
 
-  return <BadgePill icon={Crown} label="" tone="premium" className={className} />;
+  return <BadgePill icon={Crown} label="Premium Organizer" tone="premium" className={className} />;
 }
 
 export default function OrganizerBadges({ user, className, verificationStatus, subscriptionStatus, layout = "vertical" }) {
