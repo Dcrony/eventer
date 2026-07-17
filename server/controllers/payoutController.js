@@ -1,9 +1,12 @@
 const Payout = require("../models/Payout");
 const User = require("../models/User");
+const Event = require("../models/Event");
 const Transaction = require("../models/Transaction");
 const PayoutAccount = require("../models/PayoutAccount");
+const PlatformSetting = require("../models/PlatformSetting");
 const OrganizerVerification = require("../models/OrganizerVerification");
 const { createNotification } = require("../services/notificationService");
+const smartPayoutService = require("../services/smartPayoutService");
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 25;
@@ -23,6 +26,14 @@ const getVerificationStatus = async (userId) => {
     isVerified:      v?.status === "approved",
     rejectionReason: v?.rejectionReason || null,
   };
+};
+
+const getOrCreatePlatformSettings = async () => {
+  let settings = await PlatformSetting.findOne({ key: "platform" });
+  if (!settings) {
+    settings = await PlatformSetting.create({ key: "platform" });
+  }
+  return settings;
 };
 
 // ─── Core: create payout when a ticket is sold ────────────────────────────────
@@ -75,12 +86,36 @@ const createPayoutForSale = async ({
     netAmount,
     state:        "pending",
     releaseAfter,
-    meta,
+    metadata: {
+      ...(meta || {}),
+      reference: meta?.reference || undefined,
+      paymentReference: meta?.paymentReference || meta?.reference || undefined,
+      balanceSource: "escrow",
+    },
     audit: [{ action: "created", note: "payout created on ticket sale" }],
   });
 
   // Reflect in organizer's pendingBalance (funds are locked in escrow)
   await User.findByIdAndUpdate(organizerId, { $inc: { pendingBalance: netAmount } });
+
+  const eventRecord = await Event.findById(eventId);
+  if (eventRecord) {
+    const nextRevenue = Number(eventRecord.totalTicketRevenue || 0) + Number(grossAmount || 0);
+    const nextPlatformFee = Number(eventRecord.platformFee || 0) + Number(platformFee || 0);
+    const nextProcessingFee = Number(eventRecord.processingFee || 0);
+    const nextRemainingBalance = Math.max(0, nextRevenue - nextPlatformFee - nextProcessingFee - Number(eventRecord.earlyPayoutAmount || 0));
+    await Event.findByIdAndUpdate(eventId, {
+      $set: {
+        totalTicketRevenue: nextRevenue,
+        platformFee: nextPlatformFee,
+        processingFee: nextProcessingFee,
+        remainingBalance: nextRemainingBalance,
+        payoutStatus: eventRecord.payoutStatus || "PENDING",
+        eligibleForEarlyPayout: Boolean(eventRecord.eligibleForEarlyPayout),
+        finalPayoutCompleted: Boolean(eventRecord.finalPayoutCompleted),
+      },
+    });
+  }
 
   // Ledger entry — starts as pending, flips to success when payout is released
   await Transaction.create({
@@ -103,6 +138,13 @@ const createPayoutForSale = async ({
  * Safe to call from a background worker — does NOT touch req/res.
  */
 const releasePayout = async (payoutId, actorId = null, note = "auto-release") => {
+  return smartPayoutService.settlePayoutRecord({
+    payoutId,
+    actorId,
+    note,
+    force: false,
+    markProcessing: true,
+  });
   const payout = await Payout.findById(payoutId);
   if (!payout) throw new Error("Payout not found");
   if (payout.state === "released" || payout.state === "completed") return payout;
@@ -191,6 +233,8 @@ const findPayoutByReference = async (reference) => {
     $or: [
       { "meta.reference": reference },
       { "meta.paymentReference": reference },
+      { "metadata.reference": reference },
+      { "metadata.paymentReference": reference },
     ],
   });
 };
@@ -305,6 +349,35 @@ const listPayouts = async (req, res) => {
     if (state) filter.state = state;
     if (organizer) filter.organizer = organizer;
 
+    if (search) {
+      const normalizedSearch = String(search).trim();
+      if (normalizedSearch) {
+        const searchRegex = new RegExp(normalizedSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+        const matchingOrganizerIds = await User.find({
+          $or: [
+            { name: searchRegex },
+            { email: searchRegex },
+            { username: searchRegex },
+          ],
+        }).distinct("_id");
+
+        const matchingEventIds = await Event.find({
+          $or: [
+            { title: searchRegex },
+            { category: searchRegex },
+            { location: searchRegex },
+          ],
+        }).distinct("_id");
+
+        filter.$or = [
+          { transactionReference: searchRegex },
+          { paymentProviderReference: searchRegex },
+          ...(matchingOrganizerIds.length ? [{ organizer: { $in: matchingOrganizerIds } }] : []),
+          ...(matchingEventIds.length ? [{ event: { $in: matchingEventIds } }] : []),
+        ];
+      }
+    }
+
     // If an organizer is viewing their own payouts, check verification
     if (organizer && req.user?.id === organizer) {
       const vs = await getVerificationStatus(req.user.id);
@@ -318,10 +391,10 @@ const listPayouts = async (req, res) => {
       }
     }
 
-    const [items, total, volumeAgg] = await Promise.all([
+    const [items, total, summaryAgg] = await Promise.all([
       Payout.find(filter)
-        .populate("organizer", "name email username")
-        .populate("event",     "title endDate")
+        .populate("organizer", "name email username role organizerLevel trustScore earlyPayoutEnabled")
+        .populate("event",     "title endDate totalTicketRevenue remainingBalance payoutStatus finalPayoutCompleted")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(Number(limit))
@@ -329,13 +402,50 @@ const listPayouts = async (req, res) => {
       Payout.countDocuments(filter),
       Payout.aggregate([
         { $match: filter },
-        { $group: { _id: null, totalVolume: { $sum: "$grossAmount" }, netAmount: { $sum: "$netAmount" } } },
+        {
+          $group: {
+            _id: null,
+            totalVolume: { $sum: "$grossAmount" },
+            netAmount: { $sum: "$netAmount" },
+            totalCount: { $sum: 1 },
+            pendingCount: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } },
+            processingCount: { $sum: { $cond: [{ $eq: ["$status", "PROCESSING"] }, 1, 0] } },
+            paidCount: { $sum: { $cond: [{ $eq: ["$status", "PAID"] }, 1, 0] } },
+            failedCount: { $sum: { $cond: [{ $eq: ["$status", "FAILED"] }, 1, 0] } },
+            reversedCount: { $sum: { $cond: [{ $eq: ["$status", "REVERSED"] }, 1, 0] } },
+            earlyCount: { $sum: { $cond: [{ $eq: ["$payoutType", "EARLY"] }, 1, 0] } },
+            finalCount: { $sum: { $cond: [{ $eq: ["$payoutType", "FINAL"] }, 1, 0] } },
+          },
+        },
       ]),
     ]);
 
-    const summary = volumeAgg[0]
-      ? { totalVolume: volumeAgg[0].totalVolume, netAmount: volumeAgg[0].netAmount }
-      : { totalVolume: 0, netAmount: 0 };
+    const aggregate = summaryAgg[0] || null;
+    const summary = aggregate
+      ? {
+          totalVolume: aggregate.totalVolume,
+          netAmount: aggregate.netAmount,
+          totalCount: aggregate.totalCount,
+          pendingCount: aggregate.pendingCount,
+          processingCount: aggregate.processingCount,
+          paidCount: aggregate.paidCount,
+          failedCount: aggregate.failedCount,
+          reversedCount: aggregate.reversedCount,
+          earlyCount: aggregate.earlyCount,
+          finalCount: aggregate.finalCount,
+        }
+      : {
+          totalVolume: 0,
+          netAmount: 0,
+          totalCount: 0,
+          pendingCount: 0,
+          processingCount: 0,
+          paidCount: 0,
+          failedCount: 0,
+          reversedCount: 0,
+          earlyCount: 0,
+          finalCount: 0,
+        };
 
     return res.json({
       success: true,
@@ -352,10 +462,25 @@ const listPayouts = async (req, res) => {
 const getPayout = async (req, res) => {
   try {
     const payout = await Payout.findById(req.params.id)
-      .populate("organizer", "name email username")
-      .populate("event",     "title endDate")
+      .populate("organizer", "name email username role organizerLevel trustScore earlyPayoutEnabled")
+      .populate("event",     "title endDate totalTicketRevenue remainingBalance payoutStatus finalPayoutCompleted")
       .lean();
     if (!payout) return res.status(404).json({ message: "Payout not found" });
+
+    if (action === "retry_failed") {
+      if (String(payout.status).toUpperCase() !== "FAILED") {
+        return res.status(400).json({ message: "Only failed payouts can be retried" });
+      }
+
+      const settled = await smartPayoutService.settlePayoutRecord({
+        payoutId: payout._id,
+        actorId: req.user._id,
+        note: note || "admin-retry-failed",
+        force: true,
+      });
+
+      return res.json({ success: true, payout: settled });
+    }
     return res.json({ success: true, payout });
   } catch (error) {
     console.error("getPayout error:", error);
@@ -363,10 +488,105 @@ const getPayout = async (req, res) => {
   }
 };
 
+const getPayoutSettings = async (req, res) => {
+  try {
+    const settings = await getOrCreatePlatformSettings();
+    return res.json({
+      success: true,
+      settings: {
+        commissionPercent: settings.commissionPercent,
+        withdrawalFeePercent: settings.withdrawalFeePercent,
+        payouts: settings.payouts || {},
+      },
+    });
+  } catch (error) {
+    console.error("getPayoutSettings error:", error);
+    return res.status(500).json({ message: "Failed to load payout settings" });
+  }
+};
+
+const updatePayoutSettings = async (req, res) => {
+  try {
+    const settings = await getOrCreatePlatformSettings();
+    const payload = req.body || {};
+    const payoutUpdates = payload.payouts || payload;
+
+    const numberFields = [
+      ["commissionPercent", "commissionPercent"],
+      ["withdrawalFeePercent", "withdrawalFeePercent"],
+      ["holdingPeriodHours", "payouts.holdingPeriodHours"],
+      ["earlyPayoutPercentVerified", "payouts.earlyPayoutPercentVerified"],
+      ["earlyPayoutPercentTrusted", "payouts.earlyPayoutPercentTrusted"],
+      ["autoReleaseIntervalMinutes", "payouts.autoReleaseIntervalMinutes"],
+      ["maxAutoReleaseBatch", "payouts.maxAutoReleaseBatch"],
+    ];
+
+    numberFields.forEach(([inputKey, path]) => {
+      if (payoutUpdates[inputKey] === undefined && payload[inputKey] === undefined) return;
+      const rawValue = payoutUpdates[inputKey] ?? payload[inputKey];
+      const numericValue = Number(rawValue);
+      if (Number.isFinite(numericValue)) {
+        settings.set(path, numericValue);
+      }
+    });
+
+    const booleanFields = [
+      ["requireOrganizerVerified", "payouts.requireOrganizerVerified"],
+      ["requireEventCompletion", "payouts.requireEventCompletion"],
+    ];
+
+    booleanFields.forEach(([inputKey, path]) => {
+      if (payoutUpdates[inputKey] === undefined && payload[inputKey] === undefined) return;
+      const rawValue = payoutUpdates[inputKey] ?? payload[inputKey];
+      if (typeof rawValue === "boolean") {
+        settings.set(path, rawValue);
+      }
+    });
+
+    await settings.save();
+
+    return res.json({
+      success: true,
+      settings: {
+        commissionPercent: settings.commissionPercent,
+        withdrawalFeePercent: settings.withdrawalFeePercent,
+        payouts: settings.payouts || {},
+      },
+    });
+  } catch (error) {
+    console.error("updatePayoutSettings error:", error);
+    return res.status(500).json({ message: "Failed to update payout settings" });
+  }
+};
+
 /**
  * Admin HTTP handler — wraps the programmatic helpers above.
  * action: "release" | "freeze" | "refund" | "mark_under_review" | "schedule"
  */
+const requestEarlyPayout = async (req, res) => {
+  try {
+    const payout = await smartPayoutService.requestEarlyPayout({
+      organizerId: req.user.id,
+      eventId: req.body.eventId,
+      amount: req.body.amount,
+    });
+
+    return res.status(201).json({ success: true, payout });
+  } catch (error) {
+    console.error("requestEarlyPayout error:", error);
+    return res.status(400).json({ message: error.message || "Failed to request early payout" });
+  }
+};
+
+const adminRunPayoutProcessing = async (req, res) => {
+  try {
+    const result = await smartPayoutService.processFinalPayouts({ batchSize: req.body?.batchSize || 20 });
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || "Failed to process payouts" });
+  }
+};
+
 const adminUpdatePayout = async (req, res) => {
   try {
     const { id } = req.params;
@@ -377,29 +597,11 @@ const adminUpdatePayout = async (req, res) => {
 
     // ── Release ──────────────────────────────────────────────────────────────
     if (action === "release" || action === "approve_release") {
-      // Admin can override the releaseAfter guard by supplying the action explicitly,
-      // but we warn if the event hasn't ended yet (soft guard for UI, hard guard in cron).
-      const now = new Date();
-      if (payout.releaseAfter > now) {
-        // Admin override allowed — just log it
-        console.warn(`Admin releasing payout ${id} before event end (${payout.releaseAfter.toISOString()})`);
-      }
-
-      try {
-        const payoutQueue = require("../queues/payoutQueue");
-        const job = await payoutQueue.add(
-          { type: "release", payoutId: payout._id, actorId: req.user._id, note: note || "admin-release" },
-          { attempts: 5, backoff: { type: "exponential", delay: 2000 }, removeOnComplete: true }
-        );
-        return res.json({ success: true, queued: true, jobId: job.id });
-      } catch (_) {
-        // Queue unavailable — fall back to synchronous release
-        const released = await releasePayout(id, req.user._id, note || "admin-direct-release");
-        return res.json({ success: true, payout: released });
-      }
+      return res.status(400).json({
+        message: "Manual payout release is disabled. Automated settlement handles eligible payouts.",
+      });
     }
 
-    // ── Freeze ───────────────────────────────────────────────────────────────
     if (action === "freeze") {
       try {
         const payoutQueue = require("../queues/payoutQueue");
@@ -590,7 +792,7 @@ const disconnectPayoutAccount = async (req, res) => {
     const Withdrawal = require("../models/Withdrawal");
     const pending = await Withdrawal.findOne({
       organizer: organizerId,
-      status: { $in: ["pending", "approved", "processing"] },
+      status: { $in: ["pending", "PENDING_ADMIN_APPROVAL", "approved", "processing", "PROCESSING"] },
     });
     if (pending) {
       return res.status(400).json({
@@ -630,6 +832,10 @@ module.exports = {
   // HTTP handlers
   listPayouts,
   getPayout,
+  getPayoutSettings,
+  updatePayoutSettings,
+  requestEarlyPayout,
+  adminRunPayoutProcessing,
   adminUpdatePayout,
 
   // Payout account

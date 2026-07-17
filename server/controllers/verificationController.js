@@ -208,7 +208,14 @@ exports.adminReview = async (req, res) => {
       await verification.save();
 
       // mark user verified
-      await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: true } });
+      await User.findByIdAndUpdate(verification.organizer, {
+        $set: {
+          isVerified: true,
+          organizerLevel: "VERIFIED",
+          earlyPayoutEnabled: true,
+          trustScore: 50,
+        },
+      });
 
       if (organizer?.email) {
         sendEmail({
@@ -235,7 +242,12 @@ exports.adminReview = async (req, res) => {
       await verification.save();
 
       // ensure user remains unverified
-      await User.findByIdAndUpdate(verification.organizer, { $set: { isVerified: false } });
+      await User.findByIdAndUpdate(verification.organizer, {
+        $set: {
+          isVerified: false,
+          earlyPayoutEnabled: false,
+        },
+      });
 
       if (organizer?.email) {
         sendEmail({

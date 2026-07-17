@@ -3,9 +3,11 @@ const Event = require("../models/Event");
 const Ticket = require("../models/Ticket");
 const User = require("../models/User");
 const Withdrawal = require("../models/Withdrawal");
+const Payout = require("../models/Payout");
 const { getPlatformTicketFeePercent } = require("../utils/platformFee");
 const { capOrganizerAvailableBalance } = require("../utils/organizerBalance");
 const { isAdminRole } = require("../middleware/adminAccess");
+const smartPayoutService = require("../services/smartPayoutService");
 
 const buildDateKey = (date) => {
   const d = date instanceof Date ? date : new Date(date);
@@ -225,23 +227,67 @@ exports.getOrganizerEarnings = async (req, res) => {
     const oid = new mongoose.Types.ObjectId(userId);
 
     const withdrawalTotals = await Withdrawal.aggregate([
-      { $match: { organizer: oid, status: "completed" } },
+      { $match: { organizer: oid, status: { $in: ["completed", "PAID"] } } },
       { $group: { _id: null, total: { $sum: "$amount" }, totalFees: { $sum: "$fee" } } },
     ]);
     const totalWithdrawn = withdrawalTotals[0]?.total || 0;
     const totalWithdrawalProcessingFees = withdrawalTotals[0]?.totalFees || 0;
 
     const pendingWithdrawals = await Withdrawal.aggregate([
-      { $match: { organizer: oid, status: "pending" } },
+      { $match: { organizer: oid, status: { $in: ["pending", "PENDING_ADMIN_APPROVAL", "approved", "processing", "PROCESSING"] } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const pendingWithdrawalAmount = pendingWithdrawals[0]?.total || 0;
+
+    const effectiveOrganizerLevel = smartPayoutService.getEffectiveOrganizerLevel(user);
+    const organizerPolicy = smartPayoutService.getOrganizerPayoutPolicy({
+      organizerLevel: effectiveOrganizerLevel,
+      isVerified: user.isVerified,
+      earlyPayoutEnabled: user.earlyPayoutEnabled,
+    });
+
+    const payoutTotalsAgg = await Payout.aggregate([
+      { $match: { organizer: oid } },
+      {
+        $group: {
+          _id: null,
+          totalPayouts: { $sum: 1 },
+          pendingPayouts: { $sum: { $cond: [{ $eq: ["$status", "PENDING"] }, 1, 0] } },
+          processingPayouts: { $sum: { $cond: [{ $eq: ["$status", "PROCESSING"] }, 1, 0] } },
+          paidPayouts: { $sum: { $cond: [{ $eq: ["$status", "PAID"] }, 1, 0] } },
+          failedPayouts: { $sum: { $cond: [{ $eq: ["$status", "FAILED"] }, 1, 0] } },
+          reversedPayouts: { $sum: { $cond: [{ $eq: ["$status", "REVERSED"] }, 1, 0] } },
+          totalPaidAmount: { $sum: { $cond: [{ $in: ["$state", ["released", "completed"]] }, "$netAmount", 0] } },
+          pendingHeldAmount: { $sum: { $cond: [{ $in: ["$state", ["pending", "processing", "scheduled", "under_review"]] }, "$netAmount", 0] } },
+        },
+      },
+    ]);
+
+    const recentPayouts = await Payout.find({ organizer: oid })
+      .populate("event", "title startDate endDate")
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    const nextAutomaticPayout = await Payout.findOne({
+      organizer: oid,
+      state: { $in: ["pending", "scheduled"] },
+      releaseAfter: { $gt: new Date() },
+    })
+      .sort({ releaseAfter: 1 })
+      .select("releaseAfter state status netAmount payoutType")
+      .lean();
 
     const perEvent = events
       .map((event) => {
         const evTickets = tickets.filter((t) => t.event.toString() === event._id.toString());
         const revenue = evTickets.reduce((s, t) => s + (Number(t.amountPaid) || 0), 0);
         const platformCommission = evTickets.reduce((s, t) => s + (Number(t.platformFee) || 0), 0);
+        const eligibleRevenue = Math.max(0, revenue - platformCommission);
+        const availableEarlyPayout = smartPayoutService.calculateEarlyPayoutAmount(
+          Math.max(0, eligibleRevenue - Number(event.earlyPayoutAmount || 0)),
+          organizerPolicy.allowedEarlyPercent,
+        );
         return {
           eventId: event._id,
           title: event.title,
@@ -249,8 +295,14 @@ exports.getOrganizerEarnings = async (req, res) => {
           startDate: event.startDate,
           grossRevenue: revenue,
           platformCommission,
-          netEarnings: Math.max(0, revenue - platformCommission),
+          netEarnings: eligibleRevenue,
           ticketsSold: evTickets.reduce((s, t) => s + (Number(t.quantity) || 0), 0),
+          payoutStatus: event.payoutStatus || "PENDING",
+          remainingBalance: Number(event.remainingBalance || 0),
+          eligibleForEarlyPayout: Boolean(event.eligibleForEarlyPayout),
+          organizerLevel: organizerPolicy.organizerLevel,
+          maxEarlyPayoutPercent: organizerPolicy.allowedEarlyPercent,
+          availableEarlyPayout,
         };
       })
       .sort((a, b) => b.grossRevenue - a.grossRevenue);
@@ -260,6 +312,7 @@ exports.getOrganizerEarnings = async (req, res) => {
 
     const rawAvailable = Number(user.availableBalance) || 0;
     const availableBalance = await capOrganizerAvailableBalance(userId, rawAvailable);
+    const payoutTotals = payoutTotalsAgg[0] || {};
 
     res.status(200).json({
       grossTicketSales,
@@ -268,12 +321,31 @@ exports.getOrganizerEarnings = async (req, res) => {
       netAfterSalesCommission,
       availableBalance,
       pendingBalance: Number(user.pendingBalance) || 0,
+      remainingHeldBalance: Number(payoutTotals.pendingHeldAmount || 0),
+      totalPaid: Number(payoutTotals.totalPaidAmount || 0),
+      pendingPayout: Number(payoutTotals.pendingHeldAmount || 0),
+      pendingPayoutCount: Number(payoutTotals.pendingPayouts || 0),
+      totalPayouts: Number(payoutTotals.totalPayouts || 0),
+      organizerLevel: effectiveOrganizerLevel,
+      trustScore: Number(user.trustScore || 0),
+      earlyPayoutEnabled: Boolean(user.earlyPayoutEnabled),
+      availableEarlyPayout: perEvent.reduce((sum, event) => sum + Number(event.availableEarlyPayout || 0), 0),
       totalWithdrawn,
       totalWithdrawalProcessingFeesCharged: totalWithdrawalProcessingFees,
       pendingWithdrawalAmount,
       withdrawalProcessingFeePercent,
       minWithdrawalAmount,
+      nextAutomaticPayoutAt: nextAutomaticPayout?.releaseAfter || null,
+      payoutStatus: {
+        pending: Number(payoutTotals.pendingPayouts || 0),
+        processing: Number(payoutTotals.processingPayouts || 0),
+        paid: Number(payoutTotals.paidPayouts || 0),
+        failed: Number(payoutTotals.failedPayouts || 0),
+        reversed: Number(payoutTotals.reversedPayouts || 0),
+      },
       perEvent,
+      payoutHistory: recentPayouts,
+      organizerPolicy,
     });
   } catch (err) {
     console.error("Organizer earnings error:", err);

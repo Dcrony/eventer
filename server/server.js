@@ -258,6 +258,16 @@ const runEventLifecycleTransitionWorker = async () => {
 };
 
 // ── Payout release worker ──
+const runSmartPayoutWorker = async () => {
+  try {
+    const { processFinalPayouts } = require("./services/smartPayoutService");
+    const result = await processFinalPayouts({ batchSize: 20 });
+    console.log(`🧾 Smart payout worker processed ${result.processed || 0} payout batch item(s)`);
+  } catch (error) {
+    console.error("Smart payout worker error:", error.message || error);
+  }
+};
+
 const runPayoutReleaseWorker = async () => {
   try {
     const PlatformSetting = require("./models/PlatformSetting");
@@ -342,14 +352,14 @@ const runPayoutReleaseWorker = async () => {
 // Schedule worker with interval from settings (fallback 15 minutes)
 setInterval(async () => {
   try {
-    await runPayoutReleaseWorker();
+    await runSmartPayoutWorker();
   } catch (e) {
-    console.error("Payout worker loop error:", e.message || e);
+    console.error("Smart payout worker loop error:", e.message || e);
   }
-}, 15 * 60 * 1000);
+}, 60 * 60 * 1000);
 
 // Run immediately at startup as well
-runPayoutReleaseWorker();
+runSmartPayoutWorker();
 
 // Schedule event lifecycle transition worker (every 5 minutes)
 setInterval(async () => {

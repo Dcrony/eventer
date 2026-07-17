@@ -1,7 +1,7 @@
 const Payout = require('../models/Payout');
 const User = require('../models/User');
-const Transaction = require('../models/Transaction');
 const { capOrganizerAvailableBalance } = require('../utils/organizerBalance');
+const smartPayoutService = require('../services/smartPayoutService');
 
 async function getOrganizerBalances(organizerId) {
   const organizer = await User.findById(organizerId).lean();
@@ -30,6 +30,40 @@ async function getOrganizerBalances(organizerId) {
   ]);
   const refunded = refundedAgg[0]?.total || 0;
 
+  const payoutTotalsAgg = await Payout.aggregate([
+    { $match: { organizer: organizerId } },
+    {
+      $group: {
+        _id: null,
+        totalPayouts: { $sum: 1 },
+        pendingPayouts: { $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] } },
+        processingPayouts: { $sum: { $cond: [{ $eq: ['$status', 'PROCESSING'] }, 1, 0] } },
+        paidPayouts: { $sum: { $cond: [{ $eq: ['$status', 'PAID'] }, 1, 0] } },
+        failedPayouts: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } },
+        totalPaidAmount: { $sum: { $cond: [{ $in: ['$state', ['released', 'completed']] }, '$netAmount', 0] } },
+        pendingHeldAmount: { $sum: { $cond: [{ $in: ['$state', ['pending', 'processing', 'scheduled', 'under_review']] }, '$netAmount', 0] } },
+      },
+    },
+  ]);
+
+  const nextAutomaticPayout = await Payout.findOne({
+    organizer: organizerId,
+    state: { $in: ['pending', 'scheduled'] },
+    releaseAfter: { $gt: new Date() },
+  })
+    .sort({ releaseAfter: 1 })
+    .select('releaseAfter state status netAmount payoutType')
+    .lean();
+
+  const payoutTotals = payoutTotalsAgg[0] || {};
+  const effectiveOrganizerLevel = smartPayoutService.getEffectiveOrganizerLevel(organizer);
+  const policy = smartPayoutService.getOrganizerPayoutPolicy({
+    organizerLevel: effectiveOrganizerLevel,
+    isVerified: organizer.isVerified,
+    earlyPayoutEnabled: organizer.earlyPayoutEnabled,
+  });
+  const availableEarlyPayout = Math.max(0, Math.round((payoutTotals.pendingHeldAmount || 0) * (policy.allowedEarlyPercent / 100)));
+
   const reconciledAvailableBalance = await capOrganizerAvailableBalance(organizerId, rawAvailable);
 
   return {
@@ -40,6 +74,18 @@ async function getOrganizerBalances(organizerId) {
     escrowBalance: escrow,
     releasedRevenue: released,
     refundedRevenue: refunded,
+    totalPaid: Number(payoutTotals.totalPaidAmount || 0),
+    totalPayouts: Number(payoutTotals.totalPayouts || 0),
+    pendingPayouts: Number(payoutTotals.pendingPayouts || 0),
+    processingPayouts: Number(payoutTotals.processingPayouts || 0),
+    paidPayouts: Number(payoutTotals.paidPayouts || 0),
+    failedPayouts: Number(payoutTotals.failedPayouts || 0),
+    remainingHeldBalance: Number(payoutTotals.pendingHeldAmount || 0),
+    availableEarlyPayout,
+    nextAutomaticPayoutAt: nextAutomaticPayout?.releaseAfter || null,
+    organizerLevel: effectiveOrganizerLevel,
+    trustScore: Number(organizer.trustScore || 0),
+    earlyPayoutEnabled: Boolean(organizer.earlyPayoutEnabled),
   };
 }
 

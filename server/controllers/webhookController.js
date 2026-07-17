@@ -25,7 +25,7 @@ const {
   amountsMatch,
 } = require("../utils/ticketPricing");
 const { createPayoutForSale, refundPayoutByReference } = require("./payoutController");
-const { handlePaystackTransferWebhook } = require("./withdrawalController");
+const { finalizeWithdrawalFromWebhook } = require("../services/withdrawalService");
 
 exports.handlePaystackWebhook = async (req, res) => {
   try {
@@ -659,8 +659,12 @@ exports.handlePaystackWebhook = async (req, res) => {
     | TRANSFER SUCCESS (Withdrawal Completed)
     |--------------------------------------------------------------------------
     */
-    if (event.event === "transfer.success" || event.event === "transfer.failed") {
-      await handlePaystackTransferWebhook(event.data, req.app);
+    if (["transfer.success", "transfer.failed", "transfer.reversed"].includes(event.event)) {
+      await finalizeWithdrawalFromWebhook({
+        eventName: event.event,
+        payload: event.data || {},
+        app: req.app,
+      });
       return res.sendStatus(200);
     }
 

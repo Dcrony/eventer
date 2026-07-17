@@ -87,6 +87,14 @@ const eventSchema = new mongoose.Schema({
 
   totalTickets: Number,
   ticketsSold:  { type: Number, default: 0 },
+  totalTicketRevenue: { type: Number, default: 0 },
+  platformFee: { type: Number, default: 0 },
+  processingFee: { type: Number, default: 0 },
+  earlyPayoutAmount: { type: Number, default: 0 },
+  remainingBalance: { type: Number, default: 0 },
+  payoutStatus: { type: String, default: "PENDING" },
+  eligibleForEarlyPayout: { type: Boolean, default: false },
+  finalPayoutCompleted: { type: Boolean, default: false },
   capacity:     { type: Number, default: 0 },
 
   viewCount:  { type: Number, default: 0 },

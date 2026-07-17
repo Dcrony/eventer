@@ -53,6 +53,54 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    organizerLevel: {
+      type: String,
+      enum: ["NEW", "VERIFIED", "TRUSTED"],
+      default: "NEW",
+    },
+    trustScore: {
+      type: Number,
+      default: 0,
+    },
+    earlyPayoutEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    totalSuccessfulEvents: {
+      type: Number,
+      default: 0,
+    },
+    refundRate: {
+      type: Number,
+      default: 0,
+    },
+    disputeRate: {
+      type: Number,
+      default: 0,
+    },
+    payoutStatistics: {
+      totalEarlyPayouts: { type: Number, default: 0 },
+      totalFinalPayouts: { type: Number, default: 0 },
+      totalPaid: { type: Number, default: 0 },
+      pendingAmount: { type: Number, default: 0 },
+      lastPayoutAt: { type: Date, default: null },
+    },
+    successfulWithdrawals: {
+      type: Number,
+      default: 0,
+    },
+    automaticWithdrawalEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    firstWithdrawalApproved: {
+      type: Boolean,
+      default: false,
+    },
+    lastWithdrawalDate: {
+      type: Date,
+      default: null,
+    },
     emailVerificationToken: String,
     
     // 🔐 OTP verification fields

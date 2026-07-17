@@ -14,6 +14,7 @@ const mongoose = require("mongoose");
  *                  organizer.availableBalance increases
  *   withdrawal   → Transaction(withdrawal, pending) + Withdrawal(pending)
  *   admin approves withdrawal → Paystack transfer → Transaction status → success
+ *   transfer reversed → Transaction status → reversed
  */
 const transactionSchema = new mongoose.Schema(
   {
@@ -43,7 +44,7 @@ const transactionSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "success", "failed", "refunded", "chargeback"],
+      enum: ["pending", "success", "failed", "refunded", "chargeback", "reversed"],
       default: "pending",
       index: true,
     },

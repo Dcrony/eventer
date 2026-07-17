@@ -456,7 +456,21 @@ exports.getAdminWithdrawals = async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query.page, req.query.limit);
     const filter = {};
 
-    if (status && status !== "all") filter.status = status;
+    const statusAliases = {
+      pending: ["pending", "PENDING_ADMIN_APPROVAL"],
+      processing: ["approved", "processing", "PROCESSING"],
+      completed: ["completed", "PAID"],
+      paid: ["completed", "PAID"],
+      failed: ["failed", "rejected", "FAILED"],
+      reversed: ["REVERSED"],
+      PENDING_ADMIN_APPROVAL: ["pending", "PENDING_ADMIN_APPROVAL"],
+      PROCESSING: ["approved", "processing", "PROCESSING"],
+      PAID: ["completed", "PAID"],
+      FAILED: ["failed", "rejected", "FAILED"],
+      REVERSED: ["REVERSED"],
+    };
+
+    if (status && status !== "all") filter.status = { $in: statusAliases[status] || [status] };
 
     const dateRange = buildDateRange(req.query.startDate, req.query.endDate);
     if (dateRange) filter.createdAt = dateRange;
@@ -494,8 +508,8 @@ exports.getAdminWithdrawals = async (req, res) => {
           $group: {
             _id:               null,
             totalRequested:    { $sum: "$amount" },
-            totalCompleted:    { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
-            totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0] } },
+            totalCompleted:    { $sum: { $cond: [{ $in: ["$status", ["completed", "PAID"]] }, "$amount", 0] } },
+            totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "PENDING_ADMIN_APPROVAL", "approved", "processing", "PROCESSING"]] }, "$amount", 0] } },
             totalPlatformFees: { $sum: "$fee" },
           },
         },
@@ -520,8 +534,8 @@ exports.getWithdrawalAnalytics = async (req, res) => {
       Withdrawal.aggregate([{
         $group: {
           _id:               null,
-          totalPaid:         { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
-          totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "approved", "processing"]] }, "$amount", 0] } },
+          totalPaid:         { $sum: { $cond: [{ $in: ["$status", ["completed", "PAID"]] }, "$amount", 0] } },
+          totalPending:      { $sum: { $cond: [{ $in: ["$status", ["pending", "PENDING_ADMIN_APPROVAL", "approved", "processing", "PROCESSING"]] }, "$amount", 0] } },
           totalPlatformFees: { $sum: "$fee" },
         },
       }]),
@@ -543,7 +557,7 @@ exports.getMonthlyWithdrawalTrend = async (req, res) => {
         $group: {
           _id:       { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
           total:     { $sum: "$amount" },
-          completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0] } },
+          completed: { $sum: { $cond: [{ $in: ["$status", ["completed", "PAID"]] }, "$amount", 0] } },
         },
       },
       { $sort: { "_id.year": 1, "_id.month": 1 } },
@@ -611,4 +625,118 @@ exports.getOrganizerTransactions = async (req, res) => {
     console.error("getOrganizerTransactions error:", error);
     return res.status(500).json({ message: "Server error" });
   }
+};
+
+const productionWithdrawalService = require("../services/withdrawalService");
+
+exports.requestWithdrawal = async (req, res) => {
+  try {
+    const result = await productionWithdrawalService.requestWithdrawal({
+      organizerId: req.user.id,
+      amount: req.body.amount,
+      app: req.app,
+    });
+
+    return res.status(201).json({
+      message: result.requiresAdminApproval
+        ? "Withdrawal request submitted and waiting for admin approval"
+        : "Withdrawal request submitted and transfer processing",
+      requiresAdminApproval: result.requiresAdminApproval,
+      transferError: result.error?.message || null,
+      withdrawal: {
+        id: result.withdrawal._id,
+        amount: result.withdrawal.amount,
+        fee: result.withdrawal.fee,
+        netAmount: result.withdrawal.netAmount,
+        status: result.withdrawal.status,
+        createdAt: result.withdrawal.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("requestWithdrawal error:", error);
+    const statusCode = ["VERIFICATION_REQUIRED", "WITHDRAWAL_BLOCKED_FRAUD"].includes(error.code) ? 403 : 400;
+    return res.status(statusCode).json({
+      code: error.code,
+      message: error.message || "Withdrawal request failed",
+      verificationStatus: error.verificationStatus,
+      rejectionReason: error.rejectionReason,
+      availableBalance: error.availableBalance,
+      requestedAmount: error.requestedAmount,
+    });
+  }
+};
+
+exports.adminUpdateWithdrawal = async (req, res) => {
+  try {
+    const requestedStatus = String(req.body.status || "").trim().toLowerCase();
+    const withdrawalId = req.params.id;
+
+    if (!["approved", "rejected"].includes(requestedStatus)) {
+      return res.status(400).json({ message: "status must be 'approved' or 'rejected'" });
+    }
+
+    const withdrawal = await Withdrawal.findById(withdrawalId).populate("organizer");
+    if (!withdrawal) return res.status(404).json({ message: "Withdrawal not found" });
+
+    if (requestedStatus === "rejected") {
+      if (!["pending", "approved", "PENDING_ADMIN_APPROVAL"].includes(String(withdrawal.status))) {
+        return res.status(400).json({ message: `Cannot reject a withdrawal in '${withdrawal.status}' state` });
+      }
+
+      withdrawal.status = "FAILED";
+      withdrawal.failureReason = String(req.body.reason || "Rejected by admin");
+      withdrawal.processedBy = req.user.id;
+      withdrawal.processedAt = new Date();
+      withdrawal.logs = Array.isArray(withdrawal.logs) ? withdrawal.logs : [];
+      withdrawal.logs.push({
+        action: "rejected",
+        status: "FAILED",
+        message: withdrawal.failureReason,
+        metadata: { actorId: req.user.id },
+        createdAt: new Date(),
+      });
+      withdrawal.audit = Array.isArray(withdrawal.audit) ? withdrawal.audit : [];
+      withdrawal.audit.push({ actor: req.user.id, action: "rejected", note: withdrawal.failureReason, at: new Date() });
+      await withdrawal.save();
+
+      await productionWithdrawalService.updateTransactionForWithdrawal(withdrawal, "failed", withdrawal.transferReference);
+
+      try {
+        await createNotification(req.app, {
+          userId: withdrawal.organizer?._id || withdrawal.organizer,
+          type: "withdrawal_failed",
+          message: `Your withdrawal of ₦${Number(withdrawal.amount || 0).toLocaleString()} was rejected. Reason: ${withdrawal.failureReason}`,
+          actionUrl: "/dashboard/transactions",
+          entityId: withdrawal._id,
+          entityType: "withdrawal",
+        });
+      } catch (e) { console.warn("Notification failed:", e.message); }
+
+      await logAdminActivity(req, "WITHDRAWAL_REJECTED", withdrawal._id,
+        `${withdrawal.organizer?.email || withdrawal.organizer?.username || "Organizer"} withdrawal rejected`);
+
+      return res.json({ message: "Withdrawal rejected", withdrawal });
+    }
+
+    const approved = await productionWithdrawalService.approveWithdrawal({
+      withdrawalId,
+      actorId: req.user.id,
+      app: req.app,
+      note: "admin-approval",
+    });
+
+    await logAdminActivity(req, "WITHDRAWAL_APPROVED", withdrawal._id,
+      `${withdrawal.organizer?.email || withdrawal.organizer?.username || "Organizer"} withdrawal approved — Paystack ref: ${approved.transferReference || approved.paystackReference || "pending"}`);
+
+    return res.json({ message: "Transfer initiated", withdrawal: approved });
+  } catch (error) {
+    console.error("adminUpdateWithdrawal error:", error);
+    return res.status(400).json({ message: error.message || "Withdrawal update failed" });
+  }
+};
+
+exports.handlePaystackTransferWebhook = async (data, app = null) => {
+  const status = String(data.status || data.transfer?.status || "").toLowerCase();
+  const eventName = status === "reversed" ? "transfer.reversed" : status === "failed" ? "transfer.failed" : "transfer.success";
+  return productionWithdrawalService.finalizeWithdrawalFromWebhook({ eventName, payload: data, app });
 };

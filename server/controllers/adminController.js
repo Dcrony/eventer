@@ -1593,6 +1593,9 @@ exports.updateAdminSettings = async (req, res) => {
       ["platformLimits.maxTeamMembersPerEvent", "platformLimits.maxTeamMembersPerEvent"],
       ["platformLimits.maxFeaturedEvents", "platformLimits.maxFeaturedEvents"],
       ["referrals.rewardAmount", "referrals.rewardAmount"],
+      ["payouts.holdingPeriodHours", "payouts.holdingPeriodHours"],
+      ["payouts.earlyPayoutPercentVerified", "payouts.earlyPayoutPercentVerified"],
+      ["payouts.earlyPayoutPercentTrusted", "payouts.earlyPayoutPercentTrusted"],
     ];
 
     numberFields.forEach(([inputKey, path]) => {
@@ -1614,6 +1617,8 @@ exports.updateAdminSettings = async (req, res) => {
       ["livestreamEnabled", "livestreamEnabled"],
       ["registrationEnabled", "registrationEnabled"],
       ["referrals.enabled", "referrals.enabled"],
+      ["payouts.requireOrganizerVerified", "payouts.requireOrganizerVerified"],
+      ["payouts.requireEventCompletion", "payouts.requireEventCompletion"],
     ];
 
     booleanFields.forEach(([inputKey, path]) => {
