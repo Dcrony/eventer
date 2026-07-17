@@ -3,7 +3,7 @@ import { X, Search, UserRoundPlus, BadgeCheck, Users, UserCheck, MessageSquare }
 import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { UserAvatar } from "../components/ui/avatar";
-import VerifiedBadge from "../components/ui/verified-badge";
+import OrganizerBadges from "../components/ui/organizer-badges";
 
 const TABS = [
   { id: "followers", label: "Followers", icon: Users },
@@ -52,7 +52,7 @@ function UserRow({ user, currentUserId, isAlreadyFollowing, onClose, navigate, o
           <span className="text-sm font-bold text-gray-900 truncate">
             {user.name || user.username}
           </span>
-          <VerifiedBadge user={user} />
+          <OrganizerBadges user={user} layout="horizontal" className="scale-90" />
         </div>
         <p className="text-xs text-gray-400 truncate">
           @{user.username || "tickispot"}
@@ -174,7 +174,7 @@ export default function FollowersModal({
     following: data.following,
     verified: [...data.followers, ...data.following].filter(
       (u, idx, arr) =>
-        u?.isVerified &&
+        String(u?.organizerVerificationStatus || u?.organizerVerification?.status || "").toLowerCase() === "approved" &&
         arr.findIndex((x) => String(x._id) === String(u._id)) === idx,
     ),
   }), [data]);

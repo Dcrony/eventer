@@ -26,7 +26,7 @@ import teamService from "../services/api/team";
 import Button from "../components/ui/button";
 import EventCommentsModal from "../components/EventCommentsModal";
 import EventEngagementBar from "../components/EventEngagementBar";
-import VerifiedBadge from "../components/ui/verified-badge";
+import OrganizerBadges from "../components/ui/organizer-badges";
 import { UserAvatar } from "../components/ui/avatar";
 import { useToast } from "../components/ui/toast";
 import useShareLink from "../hooks/useShareLink";
@@ -657,7 +657,7 @@ export default function EventDetail() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-black text-gray-900 flex items-center gap-1.5">
                       {event.createdBy?.name || event.createdBy?.username || "Organizer"}
-                      <VerifiedBadge user={event.createdBy} />
+                      <OrganizerBadges user={event.createdBy} layout="horizontal" className="scale-90" />
                     </p>
                     <p className="text-[0.65rem] text-gray-400">@{event.createdBy?.username || "tickispot"}</p>
                   </div>

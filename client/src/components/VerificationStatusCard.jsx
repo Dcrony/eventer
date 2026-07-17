@@ -77,7 +77,7 @@ function CompactView({ config, status, isVerified, rejectionReason, userRole, on
                     {subtitleMap[status]}
                 </p>
             </div>
-            {isVerified && <VerifiedBadge size="sm" />}
+            {isVerified && <VerifiedBadge verificationStatus="approved" size="sm" />}
             {adminView && (
                 <span className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400 bg-white border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">
                     Admin view
@@ -123,7 +123,7 @@ function AdminView({ config, status, isVerified, rejectionReason, documents, cre
                         <p className="text-xs text-gray-500 mt-0.5">{statusDescMap[status]}</p>
                     </div>
                 </div>
-                {isVerified && <VerifiedBadge />}
+                {isVerified && <VerifiedBadge verificationStatus="approved" />}
             </div>
 
             <div className="bg-white p-5 space-y-4">
@@ -297,7 +297,7 @@ function OrganizerView({ config, status, isVerified, rejectionReason, documents,
                         </p>
                     </div>
                 </div>
-                {isVerified && <VerifiedBadge />}
+                {isVerified && <VerifiedBadge verificationStatus="approved" />}
             </div>
 
             {status === "rejected" && (

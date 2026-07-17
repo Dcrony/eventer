@@ -11,7 +11,7 @@ import {
   getEventUrl,
 } from "../utils/eventHelpers";
 import EventCommentsModal from "./EventCommentsModal";
-import VerifiedBadge from "./ui/verified-badge";
+import OrganizerBadges from "./ui/organizer-badges";
 import { UserAvatar } from "./ui/avatar";
 import { useToast } from "./ui/toast";
 import ShareModal from "./WhatsAppShareModal";
@@ -304,7 +304,7 @@ export default function EventCard({ event, onOrganizerClick, onEventChange, clas
                   <span className="text-xs font-medium text-gray-900 truncate">
                     {organizer?.username || "Deleted organizer"}
                   </span>
-                  {organizer && <VerifiedBadge user={organizer} />}
+                  {organizer && <OrganizerBadges user={organizer} layout="horizontal" className="mt-0.5" />}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-[0.6rem] text-gray-400">Organizer</span>

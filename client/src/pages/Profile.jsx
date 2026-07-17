@@ -26,7 +26,7 @@ import TeamManagement from "../components/TeamManagement";
 import OrganizerReputation from "../components/OrganizerReputation";
 import FeaturedEventsSection from "../components/FeaturedEventsSection";
 import Button from "../components/ui/button";
-import VerifiedBadge from "../components/ui/verified-badge";
+import OrganizerBadges from "../components/ui/organizer-badges";
 import {
   getCoverImageUrl,
   getProfileImageUrl,
@@ -247,7 +247,7 @@ function FeaturedEventCard({
               <span className="text-xs font-semibold text-gray-900 truncate">
                 {organizer?.username || organizer?.name || "Deleted Organizer"}
               </span>
-              <VerifiedBadge user={organizer} />
+              <OrganizerBadges user={organizer} layout="horizontal" className="scale-90" />
             </div>
             <p className="text-[0.6rem] text-gray-400">Organizer</p>
           </div>
@@ -644,7 +644,7 @@ export default function Profile() {
                 <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">
                   {profileName}
                 </h1>
-                <VerifiedBadge user={profile} />
+                <OrganizerBadges user={profile} layout="horizontal" className="scale-90" />
               </div>
               <p className="text-sm text-gray-400">{profileHandle}</p>
               <p className="text-sm text-gray-600 max-w-lg leading-relaxed">

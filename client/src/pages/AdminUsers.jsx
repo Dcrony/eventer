@@ -5,6 +5,7 @@ import { UserAvatar } from "../components/ui/avatar";
 import adminService from "../services/adminService";
 import { formatCurrency, formatDate, formatNumber, getStatusTone } from "../utils/adminUtils";
 import { useToast } from "../components/ui/toast";
+import OrganizerBadges from "../components/ui/organizer-badges";
 import {
     EmptyState,
     ErrorMessage,
@@ -276,10 +277,12 @@ export default function AdminUsers() {
                                     {[
                                         ["Role", <span className="capitalize">{selectedUser.user.role || "user"}</span>],
                                         ["Status", selectedUser.user.isSuspended ? "Suspended" : "Active"],
+                                        ["Verification", <OrganizerBadges user={selectedUser.user} layout="horizontal" />],
+                                        ["Subscription", <span className="capitalize">{selectedUser.user.subscriptionStatus || selectedUser.user.plan || "inactive"}</span>],
                                     ].map(([label, val]) => (
                                         <div key={label} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
                                             <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">{label}</p>
-                                            <p className="mt-1.5 text-xs font-semibold text-gray-900">{val}</p>
+                                            <div className="mt-1.5 text-xs font-semibold text-gray-900">{val}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -287,31 +290,32 @@ export default function AdminUsers() {
                                 {/* Verification + Subscription */}
                                 <div className="grid gap-2 sm:grid-cols-2">
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Verification</p>
+                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Organizer verification</p>
                                         <div className="mt-1.5 flex items-center justify-between gap-2">
-                                            <p className="text-xs font-semibold text-gray-900">{selectedUser.user.isVerified ? "Verified" : "Unverified"}</p>
+                                            <p className="text-xs font-semibold text-gray-900 capitalize">{selectedUser.user.organizerVerificationStatus || "not_started"}</p>
                                             <button
                                                 type="button"
                                                 onClick={async () => {
                                                     try {
-                                                        await adminService.updateUserVerification(selectedUser.user._id, !selectedUser.user.isVerified);
-                                                        toast.success("Verification updated.");
+                                                        const nextStatus = (selectedUser.user.organizerVerificationStatus || "not_started") === "approved" ? false : true;
+                                                        await adminService.updateUserVerification(selectedUser.user._id, nextStatus);
+                                                        toast.success("Organizer verification updated.");
                                                         openUserDetails(selectedUser.user._id);
                                                         fetchUsers(filters, page);
                                                     } catch (err) {
                                                         setError(err.response?.data?.message || "Failed.");
                                                     }
                                                 }}
-                                                className={`rounded-lg px-2 py-1 text-[0.6rem] font-bold text-white transition-colors ${selectedUser.user.isVerified ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
+                                                className={`rounded-lg px-2 py-1 text-[0.6rem] font-bold text-white transition-colors ${selectedUser.user.organizerVerificationStatus === "approved" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"}`}
                                             >
-                                                {selectedUser.user.isVerified ? "Remove" : "Verify"}
+                                                {selectedUser.user.organizerVerificationStatus === "approved" ? "Revoke" : "Approve"}
                                             </button>
                                         </div>
                                     </div>
                                     <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Subscription</p>
+                                        <p className="text-[0.6rem] font-bold uppercase tracking-widest text-gray-400">Premium subscription</p>
                                         <div className="mt-1.5 flex items-center justify-between gap-2">
-                                            <p className="text-xs font-bold uppercase text-gray-900">{selectedUser.user.plan || "free"}</p>
+                                            <p className="text-xs font-bold uppercase text-gray-900">{selectedUser.user.subscriptionStatus || selectedUser.user.plan || "inactive"}</p>
                                             <select
                                                 value={selectedUser.user.plan || "free"}
                                                 onChange={async (e) => {

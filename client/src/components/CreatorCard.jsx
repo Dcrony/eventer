@@ -5,6 +5,7 @@ import Badge from "./ui/badge";
 import Button from "./ui/button";
 import { UserPlus, UserCheck, CalendarDays, Users } from "lucide-react";
 import API from "../api/axios";
+import OrganizerBadges from "./ui/organizer-badges";
 
 export default function CreatorCard({ creator, onFollowToggle }) {
   const [following, setFollowing] = useState(creator.isFollowing || false);
@@ -17,7 +18,7 @@ export default function CreatorCard({ creator, onFollowToggle }) {
       await API.post(`/users/${creator._id}/follow`);
       const newFollowing = !following;
       setFollowing(newFollowing);
-      setFollowersCount(prev => newFollowing ? prev + 1 : prev - 1);
+      setFollowersCount((prev) => (newFollowing ? prev + 1 : prev - 1));
       onFollowToggle?.(creator._id, newFollowing);
     } catch (err) {
       console.error("Failed to follow/unfollow:", err);
@@ -30,36 +31,30 @@ export default function CreatorCard({ creator, onFollowToggle }) {
   const eventCount = creator.eventsCount || 0;
 
   return (
-    <article className="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
+    <article className="group overflow-hidden rounded-2xl border border-gray-200 bg-white hover:-translate-y-1 hover:shadow-xl hover:border-pink-200/40">
       <div className="p-5">
-        {/* Header */}
         <div className="flex items-start gap-3">
           <Avatar
             src={getProfileImageUrl(creator)}
             name={creator.name || creator.username}
-            className="w-14 h-14 rounded-xl flex-shrink-0"
+            className="h-14 w-14 flex-shrink-0 rounded-xl"
           />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center flex-wrap gap-2">
-              <h3 className="text-base font-bold text-gray-900 truncate">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate text-base font-bold text-gray-900">
                 {creator.name || creator.username}
               </h3>
               {isFeatured && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[0.6rem] font-extrabold uppercase tracking-wide bg-amber-100 text-amber-700 border border-amber-200">
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[0.6rem] font-extrabold uppercase tracking-wide text-amber-700">
                   Featured
                 </span>
               )}
-              {creator.verified && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[0.6rem] font-extrabold uppercase tracking-wide bg-pink-100 text-pink-600 border border-pink-200">
-                  ✓ Pro
-                </span>
-              )}
+              <OrganizerBadges user={creator} layout="horizontal" />
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">@{creator.username}</p>
+            <p className="mt-0.5 text-xs text-gray-400">@{creator.username}</p>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="mt-4 flex items-center gap-4 text-xs">
           <div className="flex items-center gap-1.5 text-gray-500">
             <CalendarDays size={14} className="text-pink-500" />
@@ -73,7 +68,6 @@ export default function CreatorCard({ creator, onFollowToggle }) {
           </div>
         </div>
 
-        {/* Points (if available) */}
         {creator.points !== undefined && (
           <div className="mt-3 flex items-center gap-2 text-xs">
             <div className="flex items-center gap-1">
@@ -86,16 +80,15 @@ export default function CreatorCard({ creator, onFollowToggle }) {
           </div>
         )}
 
-        {/* Follow Button */}
         <Button
-          className="w-full mt-4"
+          className="mt-4 w-full"
           size="sm"
           variant={following ? "secondary" : "primary"}
           onClick={handleFollow}
           disabled={loading}
         >
           {loading ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+            <div className="mx-auto h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           ) : following ? (
             <>
               <UserCheck size={14} />
