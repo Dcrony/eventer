@@ -37,6 +37,7 @@ const getOrganizerVerificationStatus = async (userId) => {
     reviewedAt: verification?.reviewedAt,
     createdAt: verification?.createdAt,
     reviewedBy: verification?.reviewedBy || null,
+    status: verification?.status || "not_started",
   };
 };
 
@@ -263,6 +264,9 @@ const getMyProfile = async (req, res) => {
     if (verificationStatus) {
       profileResponse.verification = verificationStatus;
       profileResponse.organizerVerification = verificationStatus;
+      profileResponse.organizerVerificationStatus = verificationStatus.organizerVerificationStatus || verificationStatus.status || "not_started";
+      profileResponse.organizerVerifiedAt = verificationStatus.reviewedAt || null;
+      profileResponse.organizerVerifiedBy = verificationStatus.reviewedBy || null;
     }
 
     res.json(profileResponse);
@@ -577,11 +581,11 @@ const getUserProfile = async (req, res) => {
       delete base.favorites;
     }
 
-      res.json({
-        ...base,
-        tickets: isOwner ? tickets : [],
-        createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
-        likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+    res.json({
+      ...base,
+      tickets: isOwner ? tickets : [],
+      createdEvents: createdEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
+      likedEvents: likedEvents.map((event) => buildProfileEventPayload(event, currentUserId)),
         featuredEvents,
       savedEvents: isOwner
         ? (user.favorites || []).map((event) =>
@@ -597,6 +601,7 @@ const getUserProfile = async (req, res) => {
       }),
       isOwner,
       isFollowing,
+      organizerVerificationStatus: base.organizerVerificationStatus || "not_started",
     });
   } catch (err) {
     res.status(500).json({ msg: err.message });
@@ -653,6 +658,7 @@ const getPublicProfile = async (req, res) => {
       isOwner: false,
       isFollowing: false,
       isPublic: true,
+      organizerVerificationStatus: pub.organizerVerificationStatus || "not_started",
     });
   } catch (err) {
     return res.status(500).json({ msg: err.message });

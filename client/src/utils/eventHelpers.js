@@ -70,8 +70,11 @@ export const getOrganizerVerificationStatus = (user) =>
   String(
     user?.organizerVerificationStatus ||
       user?.organizerVerification?.status ||
+      user?.organizerVerification?.organizerVerificationStatus ||
       user?.verification?.organizerVerificationStatus ||
       user?.verification?.status ||
+      user?.verification?.organizerVerificationStatus ||
+      (user?.verification?.isVerified ? "approved" : "") ||
       "",
   ).toLowerCase();
 
