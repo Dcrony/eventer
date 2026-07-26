@@ -16,6 +16,8 @@ const {
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "tickispot@gmail.com";
 const FRONTEND_URL = process.env.FRONTEND_URL || "https://tickispot.com";
+const buildAdminVerificationLink = (verificationId) =>
+  `${FRONTEND_URL}/admin/verification?verification=${encodeURIComponent(String(verificationId))}`;
 
 // Submit verification documents (organizer only)
 exports.submitVerification = async (req, res, next) => {
@@ -90,7 +92,7 @@ exports.submitVerification = async (req, res, next) => {
           req.user.email,
           existing._id,
           existing.documents.length,
-          `${FRONTEND_URL}/admin/verification/${existing._id}`,
+          buildAdminVerificationLink(existing._id),
         ),
         type: "organizer_verification_resubmitted",
         relatedType: "OrganizerVerification",
@@ -135,7 +137,7 @@ exports.submitVerification = async (req, res, next) => {
         req.user.email,
         verification._id,
         documents.length,
-        `${FRONTEND_URL}/admin/verification/${verification._id}`,
+        buildAdminVerificationLink(verification._id),
       ),
       type: "organizer_verification_request",
       relatedType: "OrganizerVerification",

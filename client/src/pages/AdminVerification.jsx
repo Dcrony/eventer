@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
     AlertTriangle,
     CheckCircle2,
@@ -212,13 +213,58 @@ export default function AdminVerification() {
     const [suspendReason, setSuspendReason] = useState("");
     const [suspendNotes, setSuspendNotes] = useState("");
     const [actionLoading, setActionLoading] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const handledVerificationRef = useRef(null);
 
     const LIMIT = 20;
+    const verificationQueryId = new URLSearchParams(location.search).get("verification");
 
     const openModal  = (key) => setModals((m) => ({ ...m, [key]: true }));
     const closeModal = (key) => setModals((m) => ({ ...m, [key]: false }));
 
     useEffect(() => { fetchVerifications(); }, [page, statusFilter]);
+
+    useEffect(() => {
+        if (!verificationQueryId) {
+            handledVerificationRef.current = null;
+            return;
+        }
+
+        if (handledVerificationRef.current === verificationQueryId) {
+            return;
+        }
+
+        if (loading) {
+            return;
+        }
+
+        const matchingVerification = verifications.find((verification) => String(verification._id) === verificationQueryId);
+
+        const clearVerificationQuery = () => {
+            const params = new URLSearchParams(location.search);
+            params.delete("verification");
+            navigate(
+                {
+                    pathname: location.pathname,
+                    search: params.toString() ? `?${params.toString()}` : "",
+                },
+                { replace: true },
+            );
+        };
+
+        const openVerificationFromNotification = async () => {
+            handledVerificationRef.current = verificationQueryId;
+            const detailsLoaded = await fetchDetails(matchingVerification?._id || verificationQueryId, { silent: true });
+            if (detailsLoaded) {
+                clearVerificationQuery();
+            } else if (!matchingVerification) {
+                clearVerificationQuery();
+            }
+        };
+
+        openVerificationFromNotification();
+    }, [verificationQueryId, verifications, loading, location.pathname, location.search, navigate]);
 
     const fetchVerifications = async () => {
         try {
@@ -240,7 +286,7 @@ export default function AdminVerification() {
         }
     };
 
-    const fetchDetails = async (id) => {
+    const fetchDetails = async (id, { silent = false } = {}) => {
         try {
             setDetailsLoading(true);
             const data = await adminService.getVerificationDetails(id);
@@ -248,10 +294,15 @@ export default function AdminVerification() {
             const historyData = await adminService.getVerificationAuditHistory(id);
             setAuditHistory(historyData.auditHistory || []);
         } catch (err) {
-            toast.error(err.response?.data?.message || "Failed to load details");
+            if (!silent) {
+                toast.error(err.response?.data?.message || "Failed to load details");
+            }
+            return false;
         } finally {
             setDetailsLoading(false);
         }
+
+        return true;
     };
 
     const handleApprove = async () => {
