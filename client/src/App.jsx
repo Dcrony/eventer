@@ -81,7 +81,7 @@ const AdminModeration = lazy(() => import("./pages/AdminModeration"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings"));
 const AdminPayouts = lazy(() => import("./pages/AdminPayouts"));
 const AdminVerification = lazy(() => import("./pages/AdminVerification"));
- const EventTickets = lazy(() => import("./pages/EventTickets"));
+const EventTickets = lazy(() => import("./pages/EventTickets"));
 const TeamInvitations = lazy(() => import("./pages/TeamInvitations"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const CreateEventRedirect = lazy(() => import("./pages/CreateEventRedirect"));
